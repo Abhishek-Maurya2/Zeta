@@ -74,24 +74,6 @@ class AppScaffold extends StatelessWidget {
           ),
         ],
       ),
-
-      // FAB on tasks page (compact mobile only, positioned above floating toolbar)
-      floatingActionButton: isCompact && navProvider.activePage == PageId.tasks
-          ? Padding(
-              padding: const EdgeInsets.only(bottom: 76),
-              child: FloatingActionButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Create task modal — coming soon'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                child: const Icon(Icons.add),
-              ),
-            )
-          : null,
     );
   }
 }

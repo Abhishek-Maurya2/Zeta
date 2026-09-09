@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/theme_provider.dart';
 import 'providers/navigation_provider.dart';
+import 'providers/task_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 
@@ -20,6 +21,7 @@ class ZetaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
       ],
       child: const _ZetaAppView(),
     );
