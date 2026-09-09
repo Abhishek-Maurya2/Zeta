@@ -8,6 +8,8 @@ import 'package:zeta/navigation/top_app_bar.dart';
 import 'package:zeta/pages/tasks_page.dart';
 import 'package:zeta/pages/bin_page.dart';
 import 'package:zeta/providers/navigation_provider.dart';
+import 'package:m3e_core/m3e_core.dart';
+import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/components/tasks/task_edit_pane.dart';
 
 void main() {
@@ -213,4 +215,48 @@ void main() {
     expect(find.text('Bin is Empty'), findsOneWidget);
     expect(find.text('Go to Tasks'), findsOneWidget);
   });
+
+  testWidgets('TasksPage filter and sort layout responds to compact view',
+      (WidgetTester tester) async {
+    // 1. Wide view (1200x800)
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(const ZetaApp());
+    await tester.pumpAndSettle();
+
+    final BuildContext context = tester.element(find.byType(AppScaffold));
+    context.read<NavigationProvider>().setActivePage(PageId.tasks);
+    await tester.pumpAndSettle();
+
+    final filterFinder = find.byType(M3EToggleButtonGroup);
+    final sortFinder = find.byType(M3ESplitButton<TaskSortOption>);
+
+    expect(filterFinder, findsOneWidget);
+    expect(sortFinder, findsOneWidget);
+
+    final wideFilterPos = tester.getTopLeft(filterFinder);
+    final wideSortPos = tester.getTopLeft(sortFinder);
+
+    // In wide view, sort button is in the same row as filter button group
+    expect((wideSortPos.dy - wideFilterPos.dy).abs(), lessThan(10.0));
+    // And to the right
+    expect(wideSortPos.dx, greaterThan(wideFilterPos.dx));
+
+    // 2. Compact view (400x800)
+    tester.view.physicalSize = const Size(400, 800);
+    await tester.pumpAndSettle();
+
+    final compactFilterBottom = tester.getBottomLeft(filterFinder);
+    final compactSortTop = tester.getTopLeft(sortFinder);
+
+    // In compact view, sort button is below the filter buttons
+    expect(compactSortTop.dy, greaterThan(compactFilterBottom.dy));
+
+    // And aligned to the right side (justify-end)
+    final compactSortRight = tester.getTopRight(sortFinder);
+    expect(compactSortRight.dx, closeTo(400 - 16, 2.0));
+  });
 }
+

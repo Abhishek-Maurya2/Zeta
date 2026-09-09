@@ -1,4 +1,4 @@
-﻿class Subtask {
+class Subtask {
   final String id;
   final String title;
   bool completed;
@@ -29,6 +29,7 @@ class Task {
   bool completed;
   String? dueDate;
   bool hasTime;
+  String? dueTime;
   List<Subtask> subtasks;
   DateTime createdAt;
   DateTime? deletedAt;
@@ -40,6 +41,7 @@ class Task {
     this.completed = false,
     this.dueDate,
     this.hasTime = false,
+    this.dueTime,
     List<Subtask>? subtasks,
     DateTime? createdAt,
     this.deletedAt,
@@ -53,6 +55,7 @@ class Task {
     bool? completed,
     String? dueDate,
     bool? hasTime,
+    String? dueTime,
     List<Subtask>? subtasks,
     DateTime? createdAt,
     DateTime? deletedAt,
@@ -64,6 +67,7 @@ class Task {
       completed: completed ?? this.completed,
       dueDate: dueDate ?? this.dueDate,
       hasTime: hasTime ?? this.hasTime,
+      dueTime: dueTime ?? this.dueTime,
       subtasks: subtasks ?? this.subtasks.map((s) => s.copyWith()).toList(),
       createdAt: createdAt ?? this.createdAt,
       deletedAt: deletedAt ?? this.deletedAt,

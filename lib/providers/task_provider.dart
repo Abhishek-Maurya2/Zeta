@@ -31,6 +31,7 @@ class TaskProvider extends ChangeNotifier {
       title: 'Population',
       dueDate: '8, Sep',
       hasTime: true,
+      dueTime: '10:00 AM',
       completed: false,
       createdAt: DateTime.now().subtract(const Duration(hours: 6)),
     ),
@@ -46,6 +47,7 @@ class TaskProvider extends ChangeNotifier {
       title: 'Role of Women',
       dueDate: '6, Sep',
       hasTime: true,
+      dueTime: '02:30 PM',
       completed: true,
       createdAt: DateTime.now().subtract(const Duration(days: 4)),
     ),
@@ -71,6 +73,7 @@ class TaskProvider extends ChangeNotifier {
       description: '1857 to 1947 important events and acts',
       dueDate: '4, Sep',
       hasTime: true,
+      dueTime: '11:15 AM',
       completed: true,
       deletedAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
       createdAt: DateTime.now().subtract(const Duration(days: 7)),
@@ -214,6 +217,7 @@ class TaskProvider extends ChangeNotifier {
     String? description,
     String? dueDate,
     bool hasTime = false,
+    String? dueTime,
     List<Subtask>? subtasks,
   }) {
     final newTask = Task(
@@ -222,6 +226,7 @@ class TaskProvider extends ChangeNotifier {
       description: description,
       dueDate: dueDate,
       hasTime: hasTime,
+      dueTime: dueTime,
       subtasks: subtasks ?? [],
       createdAt: DateTime.now(),
     );
@@ -235,6 +240,7 @@ class TaskProvider extends ChangeNotifier {
     String? description,
     String? dueDate,
     bool hasTime = false,
+    String? dueTime,
     List<Subtask>? subtasks,
     bool? completed,
   }) {
@@ -245,6 +251,7 @@ class TaskProvider extends ChangeNotifier {
       task.description = description;
       task.dueDate = dueDate;
       task.hasTime = hasTime;
+      task.dueTime = dueTime;
       if (subtasks != null) task.subtasks = subtasks;
       if (completed != null) task.completed = completed;
       notifyListeners();

@@ -45,7 +45,8 @@ class BinPage extends StatelessWidget {
         horizontal: isCompact ? 16 : 36,
         vertical: 28,
       ),
-      child: Center(
+      child: Align(
+        alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 860),
           child: Column(

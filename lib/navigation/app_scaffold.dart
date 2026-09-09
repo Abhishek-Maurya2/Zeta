@@ -1,4 +1,5 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:m3e_core/m3e_core.dart' hide M3EFabColor;
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -32,47 +33,65 @@ class AppScaffold extends StatelessWidget {
          navProvider.activePage != PageId.pomodoro &&
          navProvider.activePage != PageId.revision);
 
-    return Scaffold(
-      body: Column(
-        children: [
-          // 1. Top App Bar (contains rail toggle button, hidden on mobile)
-          if (showTopAppBar) const TopAppBarWidget(),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-          // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
-          Expanded(
-            child: isCompact
-                ? Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _BodyPane(activePage: navProvider.activePage),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _FloatingBottomNav(navProvider: navProvider),
+    final systemOverlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: systemOverlayStyle,
+      child: Scaffold(
+        body: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            children: [
+              // 1. Top App Bar (contains rail toggle button, hidden on mobile)
+              if (showTopAppBar) const TopAppBarWidget(),
+
+              // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
+              Expanded(
+                child: isCompact
+                    ? Stack(
+                        children: [
+                          Positioned.fill(
+                            child: _BodyPane(activePage: navProvider.activePage),
                           ),
-                        ),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      // M3E Navigation Rail from material_3_expressive (no internal toggle button)
-                      _NavigationRailWidget(
-                        isExpanded: navProvider.isRailExpanded,
-                        navProvider: navProvider,
-                      ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: SafeArea(
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _FloatingBottomNav(navProvider: navProvider),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // M3E Navigation Rail from material_3_expressive (no internal toggle button)
+                          _NavigationRailWidget(
+                            isExpanded: navProvider.isRailExpanded,
+                            navProvider: navProvider,
+                          ),
 
-                      // Body content pane
-                      Expanded(
-                        child: _BodyPane(activePage: navProvider.activePage),
+                          // Body content pane
+                          Expanded(
+                            child: _BodyPane(activePage: navProvider.activePage),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -249,6 +268,16 @@ class _BodyPane extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          fit: StackFit.expand,
+          children: [
+            ...previousChildren,
+            ?currentChild,
+          ],
+        );
+      },
       transitionBuilder: (child, animation) {
         return FadeTransition(
           opacity: animation,

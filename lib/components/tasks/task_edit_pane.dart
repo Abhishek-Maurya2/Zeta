@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:m3e_core/m3e_core.dart';
+
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 
@@ -13,6 +14,7 @@ class TaskEditPane {
       return showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
         builder: (ctx) => M3EBottomSheet(
           showDragHandle: true,
@@ -57,6 +59,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
   String? _dueDate;
   bool _hasTime = false;
+  String? _dueTime;
   late List<Subtask> _subtasks;
   String? _errorMessage;
 
@@ -66,10 +69,15 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.task?.title ?? '');
-    _descController =
-        TextEditingController(text: widget.task?.description ?? '');
+    _descController = TextEditingController(
+      text: widget.task?.description ?? '',
+    );
     _dueDate = widget.task?.dueDate;
     _hasTime = widget.task?.hasTime ?? false;
+    _dueTime = widget.task?.dueTime;
+    if (_hasTime && _dueTime == null) {
+      _dueTime = '09:00 AM';
+    }
     _subtasks = widget.task?.subtasks.map((s) => s.copyWith()).toList() ?? [];
   }
 
@@ -121,8 +129,18 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     );
     if (picked != null) {
       const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       setState(() {
         _dueDate = '${picked.day}, ${months[picked.month - 1]}';
@@ -131,14 +149,38 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   Future<void> _pickTime() async {
+    final now = TimeOfDay.now();
+    final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      initialTime: initial,
     );
     if (picked != null) {
+      final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+      final minute = picked.minute.toString().padLeft(2, '0');
+      final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
       setState(() {
         _hasTime = true;
+        _dueTime = '$hour:$minute $period';
+        _dueDate ??= 'Today';
       });
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String str) {
+    try {
+      final parts = str.trim().split(' ');
+      final timeParts = parts[0].split(':');
+      var hour = int.parse(timeParts[0]);
+      final minute = int.parse(timeParts[1]);
+      if (parts.length > 1) {
+        final period = parts[1].toUpperCase();
+        if (period == 'PM' && hour < 12) hour += 12;
+        if (period == 'AM' && hour == 12) hour = 0;
+      }
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -159,6 +201,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
         description: desc.isNotEmpty ? desc : null,
         dueDate: _dueDate,
         hasTime: _hasTime,
+        dueTime: _hasTime ? _dueTime : null,
         subtasks: _subtasks,
       );
     } else {
@@ -167,6 +210,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
         description: desc.isNotEmpty ? desc : null,
         dueDate: _dueDate,
         hasTime: _hasTime,
+        dueTime: _hasTime ? _dueTime : null,
         subtasks: _subtasks,
       );
     }
@@ -198,9 +242,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
               Text(
                 isEditing ? 'Edit Task' : 'New Task',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close_rounded),
@@ -230,7 +274,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                       hintStyle: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       border: InputBorder.none,
                       errorText: _errorMessage,
@@ -256,12 +302,16 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                       hintText: 'Add details / notes...',
                       hintStyle: TextStyle(
                         fontSize: 14,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 1,
+                          ),
                         ),
                       ),
                     ),
@@ -270,36 +320,14 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   const SizedBox(height: 16),
 
                   // 3. Due Date & Time Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'DUE DATE & TIME',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.1,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (_dueDate != null)
-                        InkWell(
-                          onTap: () {
-                            setState(() {
-                              _dueDate = null;
-                              _hasTime = false;
-                            });
-                          },
-                          child: Text(
-                            'Clear due date',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    'DUE DATE & TIME',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.1,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
 
                   const SizedBox(height: 8),
@@ -309,45 +337,54 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      ActionChip(
-                        avatar: const Icon(Icons.calendar_today_outlined, size: 16),
+                      InputChip(
+                        avatar: Icon(
+                          Icons.calendar_today_outlined,
+                          size: 16,
+                          color: _dueDate != null
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant,
+                        ),
                         label: Text(_dueDate ?? 'Pick Date'),
+                        selected: _dueDate != null,
+                        showCheckmark: false,
                         onPressed: _pickDate,
+                        onDeleted: _dueDate != null
+                            ? () => setState(() {
+                                  _dueDate = null;
+                                  _hasTime = false;
+                                  _dueTime = null;
+                                })
+                            : null,
+                        deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                        deleteButtonTooltipMessage: 'Clear date',
                       ),
-                      if (_dueDate != null)
-                        ActionChip(
-                          avatar: Icon(
-                            _hasTime
-                                ? Icons.schedule_rounded
-                                : Icons.alarm_add_rounded,
-                            size: 16,
-                          ),
-                          label: Text(_hasTime ? 'Time Added' : 'Add Time'),
-                          onPressed: _pickTime,
+                      InputChip(
+                        avatar: Icon(
+                          _hasTime
+                              ? Icons.schedule_rounded
+                              : Icons.alarm_add_rounded,
+                          size: 16,
+                          color: _hasTime
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant,
                         ),
-                      if (_hasTime)
-                        IconButton(
-                          icon: const Icon(Icons.alarm_off_rounded, size: 18),
-                          tooltip: 'Remove time',
-                          onPressed: () => setState(() => _hasTime = false),
+                        label: Text(
+                          _hasTime && _dueTime != null
+                              ? _dueTime!
+                              : 'Add Time',
                         ),
-                      ChoiceChip(
-                        label: const Text('Today'),
-                        selected: _dueDate == 'Today',
-                        onSelected: (val) =>
-                            setState(() => _dueDate = val ? 'Today' : null),
-                      ),
-                      ChoiceChip(
-                        label: const Text('Tomorrow'),
-                        selected: _dueDate == 'Tomorrow',
-                        onSelected: (val) =>
-                            setState(() => _dueDate = val ? 'Tomorrow' : null),
-                      ),
-                      ChoiceChip(
-                        label: const Text('Next week'),
-                        selected: _dueDate == 'Next week',
-                        onSelected: (val) =>
-                            setState(() => _dueDate = val ? 'Next week' : null),
+                        selected: _hasTime,
+                        showCheckmark: false,
+                        onPressed: _pickTime,
+                        onDeleted: _hasTime
+                            ? () => setState(() {
+                                  _hasTime = false;
+                                  _dueTime = null;
+                                })
+                            : null,
+                        deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                        deleteButtonTooltipMessage: 'Clear time',
                       ),
                     ],
                   ),
@@ -454,19 +491,27 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   label: const Text('Move to Bin'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colorScheme.error,
-                    side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+                    side: BorderSide(
+                      color: colorScheme.error.withValues(alpha: 0.5),
+                    ),
                   ),
                 )
               else
                 const SizedBox.shrink(),
               FilledButton.icon(
                 onPressed: _handleSave,
-                icon: Icon(isEditing ? Icons.check_rounded : Icons.add_rounded, size: 18),
+                icon: Icon(
+                  isEditing ? Icons.check_rounded : Icons.add_rounded,
+                  size: 18,
+                ),
                 label: Text(isEditing ? 'Save Changes' : 'Create Task'),
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF006A60),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],

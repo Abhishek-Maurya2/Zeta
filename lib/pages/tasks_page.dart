@@ -43,6 +43,54 @@ class TasksPage extends StatelessWidget {
         ? 0
         : (filter == TaskFilter.completed ? 1 : 2);
 
+    final filterButtonGroup = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: M3EToggleButtonGroup(
+        type: M3EButtonGroupType.connected,
+        size: M3EButtonSize.sm,
+        style: M3EButtonStyle.tonal,
+        selectedIndex: selectedFilterIndex,
+        onSelectedIndexChanged: (index) {
+          if (index == null) return;
+          if (index == 0) {
+            taskProvider.setFilter(TaskFilter.all);
+          } else if (index == 1) {
+            taskProvider.setFilter(TaskFilter.completed);
+          } else if (index == 2) {
+            taskProvider.setFilter(TaskFilter.pending);
+          }
+        },
+        actions: [
+          M3EToggleButtonGroupAction(
+            label: Text('All (${taskProvider.totalCount})'),
+          ),
+          M3EToggleButtonGroupAction(
+            label: Text('Completed (${completed.length})'),
+          ),
+          M3EToggleButtonGroupAction(
+            label: Text('Pending (${pending.length})'),
+          ),
+        ],
+      ),
+    );
+
+    final sortButton = M3ESplitButton<TaskSortOption>(
+      size: M3EButtonSize.sm,
+      style: M3EButtonStyle.tonal,
+      leadingIcon: taskProvider.getSortIcon(taskProvider.sortBy),
+      label: taskProvider.getSortLabel(taskProvider.sortBy),
+      onPressed: () => taskProvider.cycleSortOption(),
+      onSelected: (val) {
+        taskProvider.setSortBy(val);
+      },
+      items: TaskSortOption.values.map((opt) {
+        return M3ESplitButtonItem<TaskSortOption>(
+          value: opt,
+          child: taskProvider.getSortLabel(opt),
+        );
+      }).toList(),
+    );
+
     return Stack(
       children: [
         // ─── Main Scrollable Content ─────────────────────────────────────────
@@ -51,7 +99,8 @@ class TasksPage extends StatelessWidget {
             horizontal: isCompact ? 16 : 36,
             vertical: 28,
           ),
-          child: Center(
+          child: Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 860),
               child: Column(
@@ -70,65 +119,27 @@ class TasksPage extends StatelessWidget {
                   const SizedBox(height: 18),
 
                   // 2. Filter & Sort Bar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Connected Filter Button Group using M3EToggleButtonGroup
-                      Flexible(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: M3EToggleButtonGroup(
-                            type: M3EButtonGroupType.connected,
-                            size: M3EButtonSize.sm,
-                            style: M3EButtonStyle.tonal,
-                            selectedIndex: selectedFilterIndex,
-                            onSelectedIndexChanged: (index) {
-                              if (index == null) return;
-                              if (index == 0) {
-                                taskProvider.setFilter(TaskFilter.all);
-                              } else if (index == 1) {
-                                taskProvider.setFilter(TaskFilter.completed);
-                              } else if (index == 2) {
-                                taskProvider.setFilter(TaskFilter.pending);
-                              }
-                            },
-                            actions: [
-                              M3EToggleButtonGroupAction(
-                                label: Text('All (${taskProvider.totalCount})'),
-                              ),
-                              M3EToggleButtonGroupAction(
-                                label: Text('Completed (${completed.length})'),
-                              ),
-                              M3EToggleButtonGroupAction(
-                                label: Text('Pending (${pending.length})'),
-                              ),
-                            ],
-                          ),
+                  if (isCompact) ...[
+                    filterButtonGroup,
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        sortButton,
+                      ],
+                    ),
+                  ] else ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: filterButtonGroup,
                         ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Sort Split Button from m3e_core
-                      M3ESplitButton<TaskSortOption>(
-                        size: M3EButtonSize.sm,
-                        style: M3EButtonStyle.tonal,
-                        leadingIcon:
-                            taskProvider.getSortIcon(taskProvider.sortBy),
-                        label: taskProvider.getSortLabel(taskProvider.sortBy),
-                        onPressed: () => taskProvider.cycleSortOption(),
-                        onSelected: (val) {
-                          taskProvider.setSortBy(val);
-                        },
-                        items: TaskSortOption.values.map((opt) {
-                          return M3ESplitButtonItem<TaskSortOption>(
-                            value: opt,
-                            child: taskProvider.getSortLabel(opt),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        sortButton,
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 20),
 

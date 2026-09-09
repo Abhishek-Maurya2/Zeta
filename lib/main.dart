@@ -1,4 +1,5 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/theme_provider.dart';
@@ -9,6 +10,11 @@ import 'navigation/app_scaffold.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+    ),
+  );
   runApp(const ZetaApp());
 }
 

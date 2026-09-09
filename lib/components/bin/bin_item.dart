@@ -75,6 +75,8 @@ class BinItem extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       task.description!,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
                         decoration: TextDecoration.lineThrough,
@@ -188,7 +190,9 @@ class BinItem extends StatelessWidget {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                task.dueDate!,
+                                task.hasTime && task.dueTime != null
+                                    ? '${task.dueDate} • ${task.dueTime}'
+                                    : task.dueDate!,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
