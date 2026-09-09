@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import '../models/task.dart';
+import '../utils/task_date_formatter.dart';
 
 enum TaskFilter { all, completed, pending }
 
@@ -29,7 +30,7 @@ class TaskProvider extends ChangeNotifier {
     Task(
       id: '3',
       title: 'Population',
-      dueDate: '8, Sep',
+      dueDate: 'Today',
       hasTime: true,
       dueTime: '10:00 AM',
       completed: false,
@@ -38,14 +39,14 @@ class TaskProvider extends ChangeNotifier {
     Task(
       id: '4',
       title: 'Women Organisation',
-      dueDate: '7, Sep',
+      dueDate: 'Tomorrow',
       completed: true,
       createdAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
     Task(
       id: '5',
       title: 'Role of Women',
-      dueDate: '6, Sep',
+      dueDate: '13, Sep',
       hasTime: true,
       dueTime: '02:30 PM',
       completed: true,
@@ -174,6 +175,12 @@ class TaskProvider extends ChangeNotifier {
           }
           if (a.dueDate == null) return 1;
           if (b.dueDate == null) return -1;
+          final dateA = TaskDateFormatter.parse(a.dueDate!);
+          final dateB = TaskDateFormatter.parse(b.dueDate!);
+          if (dateA != null && dateB != null) {
+            final dateComp = dateA.compareTo(dateB);
+            if (dateComp != 0) return dateComp;
+          }
           return a.dueDate!.compareTo(b.dueDate!);
         case TaskSortOption.az:
           return a.title.toLowerCase().compareTo(b.title.toLowerCase());

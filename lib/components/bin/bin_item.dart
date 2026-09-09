@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import '../../models/task.dart';
+import '../../utils/task_date_formatter.dart';
 
 class BinItem extends StatelessWidget {
   final Task task;
@@ -182,7 +183,9 @@ class BinItem extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                task.hasTime
+                                TaskDateFormatter.isToday(task.dueDate) &&
+                                        task.hasTime &&
+                                        task.dueTime != null
                                     ? Icons.schedule_rounded
                                     : Icons.event_rounded,
                                 size: 13,
@@ -190,9 +193,11 @@ class BinItem extends StatelessWidget {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                task.hasTime && task.dueTime != null
-                                    ? '${task.dueDate} • ${task.dueTime}'
-                                    : task.dueDate!,
+                                TaskDateFormatter.formatTaskListDate(
+                                  dueDate: task.dueDate!,
+                                  hasTime: task.hasTime,
+                                  dueTime: task.dueTime,
+                                ),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,

@@ -4,6 +4,7 @@ import 'package:m3e_core/m3e_core.dart';
 
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
+import '../../utils/task_date_formatter.dart';
 
 class TaskEditPane {
   static Future<void> show(BuildContext context, {Task? task}) {
@@ -72,7 +73,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     _descController = TextEditingController(
       text: widget.task?.description ?? '',
     );
-    _dueDate = widget.task?.dueDate;
+    _dueDate = widget.task?.dueDate != null
+        ? TaskDateFormatter.formatString(widget.task!.dueDate!)
+        : null;
     _hasTime = widget.task?.hasTime ?? false;
     _dueTime = widget.task?.dueTime;
     if (_hasTime && _dueTime == null) {
@@ -121,29 +124,18 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
+    final initial = _dueDate != null
+        ? TaskDateFormatter.parse(_dueDate!) ?? now
+        : now;
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: initial,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 365 * 3)),
     );
     if (picked != null) {
-      const months = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
       setState(() {
-        _dueDate = '${picked.day}, ${months[picked.month - 1]}';
+        _dueDate = TaskDateFormatter.format(picked);
       });
     }
   }
@@ -431,46 +423,44 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
                   if (_subtasks.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(12),
+                    M3ESegmentedColumn(
+                      decoration: const M3ESegmentedListDecoration(
+                        padding: EdgeInsets.all(1.0),
                       ),
-                      child: Column(
-                        children: _subtasks.map((st) {
-                          return ListTile(
-                            dense: true,
-                            leading: InkWell(
-                              onTap: () => _toggleSubtask(st.id),
-                              child: Icon(
-                                st.completed
-                                    ? Icons.check_circle_rounded
-                                    : Icons.radio_button_unchecked_rounded,
-                                size: 18,
-                                color: st.completed
-                                    ? const Color(0xFF10B981)
-                                    : colorScheme.onSurfaceVariant,
-                              ),
+                      color: colorScheme.surfaceContainerLow,
+                      children: _subtasks.map((st) {
+                        return ListTile(
+                          dense: true,
+                          leading: InkWell(
+                            onTap: () => _toggleSubtask(st.id),
+                            child: Icon(
+                              st.completed
+                                  ? Icons.check_circle_rounded
+                                  : Icons.radio_button_unchecked_rounded,
+                              size: 18,
+                              color: st.completed
+                                  ? const Color(0xFF10B981)
+                                  : colorScheme.onSurfaceVariant,
                             ),
-                            title: Text(
-                              st.title,
-                              style: TextStyle(
-                                fontSize: 13,
-                                decoration: st.completed
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                                color: st.completed
-                                    ? colorScheme.onSurfaceVariant
-                                    : colorScheme.onSurface,
-                              ),
+                          ),
+                          title: Text(
+                            st.title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              decoration: st.completed
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: st.completed
+                                  ? colorScheme.onSurfaceVariant
+                                  : colorScheme.onSurface,
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 16),
-                              onPressed: () => _removeSubtask(st.id),
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            onPressed: () => _removeSubtask(st.id),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
 

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 import '../../models/task.dart';
+import '../../utils/task_date_formatter.dart';
 
 class TaskCardItem extends StatelessWidget {
   final Task task;
@@ -139,7 +141,9 @@ class TaskCardItem extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      task.hasTime
+                                      TaskDateFormatter.isToday(task.dueDate) &&
+                                              task.hasTime &&
+                                              task.dueTime != null
                                           ? Icons.schedule_rounded
                                           : Icons.calendar_today_outlined,
                                       size: 14,
@@ -147,9 +151,11 @@ class TaskCardItem extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 5),
                                     Text(
-                                      task.hasTime && task.dueTime != null
-                                          ? '${task.dueDate} • ${task.dueTime}'
-                                          : task.dueDate!,
+                                      TaskDateFormatter.formatTaskListDate(
+                                        dueDate: task.dueDate!,
+                                        hasTime: task.hasTime,
+                                        dueTime: task.dueTime,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -226,23 +232,21 @@ class TaskCardItem extends StatelessWidget {
               // ─── Collapsible Subtask List ─────────────────────────────────────
               if (isExpanded && hasSubtasks) ...[
                 const SizedBox(height: 10),
-                Container(
-                  margin: const EdgeInsets.only(left: 36),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
+                Padding(
+                  padding: const EdgeInsets.only(left: 36),
+                  child: M3ESegmentedColumn(
+                    decoration: const M3ESegmentedListDecoration(
+                      padding: EdgeInsets.all(1.0),
+                    ),
                     color: colorScheme.surfaceContainerHigh
-                        .withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
+                        .withValues(alpha: 0.45),
                     children: subtasks.map((subtask) {
                       return InkWell(
-                        borderRadius: BorderRadius.circular(8),
                         onTap: () => onToggleSubtask(subtask.id),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
+                            horizontal: 10,
+                            vertical: 8,
                           ),
                           child: Row(
                             children: [

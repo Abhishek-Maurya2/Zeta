@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../providers/task_provider.dart';
+import '../../utils/task_date_formatter.dart';
 
 class CreateTaskDialog extends StatefulWidget {
   const CreateTaskDialog({super.key});
@@ -39,6 +40,7 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
           description: desc.isNotEmpty ? desc : null,
           dueDate: _dueDate,
           hasTime: _hasTime,
+          dueTime: _hasTime ? '09:00 AM' : null,
         );
     Navigator.of(context).pop();
   }
@@ -94,11 +96,18 @@ class _CreateTaskDialogState extends State<CreateTaskDialog> {
                     setState(() => _dueDate = val ? 'Tomorrow' : null);
                   },
                 ),
-                ChoiceChip(
-                  label: const Text('Next week'),
-                  selected: _dueDate == 'Next week',
-                  onSelected: (val) {
-                    setState(() => _dueDate = val ? 'Next week' : null);
+                Builder(
+                  builder: (context) {
+                    final nextWeekDate = TaskDateFormatter.format(
+                      DateTime.now().add(const Duration(days: 7)),
+                    );
+                    return ChoiceChip(
+                      label: Text('Next week ($nextWeekDate)'),
+                      selected: _dueDate == nextWeekDate,
+                      onSelected: (val) {
+                        setState(() => _dueDate = val ? nextWeekDate : null);
+                      },
+                    );
                   },
                 ),
               ],
