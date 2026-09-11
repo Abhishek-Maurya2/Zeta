@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/segmented_column.dart';
@@ -74,10 +75,19 @@ class TasksPage extends StatelessWidget {
       style: M3EButtonStyle.tonal,
       leadingIcon: taskProvider.getSortIcon(taskProvider.sortBy),
       label: taskProvider.getSortLabel(taskProvider.sortBy),
+      selectedValue: taskProvider.sortBy,
       onPressed: () => taskProvider.cycleSortOption(),
       onSelected: (val) {
         taskProvider.setSortBy(val);
       },
+      decoration: M3ESplitButtonDecoration(
+        menuBackgroundColor: colorScheme.tertiaryContainer,
+        menuForegroundColor: colorScheme.onTertiaryContainer,
+        popupDecoration: M3ESplitButtonPopupDecoration(
+          backgroundColor: colorScheme.tertiaryContainer,
+          selectedColor: colorScheme.tertiary,
+        ),
+      ),
       items: TaskSortOption.values.map((opt) {
         return M3ESplitButtonItem<TaskSortOption>(
           value: opt,

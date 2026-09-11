@@ -282,25 +282,19 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           const SizedBox(height: 10),
 
           if (sessionLog.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'No sessions recorded yet.\nStart a timer or load sample data to explore!',
-                      textAlign: TextAlign.center,
+                      'No sessions recorded yet',
                       style: textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     M3EButton.icon(
                       size: M3EButtonSize.sm,
                       style: M3EButtonStyle.tonal,
@@ -314,10 +308,11 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             )
           else
             M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
               ),
-              color: colorScheme.surfaceContainerLow,
+              color: colorScheme.surfaceContainerLowest,
               children: sessionLog.reversed.take(20).map((entry) {
                 final date = DateTime.fromMillisecondsSinceEpoch(
                   entry.completedAt,
@@ -327,74 +322,75 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 final dateStr = '${date.day} ${_monthName(date.month)}';
                 final isFocus = entry.mode == PomodoroMode.focus;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: isFocus
-                              ? colorScheme.primaryContainer
-                              : colorScheme.surfaceContainerHighest,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isFocus
-                              ? Icons.psychology_rounded
-                              : (entry.mode == PomodoroMode.shortBreak
-                                    ? Icons.coffee_rounded
-                                    : Icons.hotel_rounded),
-                          size: 16,
-                          color: isFocus
-                              ? colorScheme.onPrimaryContainer
-                              : colorScheme.onSurfaceVariant,
-                        ),
+                return Row(
+                  children: [
+                    // Leading Icon Badge
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isFocus
+                            ? colorScheme.surfaceContainerHigh
+                            : colorScheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.mode.label,
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              '$dateStr at $timeStr',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: Icon(
+                        isFocus
+                            ? Icons.psychology_rounded
+                            : (entry.mode == PomodoroMode.shortBreak
+                                  ? Icons.coffee_rounded
+                                  : Icons.hotel_rounded),
+                        size: 18,
+                        color: isFocus
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${entry.minutes}m',
-                          style: textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSecondaryContainer,
+                    ),
+
+                    const SizedBox(width: 14),
+
+                    // Main Title & Duration/Timestamp
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.mode.label,
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
                           ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$dateStr at $timeStr',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Trailing Indicator
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${entry.minutes}m',
+                        style: textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSecondaryContainer,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 );
               }).toList(),
             ),

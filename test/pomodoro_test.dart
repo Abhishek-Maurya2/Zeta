@@ -13,6 +13,7 @@ import 'package:zeta/components/pomodoro/pomodoro_queue_pane.dart';
 import 'package:zeta/components/pomodoro/pomodoro_analysis_pane.dart';
 import 'package:zeta/components/pomodoro/pomodoro_settings_sheet.dart';
 import 'package:zeta/components/pomodoro/m3_pane_divider.dart';
+import 'package:zeta/widgets/segmented_column.dart';
 
 Widget createPomodoroTestWidget({
   PomodoroProvider? pomodoroProvider,
@@ -260,5 +261,51 @@ void main() {
     await tester.tap(find.byTooltip('Jump to current'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('This year'), findsOneWidget);
+  });
+
+  testWidgets(
+      'PomodoroAnalysisPane displays Recent Sessions in segmented list matching queue pane',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final provider = PomodoroProvider();
+    provider.seedSampleData();
+
+    await tester.pumpWidget(
+      createPomodoroTestWidget(pomodoroProvider: provider),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Switch to Analysis pane
+    final analysisBtn = find.text('Analysis').first;
+    await tester.tap(analysisBtn);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Verify Analysis pane is displayed with Recent Sessions header
+    expect(find.byType(PomodoroAnalysisPane), findsOneWidget);
+    expect(find.text('Recent Sessions'), findsOneWidget);
+
+    // Verify M3ESegmentedColumn is rendered inside PomodoroAnalysisPane
+    final analysisSegmentedColumn = find.descendant(
+      of: find.byType(PomodoroAnalysisPane),
+      matching: find.byType(M3ESegmentedColumn),
+    );
+    expect(analysisSegmentedColumn, findsOneWidget);
+
+    final segmentedWidget =
+        tester.widget<M3ESegmentedColumn>(analysisSegmentedColumn);
+    expect(
+      segmentedWidget.padding,
+      equals(const EdgeInsets.symmetric(horizontal: 14, vertical: 12)),
+    );
+    expect(segmentedWidget.children.isNotEmpty, isTrue);
+
+    // Verify empty state when logs are cleared
+    provider.clearSessionLog();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('No sessions recorded yet'), findsOneWidget);
+    expect(find.text('Load Sample Data'), findsOneWidget);
   });
 }
