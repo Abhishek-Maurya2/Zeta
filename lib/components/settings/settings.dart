@@ -1,0 +1,9 @@
+export 'settings_category.dart';
+export 'profile_section.dart';
+export 'appearance_section.dart';
+export 'typography_section.dart';
+export 'weather_section.dart';
+export 'pomodoro_section.dart';
+export 'notifications_section.dart';
+export 'google_sync_section.dart';
+export 'data_privacy_section.dart';

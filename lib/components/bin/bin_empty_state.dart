@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:m3e_core/m3e_core.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 class BinEmptyState extends StatelessWidget {
   final VoidCallback onNavigateToTasks;

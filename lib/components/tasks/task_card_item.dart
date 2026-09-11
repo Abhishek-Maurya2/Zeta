@@ -1,28 +1,44 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:m3e_core/m3e_core.dart';
-import '../../models/task.dart';
-import '../../utils/task_date_formatter.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../models/task.dart';
+import 'task_chips.dart';
+import 'task_subtasks_list.dart';
+
+/// A modular, reusable task card item used across both the Tasks Page
+/// and the Bin Page (via [isDeleted: true]).
 class TaskCardItem extends StatelessWidget {
   final Task task;
   final bool isExpanded;
-  final VoidCallback onToggle;
-  final VoidCallback onToggleExpand;
-  final void Function(String subtaskId) onToggleSubtask;
+  final bool isDeleted;
+  final VoidCallback? onToggle;
+  final VoidCallback? onToggleExpand;
+  final void Function(String subtaskId)? onToggleSubtask;
   final VoidCallback? onTap;
   final void Function(Offset globalPosition)? onContextMenu;
   final VoidCallback? onDelete;
+  final VoidCallback? onRestore;
+  final VoidCallback? onPermanentDelete;
+  final Widget? leading;
+  final Widget? trailing;
+  final List<Widget>? extraChips;
 
   const TaskCardItem({
     super.key,
     required this.task,
-    required this.isExpanded,
-    required this.onToggle,
-    required this.onToggleExpand,
-    required this.onToggleSubtask,
+    this.isExpanded = false,
+    this.isDeleted = false,
+    this.onToggle,
+    this.onToggleExpand,
+    this.onToggleSubtask,
     this.onTap,
     this.onContextMenu,
     this.onDelete,
+    this.onRestore,
+    this.onPermanentDelete,
+    this.leading,
+    this.trailing,
+    this.extraChips,
   });
 
   @override
@@ -30,7 +46,7 @@ class TaskCardItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
-    final completedSubtasks = subtasks.where((s) => s.completed).length;
+    final isCompletedOrDeleted = isDeleted || task.completed;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -46,53 +62,34 @@ class TaskCardItem extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ─── Header: Leading, Title/Description, Trailing ────────────
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ─── Leading Circular Checkbox ──────────────────────────────
-                  InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: onToggle,
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: task.completed
-                          ? const Icon(
-                              Icons.check_rounded,
-                              size: 22,
-                              color: Color(0xFF10B981),
-                            )
-                          : Icon(
-                              Icons.radio_button_unchecked_rounded,
-                              size: 22,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                    ),
-                  ),
+                  // Leading: Checkbox or Delete Icon
+                  leading ?? _buildLeading(context),
 
                   const SizedBox(width: 12),
 
-                  // ─── Content: Title, Description, Badges ─────────────────────
+                  // Content: Title and Description
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title
                         Text(
                           task.title,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: task.completed
+                            color: isCompletedOrDeleted
                                 ? colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.7)
+                                    .withValues(alpha: isDeleted ? 0.75 : 0.7)
                                 : colorScheme.onSurface,
-                            decoration: task.completed
+                            decoration: isCompletedOrDeleted
                                 ? TextDecoration.lineThrough
                                 : null,
                           ),
                         ),
-
-                        // Description
                         if (task.description != null &&
                             task.description!.isNotEmpty) ...[
                           const SizedBox(height: 3),
@@ -103,183 +100,67 @@ class TaskCardItem extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.8,
+                                alpha: isDeleted ? 0.6 : 0.8,
                               ),
-                              decoration: task.completed
+                              decoration: isCompletedOrDeleted
                                   ? TextDecoration.lineThrough
                                   : null,
                             ),
                           ),
                         ],
-
-                        const SizedBox(height: 8),
-
-                        // Badges row: Due date & Subtasks
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            // Due date chip
-                            if (task.dueDate != null)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color:
-                                        colorScheme.outlineVariant.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      TaskDateFormatter.isToday(task.dueDate) &&
-                                              task.hasTime &&
-                                              task.dueTime != null
-                                          ? Icons.schedule_rounded
-                                          : Icons.calendar_today_outlined,
-                                      size: 14,
-                                      color: const Color(0xFF006A60),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      TaskDateFormatter.formatTaskListDate(
-                                        dueDate: task.dueDate!,
-                                        hasTime: task.hasTime,
-                                        dueTime: task.dueTime,
-                                      ),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                        color: task.completed
-                                            ? colorScheme.onSurfaceVariant
-                                                .withValues(alpha: 0.6)
-                                            : colorScheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            // Subtasks collapsible chip
-                            if (hasSubtasks)
-                              InkWell(
-                                borderRadius: BorderRadius.circular(8),
-                                onTap: onToggleExpand,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isExpanded
-                                        ? colorScheme.secondaryContainer
-                                        : colorScheme.surfaceContainerHigh
-                                            .withValues(alpha: 0.6),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.checklist_rounded,
-                                        size: 15,
-                                        color: isExpanded
-                                            ? colorScheme.onSecondaryContainer
-                                            : colorScheme.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        '$completedSubtasks/${subtasks.length} Subtasks',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: isExpanded
-                                              ? colorScheme.onSecondaryContainer
-                                              : colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Icon(
-                                        isExpanded
-                                            ? Icons.expand_less_rounded
-                                            : Icons.expand_more_rounded,
-                                        size: 16,
-                                        color: isExpanded
-                                            ? colorScheme.onSecondaryContainer
-                                            : colorScheme.onSurfaceVariant,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
+
+                  // Trailing: Actions (Restore/Delete in Bin, or custom)
+                  if (trailing != null || isDeleted) ...[
+                    const SizedBox(width: 8),
+                    trailing ?? _buildBinTrailing(context),
+                  ],
                 ],
               ),
 
-              // ─── Collapsible Subtask List ─────────────────────────────────────
+              // ─── Chips: Takes full horizontal space ───────────────────────
+              if ((isDeleted && task.deletedAt != null) ||
+                  task.dueDate != null ||
+                  hasSubtasks ||
+                  (extraChips != null && extraChips!.isNotEmpty)) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (isDeleted && task.deletedAt != null)
+                        TaskDeletedDateChip(timestamp: task.deletedAt),
+                      if (task.dueDate != null)
+                        TaskDueDateChip(
+                          task: task,
+                          isCompleted: isCompletedOrDeleted,
+                        ),
+                      if (hasSubtasks)
+                        TaskSubtasksBadge(
+                          subtasks: subtasks,
+                          isExpanded: isExpanded,
+                          onToggleExpand: onToggleExpand,
+                        ),
+                      ...?extraChips,
+                    ],
+                  ),
+                ),
+              ],
+
+              // ─── Subtasks List: Takes full horizontal space ───────────────
               if (isExpanded && hasSubtasks) ...[
                 const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.only(left: 36),
-                  child: M3ESegmentedColumn(
-                    decoration: const M3ESegmentedListDecoration(
-                      padding: EdgeInsets.all(1.0),
-                    ),
-                    color: colorScheme.surfaceContainerHigh
-                        .withValues(alpha: 0.45),
-                    children: subtasks.map((subtask) {
-                      return InkWell(
-                        onTap: () => onToggleSubtask(subtask.id),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                subtask.completed
-                                    ? Icons.check_circle_rounded
-                                    : Icons.radio_button_unchecked_rounded,
-                                size: 16,
-                                color: subtask.completed
-                                    ? const Color(0xFF10B981)
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  subtask.title,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: subtask.completed
-                                        ? colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.6)
-                                        : colorScheme.onSurface,
-                                    decoration: subtask.completed
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                SizedBox(
+                  width: double.infinity,
+                  child: TaskSubtasksList(
+                    subtasks: subtasks,
+                    onToggleSubtask: isDeleted ? null : onToggleSubtask,
+                    isReadOnly: isDeleted,
                   ),
                 ),
               ],
@@ -287,6 +168,97 @@ class TaskCardItem extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLeading(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    if (isDeleted) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 2),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          size: 22,
+          color: colorScheme.outline,
+        ),
+      );
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onToggle,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: task.completed
+            ? const Icon(
+                Icons.check_rounded,
+                size: 22,
+                color: Color(0xFF10B981),
+              )
+            : Icon(
+                Icons.radio_button_unchecked_rounded,
+                size: 22,
+                color: colorScheme.onSurfaceVariant,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildBinTrailing(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final actions = <M3EButtonGroupAction>[];
+    final callbacks = <VoidCallback>[];
+
+    if (onRestore != null) {
+      actions.add(
+        M3EButtonGroupAction(
+          icon: Icon(
+            Icons.restore_from_trash_rounded,
+            size: 18,
+            color: colorScheme.primary,
+          ),
+          tooltip: 'Restore Task',
+          decoration: M3EToggleButtonDecoration.styleFrom(
+            foregroundColor: colorScheme.primary,
+          ),
+        ),
+      );
+      callbacks.add(onRestore!);
+    }
+
+    if (onPermanentDelete != null) {
+      actions.add(
+        M3EButtonGroupAction(
+          icon: Icon(
+            Icons.delete_forever_rounded,
+            size: 18,
+            color: colorScheme.error,
+          ),
+          tooltip: 'Delete permanently',
+          decoration: M3EToggleButtonDecoration.styleFrom(
+            foregroundColor: colorScheme.error,
+          ),
+        ),
+      );
+      callbacks.add(onPermanentDelete!);
+    }
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
+    return M3EButtonGroup(
+      type: M3EButtonGroupType.connected,
+      style: M3EButtonStyle.tonal,
+      size: M3EButtonSize.xs,
+      shape: M3EButtonShape.round,
+      selectedIndex: null,
+      onSelectedIndexChanged: (int? index) {
+        if (index != null && index >= 0 && index < callbacks.length) {
+          callbacks[index]();
+        }
+      },
+      actions: actions,
     );
   }
 }

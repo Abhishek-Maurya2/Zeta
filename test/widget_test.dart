@@ -8,8 +8,8 @@ import 'package:zeta/navigation/top_app_bar.dart';
 import 'package:zeta/pages/tasks_page.dart';
 import 'package:zeta/pages/bin_page.dart';
 import 'package:zeta/providers/navigation_provider.dart';
-import 'package:m3e_core/m3e_core.dart';
 import 'package:zeta/providers/task_provider.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:zeta/components/tasks/task_edit_pane.dart';
 
 void main() {
@@ -178,8 +178,8 @@ void main() {
     expect(find.text('Modern History Timeline'), findsOneWidget);
 
     // Verify bin header buttons
-    expect(find.text('Restore All'), findsOneWidget);
-    expect(find.text('Empty Bin'), findsOneWidget);
+    expect(find.text('Restore All'), findsWidgets);
+    expect(find.text('Empty Bin'), findsWidgets);
 
     // Right-click on a bin item ('Geography Map Practice')
     await tester.tap(find.text('Geography Map Practice'), buttons: kSecondaryMouseButton);
@@ -198,7 +198,7 @@ void main() {
     expect(find.text('Modern History Timeline'), findsOneWidget);
 
     // Test Empty Bin
-    await tester.tap(find.text('Empty Bin'));
+    await tester.tap(find.text('Empty Bin').first);
     await tester.pumpAndSettle();
 
     // Confirmation dialog appears
@@ -230,7 +230,7 @@ void main() {
     context.read<NavigationProvider>().setActivePage(PageId.tasks);
     await tester.pumpAndSettle();
 
-    final filterFinder = find.byType(M3EToggleButtonGroup);
+    final filterFinder = find.byType(M3EButtonGroup);
     final sortFinder = find.byType(M3ESplitButton<TaskSortOption>);
 
     expect(filterFinder, findsOneWidget);

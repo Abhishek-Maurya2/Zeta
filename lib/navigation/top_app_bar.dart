@@ -1,4 +1,4 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -101,18 +101,19 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
             ],
           ),
 
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
 
           // ─── Center Section: M3E Search Bar with Theme Switch in Trailing ─
           Expanded(
             child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 580),
-                child: M3ESearchAnchor.bar(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 580),
+                  child: M3ESearchAnchor.bar(
                   searchController: _searchController,
                   barLeading: Icon(
                     Icons.search_rounded,
-                    size: 20,
                     color: colorScheme.onSurfaceVariant,
                   ),
                   barHintText: isCompact
@@ -144,7 +145,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                     // Theme Switch Icon Button Standard inside SearchBar
                     M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
-                      size: M3EIconButtonSize.sm,
+                      // size: M3EIconButtonSize.sm,
                       tooltip: themeProvider.themeMode == ThemeMode.dark
                           ? 'Light theme'
                           : 'Dark theme',
@@ -152,7 +153,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                         themeProvider.themeMode == ThemeMode.dark
                             ? Icons.light_mode_outlined
                             : Icons.dark_mode_outlined,
-                        size: 20,
+                        // size: 20,
                         color: colorScheme.onSurfaceVariant,
                       ),
                       onPressed: () => themeProvider.toggleTheme(),
@@ -169,12 +170,13 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
               ),
             ),
           ),
+        ),
 
           const SizedBox(width: 12),
 
           // ─── Trailing Section: Profile Avatar with Status Ring ───────────
           Tooltip(
-            message: 'Profile: Abhishek • Online',
+            message: 'Profile: ${themeProvider.userName} • Online',
             child: InkWell(
               borderRadius: BorderRadius.circular(24),
               onTap: () => navProvider.setActivePage(PageId.settings),
@@ -199,7 +201,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                         radius: 17,
                         backgroundColor: colorScheme.primaryContainer,
                         child: Text(
-                          'AM',
+                          themeProvider.userInitials,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -247,7 +249,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
     if (query.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

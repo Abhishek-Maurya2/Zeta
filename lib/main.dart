@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/task_provider.dart';
+import 'providers/pomodoro_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 
@@ -28,6 +29,7 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => PomodoroProvider()),
       ],
       child: const _ZetaAppView(),
     );
@@ -45,8 +47,20 @@ class _ZetaAppView extends StatelessWidget {
       title: 'Zeta',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
-      theme: AppTheme.light(themeProvider.seedColor, themeProvider.variant),
-      darkTheme: AppTheme.dark(themeProvider.seedColor, themeProvider.variant),
+      theme: AppTheme.light(
+        themeProvider.seedColor,
+        themeProvider.variant,
+        themeProvider.cornerStyle,
+        themeProvider.fontChoice,
+        themeProvider.highContrast,
+      ),
+      darkTheme: AppTheme.dark(
+        themeProvider.seedColor,
+        themeProvider.variant,
+        themeProvider.cornerStyle,
+        themeProvider.fontChoice,
+        themeProvider.highContrast,
+      ),
       home: const AppScaffold(),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:m3e_core/m3e_core.dart' hide M3EFabColor;
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../providers/navigation_provider.dart';
@@ -14,7 +13,7 @@ import '../pages/settings_page.dart';
 import 'top_app_bar.dart';
 
 /// Adaptive scaffold mirroring Sharva's layout:
-/// - Compact (<600px): M3EHorizontalFloatingToolbar from m3e_core at bottom + full-width body
+/// - Compact (<600px): M3EToolbar from material_3_expressive at bottom + full-width body
 /// - Medium / Expanded (≥600px): M3ENavigationRail from material_3_expressive + body
 /// - Top App Bar: Contains rail toggle button (hidden in mobile view)
 class AppScaffold extends StatelessWidget {
@@ -153,7 +152,7 @@ class _NavigationRailWidget extends StatelessWidget {
   }
 }
 
-// ─── Floating Bottom Navigation Toolbar (from m3e_core) ─────────────────────
+// ─── Floating Bottom Navigation Toolbar (from material_3_expressive) ─────────
 
 class _FloatingBottomNav extends StatelessWidget {
   final NavigationProvider navProvider;
@@ -163,30 +162,24 @@ class _FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return M3EHorizontalFloatingToolbar(
-      expanded: true,
+    return M3EToolbar(
       alignment: Alignment.bottomCenter,
-      decoration: M3EFloatingToolbarDecoration(
-        colors: M3EFloatingToolbarColors(
-          toolbarContainerColor: colorScheme.surfaceContainerHigh,
-          toolbarContentColor: colorScheme.onSurface,
-          fabContainerColor: colorScheme.primaryContainer,
-          fabContentColor: colorScheme.onPrimaryContainer,
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      actions: [
+        M3EToolbarWidget(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: kNavDestinations.map((dest) {
+              final isSelected = dest.id == navProvider.activePage;
+              return _ToolbarNavItem(
+                destination: dest,
+                isSelected: isSelected,
+                onTap: () => navProvider.setActivePage(dest.id),
+              );
+            }).toList(),
+          ),
         ),
-        expandedShadowElevation: 6,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      ),
-      content: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: kNavDestinations.map((dest) {
-          final isSelected = dest.id == navProvider.activePage;
-          return _ToolbarNavItem(
-            destination: dest,
-            isSelected: isSelected,
-            onTap: () => navProvider.setActivePage(dest.id),
-          );
-        }).toList(),
-      ),
+      ],
     );
   }
 }

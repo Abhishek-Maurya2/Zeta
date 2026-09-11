@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:m3e_core/m3e_core.dart';
+import '../../widgets/segmented_column.dart';
 
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';

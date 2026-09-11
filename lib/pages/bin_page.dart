@@ -1,11 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:m3e_core/m3e_core.dart';
+
+import '../widgets/segmented_column.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../components/bin/bin_header.dart';
-import '../components/bin/bin_item.dart';
+import '../components/tasks/task_card_item.dart';
 import '../components/bin/empty_bin_dialog.dart';
 import '../components/bin/bin_empty_state.dart';
 import '../components/tasks/task_context_menu.dart';
@@ -57,8 +58,10 @@ class BinPage extends StatelessWidget {
                 totalCount: totalCount,
                 onRestoreAll: () => taskProvider.restoreAllFromBin(),
                 onRequestEmptyBin: () async {
-                  final confirmed =
-                      await EmptyBinDialog.show(context, totalCount);
+                  final confirmed = await EmptyBinDialog.show(
+                    context,
+                    totalCount,
+                  );
                   if (confirmed == true) {
                     taskProvider.emptyBin();
                   }
@@ -75,9 +78,13 @@ class BinPage extends StatelessWidget {
                   ),
                   color: colorScheme.surfaceContainerLow,
                   children: binTasks.map((task) {
-                    return BinItem(
+                    return TaskCardItem(
                       key: ValueKey(task.id),
                       task: task,
+                      isDeleted: true,
+                      isExpanded: taskProvider.isTaskExpanded(task.id),
+                      onToggleExpand: () =>
+                          taskProvider.toggleTaskExpanded(task.id),
                       onRestore: () => taskProvider.restoreTask(task.id),
                       onPermanentDelete: () =>
                           taskProvider.permanentlyDeleteTask(task.id),

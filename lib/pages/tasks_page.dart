@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:m3e_core/m3e_core.dart';
+import '../widgets/segmented_column.dart';
 
 import '../providers/task_provider.dart';
 import '../models/task.dart';
@@ -45,7 +45,7 @@ class TasksPage extends StatelessWidget {
 
     final filterButtonGroup = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: M3EToggleButtonGroup(
+      child: M3EButtonGroup(
         type: M3EButtonGroupType.connected,
         size: M3EButtonSize.sm,
         style: M3EButtonStyle.tonal,
@@ -61,13 +61,13 @@ class TasksPage extends StatelessWidget {
           }
         },
         actions: [
-          M3EToggleButtonGroupAction(
+          M3EButtonGroupAction(
             label: Text('All (${taskProvider.totalCount})'),
           ),
-          M3EToggleButtonGroupAction(
+          M3EButtonGroupAction(
             label: Text('Completed (${completed.length})'),
           ),
-          M3EToggleButtonGroupAction(
+          M3EButtonGroupAction(
             label: Text('Pending (${pending.length})'),
           ),
         ],
@@ -110,10 +110,10 @@ class TasksPage extends StatelessWidget {
                   Text(
                     'Tasks',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.5,
-                          color: colorScheme.onSurface,
-                        ),
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: -0.5,
+                      color: colorScheme.onSurface,
+                    ),
                   ),
 
                   const SizedBox(height: 18),
@@ -124,17 +124,13 @@ class TasksPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        sortButton,
-                      ],
+                      children: [sortButton],
                     ),
                   ] else ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Flexible(
-                          child: filterButtonGroup,
-                        ),
+                        Flexible(child: filterButtonGroup),
                         const SizedBox(width: 12),
                         sortButton,
                       ],
@@ -159,8 +155,10 @@ class TasksPage extends StatelessWidget {
                         ),
                         color: colorScheme.surfaceContainerLow,
                         children: completed
-                            .map((task) =>
-                                _buildTaskItem(context, task, taskProvider))
+                            .map(
+                              (task) =>
+                                  _buildTaskItem(context, task, taskProvider),
+                            )
                             .toList(),
                       ),
                   ] else if (filter == TaskFilter.pending) ...[
@@ -178,8 +176,10 @@ class TasksPage extends StatelessWidget {
                         ),
                         color: colorScheme.surfaceContainerLow,
                         children: pending
-                            .map((task) =>
-                                _buildTaskItem(context, task, taskProvider))
+                            .map(
+                              (task) =>
+                                  _buildTaskItem(context, task, taskProvider),
+                            )
                             .toList(),
                       ),
                   ] else ...[
@@ -203,8 +203,10 @@ class TasksPage extends StatelessWidget {
                         ),
                         color: colorScheme.surfaceContainerLow,
                         children: pending
-                            .map((task) =>
-                                _buildTaskItem(context, task, taskProvider))
+                            .map(
+                              (task) =>
+                                  _buildTaskItem(context, task, taskProvider),
+                            )
                             .toList(),
                       ),
 
@@ -231,8 +233,9 @@ class TasksPage extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Divider(
-                              color: colorScheme.outlineVariant
-                                  .withValues(alpha: 0.4),
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.4,
+                              ),
                             ),
                           ),
                         ],
@@ -246,8 +249,10 @@ class TasksPage extends StatelessWidget {
                           ),
                           color: colorScheme.surfaceContainerLow,
                           children: completed
-                              .map((task) =>
-                                  _buildTaskItem(context, task, taskProvider))
+                              .map(
+                                (task) =>
+                                    _buildTaskItem(context, task, taskProvider),
+                              )
                               .toList(),
                         ),
                       ),
@@ -264,14 +269,22 @@ class TasksPage extends StatelessWidget {
         Positioned(
           bottom: isCompact ? 84 : 28,
           right: isCompact ? 16 : 36,
-          child: M3EExtendedFab(
-            size: isCompact ? M3EFabSize.medium : M3EFabSize.large,
-            color: M3EFabColor.tertiary,
-            extended: true,
-            icon: const Icon(Icons.add_rounded),
-            label: 'Add Task',
-            decoration: const M3EFabDecoration(pressedScale: 0.95),
-            onPressed: () => TaskEditPane.show(context),
+          child: M3ETheme(
+            data: M3EThemeData.fromMaterial(Theme.of(context)).copyWith(
+              fabTheme: const M3EFabTheme(
+                extended: M3EExtendedFabTheme(
+                  iconLabelGap: 8,
+                  extendedHorizontalPadding: 16,
+                ),
+              ),
+            ),
+            child: M3EExtendedFab(
+              color: M3EFabColor.tertiary,
+              extended: true,
+              icon: const Icon(Icons.add_rounded),
+              label: 'Add Task',
+              onPressed: () => TaskEditPane.show(context),
+            ),
           ),
         ),
       ],
@@ -315,9 +328,9 @@ class TasksPage extends StatelessWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
