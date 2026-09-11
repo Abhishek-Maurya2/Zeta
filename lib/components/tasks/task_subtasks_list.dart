@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+
 import '../../models/task.dart';
 import '../../widgets/segmented_column.dart';
 
@@ -23,20 +24,20 @@ class TaskSubtasksList extends StatelessWidget {
     if (subtasks.isEmpty) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
-    final effectiveBgColor = backgroundColor ??
+    final effectiveBgColor =
+        backgroundColor ??
         colorScheme.surfaceContainerHigh.withValues(alpha: 0.45);
 
     return M3ESegmentedColumn(
       decoration: const M3ESegmentedListDecoration(
-        padding: EdgeInsets.all(1.0),
+        padding: EdgeInsets.all(2),
+        outerRadius: 8,
+        innerRadius: 8,
       ),
       color: effectiveBgColor,
       children: subtasks.map((subtask) {
         final rowContent = Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               Icon(
@@ -57,8 +58,9 @@ class TaskSubtasksList extends StatelessWidget {
                     color: subtask.completed
                         ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
                         : colorScheme.onSurface,
-                    decoration:
-                        subtask.completed ? TextDecoration.lineThrough : null,
+                    decoration: subtask.completed
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
                 ),
               ),

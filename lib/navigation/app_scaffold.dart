@@ -209,7 +209,7 @@ class _ToolbarNavItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Tooltip(
         message: destination.label,
         child: InkWell(
@@ -219,8 +219,8 @@ class _ToolbarNavItem extends StatelessWidget {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 12 : 8,
-              vertical: 8,
+              horizontal: isSelected ? 12 : 9,
+              vertical: 12,
             ),
             decoration: BoxDecoration(
               color: isSelected
@@ -233,7 +233,7 @@ class _ToolbarNavItem extends StatelessWidget {
               children: [
                 Icon(
                   isSelected ? destination.selectedIcon : destination.icon,
-                  size: isSelected ? 24 : 22,
+                  size: isSelected ? 24 : 23,
                   color: isSelected
                       ? colorScheme.onSurface
                       : colorScheme.onPrimaryContainer,
