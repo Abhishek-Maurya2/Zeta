@@ -17,7 +17,7 @@ class PomodoroProvider extends ChangeNotifier {
   int _timeLeft = 25 * 60; // in seconds
   int _totalDuration = 25 * 60; // in seconds
   bool _isRunning = false;
-  List<PomodoroSessionLog> _sessionLog = [];
+  List<PomodoroSessionLog> _sessionLog = generateSampleSessionLogs();
 
   Timer? _timer;
 
@@ -76,10 +76,18 @@ class PomodoroProvider extends ChangeNotifier {
       final logRaw = prefs.getString(_sessionLogKey);
       if (logRaw != null) {
         final list = jsonDecode(logRaw) as List<dynamic>;
-        _sessionLog = list
+        final loaded = list
             .map((item) =>
                 PomodoroSessionLog.fromJson(item as Map<String, dynamic>))
             .toList();
+        if (loaded.isNotEmpty) {
+          _sessionLog = loaded;
+        }
+      }
+
+      if (_sessionLog.isEmpty) {
+        _sessionLog = generateSampleSessionLogs();
+        await _saveSessionLog();
       }
 
       // Re-generate queue with restored settings
@@ -288,6 +296,12 @@ class PomodoroProvider extends ChangeNotifier {
 
   Future<void> clearSessionLog() async {
     _sessionLog.clear();
+    await _saveSessionLog();
+    notifyListeners();
+  }
+
+  Future<void> seedSampleData() async {
+    _sessionLog = generateSampleSessionLogs();
     await _saveSessionLog();
     notifyListeners();
   }

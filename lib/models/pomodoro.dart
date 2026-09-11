@@ -208,3 +208,97 @@ List<PomodoroSessionItem> generateQueue(PomodoroSettings settings) {
 
   return queue;
 }
+
+/// Generates realistic sample session logs distributed across today,
+/// the current week, month, past 3 months, and the entire year.
+List<PomodoroSessionLog> generateSampleSessionLogs([DateTime? referenceTime]) {
+  final now = referenceTime ?? DateTime.now();
+  final logs = <PomodoroSessionLog>[];
+  int idCounter = 1;
+
+  void addSession(DateTime dt, int minutes, [PomodoroMode mode = PomodoroMode.focus]) {
+    logs.add(
+      PomodoroSessionLog(
+        id: 'sample-${idCounter++}',
+        mode: mode,
+        minutes: minutes,
+        completedAt: dt.millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  // 1. TODAY (Active focus sessions throughout morning, afternoon, evening)
+  addSession(DateTime(now.year, now.month, now.day, 9, 25), 25);
+  addSession(DateTime(now.year, now.month, now.day, 9, 30), 5, PomodoroMode.shortBreak);
+  addSession(DateTime(now.year, now.month, now.day, 10, 0), 25);
+  addSession(DateTime(now.year, now.month, now.day, 10, 5), 5, PomodoroMode.shortBreak);
+  addSession(DateTime(now.year, now.month, now.day, 11, 45), 30);
+  addSession(DateTime(now.year, now.month, now.day, 14, 30), 25);
+  addSession(DateTime(now.year, now.month, now.day, 16, 45), 45);
+
+  // 2. YESTERDAY (Hit daily goal: 125m)
+  final yesterday = now.subtract(const Duration(days: 1));
+  addSession(DateTime(yesterday.year, yesterday.month, yesterday.day, 9, 30), 25);
+  addSession(DateTime(yesterday.year, yesterday.month, yesterday.day, 10, 45), 25);
+  addSession(DateTime(yesterday.year, yesterday.month, yesterday.day, 14, 0), 30);
+  addSession(DateTime(yesterday.year, yesterday.month, yesterday.day, 16, 0), 25);
+  addSession(DateTime(yesterday.year, yesterday.month, yesterday.day, 17, 30), 25);
+
+  // 3. THIS WEEK (Days -2 through -6)
+  // Day -2: 125 mins (Goal hit)
+  final d2 = now.subtract(const Duration(days: 2));
+  addSession(DateTime(d2.year, d2.month, d2.day, 9, 30), 50);
+  addSession(DateTime(d2.year, d2.month, d2.day, 14, 0), 50);
+  addSession(DateTime(d2.year, d2.month, d2.day, 17, 0), 25);
+
+  // Day -3: 150 mins (Goal hit)
+  final d3 = now.subtract(const Duration(days: 3));
+  addSession(DateTime(d3.year, d3.month, d3.day, 10, 0), 50);
+  addSession(DateTime(d3.year, d3.month, d3.day, 13, 30), 50);
+  addSession(DateTime(d3.year, d3.month, d3.day, 16, 0), 50);
+
+  // Day -4: 100 mins (Goal hit)
+  final d4 = now.subtract(const Duration(days: 4));
+  addSession(DateTime(d4.year, d4.month, d4.day, 11, 0), 50);
+  addSession(DateTime(d4.year, d4.month, d4.day, 15, 0), 50);
+
+  // Day -5: 50 mins
+  final d5 = now.subtract(const Duration(days: 5));
+  addSession(DateTime(d5.year, d5.month, d5.day, 14, 0), 25);
+  addSession(DateTime(d5.year, d5.month, d5.day, 16, 0), 25);
+
+  // Day -6: 125 mins (Goal hit)
+  final d6 = now.subtract(const Duration(days: 6));
+  addSession(DateTime(d6.year, d6.month, d6.day, 9, 30), 50);
+  addSession(DateTime(d6.year, d6.month, d6.day, 14, 0), 50);
+  addSession(DateTime(d6.year, d6.month, d6.day, 17, 0), 25);
+
+  // 4. EARLIER IN THIS MONTH (Days 7 through 28)
+  for (int dayOffset = 7; dayOffset <= 28; dayOffset += 2) {
+    final d = now.subtract(Duration(days: dayOffset));
+    final mins = (dayOffset % 4 == 0) ? 125 : 75;
+    addSession(DateTime(d.year, d.month, d.day, 10, 0), mins ~/ 2);
+    addSession(DateTime(d.year, d.month, d.day, 15, 0), mins - (mins ~/ 2));
+  }
+
+  // 5. PAST 2-11 MONTHS (For 3-Month and Year charts)
+  for (int monthOffset = 1; monthOffset <= 11; monthOffset++) {
+    final targetMonth = DateTime(now.year, now.month - monthOffset, 1);
+    final daysInMonth = [5, 10, 15, 20, 25];
+    final minutesList = [75, 100, 125, 90, 110];
+    for (int i = 0; i < daysInMonth.length; i++) {
+      final sessionDate = DateTime(
+        targetMonth.year,
+        targetMonth.month,
+        daysInMonth[i],
+        11,
+        0,
+      );
+      addSession(sessionDate, minutesList[i]);
+    }
+  }
+
+  // Sort logs chronologically ascending
+  logs.sort((a, b) => a.completedAt.compareTo(b.completedAt));
+  return logs;
+}

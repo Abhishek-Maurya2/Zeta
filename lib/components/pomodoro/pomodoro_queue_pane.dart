@@ -34,8 +34,11 @@ class PomodoroQueuePane extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── Header: "Up next" & Configure Cycle Button ───────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Text(
                 'Up next',
@@ -58,8 +61,11 @@ class PomodoroQueuePane extends StatelessWidget {
           const SizedBox(height: 12),
 
           // ─── Sub-header: Session Count & Skip Breaks Switch ───────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Text(
                 'Session ${activeIndex + 1} of ${queue.length}',

@@ -101,7 +101,7 @@ class PomodoroTimerPane extends StatelessWidget {
                                     value: animatedProgress,
                                     size: 290,
                                     strokeWidth: 12,
-                                    wavelength: 25,
+                                    wavelength: 32,
                                     amplitude: 1,
                                     trackStrokeWidth: 12,
                                     color: colorScheme.primary,
