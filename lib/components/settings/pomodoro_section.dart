@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 
 import '../../providers/pomodoro_provider.dart';
@@ -71,7 +72,7 @@ class PomodoroSettingsSection extends StatelessWidget {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // Focus Duration
             _buildPresetRow(
@@ -129,7 +130,8 @@ class PomodoroSettingsSection extends StatelessWidget {
               context,
               icon: Icons.repeat_rounded,
               title: 'Long Break Interval',
-              currentLabel: 'Every ${settings.longBreakInterval} focus sessions',
+              currentLabel:
+                  'Every ${settings.longBreakInterval} focus sessions',
               presets: intervalPresets,
               selectedVal: settings.longBreakInterval,
               labelSuffix: ' cycles',
@@ -160,7 +162,7 @@ class PomodoroSettingsSection extends StatelessWidget {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             _buildSwitchTile(
               context,
@@ -173,7 +175,9 @@ class PomodoroSettingsSection extends StatelessWidget {
                   settings.copyWith(autoStartBreaks: val),
                 );
                 onToast?.call(
-                  val ? 'Auto-start breaks enabled' : 'Auto-start breaks disabled',
+                  val
+                      ? 'Auto-start breaks enabled'
+                      : 'Auto-start breaks disabled',
                 );
               },
             ),
@@ -188,7 +192,9 @@ class PomodoroSettingsSection extends StatelessWidget {
                   settings.copyWith(autoStartFocus: val),
                 );
                 onToast?.call(
-                  val ? 'Auto-start focus enabled' : 'Auto-start focus disabled',
+                  val
+                      ? 'Auto-start focus enabled'
+                      : 'Auto-start focus disabled',
                 );
               },
             ),
@@ -211,15 +217,14 @@ class PomodoroSettingsSection extends StatelessWidget {
               context,
               icon: Icons.skip_next_rounded,
               title: 'Skip breaks',
-              subtitle: 'Cycle continuously through focus sessions without breaks',
+              subtitle:
+                  'Cycle continuously through focus sessions without breaks',
               value: settings.skipBreaks,
               onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(skipBreaks: val),
                 );
-                onToast?.call(
-                  val ? 'Breaks omitted' : 'Breaks restored',
-                );
+                onToast?.call(val ? 'Breaks omitted' : 'Breaks restored');
               },
             ),
             _buildSwitchTile(
@@ -357,10 +362,7 @@ class PomodoroSettingsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          M3ESwitch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          M3ESwitch(value: value, onChanged: onChanged),
         ],
       ),
     );

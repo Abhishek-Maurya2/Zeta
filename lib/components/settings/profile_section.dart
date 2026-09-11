@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'dart:io' show File;
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 import '../../widgets/user_avatar.dart';
 import '../../providers/theme_provider.dart';
@@ -63,14 +63,14 @@ class _ProfileSectionState extends State<ProfileSection> {
 
   Future<void> _pickImageFile(ThemeProvider themeProvider) async {
     try {
-      final picked = await FilePicker.pickFile(
-        type: FileType.image,
-      );
+      final picked = await FilePicker.pickFile(type: FileType.image);
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         if (bytes.isNotEmpty) {
           final ext = picked.extension?.toLowerCase() ?? 'png';
-          final mime = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/png';
+          final mime = (ext == 'jpg' || ext == 'jpeg')
+              ? 'image/jpeg'
+              : 'image/png';
           final encoded = 'data:$mime;base64,${base64Encode(bytes)}';
           themeProvider.setAvatarPhoto(encoded);
           widget.onToast?.call('Profile photo updated successfully.');
@@ -83,7 +83,9 @@ class _ProfileSectionState extends State<ProfileSection> {
 
   void _showImageUrlDialog(BuildContext context, ThemeProvider themeProvider) {
     final urlController = TextEditingController(
-      text: (themeProvider.avatarPhoto != null && themeProvider.avatarPhoto!.startsWith('http'))
+      text:
+          (themeProvider.avatarPhoto != null &&
+              themeProvider.avatarPhoto!.startsWith('http'))
           ? themeProvider.avatarPhoto!
           : '',
     );
@@ -105,7 +107,9 @@ class _ProfileSectionState extends State<ProfileSection> {
             children: [
               Text(
                 'Paste any web image URL (e.g. Unsplash, GitHub, Gravatar):',
-                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -114,7 +118,9 @@ class _ProfileSectionState extends State<ProfileSection> {
                 decoration: InputDecoration(
                   hintText: 'https://example.com/photo.jpg',
                   prefixIcon: const Icon(Icons.link_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -141,7 +147,10 @@ class _ProfileSectionState extends State<ProfileSection> {
     );
   }
 
-  void _showPhotoOptionsSheet(BuildContext context, ThemeProvider themeProvider) {
+  void _showPhotoOptionsSheet(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -173,40 +182,58 @@ class _ProfileSectionState extends State<ProfileSection> {
               ),
               Text(
                 'Profile Photo',
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 'Upload a photo or remove to use letter "${themeProvider.avatarInitial}"',
-                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 16),
               ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.file_upload_outlined, color: colorScheme.onPrimaryContainer, size: 20),
+                  child: Icon(
+                    Icons.file_upload_outlined,
+                    color: colorScheme.onPrimaryContainer,
+                    size: 20,
+                  ),
                 ),
                 title: const Text('Choose image file'),
-                subtitle: const Text('Select a JPG or PNG file from your device'),
+                subtitle: const Text(
+                  'Select a JPG or PNG file from your device',
+                ),
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _pickImageFile(themeProvider);
                 },
               ),
               ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: colorScheme.secondaryContainer,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.link_rounded, color: colorScheme.onSecondaryContainer, size: 20),
+                  child: Icon(
+                    Icons.link_rounded,
+                    color: colorScheme.onSecondaryContainer,
+                    size: 20,
+                  ),
                 ),
                 title: const Text('Enter image URL'),
                 subtitle: const Text('Paste a link to any web image'),
@@ -218,24 +245,37 @@ class _ProfileSectionState extends State<ProfileSection> {
               if (themeProvider.hasAvatarPhoto) ...[
                 const Divider(height: 20),
                 ListTile(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: colorScheme.errorContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.delete_outline_rounded, color: colorScheme.onErrorContainer, size: 20),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: colorScheme.onErrorContainer,
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     'Remove photo',
-                    style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: colorScheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  subtitle: Text('Switch back to alphabet "${themeProvider.avatarInitial}" as avatar'),
+                  subtitle: Text(
+                    'Switch back to alphabet "${themeProvider.avatarInitial}" as avatar',
+                  ),
                   onTap: () {
                     themeProvider.clearAvatarPhoto();
                     Navigator.of(sheetContext).pop();
-                    widget.onToast?.call('Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.');
+                    widget.onToast?.call(
+                      'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
+                    );
                   },
                 ),
               ],
@@ -246,7 +286,10 @@ class _ProfileSectionState extends State<ProfileSection> {
     );
   }
 
-  void _showAvatarColorSheet(BuildContext context, ThemeProvider themeProvider) {
+  void _showAvatarColorSheet(
+    BuildContext context,
+    ThemeProvider themeProvider,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -278,11 +321,7 @@ class _ProfileSectionState extends State<ProfileSection> {
               ),
               Row(
                 children: [
-                  UserAvatar(
-                    radius: 22,
-                    showRing: true,
-                    ringWidth: 2,
-                  ),
+                  UserAvatar(radius: 22, showRing: true, ringWidth: 2),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -311,7 +350,9 @@ class _ProfileSectionState extends State<ProfileSection> {
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: List.generate(ThemeProvider.avatarColors.length, (index) {
+                children: List.generate(ThemeProvider.avatarColors.length, (
+                  index,
+                ) {
                   final color = ThemeProvider.avatarColors[index];
                   final isSelected = themeProvider.avatarColorIndex == index;
 
@@ -329,7 +370,9 @@ class _ProfileSectionState extends State<ProfileSection> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? colorScheme.onSurface : Colors.transparent,
+                          color: isSelected
+                              ? colorScheme.onSurface
+                              : Colors.transparent,
                           width: 3,
                         ),
                         boxShadow: [
@@ -340,7 +383,11 @@ class _ProfileSectionState extends State<ProfileSection> {
                         ],
                       ),
                       child: isSelected
-                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                          ? const Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: 22,
+                            )
                           : null,
                     ),
                   );
@@ -378,7 +425,7 @@ class _ProfileSectionState extends State<ProfileSection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // ─── Item 1: Profile Photo & Alphabet Avatar ──────────────────
             Padding(
@@ -421,20 +468,24 @@ class _ProfileSectionState extends State<ProfileSection> {
                     children: [
                       M3EButton.icon(
                         icon: Icon(
-                          hasPhoto ? Icons.photo_camera_rounded : Icons.add_a_photo_outlined,
+                          hasPhoto
+                              ? Icons.photo_camera_rounded
+                              : Icons.add_a_photo_outlined,
                           size: 16,
                         ),
                         label: Text(hasPhoto ? 'Change' : 'Photo'),
                         style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
-                        onPressed: () => _showPhotoOptionsSheet(context, themeProvider),
+                        onPressed: () =>
+                            _showPhotoOptionsSheet(context, themeProvider),
                       ),
                       M3EButton.icon(
                         icon: const Icon(Icons.palette_outlined, size: 16),
                         label: const Text('Color'),
                         style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
-                        onPressed: () => _showAvatarColorSheet(context, themeProvider),
+                        onPressed: () =>
+                            _showAvatarColorSheet(context, themeProvider),
                       ),
                       if (hasPhoto)
                         M3EButton.icon(

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../theme/color_variant.dart';
 import '../../widgets/segmented_column.dart';
 
@@ -46,7 +47,10 @@ class AppearanceSection extends StatelessWidget {
 
               // Sheet Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Container(
@@ -102,7 +106,8 @@ class AppearanceSection extends StatelessWidget {
                   itemBuilder: (_, index) {
                     final preset = kSeedPresets[index];
                     final isSelected =
-                        themeProvider.seedColor.toARGB32() == preset.color.toARGB32();
+                        themeProvider.seedColor.toARGB32() ==
+                        preset.color.toARGB32();
 
                     return InkWell(
                       borderRadius: BorderRadius.circular(16),
@@ -124,7 +129,9 @@ class AppearanceSection extends StatelessWidget {
                           border: Border.all(
                             color: isSelected
                                 ? colorScheme.primary
-                                : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                : colorScheme.outlineVariant.withValues(
+                                    alpha: 0.3,
+                                  ),
                           ),
                         ),
                         child: Row(
@@ -168,7 +175,8 @@ class AppearanceSection extends StatelessWidget {
                                     '${preset.desc} • ${preset.hex}',
                                     style: textTheme.bodySmall?.copyWith(
                                       color: isSelected
-                                          ? colorScheme.onSecondaryContainer.withValues(alpha: 0.8)
+                                          ? colorScheme.onSecondaryContainer
+                                                .withValues(alpha: 0.8)
                                           : colorScheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -204,14 +212,14 @@ class AppearanceSection extends StatelessWidget {
     final themeModeIndex = themeProvider.themeMode == ThemeMode.light
         ? 0
         : themeProvider.themeMode == ThemeMode.dark
-            ? 1
-            : 2;
+        ? 1
+        : 2;
 
     final variantIndex = themeProvider.variant == M3EColorVariant.expressive
         ? 0
         : themeProvider.variant == M3EColorVariant.tonalSpot
-            ? 1
-            : 2;
+        ? 1
+        : 2;
 
     final currentPreset = kSeedPresets.firstWhere(
       (p) => p.color.toARGB32() == themeProvider.seedColor.toARGB32(),
@@ -219,7 +227,8 @@ class AppearanceSection extends StatelessWidget {
         id: 'custom',
         name: 'Custom Palette',
         color: themeProvider.seedColor,
-        hex: '#${themeProvider.seedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+        hex:
+            '#${themeProvider.seedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
         desc: 'Custom tone',
       ),
     );
@@ -242,7 +251,7 @@ class AppearanceSection extends StatelessWidget {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // Theme Mode
             Padding(
@@ -297,7 +306,9 @@ class AppearanceSection extends StatelessWidget {
                           onToast?.call('Theme set to Dark');
                         } else if (index == 2) {
                           themeProvider.setThemeMode(ThemeMode.system);
-                          onToast?.call('Theme set to Auto (System preference)');
+                          onToast?.call(
+                            'Theme set to Auto (System preference)',
+                          );
                         }
                       },
                       actions: const [
@@ -391,7 +402,10 @@ class AppearanceSection extends StatelessWidget {
             InkWell(
               onTap: () => _showColorSheet(context, themeProvider),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -432,7 +446,9 @@ class AppearanceSection extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: themeProvider.seedColor.withValues(alpha: 0.35),
+                            color: themeProvider.seedColor.withValues(
+                              alpha: 0.35,
+                            ),
                             blurRadius: 6,
                           ),
                         ],
@@ -467,7 +483,7 @@ class AppearanceSection extends StatelessWidget {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -548,7 +564,9 @@ class AppearanceSection extends StatelessWidget {
                     onChanged: (val) {
                       themeProvider.setHighContrast(val);
                       onToast?.call(
-                        val ? 'High contrast enabled' : 'High contrast disabled',
+                        val
+                            ? 'High contrast enabled'
+                            : 'High contrast disabled',
                       );
                     },
                   ),
@@ -591,7 +609,9 @@ class AppearanceSection extends StatelessWidget {
                     onChanged: (val) {
                       themeProvider.setCompactDensity(val);
                       onToast?.call(
-                        val ? 'Compact density enabled' : 'Compact density disabled',
+                        val
+                            ? 'Compact density enabled'
+                            : 'Compact density disabled',
                       );
                     },
                   ),

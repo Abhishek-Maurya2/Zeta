@@ -1,7 +1,9 @@
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/task_provider.dart';
@@ -17,10 +19,7 @@ class DataPrivacySection extends StatefulWidget {
 }
 
 class _DataPrivacySectionState extends State<DataPrivacySection> {
-  void _exportConfiguration(
-    BuildContext context,
-    ThemeProvider themeProvider,
-  ) {
+  void _exportConfiguration(BuildContext context, ThemeProvider themeProvider) {
     final configData = {
       'app': 'Zeta',
       'version': '1.0.0',
@@ -85,8 +84,9 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
       'tasks': taskProvider.allTasks.map((t) => t.toJson()).toList(),
       'binTasks': taskProvider.binTasks.map((t) => t.toJson()).toList(),
       'pomodoroSettings': pomodoroProvider.settings.toJson(),
-      'pomodoroSessions':
-          pomodoroProvider.sessionLog.map((s) => s.toJson()).toList(),
+      'pomodoroSessions': pomodoroProvider.sessionLog
+          .map((s) => s.toJson())
+          .toList(),
     };
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(fullBackup);
@@ -119,7 +119,9 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                 style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                 decoration: InputDecoration(
                   hintText: '{\n  "userName": "...",\n  "themeMode": "dark",\n  ...\n}',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   contentPadding: const EdgeInsets.all(12),
                 ),
               ),
@@ -139,17 +141,24 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
 
                 try {
                   final parsed = jsonDecode(text) as Map<String, dynamic>;
-                  final configMap = parsed['preferences'] is Map<String, dynamic>
+                  final configMap =
+                      parsed['preferences'] is Map<String, dynamic>
                       ? parsed['preferences'] as Map<String, dynamic>
                       : parsed;
-                  final success = await themeProvider.importConfiguration(configMap);
+                  final success = await themeProvider.importConfiguration(
+                    configMap,
+                  );
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
                   if (success) {
-                    widget.onToast?.call('Configuration imported successfully!');
+                    widget.onToast?.call(
+                      'Configuration imported successfully!',
+                    );
                   } else {
-                    widget.onToast?.call('Failed to parse configuration attributes');
+                    widget.onToast?.call(
+                      'Failed to parse configuration attributes',
+                    );
                   }
                 } catch (_) {
                   widget.onToast?.call('Invalid JSON format');
@@ -183,7 +192,9 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 themeProvider.resetDefaults();
-                widget.onToast?.call('All preferences reset to factory defaults.');
+                widget.onToast?.call(
+                  'All preferences reset to factory defaults.',
+                );
               },
               child: const Text('Reset Defaults'),
             ),
@@ -225,7 +236,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // Export Configuration
             Padding(
@@ -308,8 +319,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                     label: const Text('Import'),
                     style: M3EButtonStyle.outlined,
                     size: M3EButtonSize.sm,
-                    onPressed: () =>
-                        _showImportDialog(context, themeProvider),
+                    onPressed: () => _showImportDialog(context, themeProvider),
                   ),
                 ],
               ),
@@ -375,8 +385,10 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                 final keysCount = snapshot.data?['keysCount'] ?? 14;
 
                 return Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   child: Row(
                     children: [
                       Icon(
@@ -433,8 +445,10 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
             InkWell(
               onTap: () => _showResetDialog(context, themeProvider),
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -466,8 +480,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                     M3EButton(
                       style: M3EButtonStyle.outlined,
                       size: M3EButtonSize.sm,
-                      onPressed: () =>
-                          _showResetDialog(context, themeProvider),
+                      onPressed: () => _showResetDialog(context, themeProvider),
                       child: const Text('Reset'),
                     ),
                   ],
@@ -494,7 +507,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

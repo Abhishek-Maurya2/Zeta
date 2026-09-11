@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/task_provider.dart';
@@ -81,9 +82,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   Text(
                     'Cross-platform notification test sent with audio chime & haptic feedback.',
                     style: TextStyle(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onInverseSurface
+                      color: Theme.of(context).colorScheme.onInverseSurface
                           .withValues(alpha: 0.8),
                       fontSize: 12,
                     ),
@@ -142,20 +141,21 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // Due time alerts
             _buildSwitchTile(
               context,
               icon: Icons.notifications_active_rounded,
               title: 'In-App Due Time Alerts',
-              subtitle:
-                  'Display high-priority notifications when tasks reach their scheduled deadline',
+              subtitle: 'Display high-priority notifications when tasks reach their scheduled deadline',
               value: themeProvider.notifications,
               onChanged: (val) {
                 themeProvider.setNotifications(val);
                 widget.onToast?.call(
-                  val ? 'In-app reminders enabled' : 'In-app reminders disabled',
+                  val
+                      ? 'In-app reminders enabled'
+                      : 'In-app reminders disabled',
                 );
               },
             ),
@@ -208,8 +208,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               context,
               icon: Icons.volume_up_rounded,
               title: 'Sound Feedback & Chimes',
-              subtitle:
-                  'Play audio clicks and chimes on task completion and timer events',
+              subtitle: 'Play audio clicks and chimes on task completion and timer events',
               value: themeProvider.soundEffects,
               onChanged: (val) {
                 themeProvider.setSoundEffects(val);
@@ -256,7 +255,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -311,10 +310,10 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     onPressed: _isSyncing
                         ? null
                         : () => _handleManualSync(
-                              themeProvider,
-                              taskProvider,
-                              pomodoroProvider,
-                            ),
+                            themeProvider,
+                            taskProvider,
+                            pomodoroProvider,
+                          ),
                   ),
                 ],
               ),
@@ -363,10 +362,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
             ),
           ),
           const SizedBox(width: 12),
-          M3ESwitch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          M3ESwitch(value: value, onChanged: onChanged),
         ],
       ),
     );

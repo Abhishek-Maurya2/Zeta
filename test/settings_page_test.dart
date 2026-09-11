@@ -9,6 +9,7 @@ import 'package:zeta/providers/theme_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/pages/settings_page.dart';
 import 'package:zeta/widgets/m3_pane_divider.dart';
+import 'package:zeta/widgets/segmented_column.dart';
 import 'package:zeta/components/settings/settings.dart';
 
 Widget createSettingsTestWidget({
@@ -90,7 +91,7 @@ void main() {
     expect(resetSizedBox.width, isNotNull);
   });
 
-  testWidgets('SettingsPage navigation pane can be collapsed and expanded',
+  testWidgets('SettingsPage left pane is flat on page background and right pane is elevated',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -99,30 +100,20 @@ void main() {
     await tester.pumpWidget(createSettingsTestWidget());
     await tester.pump(const Duration(milliseconds: 100));
 
-    // Navigation pane is initially expanded
+    // Navigation pane is visible with PREFERENCES on flat background using M3ESegmentedColumn
     expect(find.text('PREFERENCES'), findsOneWidget);
     expect(find.byType(M3PaneDivider), findsOneWidget);
+    expect(find.byType(M3ESegmentedColumn), findsWidgets);
 
-    // Find collapse button in header or category bar
-    final collapseBtn = find.byTooltip('Collapse navigation pane').first;
-    await tester.tap(collapseBtn);
-    await tester.pumpAndSettle();
+    // Left pane has no collapse buttons / extra controls
+    expect(find.byTooltip('Collapse navigation pane'), findsNothing);
 
-    // Now navigation pane is collapsed
-    expect(find.text('PREFERENCES'), findsNothing);
-    expect(find.byType(M3PaneDivider), findsNothing);
-
-    // Collapsed expand affordance strip is visible
-    final expandAffordance = find.byTooltip('Expand navigation pane');
-    expect(expandAffordance, findsOneWidget);
-
-    // Tap expand affordance strip to uncollapse
-    await tester.tap(expandAffordance);
-    await tester.pumpAndSettle();
-
-    // Navigation pane is visible again
-    expect(find.text('PREFERENCES'), findsOneWidget);
-    expect(find.byType(M3PaneDivider), findsOneWidget);
+    // Right pane is inside elevated supporting pane container
+    final containers = tester.widgetList<Container>(find.byType(Container));
+    final elevatedContainer = containers.firstWhere(
+      (c) => c.color == Theme.of(tester.element(find.byType(SettingsPage))).colorScheme.surfaceContainerLow,
+    );
+    expect(elevatedContainer, isNotNull);
   });
 
   testWidgets('SettingsPage switches categories in two-pane mode',

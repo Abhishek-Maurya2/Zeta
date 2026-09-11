@@ -51,8 +51,8 @@ class _M3PaneDividerState extends State<M3PaneDivider> {
     final handleColor = _isDragging
         ? colorScheme.primary
         : (isActive
-            ? colorScheme.onSurfaceVariant
-            : colorScheme.outlineVariant.withValues(alpha: 0.85));
+              ? colorScheme.onSurfaceVariant
+              : colorScheme.outlineVariant.withValues(alpha: 0.85));
 
     return MouseRegion(
       cursor: SystemMouseCursors.resizeColumn,
@@ -83,20 +83,7 @@ class _M3PaneDividerState extends State<M3PaneDivider> {
             width: 16.0, // Touch / grab area
             child: Stack(
               alignment: Alignment.center,
-              children: [
-                // 1dp Divider Line
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 1.0,
-                      color: lineColor,
-                    ),
-                  ),
-                ),
-
-                // Drag Handle Pill
+              children: [                // Drag Handle Pill
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   curve: Curves.easeOutCubic,

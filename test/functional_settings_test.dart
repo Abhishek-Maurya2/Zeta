@@ -39,8 +39,19 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  test('Avatar is strictly the first alphabet and updates dynamically', () {
+  test('Avatar supports photo and falls back to first alphabet when no photo is set', () {
     final themeProvider = ThemeProvider();
+    expect(themeProvider.hasAvatarPhoto, isFalse);
+    expect(themeProvider.avatarInitial, equals('A'));
+
+    // Set photo
+    themeProvider.setAvatarPhoto('https://example.com/photo.png');
+    expect(themeProvider.hasAvatarPhoto, isTrue);
+    expect(themeProvider.avatarPhoto, equals('https://example.com/photo.png'));
+
+    // Clear photo -> falls back to alphabet avatar
+    themeProvider.clearAvatarPhoto();
+    expect(themeProvider.hasAvatarPhoto, isFalse);
     expect(themeProvider.avatarInitial, equals('A'));
 
     themeProvider.setUserName('Zeta User');

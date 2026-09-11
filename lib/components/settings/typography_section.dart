@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../widgets/segmented_column.dart';
 
 import '../../providers/theme_provider.dart';
@@ -20,26 +21,26 @@ class TypographySection extends StatelessWidget {
     final fontScaleLabel = themeProvider.fontScale == 'compact'
         ? 'Compact (92%)'
         : themeProvider.fontScale == 'large'
-            ? 'Large (108%)'
-            : 'Standard (100%)';
+        ? 'Large (108%)'
+        : 'Standard (100%)';
 
     final fontScaleValue = themeProvider.fontScale == 'compact'
         ? 0.0
         : themeProvider.fontScale == 'large'
-            ? 2.0
-            : 1.0;
+        ? 2.0
+        : 1.0;
 
     final cornerStyleLabel = themeProvider.cornerStyle == 'sharp'
         ? 'Sharp (8px)'
         : themeProvider.cornerStyle == 'classic'
-            ? 'Classic (16px)'
-            : 'Expressive (28px)';
+        ? 'Classic (16px)'
+        : 'Expressive (28px)';
 
     final cornerStyleValue = themeProvider.cornerStyle == 'sharp'
         ? 0.0
         : themeProvider.cornerStyle == 'classic'
-            ? 1.0
-            : 2.0;
+        ? 1.0
+        : 2.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,7 +99,8 @@ class TypographySection extends StatelessWidget {
                   context,
                   id: 'roboto',
                   name: 'Roboto Standard',
-                  description: 'Classic Material Design geometric neo-grotesque',
+                  description:
+                      'Classic Material Design geometric neo-grotesque',
                   fontFamily: GoogleFonts.roboto().fontFamily,
                   isSelected: themeProvider.fontChoice == 'roboto',
                   onTap: () {
@@ -141,7 +143,7 @@ class TypographySection extends StatelessWidget {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             // Roundness
             _buildSliderTile(
@@ -206,8 +208,9 @@ class TypographySection extends StatelessWidget {
               max: 2,
               divisions: 2,
               onChanged: (val) {
-                final scale =
-                    val == 0.0 ? 'compact' : (val == 2.0 ? 'large' : 'standard');
+                final scale = val == 0.0
+                    ? 'compact'
+                    : (val == 2.0 ? 'large' : 'standard');
                 themeProvider.setFontScale(scale);
                 onToast?.call('Text scale set to $fontScaleLabel');
               },
@@ -228,8 +231,9 @@ class TypographySection extends StatelessWidget {
               max: 2,
               divisions: 2,
               onChanged: (val) {
-                final style =
-                    val == 0.0 ? 'sharp' : (val == 2.0 ? 'expressive' : 'classic');
+                final style = val == 0.0
+                    ? 'sharp'
+                    : (val == 2.0 ? 'expressive' : 'classic');
                 themeProvider.setCornerStyle(style);
                 onToast?.call('Corner shape set to $cornerStyleLabel');
               },
@@ -290,7 +294,11 @@ class TypographySection extends StatelessWidget {
               Text(
                 'Sphinx of black quartz, judge my vow.',
                 style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.values[(themeProvider.fontWeight / 100).round().clamp(1, 9) - 1],
+                  fontWeight:
+                      FontWeight.values[(themeProvider.fontWeight / 100)
+                              .round()
+                              .clamp(1, 9) -
+                          1],
                   color: colorScheme.onSurface,
                 ),
               ),

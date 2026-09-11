@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 import '../../providers/theme_provider.dart';
 
@@ -40,7 +41,9 @@ class _WeatherSectionState extends State<WeatherSection> {
 
   Future<void> _handleRefresh(ThemeProvider themeProvider) async {
     await themeProvider.refreshWeather();
-    widget.onToast?.call('Weather telemetry refreshed for ${themeProvider.cityName}');
+    widget.onToast?.call(
+      'Weather telemetry refreshed for ${themeProvider.cityName}',
+    );
   }
 
   @override
@@ -114,7 +117,7 @@ class _WeatherSectionState extends State<WeatherSection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -135,7 +138,9 @@ class _WeatherSectionState extends State<WeatherSection> {
                                 child: SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               )
                             : Icon(iconData, color: iconColor, size: 28),
@@ -254,7 +259,8 @@ class _WeatherSectionState extends State<WeatherSection> {
                             controller: _cityController,
                             autofocus: true,
                             decoration: InputDecoration(
-                              hintText: 'Enter any city (e.g. London, Tokyo, Mumbai)',
+                              hintText:
+                                  'Enter any city (e.g. London, Tokyo, Mumbai)',
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,

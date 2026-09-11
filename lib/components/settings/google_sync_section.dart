@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+
 import '../../widgets/segmented_column.dart';
 
 class GoogleSyncSection extends StatefulWidget {
@@ -78,7 +79,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
           decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.all(1.0),
           ),
-          color: colorScheme.surfaceContainer,
+          color: colorScheme.surfaceContainerLowest,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -123,7 +124,8 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                               ),
                               decoration: BoxDecoration(
                                 color: _isConnected
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                    ? const Color(0xFF10B981)
+                                          .withValues(alpha: 0.15)
                                     : colorScheme.errorContainer,
                                 borderRadius: BorderRadius.circular(6),
                               ),
@@ -230,7 +232,9 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     onChanged: (val) {
                       setState(() => _syncCalendar = val);
                       widget.onToast?.call(
-                        val ? 'Calendar sync enabled' : 'Calendar sync disabled',
+                        val
+                            ? 'Calendar sync enabled'
+                            : 'Calendar sync disabled',
                       );
                     },
                   ),
@@ -275,7 +279,9 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     onChanged: (val) {
                       setState(() => _syncTasks = val);
                       widget.onToast?.call(
-                        val ? 'Google Tasks sync enabled' : 'Google Tasks sync disabled',
+                        val
+                            ? 'Google Tasks sync enabled'
+                            : 'Google Tasks sync disabled',
                       );
                     },
                   ),
@@ -295,11 +301,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               children: [
-                Icon(
-                  Icons.key_rounded,
-                  size: 20,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.key_rounded, size: 20, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
                   'OAUTH CLIENT CREDENTIALS',
@@ -383,7 +385,9 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                         style: M3EButtonStyle.filled,
                         size: M3EButtonSize.sm,
                         onPressed: () {
-                          widget.onToast?.call('Google OAuth credentials updated');
+                          widget.onToast?.call(
+                            'Google OAuth credentials updated',
+                          );
                         },
                       ),
                     ),

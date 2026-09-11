@@ -198,12 +198,15 @@ class _SettingsPageState extends State<SettingsPage> {
         ? (_selectedCategory ?? SettingsCategory.profile)
         : _selectedCategory;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ─── Header ─────────────────────────────────────────────────────
-        if (!isTwoPane) ...[
-          // Compact Header (shows back button when sub-section is active)
+    final activeCategoryMeta = activeCategory != null
+        ? kSettingsCategories.firstWhere((c) => c.id == activeCategory)
+        : null;
+
+    if (!isTwoPane) {
+      // ─── Compact Single Pane Layout (<640px) ─────────────────────────────
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Container(
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -234,9 +237,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(width: 8),
                 Text(
                   _selectedCategory != null
-                      ? kSettingsCategories
-                            .firstWhere((c) => c.id == _selectedCategory)
-                            .label
+                      ? activeCategoryMeta?.label ?? 'Settings'
                       : 'Settings',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -246,146 +247,159 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
-        ] else ...[
-          // Expanded Page Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(36, 20, 36, 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Settings',
-                        style: textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Manage your workspace preferences, theme, and automation.',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: Icon(
-                    _isPaneCollapsed
-                        ? Icons.view_sidebar_outlined
-                        : Icons.view_sidebar_rounded,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  tooltip: _isPaneCollapsed
-                      ? 'Show navigation pane'
-                      : 'Hide navigation pane',
-                  onPressed: () {
-                    setState(() {
-                      _isPaneCollapsed = !_isPaneCollapsed;
-                      if (!_isPaneCollapsed && _paneWidth < _minPaneWidth) {
-                        _paneWidth = _defaultPaneWidth;
-                      }
-                    });
-                    HapticFeedback.lightImpact();
-                    _persistPaneSettings();
-                  },
-                ),
-              ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: _selectedCategory != null
+                  ? _buildCategoryContent(_selectedCategory)
+                  : _buildCategoryList(
+                      context,
+                      activeCategory: null,
+                      isTwoPane: false,
+                    ),
             ),
           ),
         ],
+      );
+    }
 
-        // ─── Body Content ───────────────────────────────────────────────
-        Expanded(
-          child: isTwoPane
-              ? LayoutBuilder(
-                  builder: (context, constraints) {
-                    final totalWidth = constraints.maxWidth.isFinite
-                        ? constraints.maxWidth
-                        : MediaQuery.sizeOf(context).width;
+    // ─── Wide Screen Two-Pane Layout with Elevated Supporting Pane (≥640px) ─
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
 
-                    final maxAllowedWidth =
-                        (totalWidth - _minContentPaneWidth - 16.0).clamp(
-                          _minPaneWidth,
-                          totalWidth * 0.6,
-                        );
-                    final currentWidth = _hasCustomWidth
-                        ? _paneWidth
-                        : (totalWidth >= 1200
-                              ? _largePaneWidth
-                              : _defaultPaneWidth);
-                    final effectiveWidth = currentWidth.clamp(
-                      _minPaneWidth,
-                      maxAllowedWidth,
-                    );
+        final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0)
+            .clamp(_minPaneWidth, totalWidth * 0.6);
+        final currentWidth = _hasCustomWidth
+            ? _paneWidth
+            : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth);
+        final effectiveWidth = currentWidth.clamp(
+          _minPaneWidth,
+          maxAllowedWidth,
+        );
 
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(36, 12, 36, 24),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_isPaneCollapsed) ...[
+              _buildCollapsedExpandAffordance(colorScheme),
+            ] else ...[
+              // Left Pane: Primary Settings Navigation Pane (Fixed on normal page background, NO controls)
+              SizedBox(
+                width: effectiveWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Pane Header (Clean normal page header, no controls)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 24, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (_isPaneCollapsed) ...[
-                            _buildCollapsedExpandAffordance(colorScheme),
-                            const SizedBox(width: 12),
-                          ] else ...[
-                            // Left Pane: Category Navigation
-                            SizedBox(
-                              width: effectiveWidth,
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: _buildCategoryList(
-                                  context,
-                                  activeCategory: activeCategory,
-                                  isTwoPane: true,
-                                ),
-                              ),
+                          Text(
+                            'Settings',
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                              color: colorScheme.onSurface,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    ),
+                    // const Divider(height: 1),
 
-                            // Material 3 Draggable Pane Divider
-                            M3PaneDivider(
-                              onDragUpdate: (delta) =>
-                                  _handlePaneDrag(delta, totalWidth),
-                              onDragEnd: _persistPaneSettings,
-                              onDoubleTap: () =>
-                                  _handlePaneDoubleTap(totalWidth),
-                              tooltip: 'Drag to resize navigation · Double-tap to reset (310dp)',
-                            ),
-                            const SizedBox(width: 8),
-                          ],
+                    // Categories List (Flat on page background, no elevated card)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        child: _buildCategoryList(
+                          context,
+                          activeCategory: activeCategory,
+                          isTwoPane: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-                          // Right Pane: Active Category Content
+              // Material 3 Draggable Pane Divider
+              M3PaneDivider(
+                onDragUpdate: (delta) => _handlePaneDrag(delta, totalWidth),
+                onDragEnd: _persistPaneSettings,
+                onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+                tooltip:
+                    'Drag to resize navigation · Double-tap to reset (310dp)',
+              ),
+            ],
+
+            // Right Pane: Secondary Elevated Supporting Pane (Like Pomodoro)
+            Expanded(
+              child: Container(
+                color: colorScheme.surfaceContainer,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Top Secondary Toolbar
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(),
+                      child: Row(
+                        children: [
+                          Icon(
+                            activeCategoryMeta?.icon ?? Icons.settings_rounded,
+                            size: 22,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 28),
-                              child: _buildCategoryContent(activeCategory),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activeCategoryMeta?.label ?? 'Settings',
+                                  style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  activeCategoryMeta?.description ?? '',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  child: _selectedCategory != null
-                      ? _buildCategoryContent(_selectedCategory)
-                      : _buildCategoryList(
-                          context,
-                          activeCategory: null,
-                          isTwoPane: false,
+                    ),
+
+                    // Elevated Pane Body
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(28, 20, 28, 36),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 820),
+                          child: _buildCategoryContent(activeCategory),
                         ),
+                      ),
+                    ),
+                  ],
                 ),
-        ),
-      ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -409,42 +423,23 @@ class _SettingsPageState extends State<SettingsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Row(
-            children: [
-              Text(
-                'PREFERENCES',
-                style: textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              if (isTwoPane) ...[
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.view_sidebar_outlined, size: 18),
-                  tooltip: 'Collapse navigation pane',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  onPressed: () {
-                    setState(() => _isPaneCollapsed = true);
-                    HapticFeedback.lightImpact();
-                    _persistPaneSettings();
-                  },
-                ),
-              ],
-            ],
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          child: Text(
+            'PREFERENCES',
+            style: textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         M3ESegmentedColumn(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          color: colorScheme.surfaceContainer,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          color: colorScheme.surfaceContainerLowest,
           selectedIndex: selectedIndex,
+          // colorBuilder: (index) => (isTwoPane && index == selectedIndex)
+          //     ? colorScheme.secondaryContainer
+          //     : colorScheme.surfaceContainer,
           onTap: (index) {
             setState(() => _selectedCategory = kSettingsCategories[index].id);
           },
@@ -470,12 +465,13 @@ class _SettingsPageState extends State<SettingsPage> {
                         style: textTheme.bodyMedium?.copyWith(
                           fontWeight: isSelected
                               ? FontWeight.w700
-                              : FontWeight.w600,
+                              : FontWeight.w500,
                           color: isSelected
                               ? colorScheme.onSecondaryContainer
                               : colorScheme.onSurface,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         category.description,
                         maxLines: 1,
@@ -491,13 +487,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: 20,
-                  color: isSelected
-                      ? colorScheme.onSecondaryContainer
-                      : colorScheme.outlineVariant,
-                ),
+                if (!isTwoPane)
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: colorScheme.outlineVariant,
+                  ),
               ],
             );
           }).toList(),
