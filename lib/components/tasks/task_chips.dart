@@ -149,7 +149,7 @@ class TaskSubtasksBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       onTap: onToggleExpand,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
         decoration: BoxDecoration(
           color: isExpanded
               ? colorScheme.primaryContainer

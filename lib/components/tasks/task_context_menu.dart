@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../models/task.dart';
 
 enum TaskContextAction {
@@ -21,136 +23,51 @@ class TaskContextMenu {
     VoidCallback? onRestore,
     VoidCallback? onPermanentDelete,
   }) async {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final RelativeRect menuPosition = RelativeRect.fromLTRB(
-      position.dx,
-      position.dy,
-      position.dx + 1,
-      position.dy + 1,
-    );
-
-    final selected = await showMenu<TaskContextAction>(
+    final selected = await showM3EMenu<TaskContextAction>(
       context: context,
-      position: menuPosition,
-      constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      color: colorScheme.surfaceContainerHigh,
-      items: isBin
+      anchor: Rect.fromLTWH(position.dx, position.dy, 1, 1),
+      position: M3EMenuAnchorPosition.bottomStart,
+      colorStyle: M3EMenuColorStyle.vibrant,
+      preferredWidth: 210,
+      children: isBin
           ? [
-              PopupMenuItem(
+              const M3EMenuEntry(
                 value: TaskContextAction.restore,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.restore_from_trash_rounded,
-                      size: 20,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Restore Task',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
+                label: 'Restore Task',
+                leading: Icon(Icons.restore_from_trash_rounded, size: 20),
               ),
-              PopupMenuItem(
+              const M3EMenuDivider(),
+              const M3EMenuEntry(
                 value: TaskContextAction.permanentDelete,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.delete_forever_rounded,
-                      size: 20,
-                      color: colorScheme.error,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Delete Permanently',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                label: 'Delete Permanently',
+                leading: Icon(Icons.delete_forever_rounded, size: 20),
+                isDestructive: true,
               ),
             ]
           : [
-              PopupMenuItem(
+              M3EMenuEntry(
                 value: TaskContextAction.toggleComplete,
-                child: Row(
-                  children: [
-                    Icon(
-                      task.completed
-                          ? Icons.radio_button_unchecked_rounded
-                          : Icons.check_circle_rounded,
-                      size: 20,
-                      color: task.completed
-                          ? colorScheme.onSurfaceVariant
-                          : const Color(0xFF10B981),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        task.completed
-                            ? 'Mark as Incomplete'
-                            : 'Mark as Complete',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
+                label: task.completed
+                    ? 'Mark as Incomplete'
+                    : 'Mark as Complete',
+                leading: Icon(
+                  task.completed
+                      ? Icons.radio_button_unchecked_rounded
+                      : Icons.check_rounded,
+                  size: 20,
                 ),
               ),
-              const PopupMenuItem(
+              const M3EMenuEntry(
                 value: TaskContextAction.edit,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.edit_outlined,
-                      size: 20,
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Edit Details',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
+                label: 'Edit Details',
+                leading: Icon(Icons.edit_outlined, size: 20),
               ),
-              PopupMenuItem(
+              const M3EMenuDivider(),
+              const M3EMenuEntry(
                 value: TaskContextAction.delete,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.delete_outline_rounded,
-                      size: 20,
-                      color: colorScheme.error,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Move to Bin',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: colorScheme.error,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                label: 'Move to Bin',
+                leading: Icon(Icons.delete_outline_rounded, size: 20),
+                isDestructive: true,
               ),
             ],
     );

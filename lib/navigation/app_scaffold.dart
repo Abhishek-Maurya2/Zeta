@@ -121,42 +121,63 @@ class _NavigationRailWidget extends StatelessWidget {
     final selectedIndex = kNavDestinations.indexWhere(
       (d) => d.id == navProvider.activePage,
     );
+    final m3eTheme = M3ETheme.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final railBgColor = isDark
+        ? colorScheme.surfaceContainer
+        : colorScheme.surface;
 
-    return M3ENavigationRail(
-      // Toggle button is in the AppBar; rail does not show its own toggle button
-      type: isExpanded
-          ? M3ENavigationRailType.alwaysExpand
-          : M3ENavigationRailType.alwaysCollapse,
-      selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
-      onDestinationSelected: (index) {
-        navProvider.setActivePage(kNavDestinations[index].id);
-      },
-      fab: M3ENavigationRailFabSlot(
-        icon: const Icon(Icons.add_rounded),
-        label: 'New Task',
-        color: M3EFabColor.primary,
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Create task modal — coming soon'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
-      ),
-      sections: [
-        M3ENavigationRailSection(
-          destinations: kNavDestinations
-              .map(
-                (d) => M3ENavigationRailDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
-                  label: d.label,
-                ),
-              )
-              .toList(),
+    return M3ETheme(
+      data: m3eTheme.copyWith(
+        navigationRailTheme: m3eTheme.navigationRailTheme.copyWith(
+          containerColor: railBgColor,
+          itemExpandedHeight: 52.0, // Increased height from default 40.0
+          indicatorLeading:
+              18.0, // Decreased inner start padding from default 16.0
+          indicatorTrailing:
+              10.0, // Decreased inner end padding from default 16.0
+          itemVerticalGap:
+              2.0, // Decreased vertical padding between items from default 4.0
         ),
-      ],
+      ),
+      child: M3ENavigationRail(
+        background: railBgColor,
+        // Toggle button is in the AppBar; rail does not show its own toggle button
+        type: isExpanded
+            ? M3ENavigationRailType.alwaysExpand
+            : M3ENavigationRailType.alwaysCollapse,
+        selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
+        onDestinationSelected: (index) {
+          navProvider.setActivePage(kNavDestinations[index].id);
+        },
+        fab: M3ENavigationRailFabSlot(
+          icon: const Icon(Icons.add_rounded),
+          label: 'New Task',
+          color: M3EFabColor.primary,
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Create task modal — coming soon'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+        ),
+        sections: [
+          M3ENavigationRailSection(
+            destinations: kNavDestinations
+                .map(
+                  (d) => M3ENavigationRailDestination(
+                    icon: Icon(d.icon),
+                    selectedIcon: Icon(d.selectedIcon),
+                    label: d.label,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
     );
   }
 }

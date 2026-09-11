@@ -115,7 +115,7 @@ class TasksPage extends StatelessWidget {
 
                   // 2. Filter & Sort Bar
                   if (isCompact) ...[
-                    filterButtonGroup,
+                    Center(child: filterButtonGroup),
                     const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -144,17 +144,11 @@ class TasksPage extends StatelessWidget {
                         'Tasks marked as completed will appear here.',
                       )
                     else
-                      M3ESegmentedColumn(
-                        decoration: const M3ESegmentedListDecoration(
-                          padding: EdgeInsets.all(1.0),
-                        ),
-                        color: colorScheme.surfaceContainerLow,
-                        children: completed
-                            .map(
-                              (task) =>
-                                  _buildTaskItem(context, task, taskProvider),
-                            )
-                            .toList(),
+                      _buildDismissibleTaskList(
+                        context,
+                        completed,
+                        taskProvider,
+                        colorScheme,
                       ),
                   ] else if (filter == TaskFilter.pending) ...[
                     // Pending only view
@@ -165,17 +159,11 @@ class TasksPage extends StatelessWidget {
                         'You have completed all pending tasks!',
                       )
                     else
-                      M3ESegmentedColumn(
-                        decoration: const M3ESegmentedListDecoration(
-                          padding: EdgeInsets.all(1.0),
-                        ),
-                        color: colorScheme.surfaceContainerLow,
-                        children: pending
-                            .map(
-                              (task) =>
-                                  _buildTaskItem(context, task, taskProvider),
-                            )
-                            .toList(),
+                      _buildDismissibleTaskList(
+                        context,
+                        pending,
+                        taskProvider,
+                        colorScheme,
                       ),
                   ] else ...[
                     // All tasks view
@@ -192,20 +180,14 @@ class TasksPage extends StatelessWidget {
                         'Click "+ Add Task" to create your first task.',
                       )
                     else if (pending.isNotEmpty)
-                      M3ESegmentedColumn(
-                        decoration: const M3ESegmentedListDecoration(
-                          padding: EdgeInsets.all(1.0),
-                        ),
-                        color: colorScheme.surfaceContainerLow,
-                        children: pending
-                            .map(
-                              (task) =>
-                                  _buildTaskItem(context, task, taskProvider),
-                            )
-                            .toList(),
+                      _buildDismissibleTaskList(
+                        context,
+                        pending,
+                        taskProvider,
+                        colorScheme,
                       ),
 
-                    // Completed Section (Divider & Completed Segmented Column)
+                    // Completed Section (Divider & Completed Segmented List)
                     if (filter == TaskFilter.all && completed.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       Row(
@@ -238,17 +220,11 @@ class TasksPage extends StatelessWidget {
                       const SizedBox(height: 12),
                       Opacity(
                         opacity: 0.85,
-                        child: M3ESegmentedColumn(
-                          decoration: const M3ESegmentedListDecoration(
-                            padding: EdgeInsets.all(1.0),
-                          ),
-                          color: colorScheme.surfaceContainerLow,
-                          children: completed
-                              .map(
-                                (task) =>
-                                    _buildTaskItem(context, task, taskProvider),
-                              )
-                              .toList(),
+                        child: _buildDismissibleTaskList(
+                          context,
+                          completed,
+                          taskProvider,
+                          colorScheme,
                         ),
                       ),
                     ],
@@ -266,23 +242,90 @@ class TasksPage extends StatelessWidget {
           right: isCompact ? 16 : 36,
           child: M3ETheme(
             data: M3EThemeData.fromMaterial(Theme.of(context)).copyWith(
-              fabTheme: const M3EFabTheme(
-                extended: M3EExtendedFabTheme(
-                  iconLabelGap: 8,
-                  extendedHorizontalPadding: 16,
-                ),
+              fabTheme: M3EFabTheme(
+                extended: isCompact
+                    ? const M3EExtendedFabTheme()
+                    : const M3EExtendedFabTheme(
+                        height: 64,
+                        iconSize: 28,
+                        cornerRadius: 15,
+                        extendedHorizontalPadding: 30,
+                        iconLabelGap: 15,
+                      ),
               ),
             ),
             child: M3EExtendedFab(
               color: M3EFabColor.primary,
               extended: true,
-              icon: const Icon(Icons.add_rounded),
+              icon: Icon(Icons.add_rounded, size: isCompact ? 24 : 28),
               label: 'Add Task',
               onPressed: () => TaskEditPane.show(context),
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDismissibleTaskList(
+    BuildContext context,
+    List<Task> tasks,
+    TaskProvider provider,
+    ColorScheme colorScheme,
+  ) {
+    return M3EDismissibleList(
+      key: ValueKey('dismissible_${tasks.map((t) => t.id).join('_')}'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: tasks.length,
+      style: M3EDismissibleListStyle(
+        color: colorScheme.surfaceContainerLowest,
+        padding: EdgeInsets.zero,
+        outerRadius: 24,
+        innerRadius: 4,
+        gap: 3,
+      ),
+      leadingActionsBuilder: (index) {
+        final task = tasks[index];
+        return [
+          M3EListSwipeAction(
+            icon: Icon(
+              task.completed
+                  ? Icons.radio_button_unchecked_rounded
+                  : Icons.check_circle_rounded,
+              color: Colors.white,
+            ),
+            backgroundColor: task.completed
+                ? colorScheme.secondary
+                : const Color(0xFF10B981),
+            onPressed: () => provider.toggleTask(task.id),
+          ),
+        ];
+      },
+      trailingActionsBuilder: (index) {
+        final task = tasks[index];
+        return [
+          M3EListSwipeAction(
+            icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+            backgroundColor: colorScheme.error,
+            isPrimary: true,
+            onPressed: () => provider.deleteTask(task.id),
+          ),
+        ];
+      },
+      onDismiss: (index, direction) async {
+        final task = tasks[index];
+        if (direction == DismissDirection.endToStart) {
+          provider.deleteTask(task.id);
+        } else {
+          provider.toggleTask(task.id);
+        }
+        return true;
+      },
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        return _buildTaskItem(context, task, provider);
+      },
     );
   }
 

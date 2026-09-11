@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'color_variant.dart';
 
 export 'color_variant.dart';
@@ -96,18 +97,24 @@ class AppTheme {
         break;
     }
 
-    final effectiveTextTheme = (fontFamily != null
-        ? baseTheme.textTheme.apply(fontFamily: fontFamily)
-        : baseTheme.textTheme).copyWith(
-      labelLarge: const TextStyle(fontSize: 13.5, letterSpacing: 0),
-    );
+    final effectiveTextTheme =
+        (fontFamily != null
+                ? baseTheme.textTheme.apply(fontFamily: fontFamily)
+                : baseTheme.textTheme)
+            .copyWith(
+              labelLarge: const TextStyle(fontSize: 13.5, letterSpacing: 0),
+            );
 
     return baseTheme.copyWith(
       textTheme: effectiveTextTheme,
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: effectiveColorScheme.surface,
-        selectedIconTheme: IconThemeData(color: effectiveColorScheme.onSecondaryContainer),
-        unselectedIconTheme: IconThemeData(color: effectiveColorScheme.onSurfaceVariant),
+        selectedIconTheme: IconThemeData(
+          color: effectiveColorScheme.onSecondaryContainer,
+        ),
+        unselectedIconTheme: IconThemeData(
+          color: effectiveColorScheme.onSurfaceVariant,
+        ),
         indicatorColor: effectiveColorScheme.secondaryContainer,
         labelType: NavigationRailLabelType.all,
       ),
@@ -116,12 +123,17 @@ class AppTheme {
         indicatorColor: effectiveColorScheme.secondaryContainer,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: effectiveColorScheme.surface,
+        backgroundColor: effectiveColorScheme.brightness == Brightness.dark
+            ? effectiveColorScheme.surfaceContainer
+            : effectiveColorScheme.surface,
         foregroundColor: effectiveColorScheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 2,
       ),
-      scaffoldBackgroundColor: effectiveColorScheme.surface,
+      scaffoldBackgroundColor:
+          effectiveColorScheme.brightness == Brightness.dark
+          ? effectiveColorScheme.surfaceContainer
+          : effectiveColorScheme.surface,
       cardTheme: CardThemeData(
         color: effectiveColorScheme.surfaceContainerLow,
         elevation: 0,

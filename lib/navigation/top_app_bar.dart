@@ -49,7 +49,11 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(color: colorScheme.surface),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? colorScheme.surfaceContainer
+            : colorScheme.surface,
+      ),
       child: Row(
         children: [
           // ─── Leading Section: Menu Toggle & Brand ─────────────────────────
