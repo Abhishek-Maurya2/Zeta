@@ -31,8 +31,8 @@ class TaskSubtasksList extends StatelessWidget {
     return M3ESegmentedColumn(
       decoration: const M3ESegmentedListDecoration(
         padding: EdgeInsets.all(2),
-        outerRadius: 8,
-        innerRadius: 8,
+        outerRadius: 16,
+        innerRadius: 6,
       ),
       color: effectiveBgColor,
       children: subtasks.map((subtask) {

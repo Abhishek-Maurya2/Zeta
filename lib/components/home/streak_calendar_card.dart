@@ -16,11 +16,13 @@ import '../../utils/task_date_formatter.dart';
 class StreakCalendarCard extends StatefulWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onSelectDate;
+  final double? width;
 
   const StreakCalendarCard({
     super.key,
     required this.selectedDate,
     required this.onSelectDate,
+    this.width = 350,
   });
 
   @override
@@ -44,7 +46,15 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     'Nov',
     'Dec',
   ];
-  static const List<String> _weekdaysShort = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  static const List<String> _weekdaysShort = [
+    'S',
+    'M',
+    'T',
+    'W',
+    'T',
+    'F',
+    'S',
+  ];
 
   @override
   void initState() {
@@ -195,8 +205,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     }
 
     // Tasks on selected date
-    final selectedDayTasks =
-        taskProvider.allTasks.where((t) => _isTaskOnDate(t, widget.selectedDate)).toList();
+    final selectedDayTasks = taskProvider.allTasks
+        .where((t) => _isTaskOnDate(t, widget.selectedDate))
+        .toList();
 
     // Formatted selected date
     final monthName = _monthsShort[widget.selectedDate.month - 1];
@@ -204,7 +215,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
         ? 'Today, $monthName ${widget.selectedDate.day}'
         : '$monthName ${widget.selectedDate.day}';
 
-    return Container(
+    final cardContent = Container(
+      width: widget.width,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainer,
@@ -230,7 +242,11 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: hasActiveStreak
-                              ? const [Color(0xFFF59E0B), Color(0xFFF97316), Color(0xFFE11D48)]
+                              ? const [
+                                  Color(0xFFF59E0B),
+                                  Color(0xFFF97316),
+                                  Color(0xFFE11D48),
+                                ]
                               : const [Color(0xFFFBBF24), Color(0xFFEA580C)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -238,7 +254,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFF97316).withValues(alpha: 0.35),
+                            color: const Color(0xFFF97316)
+                                .withValues(alpha: 0.35),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -270,7 +287,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  currentStreak == 1 ? 'Day Streak' : 'Days Streak',
+                                  currentStreak == 1
+                                      ? 'Day Streak'
+                                      : 'Days Streak',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -431,7 +450,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.6,
+                      ),
                     ),
                   ),
                 ),
@@ -616,7 +637,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       itemCount: selectedDayTasks.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 6),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 6),
                       itemBuilder: (context, idx) {
                         final task = selectedDayTasks[idx];
                         return InkWell(
@@ -650,7 +672,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         task.title,
@@ -664,7 +687,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                               : null,
                                           color: task.completed
                                               ? colorScheme.onSurfaceVariant
-                                                  .withValues(alpha: 0.6)
+                                                    .withValues(alpha: 0.6)
                                               : colorScheme.onSurface,
                                         ),
                                       ),
@@ -708,8 +731,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       vertical: 10,
                     ),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHigh
-                          .withValues(alpha: 0.4),
+                      color: colorScheme.surfaceContainerHigh.withValues(
+                        alpha: 0.4,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -762,6 +786,15 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
         ],
       ),
     );
+
+    if (widget.width != null) {
+      return Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(width: widget.width, child: cardContent),
+      );
+    }
+
+    return cardContent;
   }
 
   Widget _buildMonthGrid(
@@ -808,15 +841,41 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
             final isToday = _isSameDay(cellDate, today);
 
             // Streak range calculation
-            final inStreakRange = hasActiveStreak &&
+            final inStreakRange =
+                hasActiveStreak &&
                 rangeStart != null &&
                 rangeEnd != null &&
                 !cellDate.isBefore(rangeStart) &&
                 !cellDate.isAfter(rangeEnd);
 
+            final isStreakStart = inStreakRange &&
+                (_isSameDay(cellDate, rangeStart) ||
+                    colIdx == 0 ||
+                    dayNum == 1);
+            final isStreakEnd = inStreakRange &&
+                (_isSameDay(cellDate, rangeEnd) ||
+                    colIdx == 6 ||
+                    dayNum == daysInMonth);
+
+            BorderRadius streakBorderRadius;
+            if (isStreakStart && isStreakEnd) {
+              streakBorderRadius = BorderRadius.circular(18);
+            } else if (isStreakStart) {
+              streakBorderRadius = const BorderRadius.horizontal(
+                left: Radius.circular(18),
+              );
+            } else if (isStreakEnd) {
+              streakBorderRadius = const BorderRadius.horizontal(
+                right: Radius.circular(18),
+              );
+            } else {
+              streakBorderRadius = BorderRadius.zero;
+            }
+
             // Tasks on this day
-            final dayTasks =
-                allTasks.where((t) => _isTaskOnDate(t, cellDate)).toList();
+            final dayTasks = allTasks
+                .where((t) => _isTaskOnDate(t, cellDate))
+                .toList();
             final hasPending = dayTasks.any((t) => !t.completed);
             final hasCompleted = dayTasks.any((t) => t.completed);
             final isPast = cellDate.isBefore(today);
@@ -832,53 +891,128 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
             }
 
             return Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(10),
-                onTap: () => widget.onSelectDate(cellDate),
-                child: Container(
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? colorScheme.primary
-                        : (inStreakRange
-                            ? colorScheme.primaryContainer
-                            : Colors.transparent),
-                    borderRadius: BorderRadius.circular(isSelected ? 12 : 6),
-                  ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                        '$dayNum',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: isSelected || isToday || inStreakRange
-                              ? FontWeight.w700
-                              : FontWeight.w400,
-                          color: isSelected
-                              ? colorScheme.onPrimary
-                              : (inStreakRange
-                                  ? colorScheme.onPrimaryContainer
-                                  : (isToday
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurface)),
-                        ),
-                      ),
-                      if (dotColor != null)
-                        Positioned(
-                          bottom: 3,
-                          child: Container(
-                            width: 3.5,
-                            height: 3.5,
-                            decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : dotColor,
-                              shape: BoxShape.circle,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(isToday || isSelected ? 18 : 8),
+                    onTap: () => widget.onSelectDate(cellDate),
+                    child: SizedBox(
+                      height: 35,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // 1. Continuous segmented streak track
+                          if (inStreakRange) ...[
+                            if (isToday) ...[
+                              if (isStreakStart && isStreakEnd)
+                                const SizedBox.shrink()
+                              else if (isStreakStart && !isStreakEnd)
+                                Positioned(
+                                  left: constraints.maxWidth / 2,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    color: colorScheme.primaryContainer,
+                                  ),
+                                )
+                              else if (!isStreakStart && isStreakEnd)
+                                Positioned(
+                                  left: 0,
+                                  right: constraints.maxWidth / 2,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    color: colorScheme.primaryContainer,
+                                  ),
+                                )
+                              else
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    color: colorScheme.primaryContainer,
+                                  ),
+                                ),
+                            ] else ...[
+                              Positioned(
+                                left: isStreakStart ? 2 : 0,
+                                right: isStreakEnd ? 2 : 0,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer,
+                                    borderRadius: streakBorderRadius,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+
+                          // 2. Day Indicator (Current Day or Selected Day overwrites segmented style with circular pill)
+                          Center(
+                            child: Container(
+                              height: 35,
+                              width: 35,
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : (isToday
+                                        ? (inStreakRange
+                                            ? colorScheme.primary.withValues(alpha: 0.18)
+                                            : colorScheme.surfaceContainerHigh)
+                                        : Colors.transparent),
+                                border: isToday && !isSelected
+                                    ? Border.all(
+                                        color: colorScheme.primary,
+                                        width: 1.8,
+                                      )
+                                    : null,
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Text(
+                                    '$dayNum',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected || isToday || inStreakRange
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                      color: isSelected
+                                          ? colorScheme.onPrimary
+                                          : (isToday
+                                              ? colorScheme.primary
+                                              : (inStreakRange
+                                                  ? colorScheme.onPrimaryContainer
+                                                  : colorScheme.onSurface)),
+                                    ),
+                                  ),
+                                  if (dotColor != null)
+                                    Positioned(
+                                      bottom: 3,
+                                      child: Container(
+                                        width: 3.5,
+                                        height: 3.5,
+                                        decoration: BoxDecoration(
+                                          color: isSelected ? Colors.white : dotColor,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             );
           }),

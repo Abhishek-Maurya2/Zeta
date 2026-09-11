@@ -136,9 +136,6 @@ class TodaysFocusCard extends StatelessWidget {
                 top: Radius.circular(28),
                 bottom: Radius.circular(8),
               ),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -178,8 +175,9 @@ class TodaysFocusCard extends StatelessWidget {
                                     ? TextDecoration.lineThrough
                                     : null,
                                 color: task!.completed
-                                    ? colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.7)
+                                    ? colorScheme.onSurfaceVariant.withValues(
+                                        alpha: 0.7,
+                                      )
                                     : colorScheme.onSurface,
                               ),
                             ),
@@ -244,8 +242,9 @@ class TodaysFocusCard extends StatelessWidget {
                                 ? TextDecoration.lineThrough
                                 : null,
                             color: st.completed
-                                ? colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.7)
+                                ? colorScheme.onSurfaceVariant.withValues(
+                                    alpha: 0.7,
+                                  )
                                 : colorScheme.onSurface,
                           ),
                         ),
@@ -264,7 +263,9 @@ class TodaysFocusCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -299,15 +300,12 @@ class TodaysFocusCard extends StatelessWidget {
 
           // Bottom Quick Add Container
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLowest,
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(8),
                 bottom: Radius.circular(28),
-              ),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
               ),
             ),
             child: Center(
@@ -315,7 +313,7 @@ class TodaysFocusCard extends StatelessWidget {
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add new task'),
                 style: M3EButtonStyle.filled,
-                size: M3EButtonSize.sm,
+                size: M3EButtonSize.md,
                 onPressed: () {
                   if (onOpenCreate != null) {
                     onOpenCreate!();
@@ -374,9 +372,9 @@ class TodaysFocusCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 M3EButton.icon(
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Create Task'),
+                  label: Text('Create Task'),
                   style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.sm,
+                  size: M3EButtonSize.lg,
                   onPressed: () {
                     if (onOpenCreate != null) {
                       onOpenCreate!();

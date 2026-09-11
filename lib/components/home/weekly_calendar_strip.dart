@@ -237,13 +237,13 @@ class WeeklyCalendarStrip extends StatelessWidget {
                 Tooltip(
                   message: 'Previous week',
                   child: M3EIconButton(
-                    size: M3EIconButtonSize.xs,
+                    size: M3EIconButtonSize.md,
+                    width: M3EIconButtonWidth.narrow,
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(Icons.chevron_left_rounded, size: 20),
                     onPressed: () => onShiftWeek(-1),
                   ),
                 ),
-                const SizedBox(width: 4),
 
                 // 7 Days
                 Expanded(
@@ -259,8 +259,12 @@ class WeeklyCalendarStrip extends StatelessWidget {
                           final isPast = dayDate.isBefore(today);
 
                           // Task indicators
-                          final matchingTasks = allTasks.where((t) => _isTaskOnDate(t, dayDate)).toList();
-                          final pendingCount = matchingTasks.where((t) => !t.completed).length;
+                          final matchingTasks = allTasks
+                              .where((t) => _isTaskOnDate(t, dayDate))
+                              .toList();
+                          final pendingCount = matchingTasks
+                              .where((t) => !t.completed)
+                              .length;
                           final overdueCount = isPast ? pendingCount : 0;
 
                           Color? dotColor;
@@ -273,27 +277,29 @@ class WeeklyCalendarStrip extends StatelessWidget {
                             dotLabel = '$pendingCount pending';
                           }
 
-                          final dayNameShort = _weekdaysShort[dayDate.weekday - 1];
+                          final dayNameShort =
+                              _weekdaysShort[dayDate.weekday - 1];
                           final dayNumStr = dayDate.day.toString();
 
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 2),
                             child: Tooltip(
-                              message: '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
+                              message:
+                                  '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(44),
                                 onTap: () => onSelectDate(dayDate),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: isCompact ? 38 : 46,
-                                  height: 64,
+                                  width: isCompact ? 45 : 46,
+                                  height: 75,
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? colorScheme.primaryContainer
                                         : (isDayToday
-                                            ? colorScheme.surfaceContainerHigh
-                                            : Colors.transparent),
-                                    borderRadius: BorderRadius.circular(24),
+                                              ? colorScheme.surfaceContainerHigh
+                                              : Colors.transparent),
+                                    borderRadius: BorderRadius.circular(54),
                                   ),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -307,11 +313,12 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                           color: isSelected
                                               ? colorScheme.onPrimaryContainer
                                               : (isDayToday
-                                                  ? colorScheme.primary
-                                                  : colorScheme.onSurfaceVariant),
+                                                    ? colorScheme.primary
+                                                    : colorScheme
+                                                          .onSurfaceVariant),
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      // const SizedBox(height: 2),
                                       Text(
                                         dayNumStr,
                                         style: TextStyle(
@@ -324,7 +331,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                               : colorScheme.onSurface,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      // const SizedBox(height: 4),
 
                                       // Strict single-dot indicator
                                       SizedBox(
@@ -339,15 +346,19 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                                 ),
                                               )
                                             : (isDayToday && !isSelected
-                                                ? Container(
-                                                    width: 4,
-                                                    height: 4,
-                                                    decoration: BoxDecoration(
-                                                      color: colorScheme.primary.withValues(alpha: 0.5),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  )
-                                                : null),
+                                                  ? Container(
+                                                      width: 4,
+                                                      height: 4,
+                                                      decoration: BoxDecoration(
+                                                        color: colorScheme
+                                                            .primary
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            ),
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    )
+                                                  : null),
                                       ),
                                     ],
                                   ),
@@ -389,10 +400,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                leftHeader,
-                rightWeekStrip,
-              ],
+              children: [leftHeader, rightWeekStrip],
             );
           },
         ),
