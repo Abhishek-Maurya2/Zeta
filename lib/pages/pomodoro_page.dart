@@ -84,12 +84,16 @@ class _PomodoroPageState extends State<PomodoroPage> {
           backgroundColor: Colors.transparent,
           body: isTwoPane
               ? _buildTwoPaneLayout(context, provider, colorScheme, textTheme)
-              : _buildSinglePaneLayout(context, provider, colorScheme, textTheme),
+              : _buildSinglePaneLayout(
+                  context,
+                  provider,
+                  colorScheme,
+                  textTheme,
+                ),
         ),
 
         // ─── Always-On Display (AOD) Fullscreen Overlay ─────────────────────
-        if (_isAodMode)
-          _buildAodOverlay(context, provider, textTheme),
+        if (_isAodMode) _buildAodOverlay(context, provider, textTheme),
       ],
     );
   }
@@ -106,9 +110,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
         // Left Pane: Timer Pane
         Expanded(
           flex: 55,
-          child: PomodoroTimerPane(
-            onToggleAod: _enterAodMode,
-          ),
+          child: PomodoroTimerPane(onToggleAod: _enterAodMode),
         ),
 
         // Vertical divider
@@ -132,13 +134,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                     horizontal: 16,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                      ),
-                    ),
-                  ),
+
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
@@ -157,7 +153,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
                           },
                           actions: [
                             M3EButtonGroupAction(
-                              icon: const Icon(Icons.checklist_rounded, size: 16),
+                              icon: const Icon(
+                                Icons.checklist_rounded,
+                                size: 16,
+                              ),
                               label: Text('Up next (${provider.queue.length})'),
                             ),
                             const M3EButtonGroupAction(
@@ -166,23 +165,6 @@ class _PomodoroPageState extends State<PomodoroPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 12),
-                        if (_secondaryTab == SecondaryPaneTab.queue)
-                          M3EButton.icon(
-                            icon: const Icon(Icons.tune_rounded, size: 16),
-                            label: const Text('Configure'),
-                            style: M3EButtonStyle.tonal,
-                            size: M3EButtonSize.sm,
-                            onPressed: () => PomodoroSettingsSheet.show(context),
-                          )
-                        else
-                          Text(
-                            'Session Stats',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
                       ],
                     ),
                   ),
@@ -228,15 +210,11 @@ class _PomodoroPageState extends State<PomodoroPage> {
                 }
               },
               actions: [
-                const M3EButtonGroupAction(
-                  label: Text('Timer'),
-                ),
+                const M3EButtonGroupAction(label: Text('Timer')),
                 M3EButtonGroupAction(
                   label: Text('Up next (${provider.queue.length})'),
                 ),
-                const M3EButtonGroupAction(
-                  label: Text('Analysis'),
-                ),
+                const M3EButtonGroupAction(label: Text('Analysis')),
               ],
             ),
           ),
@@ -247,9 +225,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
           child: IndexedStack(
             index: _activeTab.index,
             children: [
-              PomodoroTimerPane(
-                onToggleAod: _enterAodMode,
-              ),
+              PomodoroTimerPane(onToggleAod: _enterAodMode),
               const PomodoroQueuePane(),
               const PomodoroAnalysisPane(),
             ],

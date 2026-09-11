@@ -85,7 +85,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                     children: [
                       const ZetaLogo(size: 28),
                       if (showBrandText) ...[
-                        // const SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         AppText(
                           'Zeta',
                           size: AppTextSize.xl2,

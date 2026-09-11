@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../../widgets/segmented_column.dart';
 
 import '../../providers/pomodoro_provider.dart';
@@ -9,10 +10,7 @@ import 'pomodoro_settings_sheet.dart';
 class PomodoroQueuePane extends StatelessWidget {
   final bool isSplitPane;
 
-  const PomodoroQueuePane({
-    super.key,
-    this.isSplitPane = false,
-  });
+  const PomodoroQueuePane({super.key, this.isSplitPane = false});
 
   @override
   Widget build(BuildContext context) {
@@ -111,147 +109,137 @@ class PomodoroQueuePane extends StatelessWidget {
             )
           else
             M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
               ),
-              color: colorScheme.surfaceContainerLow,
+              color: colorScheme.surfaceContainerLowest,
+              selectedIndex: activeIndex,
+              onTap: (idx) => provider.jumpToSession(idx),
               children: List.generate(queue.length, (idx) {
                 final item = queue[idx];
                 final isActive = idx == activeIndex;
                 final isPast = idx < activeIndex;
 
-                return InkWell(
-                  onTap: () => provider.jumpToSession(idx),
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? colorScheme.secondaryContainer
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        // Leading Icon Badge
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? colorScheme.primary
-                                : (isPast
-                                    ? colorScheme.surfaceContainerHigh
-                                    : colorScheme.surfaceContainerHighest),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            isActive
-                                ? (isRunning
-                                    ? Icons.timelapse_rounded
-                                    : Icons.play_arrow_rounded)
-                                : (isPast
-                                    ? Icons.check_rounded
-                                    : (item.mode == PomodoroMode.focus
+                return Row(
+                  children: [
+                    // Leading Icon Badge
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? colorScheme.primary
+                            : (isPast
+                                  ? colorScheme.surfaceContainerHigh
+                                  : colorScheme.surfaceContainerHighest),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isActive
+                            ? (isRunning
+                                  ? Icons.timelapse_rounded
+                                  : Icons.play_arrow_rounded)
+                            : (isPast
+                                  ? Icons.check_rounded
+                                  : (item.mode == PomodoroMode.focus
                                         ? Icons.psychology_rounded
-                                        : (item.mode == PomodoroMode.shortBreak
-                                            ? Icons.coffee_rounded
-                                            : Icons.hotel_rounded))),
-                            size: 18,
-                            color: isActive
-                                ? colorScheme.onPrimary
-                                : (isPast
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurfaceVariant),
-                          ),
-                        ),
+                                        : (item.mode ==
+                                                  PomodoroMode.shortBreak
+                                              ? Icons.coffee_rounded
+                                              : Icons.hotel_rounded))),
+                        size: 18,
+                        color: isActive
+                            ? colorScheme.onPrimary
+                            : (isPast
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant),
+                      ),
+                    ),
 
-                        const SizedBox(width: 14),
+                    const SizedBox(width: 14),
 
-                        // Main Title & Duration
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    // Main Title & Duration
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    item.label,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: isActive
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      color: isActive
-                                          ? colorScheme.onSecondaryContainer
-                                          : (isPast
-                                              ? colorScheme.onSurface
-                                                  .withValues(alpha: 0.6)
-                                              : colorScheme.onSurface),
-                                    ),
-                                  ),
-                                  if (item.sessionNumber != null) ...[
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '#${item.sessionNumber}',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: isActive
-                                            ? colorScheme.onSecondaryContainer
-                                                .withValues(alpha: 0.7)
-                                            : colorScheme.onSurfaceVariant
-                                                .withValues(alpha: 0.7),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: 2),
                               Text(
-                                '${item.durationMinutes}:00',
-                                style: textTheme.labelSmall?.copyWith(
-                                  fontFamily: 'monospace',
+                                item.label,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: isActive
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
                                   color: isActive
                                       ? colorScheme.onSecondaryContainer
-                                          .withValues(alpha: 0.8)
-                                      : colorScheme.onSurfaceVariant,
+                                      : (isPast
+                                            ? colorScheme.onSurface
+                                                  .withValues(alpha: 0.6)
+                                            : colorScheme.onSurface),
                                 ),
                               ),
+                              if (item.sessionNumber != null) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '#${item.sessionNumber}',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: isActive
+                                        ? colorScheme.onSecondaryContainer
+                                              .withValues(alpha: 0.7)
+                                        : colorScheme.onSurfaceVariant
+                                              .withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ),
-
-                        // Trailing Indicator
-                        if (isActive)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                          const SizedBox(height: 2),
+                          Text(
+                            '${item.durationMinutes}:00',
+                            style: textTheme.labelSmall?.copyWith(
+                              fontFamily: 'monospace',
+                              color: isActive
+                                  ? colorScheme.onSecondaryContainer
+                                        .withValues(alpha: 0.8)
+                                  : colorScheme.onSurfaceVariant,
                             ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'Current',
-                              style: textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.onPrimary,
-                              ),
-                            ),
-                          )
-                        else
-                          Icon(
-                            Icons.play_circle_outline_rounded,
-                            size: 20,
-                            color: isPast
-                                ? colorScheme.outlineVariant.withValues(alpha: 0.5)
-                                : colorScheme.outline,
                           ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
+
+                    // Trailing Indicator
+                    if (isActive)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Current',
+                          style: textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onPrimary,
+                          ),
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.play_circle_outline_rounded,
+                        size: 20,
+                        color: isPast
+                            ? colorScheme.outlineVariant.withValues(
+                                alpha: 0.5,
+                              )
+                            : colorScheme.outline,
+                      ),
+                  ],
                 );
               }),
             ),

@@ -182,6 +182,14 @@ class _SettingsPageState extends State<SettingsPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    final selectedCategoryIndex = isTwoPane && activeCategory != null
+        ? kSettingsCategories.indexWhere((c) => c.id == activeCategory)
+        : null;
+    final selectedIndex =
+        selectedCategoryIndex != null && selectedCategoryIndex >= 0
+            ? selectedCategoryIndex
+            : null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,77 +205,65 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
           ),
           color: colorScheme.surfaceContainer,
+          selectedIndex: selectedIndex,
+          onTap: (index) {
+            setState(() => _selectedCategory = kSettingsCategories[index].id);
+          },
           children: kSettingsCategories.map((category) {
             final isSelected = isTwoPane && activeCategory == category.id;
 
-            return InkWell(
-              onTap: () {
-                setState(() => _selectedCategory = category.id);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
+            return Row(
+              children: [
+                Icon(
+                  isSelected ? category.selectedIcon : category.icon,
+                  size: 22,
                   color: isSelected
-                      ? colorScheme.secondaryContainer
-                      : Colors.transparent,
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.onSurfaceVariant,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isSelected ? category.selectedIcon : category.icon,
-                      size: 22,
-                      color: isSelected
-                          ? colorScheme.onSecondaryContainer
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            category.label,
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: isSelected
-                                  ? colorScheme.onSecondaryContainer
-                                  : colorScheme.onSurface,
-                            ),
-                          ),
-                          Text(
-                            category.description,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: isSelected
-                                  ? colorScheme.onSecondaryContainer
-                                      .withValues(alpha: 0.8)
-                                  : colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.label,
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: isSelected
+                              ? colorScheme.onSecondaryContainer
+                              : colorScheme.onSurface,
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: 20,
-                      color: isSelected
-                          ? colorScheme.onSecondaryContainer
-                          : colorScheme.outlineVariant,
-                    ),
-                  ],
+                      Text(
+                        category.description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: isSelected
+                              ? colorScheme.onSecondaryContainer
+                                  .withValues(alpha: 0.8)
+                              : colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: isSelected
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.outlineVariant,
+                ),
+              ],
             );
           }).toList(),
         ),
