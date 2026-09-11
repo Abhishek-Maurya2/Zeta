@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/segmented_column.dart';
-
 import '../../providers/theme_provider.dart';
 
 class WeatherSection extends StatefulWidget {
@@ -16,7 +15,6 @@ class WeatherSection extends StatefulWidget {
 class _WeatherSectionState extends State<WeatherSection> {
   bool _isEditing = false;
   late TextEditingController _cityController;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -31,40 +29,18 @@ class _WeatherSectionState extends State<WeatherSection> {
     super.dispose();
   }
 
-  void _handleSetCity(ThemeProvider themeProvider) {
+  Future<void> _handleSetCity(ThemeProvider themeProvider) async {
     final nextCity = _cityController.text.trim();
     if (nextCity.isEmpty) return;
 
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      themeProvider.setCityName(nextCity);
-      setState(() {
-        _isLoading = false;
-        _isEditing = false;
-      });
-      widget.onToast?.call('Location updated to $nextCity');
-    });
+    themeProvider.setCityName(nextCity);
+    setState(() => _isEditing = false);
+    widget.onToast?.call('Fetching live weather for $nextCity...');
   }
 
-  void _handleDetectLocation(ThemeProvider themeProvider) {
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 400), () {
-      if (!mounted) return;
-      themeProvider.setCityName('Bengaluru, IN');
-      _cityController.text = 'Bengaluru, IN';
-      setState(() => _isLoading = false);
-      widget.onToast?.call('Detected location from device GPS: Bengaluru, IN');
-    });
-  }
-
-  void _handleRefresh() {
-    setState(() => _isLoading = true);
-    Future.delayed(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      widget.onToast?.call('Weather telemetry refreshed');
-    });
+  Future<void> _handleRefresh(ThemeProvider themeProvider) async {
+    await themeProvider.refreshWeather();
+    widget.onToast?.call('Weather telemetry refreshed for ${themeProvider.cityName}');
   }
 
   @override
@@ -72,6 +48,20 @@ class _WeatherSectionState extends State<WeatherSection> {
     final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    final weather = themeProvider.weatherData;
+    final isLoading = themeProvider.isWeatherLoading;
+
+    final tempDisplay = weather != null
+        ? '${weather.temperature.round()}°C'
+        : '24°C';
+    final conditionDisplay = weather?.condition ?? 'Partly Cloudy';
+    final humidityDisplay = weather != null ? '${weather.humidity}%' : '65%';
+    final windDisplay = weather != null
+        ? '${weather.windSpeed.round()} km/h'
+        : '12 km/h';
+    final iconData = weather?.icon ?? Icons.wb_sunny_rounded;
+    final iconColor = weather?.iconColor ?? Colors.amber.shade700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +84,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Configure local city for live open-source weather telemetry in Celsius (°C).',
+                    'Live open-source telemetry via Open-Meteo in Celsius (°C).',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
@@ -104,7 +94,7 @@ class _WeatherSectionState extends State<WeatherSection> {
             ),
             const SizedBox(width: 8),
             M3EButton.icon(
-              icon: _isLoading
+              icon: isLoading
                   ? const SizedBox(
                       width: 14,
                       height: 14,
@@ -114,7 +104,7 @@ class _WeatherSectionState extends State<WeatherSection> {
               label: const Text('Refresh'),
               style: M3EButtonStyle.tonal,
               size: M3EButtonSize.sm,
-              onPressed: _isLoading ? null : _handleRefresh,
+              onPressed: isLoading ? null : () => _handleRefresh(themeProvider),
             ),
           ],
         ),
@@ -134,29 +124,60 @@ class _WeatherSectionState extends State<WeatherSection> {
                   Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
+                        width: 46,
+                        height: 46,
                         decoration: BoxDecoration(
                           color: colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Icon(
-                          Icons.wb_sunny_rounded,
-                          color: Colors.amber.shade700,
-                          size: 26,
-                        ),
+                        child: isLoading
+                            ? const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : Icon(iconData, color: iconColor, size: 28),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              themeProvider.cityName,
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.onSurface,
-                              ),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    weather?.cityName ?? themeProvider.cityName,
+                                    style: textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 4),
                             Wrap(
@@ -165,32 +186,35 @@ class _WeatherSectionState extends State<WeatherSection> {
                               crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
-                                  '24°C',
+                                  tempDisplay,
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     color: colorScheme.primary,
                                   ),
                                 ),
                                 Text(
-                                  'Partly Cloudy',
+                                  conditionDisplay,
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                     color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 Text(
-                                  '•  Humidity 65%',
+                                  '•  Humidity $humidityDisplay',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.8),
                                   ),
                                 ),
                                 Text(
-                                  '•  Wind 12 km/h',
+                                  '•  Wind $windDisplay',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.8),
                                   ),
                                 ),
                               ],
@@ -206,15 +230,6 @@ class _WeatherSectionState extends State<WeatherSection> {
                     runSpacing: 8,
                     children: [
                       M3EButton.icon(
-                        icon: const Icon(Icons.my_location_rounded, size: 16),
-                        label: const Text('Use my location'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: _isLoading
-                            ? null
-                            : () => _handleDetectLocation(themeProvider),
-                      ),
-                      M3EButton.icon(
                         icon: Icon(
                           _isEditing
                               ? Icons.close_rounded
@@ -222,7 +237,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                           size: 16,
                         ),
                         label: Text(_isEditing ? 'Close' : 'Change city'),
-                        style: M3EButtonStyle.outlined,
+                        style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
                         onPressed: () {
                           setState(() => _isEditing = !_isEditing);
@@ -239,7 +254,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                             controller: _cityController,
                             autofocus: true,
                             decoration: InputDecoration(
-                              hintText: 'Enter a city name (e.g. London, UK)',
+                              hintText: 'Enter any city (e.g. London, Tokyo, Mumbai)',
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -253,14 +268,11 @@ class _WeatherSectionState extends State<WeatherSection> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        M3EButton.icon(
-                          icon: const Icon(Icons.search_rounded, size: 16),
-                          label: const Text('Search & Set'),
+                        M3EButton(
                           style: M3EButtonStyle.filled,
                           size: M3EButtonSize.sm,
-                          onPressed: _isLoading
-                              ? null
-                              : () => _handleSetCity(themeProvider),
+                          onPressed: () => _handleSetCity(themeProvider),
+                          child: const Text('Update'),
                         ),
                       ],
                     ),

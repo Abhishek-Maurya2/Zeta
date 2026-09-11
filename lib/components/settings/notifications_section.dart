@@ -1,8 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/segmented_column.dart';
-
 import '../../providers/theme_provider.dart';
+import '../../providers/task_provider.dart';
+import '../../providers/pomodoro_provider.dart';
 
 class NotificationsSyncSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -17,24 +18,104 @@ class NotificationsSyncSection extends StatefulWidget {
 class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
   bool _isSyncing = false;
 
-  void _handleManualSync() {
+  Future<void> _handleManualSync(
+    ThemeProvider themeProvider,
+    TaskProvider taskProvider,
+    PomodoroProvider pomodoroProvider,
+  ) async {
     setState(() => _isSyncing = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (!mounted) return;
-      setState(() => _isSyncing = false);
-      widget.onToast?.call('Data synchronized successfully!');
-    });
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+
+    await themeProvider.performCloudSync(
+      taskProvider.totalCount,
+      pomodoroProvider.sessionLog.length,
+    );
+
+    setState(() => _isSyncing = false);
+    widget.onToast?.call(
+      'Backup snapshot synced: ${themeProvider.cloudSyncRecordsCount} records saved to persistent storage.',
+    );
   }
 
-  void _handleTestNotification() {
-    widget.onToast?.call('Native reminder test sent: notifications are active!');
+  void _handleTestNotification(ThemeProvider themeProvider) {
+    // Cross-platform sound and haptic alert (Web, Android, Windows)
+    themeProvider.playAlert();
+
+    // Expressive in-app banner alert
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Theme.of(context).colorScheme.inverseSurface,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.notifications_active_rounded,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Zeta Smart Reminder',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onInverseSurface,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    'Cross-platform notification test sent with audio chime & haptic feedback.',
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onInverseSurface
+                          .withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatLastSyncTime(DateTime? time) {
+    if (time == null) return 'Never synced';
+    final diff = DateTime.now().difference(time);
+    if (diff.inSeconds < 45) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${time.day}/${time.month} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final taskProvider = context.watch<TaskProvider>();
+    final pomodoroProvider = context.watch<PomodoroProvider>();
+
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    final syncTimeStr = _formatLastSyncTime(themeProvider.lastCloudSyncTime);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,7 +130,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
         ),
         const SizedBox(height: 2),
         Text(
-          'Receive proactive alerts when scheduled tasks reach their due time.',
+          'Receive proactive alerts when scheduled tasks reach their due time across Web, Windows, and Android.',
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -69,7 +150,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               icon: Icons.notifications_active_rounded,
               title: 'In-App Due Time Alerts',
               subtitle:
-                  'Display high-priority toast alerts when tasks reach their due time',
+                  'Display high-priority notifications when tasks reach their scheduled deadline',
               value: themeProvider.notifications,
               onChanged: (val) {
                 themeProvider.setNotifications(val);
@@ -79,7 +160,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               },
             ),
 
-            // Native OS Notifications
+            // Cross-Platform OS Notifications Test
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -95,14 +176,14 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Native OS Notifications',
+                          'Test Notification & Sound',
                           style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
-                          'Desktop & lockscreen notifications with sound',
+                          'Play system alert tone, trigger haptic impact, and show reminder banner',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -112,11 +193,11 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   ),
                   const SizedBox(width: 12),
                   M3EButton.icon(
-                    icon: const Icon(Icons.send_rounded, size: 14),
+                    icon: const Icon(Icons.volume_up_rounded, size: 14),
                     label: const Text('Test'),
                     style: M3EButtonStyle.tonal,
                     size: M3EButtonSize.sm,
-                    onPressed: _handleTestNotification,
+                    onPressed: () => _handleTestNotification(themeProvider),
                   ),
                 ],
               ),
@@ -128,7 +209,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               icon: Icons.volume_up_rounded,
               title: 'Sound Feedback & Chimes',
               subtitle:
-                  'Play subtle audio tones on task completion and timer events',
+                  'Play audio clicks and chimes on task completion and timer events',
               value: themeProvider.soundEffects,
               onChanged: (val) {
                 themeProvider.setSoundEffects(val);
@@ -143,10 +224,13 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               context,
               icon: Icons.save_rounded,
               title: 'Auto-Save Workspace Changes',
-              subtitle: 'Continuously save tasks, timers, and editor changes',
+              subtitle: 'Automatically persist tasks and settings to local storage immediately',
               value: themeProvider.autoSave,
               onChanged: (val) {
                 themeProvider.setAutoSave(val);
+                if (val) {
+                  taskProvider.saveTasks();
+                }
                 widget.onToast?.call(
                   val ? 'Auto-save enabled' : 'Auto-save disabled',
                 );
@@ -159,7 +243,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
 
         // ─── Cloud Sync Status Card ──────────────────────────────────────
         Text(
-          'CLOUD SYNCHRONIZATION',
+          'CLOUD & STORAGE BACKUP',
           style: textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 1.1,
@@ -197,14 +281,14 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Cloud Database Sync',
+                          'Workspace Database Snapshot',
                           style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
-                          'Status: Up to date • Last synced just now',
+                          'Status: Up to date • Last synced: $syncTimeStr (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} sessions)',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -224,7 +308,13 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     label: const Text('Sync Now'),
                     style: M3EButtonStyle.filled,
                     size: M3EButtonSize.sm,
-                    onPressed: _isSyncing ? null : _handleManualSync,
+                    onPressed: _isSyncing
+                        ? null
+                        : () => _handleManualSync(
+                              themeProvider,
+                              taskProvider,
+                              pomodoroProvider,
+                            ),
                   ),
                 ],
               ),

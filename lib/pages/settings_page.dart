@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../widgets/segmented_column.dart';
 import '../widgets/m3_pane_divider.dart';
 
@@ -61,12 +62,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _handlePaneDrag(double delta, double totalWidth) {
-    final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0)
-        .clamp(_minPaneWidth, totalWidth * 0.6);
+    final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0).clamp(
+      _minPaneWidth,
+      totalWidth * 0.6,
+    );
 
     // In Settings, dragging right (delta > 0) widens the left pane;
     // dragging left (delta < 0) narrows the left pane.
-    var targetWidth = (_hasCustomWidth
+    var targetWidth =
+        (_hasCustomWidth
             ? _paneWidth
             : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)) +
         delta;
@@ -109,8 +113,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _handlePaneDoubleTap(double totalWidth) {
-    final maxAllowed = (totalWidth - _minContentPaneWidth - 16.0)
-        .clamp(_minPaneWidth, totalWidth * 0.6);
+    final maxAllowed = (totalWidth - _minContentPaneWidth - 16.0).clamp(
+      _minPaneWidth,
+      totalWidth * 0.6,
+    );
     final currentWidth = _hasCustomWidth
         ? _paneWidth
         : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth);
@@ -192,205 +198,194 @@ class _SettingsPageState extends State<SettingsPage> {
         ? (_selectedCategory ?? SettingsCategory.profile)
         : _selectedCategory;
 
-    return Container(
-      color: colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ─── Header ─────────────────────────────────────────────────────
-          if (!isTwoPane) ...[
-            // Compact Header (shows back button when sub-section is active)
-            Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ─── Header ─────────────────────────────────────────────────────
+        if (!isTwoPane) ...[
+          // Compact Header (shows back button when sub-section is active)
+          Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.25),
                 ),
               ),
-              child: Row(
-                children: [
-                  M3EIconButton(
-                    variant: M3EIconButtonVariant.standard,
-                    size: M3EIconButtonSize.sm,
-                    icon: Icon(
-                      _selectedCategory != null
-                          ? Icons.arrow_back_rounded
-                          : Icons.settings_rounded,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: () {
-                      if (_selectedCategory != null) {
-                        setState(() => _selectedCategory = null);
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
+            ),
+            child: Row(
+              children: [
+                M3EIconButton(
+                  variant: M3EIconButtonVariant.standard,
+                  size: M3EIconButtonSize.sm,
+                  icon: Icon(
                     _selectedCategory != null
-                        ? kSettingsCategories
+                        ? Icons.arrow_back_rounded
+                        : Icons.settings_rounded,
+                    color: colorScheme.onSurface,
+                  ),
+                  onPressed: () {
+                    if (_selectedCategory != null) {
+                      setState(() => _selectedCategory = null);
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _selectedCategory != null
+                      ? kSettingsCategories
                             .firstWhere((c) => c.id == _selectedCategory)
                             .label
-                        : 'Settings',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
+                      : 'Settings',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ] else ...[
-            // Expanded Page Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(36, 20, 36, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Settings',
-                          style: textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.5,
-                            color: colorScheme.onSurface,
-                          ),
+          ),
+        ] else ...[
+          // Expanded Page Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(36, 20, 36, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Settings',
+                        style: textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          color: colorScheme.onSurface,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Manage your workspace preferences, theme, and automation.',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Manage your workspace preferences, theme, and automation.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(
-                      _isPaneCollapsed
-                          ? Icons.view_sidebar_outlined
-                          : Icons.view_sidebar_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    tooltip: _isPaneCollapsed
-                        ? 'Show navigation pane'
-                        : 'Hide navigation pane',
-                    onPressed: () {
-                      setState(() {
-                        _isPaneCollapsed = !_isPaneCollapsed;
-                        if (!_isPaneCollapsed && _paneWidth < _minPaneWidth) {
-                          _paneWidth = _defaultPaneWidth;
-                        }
-                      });
-                      HapticFeedback.lightImpact();
-                      _persistPaneSettings();
-                    },
+                ),
+                IconButton(
+                  icon: Icon(
+                    _isPaneCollapsed
+                        ? Icons.view_sidebar_outlined
+                        : Icons.view_sidebar_rounded,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                ],
-              ),
+                  tooltip: _isPaneCollapsed
+                      ? 'Show navigation pane'
+                      : 'Hide navigation pane',
+                  onPressed: () {
+                    setState(() {
+                      _isPaneCollapsed = !_isPaneCollapsed;
+                      if (!_isPaneCollapsed && _paneWidth < _minPaneWidth) {
+                        _paneWidth = _defaultPaneWidth;
+                      }
+                    });
+                    HapticFeedback.lightImpact();
+                    _persistPaneSettings();
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
 
-          // ─── Body Content ───────────────────────────────────────────────
-          Expanded(
-            child: isTwoPane
-                ? LayoutBuilder(
-                    builder: (context, constraints) {
-                      final totalWidth = constraints.maxWidth.isFinite
-                          ? constraints.maxWidth
-                          : MediaQuery.sizeOf(context).width;
+        // ─── Body Content ───────────────────────────────────────────────
+        Expanded(
+          child: isTwoPane
+              ? LayoutBuilder(
+                  builder: (context, constraints) {
+                    final totalWidth = constraints.maxWidth.isFinite
+                        ? constraints.maxWidth
+                        : MediaQuery.sizeOf(context).width;
 
-                      final maxAllowedWidth =
-                          (totalWidth - _minContentPaneWidth - 16.0)
-                              .clamp(_minPaneWidth, totalWidth * 0.6);
-                      final currentWidth = _hasCustomWidth
-                          ? _paneWidth
-                          : (totalWidth >= 1200
+                    final maxAllowedWidth =
+                        (totalWidth - _minContentPaneWidth - 16.0).clamp(
+                          _minPaneWidth,
+                          totalWidth * 0.6,
+                        );
+                    final currentWidth = _hasCustomWidth
+                        ? _paneWidth
+                        : (totalWidth >= 1200
                               ? _largePaneWidth
                               : _defaultPaneWidth);
-                      final effectiveWidth =
-                          currentWidth.clamp(_minPaneWidth, maxAllowedWidth);
+                    final effectiveWidth = currentWidth.clamp(
+                      _minPaneWidth,
+                      maxAllowedWidth,
+                    );
 
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(36, 12, 36, 24),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (_isPaneCollapsed) ...[
-                              _buildCollapsedExpandAffordance(colorScheme),
-                              const SizedBox(width: 12),
-                            ] else ...[
-                              // Left Pane: Category Navigation
-                              SizedBox(
-                                width: effectiveWidth,
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: _buildCategoryList(
-                                    context,
-                                    activeCategory: activeCategory,
-                                    isTwoPane: true,
-                                  ),
-                                ),
-                              ),
-
-                              // Material 3 Draggable Pane Divider
-                              M3PaneDivider(
-                                onDragUpdate: (delta) =>
-                                    _handlePaneDrag(delta, totalWidth),
-                                onDragEnd: _persistPaneSettings,
-                                onDoubleTap: () =>
-                                    _handlePaneDoubleTap(totalWidth),
-                                tooltip:
-                                    'Drag to resize navigation · Double-tap to reset (310dp)',
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-
-                            // Right Pane: Active Category Content
-                            Expanded(
-                              child: Container(
-                                clipBehavior: Clip.antiAlias,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerLow,
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
-                                    color: colorScheme.outlineVariant
-                                        .withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: SingleChildScrollView(
-                                  padding: const EdgeInsets.all(28),
-                                  child: _buildCategoryContent(activeCategory),
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(36, 12, 36, 24),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_isPaneCollapsed) ...[
+                            _buildCollapsedExpandAffordance(colorScheme),
+                            const SizedBox(width: 12),
+                          ] else ...[
+                            // Left Pane: Category Navigation
+                            SizedBox(
+                              width: effectiveWidth,
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _buildCategoryList(
+                                  context,
+                                  activeCategory: activeCategory,
+                                  isTwoPane: true,
                                 ),
                               ),
                             ),
+
+                            // Material 3 Draggable Pane Divider
+                            M3PaneDivider(
+                              onDragUpdate: (delta) =>
+                                  _handlePaneDrag(delta, totalWidth),
+                              onDragEnd: _persistPaneSettings,
+                              onDoubleTap: () =>
+                                  _handlePaneDoubleTap(totalWidth),
+                              tooltip: 'Drag to resize navigation · Double-tap to reset (310dp)',
+                            ),
+                            const SizedBox(width: 8),
                           ],
-                        ),
-                      );
-                    },
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    child: _selectedCategory != null
-                        ? _buildCategoryContent(_selectedCategory)
-                        : _buildCategoryList(
-                            context,
-                            activeCategory: null,
-                            isTwoPane: false,
+
+                          // Right Pane: Active Category Content
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.only(left: 8, right: 8, bottom: 28),
+                              child: _buildCategoryContent(activeCategory),
+                            ),
                           ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
                   ),
-          ),
-        ],
-      ),
+                  child: _selectedCategory != null
+                      ? _buildCategoryContent(_selectedCategory)
+                      : _buildCategoryList(
+                          context,
+                          activeCategory: null,
+                          isTwoPane: false,
+                        ),
+                ),
+        ),
+      ],
     );
   }
 
@@ -407,8 +402,8 @@ class _SettingsPageState extends State<SettingsPage> {
         : null;
     final selectedIndex =
         selectedCategoryIndex != null && selectedCategoryIndex >= 0
-            ? selectedCategoryIndex
-            : null;
+        ? selectedCategoryIndex
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -432,8 +427,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   tooltip: 'Collapse navigation pane',
                   visualDensity: VisualDensity.compact,
                   padding: EdgeInsets.zero,
-                  constraints:
-                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                  constraints: const BoxConstraints(
+                    minWidth: 32,
+                    minHeight: 32,
+                  ),
                   onPressed: () {
                     setState(() => _isPaneCollapsed = true);
                     HapticFeedback.lightImpact();
@@ -445,10 +442,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         M3ESegmentedColumn(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 14,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           color: colorScheme.surfaceContainer,
           selectedIndex: selectedIndex,
           onTap: (index) {
@@ -488,8 +482,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodySmall?.copyWith(
                           color: isSelected
-                              ? colorScheme.onSecondaryContainer
-                                  .withValues(alpha: 0.8)
+                              ? colorScheme.onSecondaryContainer.withValues(
+                                  alpha: 0.8,
+                                )
                               : colorScheme.onSurfaceVariant,
                         ),
                       ),

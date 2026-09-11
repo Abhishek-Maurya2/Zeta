@@ -6,6 +6,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/app_text.dart';
 import '../widgets/zeta_logo.dart';
+import '../widgets/user_avatar.dart';
 
 /// Top App Bar mirroring Sharva's header:
 /// - Leading: Navigation menu toggle + Sharva logo brand + App name
@@ -181,30 +182,9 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF10B981),
-                          width: 2,
-                        ),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x4410B981), blurRadius: 6),
-                        ],
-                      ),
-                      child: CircleAvatar(
-                        radius: 17,
-                        backgroundColor: colorScheme.primaryContainer,
-                        child: Text(
-                          themeProvider.userInitials,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
+                    const UserAvatar(
+                      radius: 17,
+                      ringWidth: 2,
                     ),
                     // Online status badge dot
                     Positioned(

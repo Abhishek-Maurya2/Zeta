@@ -898,58 +898,22 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          // 1. Continuous segmented streak track
-                          if (inStreakRange) ...[
-                            if (isToday) ...[
-                              if (isStreakStart && isStreakEnd)
-                                const SizedBox.shrink()
-                              else if (isStreakStart && !isStreakEnd)
-                                Positioned(
-                                  left: constraints.maxWidth / 2,
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    color: colorScheme.primaryContainer,
-                                  ),
-                                )
-                              else if (!isStreakStart && isStreakEnd)
-                                Positioned(
-                                  left: 0,
-                                  right: constraints.maxWidth / 2,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    color: colorScheme.primaryContainer,
-                                  ),
-                                )
-                              else
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  top: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    color: colorScheme.primaryContainer,
-                                  ),
-                                ),
-                            ] else ...[
-                              Positioned(
-                                left: isStreakStart ? 2 : 0,
-                                right: isStreakEnd ? 2 : 0,
-                                top: 0,
-                                bottom: 0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primaryContainer,
-                                    borderRadius: streakBorderRadius,
-                                  ),
+                          // 1. Continuous seamless streak track
+                          if (inStreakRange)
+                            Positioned(
+                              left: isStreakStart ? 2 : -1.0,
+                              right: isStreakEnd ? 2 : -1.0,
+                              top: 0,
+                              bottom: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primaryContainer,
+                                  borderRadius: streakBorderRadius,
                                 ),
                               ),
-                            ],
-                          ],
+                            ),
 
-                          // 2. Day Indicator (Current Day or Selected Day overwrites segmented style with circular pill)
+                          // 2. Day Indicator (Current Day or Selected Day)
                           Center(
                             child: Container(
                               height: 35,
@@ -957,12 +921,10 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                               decoration: BoxDecoration(
                                 color: isSelected
                                     ? colorScheme.primary
-                                    : (isToday
-                                        ? (inStreakRange
-                                            ? colorScheme.primary.withValues(alpha: 0.18)
-                                            : colorScheme.surfaceContainerHigh)
+                                    : (isToday && !inStreakRange
+                                        ? colorScheme.surfaceContainerHigh
                                         : Colors.transparent),
-                                border: isToday && !isSelected
+                                border: isToday && !isSelected && !inStreakRange
                                     ? Border.all(
                                         color: colorScheme.primary,
                                         width: 1.8,

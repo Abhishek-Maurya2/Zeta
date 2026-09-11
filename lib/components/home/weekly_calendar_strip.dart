@@ -128,6 +128,13 @@ class WeeklyCalendarStrip extends StatelessWidget {
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 680;
 
+            final weather = themeProvider.weatherData;
+            final tempStr =
+                weather != null ? '${weather.temperature.round()}°C' : '24°C';
+            final conditionStr = weather?.condition ?? 'Partly Cloudy';
+            final iconData = weather?.icon ?? Icons.wb_sunny_rounded;
+            final iconColor = weather?.iconColor ?? Colors.amber.shade600;
+
             final leftHeader = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -197,7 +204,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '24°C',
+                      tempStr,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: colorScheme.onSurfaceVariant,
@@ -205,18 +212,19 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Tooltip(
-                      message: 'Partly Cloudy • ${themeProvider.cityName}',
+                      message:
+                          '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.wb_sunny_rounded,
+                            iconData,
                             size: 18,
-                            color: Colors.amber.shade600,
+                            color: iconColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Partly Cloudy',
+                            conditionStr,
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               fontWeight: FontWeight.w500,

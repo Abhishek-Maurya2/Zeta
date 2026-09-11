@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:io' show File;
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/segmented_column.dart';
-
+import '../../widgets/user_avatar.dart';
 import '../../providers/theme_provider.dart';
 
 class ProfileSection extends StatefulWidget {
@@ -15,18 +19,23 @@ class ProfileSection extends StatefulWidget {
 
 class _ProfileSectionState extends State<ProfileSection> {
   bool _isEditingName = false;
+  bool _isEditingEmail = false;
+
   late TextEditingController _nameController;
+  late TextEditingController _emailController;
 
   @override
   void initState() {
     super.initState();
     final themeProvider = context.read<ThemeProvider>();
     _nameController = TextEditingController(text: themeProvider.userName);
+    _emailController = TextEditingController(text: themeProvider.userEmail);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -38,7 +47,310 @@ class _ProfileSectionState extends State<ProfileSection> {
     }
     themeProvider.setUserName(trimmed);
     setState(() => _isEditingName = false);
-    widget.onToast?.call('Display name updated to "$trimmed"');
+    widget.onToast?.call('Name updated to "$trimmed"');
+  }
+
+  void _saveEmail(ThemeProvider themeProvider) {
+    final trimmed = _emailController.text.trim();
+    if (trimmed.isEmpty || !trimmed.contains('@')) {
+      widget.onToast?.call('Please enter a valid email address');
+      return;
+    }
+    themeProvider.setUserEmail(trimmed);
+    setState(() => _isEditingEmail = false);
+    widget.onToast?.call('Email address saved');
+  }
+
+  Future<void> _pickImageFile(ThemeProvider themeProvider) async {
+    try {
+      final picked = await FilePicker.pickFile(
+        type: FileType.image,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        if (bytes.isNotEmpty) {
+          final ext = picked.extension?.toLowerCase() ?? 'png';
+          final mime = (ext == 'jpg' || ext == 'jpeg') ? 'image/jpeg' : 'image/png';
+          final encoded = 'data:$mime;base64,${base64Encode(bytes)}';
+          themeProvider.setAvatarPhoto(encoded);
+          widget.onToast?.call('Profile photo updated successfully.');
+        }
+      }
+    } catch (e) {
+      widget.onToast?.call('Could not pick image: $e');
+    }
+  }
+
+  void _showImageUrlDialog(BuildContext context, ThemeProvider themeProvider) {
+    final urlController = TextEditingController(
+      text: (themeProvider.avatarPhoto != null && themeProvider.avatarPhoto!.startsWith('http'))
+          ? themeProvider.avatarPhoto!
+          : '',
+    );
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final colorScheme = Theme.of(dialogContext).colorScheme;
+        final textTheme = Theme.of(dialogContext).textTheme;
+
+        return AlertDialog(
+          title: Text(
+            'Enter Photo URL',
+            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Paste any web image URL (e.g. Unsplash, GitHub, Gravatar):',
+                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: urlController,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'https://example.com/photo.jpg',
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final trimmed = urlController.text.trim();
+                if (trimmed.isNotEmpty) {
+                  themeProvider.setAvatarPhoto(trimmed);
+                  widget.onToast?.call('Profile photo updated from URL.');
+                }
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Save Photo'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPhotoOptionsSheet(BuildContext context, ThemeProvider themeProvider) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
+        final textTheme = Theme.of(sheetContext).textTheme;
+
+        return Container(
+          constraints: const BoxConstraints(maxWidth: 480),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 32,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Profile Photo',
+                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Upload a photo or remove to use letter "${themeProvider.avatarInitial}"',
+                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.file_upload_outlined, color: colorScheme.onPrimaryContainer, size: 20),
+                ),
+                title: const Text('Choose image file'),
+                subtitle: const Text('Select a JPG or PNG file from your device'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickImageFile(themeProvider);
+                },
+              ),
+              ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.link_rounded, color: colorScheme.onSecondaryContainer, size: 20),
+                ),
+                title: const Text('Enter image URL'),
+                subtitle: const Text('Paste a link to any web image'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _showImageUrlDialog(context, themeProvider);
+                },
+              ),
+              if (themeProvider.hasAvatarPhoto) ...[
+                const Divider(height: 20),
+                ListTile(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.errorContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.delete_outline_rounded, color: colorScheme.onErrorContainer, size: 20),
+                  ),
+                  title: Text(
+                    'Remove photo',
+                    style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text('Switch back to alphabet "${themeProvider.avatarInitial}" as avatar'),
+                  onTap: () {
+                    themeProvider.clearAvatarPhoto();
+                    Navigator.of(sheetContext).pop();
+                    widget.onToast?.call('Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.');
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAvatarColorSheet(BuildContext context, ThemeProvider themeProvider) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colorScheme = Theme.of(sheetContext).colorScheme;
+        final textTheme = Theme.of(sheetContext).textTheme;
+
+        return Container(
+          constraints: const BoxConstraints(maxWidth: 480),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 32,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  UserAvatar(
+                    radius: 22,
+                    showRing: true,
+                    ringWidth: 2,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Avatar Accent Tone',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          themeProvider.hasAvatarPhoto
+                              ? 'Choose accent color for avatar ring'
+                              : 'Choose accent tone for letter "${themeProvider.avatarInitial}"',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: List.generate(ThemeProvider.avatarColors.length, (index) {
+                  final color = ThemeProvider.avatarColors[index];
+                  final isSelected = themeProvider.avatarColorIndex == index;
+
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () {
+                      themeProvider.setAvatarColorIndex(index);
+                      Navigator.of(sheetContext).pop();
+                      widget.onToast?.call('Avatar accent updated');
+                    },
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? colorScheme.onSurface : Colors.transparent,
+                          width: 3,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.35),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: isSelected
+                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 22)
+                          : null,
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -46,6 +358,8 @@ class _ProfileSectionState extends State<ProfileSection> {
     final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    final hasPhoto = themeProvider.hasAvatarPhoto;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,86 +380,105 @@ class _ProfileSectionState extends State<ProfileSection> {
           ),
           color: colorScheme.surfaceContainer,
           children: [
-            // ─── Item 1: Profile Photo ────────────────────────────────────
+            // ─── Item 1: Profile Photo & Alphabet Avatar ──────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFF10B981),
-                        width: 2,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x3310B981), blurRadius: 8),
-                      ],
-                    ),
-                    child: CircleAvatar(
-                      radius: 24,
-                      backgroundColor: colorScheme.primaryContainer,
-                      child: Text(
-                        themeProvider.userInitials,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onPrimaryContainer,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 420;
+
+                  const avatarWidget = UserAvatar(
+                    radius: 24,
+                    showRing: true,
+                    ringWidth: 2.5,
+                  );
+
+                  final infoWidget = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasPhoto ? 'Profile Photo' : 'Profile Avatar',
+                        style: textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Profile Photo',
-                          style: textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        hasPhoto
+                            ? 'Custom photo active'
+                            : 'Alphabet "${themeProvider.avatarInitial}" derived from ${themeProvider.userName}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Account avatar and visual representation',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Wrap(
+                      ),
+                    ],
+                  );
+
+                  final buttonsWidget = Wrap(
                     spacing: 8,
                     runSpacing: 4,
                     children: [
                       M3EButton.icon(
-                        icon: const Icon(Icons.photo_camera_rounded, size: 16),
-                        label: const Text('Change'),
+                        icon: Icon(
+                          hasPhoto ? Icons.photo_camera_rounded : Icons.add_a_photo_outlined,
+                          size: 16,
+                        ),
+                        label: Text(hasPhoto ? 'Change' : 'Photo'),
                         style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
-                        onPressed: () {
-                          widget.onToast?.call('Avatar presets updated');
-                        },
+                        onPressed: () => _showPhotoOptionsSheet(context, themeProvider),
                       ),
                       M3EButton.icon(
-                        icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                        label: const Text('Reset'),
-                        style: M3EButtonStyle.outlined,
+                        icon: const Icon(Icons.palette_outlined, size: 16),
+                        label: const Text('Color'),
+                        style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
-                        onPressed: () {
-                          themeProvider.setUserName('Abhishek');
-                          _nameController.text = 'Abhishek';
-                          widget.onToast?.call('Avatar reset to default image.');
-                        },
+                        onPressed: () => _showAvatarColorSheet(context, themeProvider),
                       ),
+                      if (hasPhoto)
+                        M3EButton.icon(
+                          icon: const Icon(Icons.close_rounded, size: 16),
+                          label: const Text('Remove'),
+                          style: M3EButtonStyle.outlined,
+                          size: M3EButtonSize.sm,
+                          onPressed: () {
+                            themeProvider.clearAvatarPhoto();
+                            widget.onToast?.call(
+                              'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
+                            );
+                          },
+                        ),
                     ],
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            avatarWidget,
+                            const SizedBox(width: 14),
+                            Expanded(child: infoWidget),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        buttonsWidget,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      avatarWidget,
+                      const SizedBox(width: 16),
+                      Expanded(child: infoWidget),
+                      const SizedBox(width: 8),
+                      buttonsWidget,
+                    ],
+                  );
+                },
               ),
             ),
 
@@ -179,7 +512,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                               Text(
                                 themeProvider.userName,
                                 style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
                                   color: colorScheme.primary,
                                 ),
                               ),
@@ -190,7 +523,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                       if (!_isEditingName)
                         M3EButton.icon(
                           icon: const Icon(Icons.edit_rounded, size: 16),
-                          label: const Text('Edit name'),
+                          label: const Text('Edit'),
                           style: M3EButtonStyle.tonal,
                           size: M3EButtonSize.sm,
                           onPressed: () {
@@ -209,7 +542,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                             controller: _nameController,
                             autofocus: true,
                             decoration: InputDecoration(
-                              hintText: 'Enter your display name',
+                              hintText: 'Enter display name',
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -237,6 +570,104 @@ class _ProfileSectionState extends State<ProfileSection> {
                           onPressed: () {
                             _nameController.text = themeProvider.userName;
                             setState(() => _isEditingName = false);
+                          },
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ─── Item 3: Email Address ────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mail_outline_rounded,
+                        size: 24,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Email Address',
+                              style: textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            if (!_isEditingEmail) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                themeProvider.userEmail,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      if (!_isEditingEmail)
+                        M3EButton.icon(
+                          icon: const Icon(Icons.edit_rounded, size: 16),
+                          label: const Text('Edit'),
+                          style: M3EButtonStyle.tonal,
+                          size: M3EButtonSize.sm,
+                          onPressed: () {
+                            _emailController.text = themeProvider.userEmail;
+                            setState(() => _isEditingEmail = true);
+                          },
+                        ),
+                    ],
+                  ),
+                  if (_isEditingEmail) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _emailController,
+                            autofocus: true,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              hintText: 'Enter your email address',
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onSubmitted: (_) => _saveEmail(themeProvider),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        M3EButton.icon(
+                          icon: const Icon(Icons.check_rounded, size: 16),
+                          label: const Text('Save'),
+                          style: M3EButtonStyle.filled,
+                          size: M3EButtonSize.sm,
+                          onPressed: () => _saveEmail(themeProvider),
+                        ),
+                        const SizedBox(width: 6),
+                        M3EButton(
+                          style: M3EButtonStyle.outlined,
+                          size: M3EButtonSize.sm,
+                          onPressed: () {
+                            _emailController.text = themeProvider.userEmail;
+                            setState(() => _isEditingEmail = false);
                           },
                           child: const Text('Cancel'),
                         ),

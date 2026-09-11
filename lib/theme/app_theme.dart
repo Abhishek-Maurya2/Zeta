@@ -5,6 +5,21 @@ import 'color_variant.dart';
 
 export 'color_variant.dart';
 
+class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _NoAnimationPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
 /// Material 3 Expressive theme configuration for Zeta.
 class AppTheme {
   AppTheme._();
@@ -27,6 +42,10 @@ class AppTheme {
     String cornerStyle = 'expressive',
     String fontChoice = 'google-sans',
     bool highContrast = false,
+    String fontScale = 'standard',
+    bool compactDensity = false,
+    bool animations = true,
+    double fontWeight = 400,
   ]) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
@@ -38,6 +57,10 @@ class AppTheme {
       cornerStyle: cornerStyle,
       fontChoice: fontChoice,
       highContrast: highContrast,
+      fontScale: fontScale,
+      compactDensity: compactDensity,
+      animations: animations,
+      fontWeight: fontWeight,
     );
   }
 
@@ -47,6 +70,10 @@ class AppTheme {
     String cornerStyle = 'expressive',
     String fontChoice = 'google-sans',
     bool highContrast = false,
+    String fontScale = 'standard',
+    bool compactDensity = false,
+    bool animations = true,
+    double fontWeight = 400,
   ]) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
@@ -58,6 +85,10 @@ class AppTheme {
       cornerStyle: cornerStyle,
       fontChoice: fontChoice,
       highContrast: highContrast,
+      fontScale: fontScale,
+      compactDensity: compactDensity,
+      animations: animations,
+      fontWeight: fontWeight,
     );
   }
 
@@ -66,6 +97,10 @@ class AppTheme {
     required String cornerStyle,
     required String fontChoice,
     required bool highContrast,
+    required String fontScale,
+    required bool compactDensity,
+    required bool animations,
+    required double fontWeight,
   }) {
     final radius = getCornerRadius(cornerStyle);
 
@@ -80,6 +115,18 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: effectiveColorScheme,
       brightness: effectiveColorScheme.brightness,
+      visualDensity: compactDensity ? VisualDensity.compact : VisualDensity.standard,
+      pageTransitionsTheme: animations
+          ? const PageTransitionsTheme()
+          : const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.iOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.windows: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.macOS: _NoAnimationPageTransitionsBuilder(),
+                TargetPlatform.linux: _NoAnimationPageTransitionsBuilder(),
+              },
+            ),
     );
 
     // Apply font choice to emphasized text theme
@@ -97,13 +144,20 @@ class AppTheme {
         break;
     }
 
-    final effectiveTextTheme =
-        (fontFamily != null
-                ? baseTheme.textTheme.apply(fontFamily: fontFamily)
-                : baseTheme.textTheme)
-            .copyWith(
-              labelLarge: const TextStyle(fontSize: 13.5, letterSpacing: 0),
-            );
+    final baseTextTheme = fontFamily != null
+        ? baseTheme.textTheme.apply(fontFamily: fontFamily)
+        : baseTheme.textTheme;
+
+    final effectiveFontWeight = FontWeight.values[
+        (fontWeight / 100).round().clamp(1, 9) - 1];
+
+    final effectiveTextTheme = baseTextTheme.copyWith(
+      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: effectiveFontWeight),
+      bodyMedium: baseTextTheme.bodyMedium?.copyWith(fontWeight: effectiveFontWeight),
+      labelLarge: const TextStyle(fontSize: 13.5, letterSpacing: 0),
+    );
+
+    final buttonRadius = (radius * 0.6).clamp(6.0, 20.0);
 
     return baseTheme.copyWith(
       textTheme: effectiveTextTheme,
@@ -132,8 +186,8 @@ class AppTheme {
       ),
       scaffoldBackgroundColor:
           effectiveColorScheme.brightness == Brightness.dark
-          ? effectiveColorScheme.surfaceContainer
-          : effectiveColorScheme.surface,
+              ? effectiveColorScheme.surfaceContainer
+              : effectiveColorScheme.surface,
       cardTheme: CardThemeData(
         color: effectiveColorScheme.surfaceContainerLow,
         elevation: 0,
@@ -149,6 +203,20 @@ class AppTheme {
       bottomSheetTheme: BottomSheetThemeData(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(buttonRadius),
+          ),
         ),
       ),
       snackBarTheme: SnackBarThemeData(

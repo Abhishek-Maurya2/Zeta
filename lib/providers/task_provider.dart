@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import '../utils/task_date_formatter.dart';
 
@@ -7,6 +10,15 @@ enum TaskFilter { all, completed, pending }
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
 class TaskProvider extends ChangeNotifier {
+  static const String _tasksKey = 'zeta_tasks_v1';
+  static const String _binTasksKey = 'zeta_bin_tasks_v1';
+  static const String _autoSaveKey = 'zeta_auto_save';
+  static const String _soundEffectsKey = 'zeta_sound_effects';
+
+  TaskProvider() {
+    _loadFromStorage();
+  }
+
   final List<Task> _tasks = [
     Task(
       id: '1',
@@ -198,11 +210,74 @@ class TaskProvider extends ChangeNotifier {
   List<Task> get completedTasks =>
       filteredAndSortedTasks.where((t) => t.completed).toList();
 
+  Future<void> _loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tasksRaw = prefs.getString(_tasksKey);
+      if (tasksRaw != null) {
+        final list = jsonDecode(tasksRaw) as List<dynamic>;
+        final loaded = list
+            .map((item) => Task.fromJson(item as Map<String, dynamic>))
+            .toList();
+        if (loaded.isNotEmpty) {
+          _tasks.clear();
+          _tasks.addAll(loaded);
+        }
+      }
+
+      final binRaw = prefs.getString(_binTasksKey);
+      if (binRaw != null) {
+        final list = jsonDecode(binRaw) as List<dynamic>;
+        final loaded = list
+            .map((item) => Task.fromJson(item as Map<String, dynamic>))
+            .toList();
+        _binTasks.clear();
+        _binTasks.addAll(loaded);
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  Future<void> saveTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final tasksSerialized = _tasks.map((t) => t.toJson()).toList();
+      final binSerialized = _binTasks.map((t) => t.toJson()).toList();
+      await prefs.setString(_tasksKey, jsonEncode(tasksSerialized));
+      await prefs.setString(_binTasksKey, jsonEncode(binSerialized));
+    } catch (_) {}
+  }
+
+  Future<void> _autoSaveTasksIfEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final autoSave = prefs.getBool(_autoSaveKey) ?? true;
+      if (autoSave) {
+        await saveTasks();
+      }
+    } catch (_) {}
+  }
+
+  void _playSoundIfEnabled() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final soundEnabled = prefs.getBool(_soundEffectsKey) ?? true;
+      if (soundEnabled) {
+        SystemSound.play(SystemSoundType.click);
+        HapticFeedback.lightImpact();
+      }
+    } catch (_) {}
+  }
+
   void toggleTask(String id) {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
       _tasks[index].completed = !_tasks[index].completed;
+      if (_tasks[index].completed) {
+        _playSoundIfEnabled();
+      }
       notifyListeners();
+      _autoSaveTasksIfEnabled();
     }
   }
 
@@ -212,9 +287,14 @@ class TaskProvider extends ChangeNotifier {
       final subtaskIndex =
           _tasks[taskIndex].subtasks.indexWhere((s) => s.id == subtaskId);
       if (subtaskIndex != -1) {
-        _tasks[taskIndex].subtasks[subtaskIndex].completed =
+        final isNowComplete =
             !_tasks[taskIndex].subtasks[subtaskIndex].completed;
+        _tasks[taskIndex].subtasks[subtaskIndex].completed = isNowComplete;
+        if (isNowComplete) {
+          _playSoundIfEnabled();
+        }
         notifyListeners();
+        _autoSaveTasksIfEnabled();
       }
     }
   }
@@ -239,6 +319,7 @@ class TaskProvider extends ChangeNotifier {
     );
     _tasks.insert(0, newTask);
     notifyListeners();
+    _autoSaveTasksIfEnabled();
   }
 
   void updateTask(
@@ -262,6 +343,7 @@ class TaskProvider extends ChangeNotifier {
       if (subtasks != null) task.subtasks = subtasks;
       if (completed != null) task.completed = completed;
       notifyListeners();
+      _autoSaveTasksIfEnabled();
     }
   }
 
@@ -273,6 +355,7 @@ class TaskProvider extends ChangeNotifier {
       task.deletedAt = DateTime.now();
       _binTasks.insert(0, task);
       notifyListeners();
+      _autoSaveTasksIfEnabled();
     }
   }
 
@@ -284,6 +367,7 @@ class TaskProvider extends ChangeNotifier {
       task.deletedAt = null;
       _tasks.insert(0, task);
       notifyListeners();
+      _autoSaveTasksIfEnabled();
     }
   }
 
@@ -291,12 +375,14 @@ class TaskProvider extends ChangeNotifier {
   void permanentlyDeleteTask(String id) {
     _binTasks.removeWhere((t) => t.id == id);
     notifyListeners();
+    _autoSaveTasksIfEnabled();
   }
 
   /// Permanently removes all tasks from bin
   void emptyBin() {
     _binTasks.clear();
     notifyListeners();
+    _autoSaveTasksIfEnabled();
   }
 
   /// Restores all tasks from bin back to active tasks
@@ -307,5 +393,6 @@ class TaskProvider extends ChangeNotifier {
     }
     _binTasks.clear();
     notifyListeners();
+    _autoSaveTasksIfEnabled();
   }
 }

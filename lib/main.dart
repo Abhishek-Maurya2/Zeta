@@ -42,17 +42,34 @@ class _ZetaAppView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    final double textScaleFactor = themeProvider.fontScale == 'compact'
+        ? 0.92
+        : themeProvider.fontScale == 'large'
+            ? 1.08
+            : 1.0;
 
     return MaterialApp(
       title: 'Zeta',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScaleFactor),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: AppTheme.light(
         themeProvider.seedColor,
         themeProvider.variant,
         themeProvider.cornerStyle,
         themeProvider.fontChoice,
         themeProvider.highContrast,
+        themeProvider.fontScale,
+        themeProvider.compactDensity,
+        themeProvider.animations,
+        themeProvider.fontWeight,
       ),
       darkTheme: AppTheme.dark(
         themeProvider.seedColor,
@@ -60,6 +77,10 @@ class _ZetaAppView extends StatelessWidget {
         themeProvider.cornerStyle,
         themeProvider.fontChoice,
         themeProvider.highContrast,
+        themeProvider.fontScale,
+        themeProvider.compactDensity,
+        themeProvider.animations,
+        themeProvider.fontWeight,
       ),
       home: const AppScaffold(),
     );
