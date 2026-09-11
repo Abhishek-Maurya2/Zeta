@@ -87,17 +87,28 @@ class PomodoroTimerPane extends StatelessWidget {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              // Circular Wavy Progress Indicator
-                              M3EProgressIndicator.circularWavy(
-                                value: progress,
-                                size: 290,
-                                strokeWidth: 10,
-                                wavelength: 25,
-                                amplitude: 1,
-                                trackStrokeWidth: 12,
-                                gapSize: 8,
-                                color: colorScheme.primary,
-                                trackColor: colorScheme.surfaceContainerHighest,
+                              // Circular Wavy Progress Indicator (smooth interpolation)
+                              TweenAnimationBuilder<double>(
+                                tween: Tween<double>(end: progress),
+                                duration: isRunning
+                                    ? const Duration(seconds: 1)
+                                    : const Duration(milliseconds: 300),
+                                curve: isRunning
+                                    ? Curves.linear
+                                    : Curves.easeOutCubic,
+                                builder: (context, animatedProgress, _) {
+                                  return M3EProgressIndicator.circularWavy(
+                                    value: animatedProgress,
+                                    size: 290,
+                                    strokeWidth: 12,
+                                    wavelength: 25,
+                                    amplitude: 1,
+                                    trackStrokeWidth: 12,
+                                    color: colorScheme.primary,
+                                    trackColor:
+                                        colorScheme.surfaceContainerHighest,
+                                  );
+                                },
                               ),
 
                               // Inner Countdown Display

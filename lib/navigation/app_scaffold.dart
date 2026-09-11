@@ -27,10 +27,11 @@ class AppScaffold extends StatelessWidget {
     final isExpanded = width >= 840;
 
     // Top app bar visibility
-    final showTopAppBar = isExpanded ||
+    final showTopAppBar =
+        isExpanded ||
         (navProvider.activePage != PageId.settings &&
-         navProvider.activePage != PageId.pomodoro &&
-         navProvider.activePage != PageId.revision);
+            navProvider.activePage != PageId.pomodoro &&
+            navProvider.activePage != PageId.revision);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -39,7 +40,9 @@ class AppScaffold extends StatelessWidget {
       statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
       systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+      systemNavigationBarIconBrightness: isDark
+          ? Brightness.light
+          : Brightness.dark,
     );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -59,14 +62,18 @@ class AppScaffold extends StatelessWidget {
                     ? Stack(
                         children: [
                           Positioned.fill(
-                            child: _BodyPane(activePage: navProvider.activePage),
+                            child: _BodyPane(
+                              activePage: navProvider.activePage,
+                            ),
                           ),
                           Align(
                             alignment: Alignment.bottomCenter,
                             child: SafeArea(
                               child: Padding(
                                 padding: const EdgeInsets.only(bottom: 16),
-                                child: _FloatingBottomNav(navProvider: navProvider),
+                                child: _FloatingBottomNav(
+                                  navProvider: navProvider,
+                                ),
                               ),
                             ),
                           ),
@@ -83,7 +90,9 @@ class AppScaffold extends StatelessWidget {
 
                           // Body content pane
                           Expanded(
-                            child: _BodyPane(activePage: navProvider.activePage),
+                            child: _BodyPane(
+                              activePage: navProvider.activePage,
+                            ),
                           ),
                         ],
                       ),
@@ -164,7 +173,7 @@ class _FloatingBottomNav extends StatelessWidget {
 
     return M3EToolbar(
       alignment: Alignment.bottomCenter,
-      backgroundColor: colorScheme.surfaceContainerHigh,
+      backgroundColor: colorScheme.primaryContainer,
       actions: [
         M3EToolbarWidget(
           child: Row(
@@ -204,7 +213,7 @@ class _ToolbarNavItem extends StatelessWidget {
       child: Tooltip(
         message: destination.label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(26),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
@@ -215,28 +224,28 @@ class _ToolbarNavItem extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: isSelected
-                  ? colorScheme.secondaryContainer
+                  ? colorScheme.surfaceBright
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(26),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   isSelected ? destination.selectedIcon : destination.icon,
-                  size: 22,
+                  size: isSelected ? 24 : 22,
                   color: isSelected
-                      ? colorScheme.onSecondaryContainer
-                      : colorScheme.onSurfaceVariant,
+                      ? colorScheme.onSurface
+                      : colorScheme.onPrimaryContainer,
                 ),
                 if (isSelected) ...[
                   const SizedBox(width: 6),
                   Text(
                     destination.label,
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSecondaryContainer,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -265,17 +274,11 @@ class _BodyPane extends StatelessWidget {
         return Stack(
           alignment: Alignment.topCenter,
           fit: StackFit.expand,
-          children: [
-            ...previousChildren,
-            ?currentChild,
-          ],
+          children: [...previousChildren, ?currentChild],
         );
       },
       transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
+        return FadeTransition(opacity: animation, child: child);
       },
       child: _buildPage(activePage),
     );

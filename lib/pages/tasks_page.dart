@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
 import '../widgets/segmented_column.dart';
 
 import '../providers/task_provider.dart';
@@ -61,15 +62,9 @@ class TasksPage extends StatelessWidget {
           }
         },
         actions: [
-          M3EButtonGroupAction(
-            label: Text('All (${taskProvider.totalCount})'),
-          ),
-          M3EButtonGroupAction(
-            label: Text('Completed (${completed.length})'),
-          ),
-          M3EButtonGroupAction(
-            label: Text('Pending (${pending.length})'),
-          ),
+          M3EButtonGroupAction(label: Text('All (${taskProvider.totalCount})')),
+          M3EButtonGroupAction(label: Text('Completed (${completed.length})')),
+          M3EButtonGroupAction(label: Text('Pending (${pending.length})')),
         ],
       ),
     );
@@ -279,7 +274,7 @@ class TasksPage extends StatelessWidget {
               ),
             ),
             child: M3EExtendedFab(
-              color: M3EFabColor.tertiary,
+              color: M3EFabColor.primary,
               extended: true,
               icon: const Icon(Icons.add_rounded),
               label: 'Add Task',

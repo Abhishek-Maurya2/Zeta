@@ -48,7 +48,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
 
     return Container(
       height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(color: colorScheme.surface),
       child: Row(
         children: [
@@ -75,16 +75,13 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                 borderRadius: BorderRadius.circular(12),
                 onTap: () => navProvider.setActivePage(PageId.home),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const ZetaLogo(size: 28),
                       if (showBrandText) ...[
-                        const SizedBox(width: 10),
+                        // const SizedBox(width: 10),
                         AppText(
                           'Zeta',
                           size: AppTextSize.xl2,
@@ -101,7 +98,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
             ],
           ),
 
-          const SizedBox(width: 6),
+          // const SizedBox(width: 6),
 
           // ─── Center Section: M3E Search Bar with Theme Switch in Trailing ─
           Expanded(
@@ -111,68 +108,63 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 580),
                   child: M3ESearchAnchor.bar(
-                  searchController: _searchController,
-                  barLeading: Icon(
-                    Icons.search_rounded,
-                    color: colorScheme.onSurfaceVariant,
+                    searchController: _searchController,
+
+                    barHintText: isCompact ? 'Search' : 'Search tasks, notes, subtasks... (Press / to search)',
+                    barTrailing: [
+                      if (!isCompact)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: colorScheme.outline.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Text(
+                            '/',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      // Theme Switch Icon Button Standard inside SearchBar
+                      M3EIconButton(
+                        variant: M3EIconButtonVariant.standard,
+                        // size: M3EIconButtonSize.sm,
+                        tooltip: themeProvider.themeMode == ThemeMode.dark
+                            ? 'Light theme'
+                            : 'Dark theme',
+                        icon: Icon(
+                          themeProvider.themeMode == ThemeMode.dark
+                              ? Icons.light_mode_outlined
+                              : Icons.dark_mode_outlined,
+                          // size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: () => themeProvider.toggleTheme(),
+                      ),
+                    ],
+                    suggestionsBuilder: (context, controller) {
+                      return _buildSearchSuggestions(
+                        context,
+                        controller,
+                        navProvider,
+                      );
+                    },
                   ),
-                  barHintText: isCompact
-                      ? 'Search...'
-                      : 'Search tasks, notes, subtasks... (Press / to search)',
-                  barTrailing: [
-                    if (!isCompact)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: colorScheme.outline.withValues(alpha: 0.2),
-                          ),
-                        ),
-                        child: Text(
-                          '/',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    // Theme Switch Icon Button Standard inside SearchBar
-                    M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      // size: M3EIconButtonSize.sm,
-                      tooltip: themeProvider.themeMode == ThemeMode.dark
-                          ? 'Light theme'
-                          : 'Dark theme',
-                      icon: Icon(
-                        themeProvider.themeMode == ThemeMode.dark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                        // size: 20,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      onPressed: () => themeProvider.toggleTheme(),
-                    ),
-                  ],
-                  suggestionsBuilder: (context, controller) {
-                    return _buildSearchSuggestions(
-                      context,
-                      controller,
-                      navProvider,
-                    );
-                  },
                 ),
               ),
             ),
           ),
-        ),
 
-          const SizedBox(width: 12),
+          // const SizedBox(width: 12),
 
           // ─── Trailing Section: Profile Avatar with Status Ring ───────────
           Tooltip(
