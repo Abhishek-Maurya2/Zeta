@@ -82,8 +82,9 @@ class TaskCardItem extends StatelessWidget {
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
                             color: isCompletedOrDeleted
-                                ? colorScheme.onSurfaceVariant
-                                    .withValues(alpha: isDeleted ? 0.75 : 0.7)
+                                ? colorScheme.onSurfaceVariant.withValues(
+                                    alpha: isDeleted ? 0.75 : 0.7,
+                                  )
                                 : colorScheme.onSurface,
                             decoration: isCompletedOrDeleted
                                 ? TextDecoration.lineThrough
@@ -176,7 +177,7 @@ class TaskCardItem extends StatelessWidget {
 
     if (isDeleted) {
       return Padding(
-        padding: const EdgeInsets.only(top: 2),
+        padding: const EdgeInsets.only(top: 0),
         child: Icon(
           Icons.delete_outline_rounded,
           size: 22,
@@ -189,7 +190,7 @@ class TaskCardItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       onTap: onToggle,
       child: Padding(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(0),
         child: task.completed
             ? const Icon(
                 Icons.check_rounded,
