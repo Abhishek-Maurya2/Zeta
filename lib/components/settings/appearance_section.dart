@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../theme/color_variant.dart';
 import '../../widgets/segmented_column.dart';
+import '../../utils/haptics.dart';
 
 import '../../providers/theme_provider.dart';
 
@@ -298,6 +299,7 @@ class AppearanceSection extends StatelessWidget {
                       style: M3EButtonStyle.tonal,
                       selectedIndex: themeModeIndex,
                       onSelectedIndexChanged: (index) {
+                        if (index != null) ZetaHaptics.selection();
                         if (index == 0) {
                           themeProvider.setThemeMode(ThemeMode.light);
                           onToast?.call('Theme set to Light');
@@ -376,6 +378,7 @@ class AppearanceSection extends StatelessWidget {
                       style: M3EButtonStyle.tonal,
                       selectedIndex: variantIndex,
                       onSelectedIndexChanged: (index) {
+                        if (index != null) ZetaHaptics.selection();
                         if (index == 0) {
                           themeProvider.setVariant(M3EColorVariant.expressive);
                           onToast?.call('Applied Expressive algorithm');

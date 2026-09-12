@@ -6,6 +6,7 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/haptics.dart';
 
 /// Interactive Material 3 Expressive Weekly Calendar Strip mirroring Sharva's design:
 /// - Left: Selected Date headline, Calendar DatePicker launcher, "Today" reset pill, and Weather readout.
@@ -175,9 +176,14 @@ class WeeklyCalendarStrip extends StatelessWidget {
                               ? colorScheme.primary
                               : colorScheme.outline,
                         ),
-                        onPressed: isCompact
-                            ? onResetToToday
-                            : () => _openDatePicker(context),
+                        onPressed: () {
+                          ZetaHaptics.light();
+                          if (isCompact) {
+                            onResetToToday();
+                          } else {
+                            _openDatePicker(context);
+                          }
+                        },
                       ),
                     ),
 
@@ -185,7 +191,10 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     if (!isCompact && !isSelectedToday) ...[
                       const SizedBox(width: 6),
                       InkWell(
-                        onTap: onResetToToday,
+                        onTap: () {
+                          ZetaHaptics.light();
+                          onResetToToday();
+                        },
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -230,13 +239,13 @@ class WeeklyCalendarStrip extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Tooltip(
                       message:
                           '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [Icon(iconData, size: 24, color: iconColor)],
+                        children: [Icon(iconData, size: 26, color: iconColor)],
                       ),
                     ),
                   ],
@@ -255,7 +264,10 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     width: M3EIconButtonWidth.narrow,
                     variant: M3EIconButtonVariant.standard,
                     icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                    onPressed: () => onShiftWeek(-1),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      onShiftWeek(-1);
+                    },
                   ),
                 ),
 
@@ -296,24 +308,32 @@ class WeeklyCalendarStrip extends StatelessWidget {
                           final dayNumStr = dayDate.day.toString();
 
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 0),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isCompact ? 0 : 4,
+                            ),
                             child: Tooltip(
                               message:
                                   '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(44),
-                                onTap: () => onSelectDate(dayDate),
+                                onTap: () {
+                                  ZetaHaptics.selection();
+                                  onSelectDate(dayDate);
+                                },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: isCompact ? 40 : 46,
+                                  width: isCompact ? 43 : 48,
                                   height: 75,
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? colorScheme.primaryContainer
                                         : (isDayToday
-                                              ? colorScheme.surfaceContainerHigh
+                                              ? colorScheme
+                                                    .surfaceContainerHighest
                                               : Colors.transparent),
-                                    borderRadius: BorderRadius.circular(54),
+                                    borderRadius: (isDayToday & !isSelected)
+                                        ? BorderRadius.circular(10)
+                                        : BorderRadius.circular(54),
                                   ),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -321,25 +341,34 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                       Text(
                                         dayNameShort,
                                         style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
+                                          fontSize: isCompact ? 10 : 13,
+                                          fontFamily:
+                                              (!isSelected && !isDayToday)
+                                              ? 'GoogleSansFlex'
+                                              : 'RobotoMono',
+                                          fontWeight: isSelected
+                                              ? FontWeight.w900
+                                              : FontWeight.w500,
                                           letterSpacing: 0.5,
                                           color: isSelected
                                               ? colorScheme.onPrimaryContainer
                                               : (isDayToday
                                                     ? colorScheme.primary
-                                                    : colorScheme
-                                                          .onSurfaceVariant),
+                                                    : colorScheme.onSurface),
                                         ),
                                       ),
-                                      // const SizedBox(height: 2),
+                                      const SizedBox(height: 2),
                                       Text(
                                         dayNumStr,
                                         style: TextStyle(
-                                          fontSize: 15,
+                                          fontSize: isCompact ? 15 : 17,
+                                          fontFamily:
+                                              (!isSelected && !isDayToday)
+                                              ? 'GoogleSansFlex'
+                                              : 'RobotoMono',
                                           fontWeight: isSelected || isDayToday
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
+                                              ? FontWeight.w800
+                                              : FontWeight.w300,
                                           color: isSelected
                                               ? colorScheme.onPrimaryContainer
                                               : colorScheme.onSurface,
@@ -395,7 +424,10 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     variant: M3EIconButtonVariant.standard,
                     width: M3EIconButtonWidth.narrow,
                     icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                    onPressed: () => onShiftWeek(1),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      onShiftWeek(1);
+                    },
                   ),
                 ),
               ],
@@ -405,21 +437,25 @@ class WeeklyCalendarStrip extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 5),
                   leftHeader,
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 25),
                   rightWeekStrip,
                 ],
               );
             }
 
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Flexible(child: leftHeader),
-                const SizedBox(width: 16),
-                rightWeekStrip,
-              ],
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Flexible(child: leftHeader),
+                  const SizedBox(width: 16),
+                  rightWeekStrip,
+                ],
+              ),
             );
           },
         ),

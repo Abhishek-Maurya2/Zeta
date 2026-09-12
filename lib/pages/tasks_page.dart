@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../widgets/segmented_column.dart';
 import '../widgets/zeta_button.dart';
+import '../utils/haptics.dart';
 
 import '../providers/task_provider.dart';
 import '../models/task.dart';
@@ -55,6 +56,7 @@ class TasksPage extends StatelessWidget {
         selectedIndex: selectedFilterIndex,
         onSelectedIndexChanged: (index) {
           if (index == null) return;
+          ZetaHaptics.selection();
           if (index == 0) {
             taskProvider.setFilter(TaskFilter.all);
           } else if (index == 1) {
@@ -77,8 +79,12 @@ class TasksPage extends StatelessWidget {
       leadingIcon: taskProvider.getSortIcon(taskProvider.sortBy),
       label: taskProvider.getSortLabel(taskProvider.sortBy),
       selectedValue: taskProvider.sortBy,
-      onPressed: () => taskProvider.cycleSortOption(),
+      onPressed: () {
+        ZetaHaptics.light();
+        taskProvider.cycleSortOption();
+      },
       onSelected: (val) {
+        ZetaHaptics.selection();
         taskProvider.setSortBy(val);
       },
       decoration: M3ESplitButtonDecoration(

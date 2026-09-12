@@ -5,6 +5,7 @@ import '../../widgets/segmented_column.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/haptics.dart';
 
 /// Modal pane / dialog for creating or editing a task.
 ///
@@ -133,6 +134,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   Future<void> _pickDate() async {
+    ZetaHaptics.selection();
     final now = DateTime.now();
     final initial = _dueDate != null
         ? TaskDateFormatter.parse(_dueDate!) ?? now
@@ -151,6 +153,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   Future<void> _pickTime() async {
+    ZetaHaptics.selection();
     final now = TimeOfDay.now();
     final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
     final picked = await M3ETimePicker.show(
@@ -187,6 +190,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   void _handleSave() {
+    ZetaHaptics.medium();
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       setState(() => _errorMessage = 'Task title cannot be empty.');
@@ -221,6 +225,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   void _handleDelete() {
+    ZetaHaptics.medium();
     if (widget.task != null) {
       context.read<TaskProvider>().deleteTask(widget.task!.id);
       Navigator.of(context).pop();
@@ -259,7 +264,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                 width: M3EIconButtonWidth.wide,
                 variant: M3EIconButtonVariant.standard,
                 tooltip: 'Close',
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  ZetaHaptics.light();
+                  Navigator.of(context).pop();
+                },
               ),
             ],
           ),
@@ -519,7 +527,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                           dense: true,
                           leading: InkWell(
                             borderRadius: BorderRadius.circular(12),
-                            onTap: () => _toggleSubtask(st.id),
+                            onTap: () {
+                              ZetaHaptics.selection();
+                              _toggleSubtask(st.id);
+                            },
                             child: Padding(
                               padding: const EdgeInsets.all(1.0),
                               child: Icon(
@@ -548,7 +559,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                             size: M3EIconButtonSize.xs,
                             variant: M3EIconButtonVariant.standard,
                             tooltip: 'Remove subtask',
-                            onPressed: () => _removeSubtask(st.id),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              _removeSubtask(st.id);
+                            },
                           ),
                         );
                       }).toList(),
@@ -587,7 +601,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                 )
               else
                 M3EButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () {
+                    ZetaHaptics.light();
+                    Navigator.of(context).pop();
+                  },
                   style: M3EButtonStyle.text,
                   size: M3EButtonSize.sm,
                   child: const Text('Cancel'),

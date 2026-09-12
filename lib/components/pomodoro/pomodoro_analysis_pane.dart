@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
+import '../../utils/haptics.dart';
 
 import '../../providers/pomodoro_provider.dart';
 import '../../models/pomodoro.dart';
@@ -134,6 +135,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               selectedIndex: _range.index,
               onSelectedIndexChanged: (idx) {
                 if (idx != null) {
+                  ZetaHaptics.selection();
                   setState(() {
                     _range = ChartRange.values[idx];
                     _offset = 0;
@@ -169,6 +171,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 // style: M3EButtonStyle.tonal,
                 selectedIndex: null,
                 onSelectedIndexChanged: (idx) {
+                  ZetaHaptics.light();
                   if (idx == 0) {
                     setState(() => _offset--);
                   } else if (idx == 1) {

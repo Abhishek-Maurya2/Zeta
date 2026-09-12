@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../utils/haptics.dart';
 
 class BinHeader extends StatelessWidget {
   final int totalCount;
@@ -90,8 +91,10 @@ class BinHeader extends StatelessWidget {
       selectedIndex: null,
       onSelectedIndexChanged: (int? index) {
         if (index == 0) {
+          ZetaHaptics.light();
           onRestoreAll();
         } else if (index == 1) {
+          ZetaHaptics.medium();
           onRequestEmptyBin();
         }
       },

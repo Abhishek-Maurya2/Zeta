@@ -1,5 +1,6 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import '../utils/haptics.dart';
 
 /// Proportional measurements and styling presets for Zeta buttons.
 class ZetaButtonScale {
@@ -489,7 +490,12 @@ class ZetaButton extends StatelessWidget {
     final mergedDecoration = (decoration ?? const M3EButtonDecoration());
 
     return M3EButton(
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              ZetaHaptics.light();
+              onPressed!();
+            },
       style: style,
       size: customButtonSize,
       shape: shape,
@@ -689,7 +695,12 @@ class ZetaIconButton extends StatelessWidget {
 
     return M3EIconButton(
       icon: resolvedIcon,
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              ZetaHaptics.light();
+              onPressed!();
+            },
       size: size,
       variant: variant,
       shape: shape,
@@ -812,7 +823,12 @@ class ZetaExtendedFab extends StatelessWidget {
       child: M3EExtendedFab(
         label: label,
         icon: resolvedIcon,
-        onPressed: onPressed,
+        onPressed: onPressed == null
+            ? null
+            : () {
+                ZetaHaptics.medium();
+                onPressed!();
+              },
         color: color,
         extended: extended,
         elevation: elevation,
@@ -887,7 +903,12 @@ class ZetaFab extends StatelessWidget {
 
     return M3EFab(
       icon: resolvedIcon,
-      onPressed: onPressed,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              ZetaHaptics.medium();
+              onPressed!();
+            },
       size: size,
       color: color,
       cornerRadius: cornerRadius,

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../models/task.dart';
+import '../../utils/haptics.dart';
 
 enum TaskContextAction {
   toggleComplete,
@@ -23,6 +24,7 @@ class TaskContextMenu {
     VoidCallback? onRestore,
     VoidCallback? onPermanentDelete,
   }) async {
+    ZetaHaptics.medium();
     final selected = await showM3EMenu<TaskContextAction>(
       context: context,
       anchor: Rect.fromLTWH(position.dx, position.dy, 1, 1),
@@ -73,6 +75,7 @@ class TaskContextMenu {
     );
 
     if (selected == null) return;
+    ZetaHaptics.light();
 
     switch (selected) {
       case TaskContextAction.toggleComplete:

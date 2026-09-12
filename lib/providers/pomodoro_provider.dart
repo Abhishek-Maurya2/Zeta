@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/pomodoro.dart';
+import '../utils/haptics.dart';
 
 class PomodoroProvider extends ChangeNotifier {
   static const String _settingsKey = 'zeta_pomodoro_settings_v1';
@@ -191,7 +192,7 @@ class PomodoroProvider extends ChangeNotifier {
     if (_settings.soundNotification) {
       SystemSound.play(SystemSoundType.alert);
     }
-    HapticFeedback.heavyImpact();
+    ZetaHaptics.heavy();
 
     // Log the completed session
     final currentItem = currentSession;

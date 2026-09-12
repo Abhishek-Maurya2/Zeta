@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../utils/haptics.dart';
+
 import '../providers/navigation_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/zeta_logo.dart';
@@ -92,12 +94,18 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                           : Icons.menu_rounded,
                       color: colorScheme.onSurfaceVariant,
                     ),
-                    onPressed: () => navProvider.toggleRailExpanded(),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      navProvider.toggleRailExpanded();
+                    },
                   ),
                 ),
               InkWell(
                 borderRadius: BorderRadius.circular(12),
-                onTap: () => navProvider.setActivePage(PageId.home),
+                onTap: () {
+                  ZetaHaptics.selection();
+                  navProvider.setActivePage(PageId.home);
+                },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: Row(
@@ -130,10 +138,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 580),
+                  constraints: const BoxConstraints(maxWidth: 600),
                   child: M3ESearchAnchor.bar(
                     searchController: _searchController,
-
+                    barOverlayColor: const WidgetStatePropertyAll(
+                      Colors.transparent,
+                    ),
                     barHintText: isCompact
                         ? 'Search'
                         : 'Search tasks, notes, subtasks',
@@ -174,7 +184,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                           // size: 20,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        onPressed: () => themeProvider.toggleTheme(),
+                        onPressed: () {
+                          ZetaHaptics.light();
+                          themeProvider.toggleTheme();
+                        },
                       ),
                     ],
                     suggestionsBuilder: (context, controller) {
@@ -196,8 +209,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           Tooltip(
             message: 'Profile: ${themeProvider.userName} • Online',
             child: InkWell(
-              borderRadius: BorderRadius.circular(24),
-              onTap: () => navProvider.setActivePage(PageId.settings),
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                ZetaHaptics.selection();
+                navProvider.setActivePage(PageId.settings);
+              },
               child: Padding(
                 padding: const EdgeInsets.all(4),
                 child: Stack(

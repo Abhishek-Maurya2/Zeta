@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/color_variant.dart';
 import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
+import '../utils/haptics.dart';
 
 /// Seed color preset matching Sharva's design system.
 class SeedPreset {
@@ -427,9 +428,7 @@ class ThemeProvider extends ChangeNotifier {
         SystemSound.play(SystemSoundType.alert);
       } catch (_) {}
     }
-    try {
-      HapticFeedback.heavyImpact();
-    } catch (_) {}
+    ZetaHaptics.heavy();
   }
 
   bool _autoSave = true;

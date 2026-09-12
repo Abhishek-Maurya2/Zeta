@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../utils/haptics.dart';
 
 import '../../providers/pomodoro_provider.dart';
 
@@ -72,7 +73,10 @@ class PomodoroTimerPane extends StatelessWidget {
                               Icons.fullscreen_rounded,
                               size: 20,
                             ),
-                            onPressed: onToggleAod,
+                            onPressed: onToggleAod != null ? () {
+                              ZetaHaptics.light();
+                              onToggleAod!();
+                            } : null,
                           ),
                         ],
                       ),
@@ -173,6 +177,8 @@ class PomodoroTimerPane extends StatelessWidget {
                           shape: M3EButtonShape.round,
                           selectedIndex: null,
                           onSelectedIndexChanged: (int? index) {
+                            if (index == null) return;
+                            ZetaHaptics.medium();
                             switch (index) {
                               case 0:
                                 provider.toggleTimer();

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../models/task.dart';
+import '../../utils/haptics.dart';
 import 'task_chips.dart';
 import 'task_subtasks_list.dart';
 
@@ -188,7 +189,10 @@ class TaskCardItem extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: onToggle,
+      onTap: onToggle != null ? () {
+        ZetaHaptics.light();
+        onToggle!();
+      } : null,
       child: Padding(
         padding: const EdgeInsets.all(0),
         child: task.completed
@@ -256,6 +260,7 @@ class TaskCardItem extends StatelessWidget {
       selectedIndex: null,
       onSelectedIndexChanged: (int? index) {
         if (index != null && index >= 0 && index < callbacks.length) {
+          ZetaHaptics.light();
           callbacks[index]();
         }
       },

@@ -6,6 +6,7 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../components/tasks/task_edit_pane.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/haptics.dart';
 
 /// Streak Calendar Card mirroring Sharva's StreakCalendarCard:
 /// - Fire icon badge with warm gradient, current streak counter, and active pill.
@@ -99,6 +100,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
   }
 
   void _prevMonth() {
+    ZetaHaptics.light();
     setState(() {
       _displayedMonth = DateTime(
         _displayedMonth.year,
@@ -109,6 +111,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
   }
 
   void _nextMonth() {
+    ZetaHaptics.light();
     setState(() {
       _displayedMonth = DateTime(
         _displayedMonth.year,
@@ -892,7 +895,10 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 builder: (context, constraints) {
                   return InkWell(
                     borderRadius: BorderRadius.circular(isToday || isSelected ? 18 : 8),
-                    onTap: () => widget.onSelectDate(cellDate),
+                    onTap: () {
+                      ZetaHaptics.selection();
+                      widget.onSelectDate(cellDate);
+                    },
                     child: SizedBox(
                       height: 35,
                       child: Stack(

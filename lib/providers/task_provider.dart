@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../utils/task_date_formatter.dart';
+import '../utils/haptics.dart';
 import '../services/supabase_sync_service.dart';
 import '../services/google_calendar_service.dart';
 
@@ -356,7 +357,7 @@ class TaskProvider extends ChangeNotifier {
       final soundEnabled = prefs.getBool(_soundEffectsKey) ?? true;
       if (soundEnabled) {
         SystemSound.play(SystemSoundType.click);
-        HapticFeedback.lightImpact();
+        ZetaHaptics.light();
       }
     } catch (_) {}
   }

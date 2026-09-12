@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import '../utils/haptics.dart';
 
 import '../providers/pomodoro_provider.dart';
 import '../components/pomodoro/pomodoro_timer_pane.dart';
@@ -283,6 +284,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                 selectedIndex: _secondaryTab.index,
                                 onSelectedIndexChanged: (idx) {
                                   if (idx != null) {
+                                    ZetaHaptics.selection();
                                     setState(() {
                                       _secondaryTab =
                                           SecondaryPaneTab.values[idx];
@@ -401,6 +403,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
               selectedIndex: _activeTab.index,
               onSelectedIndexChanged: (idx) {
                 if (idx != null) {
+                  ZetaHaptics.selection();
                   setState(() {
                     _activeTab = PomodoroTab.values[idx];
                   });

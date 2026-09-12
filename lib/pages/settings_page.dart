@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/segmented_column.dart';
 import '../widgets/m3_pane_divider.dart';
+import '../utils/haptics.dart';
 
 import '../components/settings/settings.dart';
 
@@ -98,7 +99,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _isPaneCollapsed = true;
         _hasCustomWidth = true;
       });
-      HapticFeedback.lightImpact();
+      ZetaHaptics.light();
       return;
     }
 
@@ -133,7 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
         _paneWidth = _defaultPaneWidth;
       }
     });
-    HapticFeedback.mediumImpact();
+    ZetaHaptics.medium();
     _persistPaneSettings();
   }
 
@@ -150,7 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
               _paneWidth = _defaultPaneWidth;
             }
           });
-          HapticFeedback.lightImpact();
+          ZetaHaptics.light();
           _persistPaneSettings();
         },
         child: Container(
@@ -207,13 +208,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Container(
             height: 56,
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                ),
-              ),
-            ),
+
             child: Row(
               children: [
                 M3EIconButton(
@@ -231,12 +226,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     }
                   },
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 5),
                 Text(
                   _selectedCategory != null
                       ? activeCategoryMeta?.label ?? 'Settings'
                       : 'Settings',
-                  style: textTheme.titleMedium?.copyWith(
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
                   ),
@@ -438,6 +433,7 @@ class _SettingsPageState extends State<SettingsPage> {
           //     ? colorScheme.secondaryContainer
           //     : colorScheme.surfaceContainer,
           onTap: (index) {
+            ZetaHaptics.selection();
             setState(() => _selectedCategory = kSettingsCategories[index].id);
           },
           children: kSettingsCategories.map((category) {

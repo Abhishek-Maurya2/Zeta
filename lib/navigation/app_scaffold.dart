@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../utils/haptics.dart';
+
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../pages/home_page.dart';
@@ -278,13 +280,17 @@ class _NavigationRailWidget extends StatelessWidget {
             : M3ENavigationRailType.alwaysCollapse,
         selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
         onDestinationSelected: (index) {
+          ZetaHaptics.selection();
           navProvider.setActivePage(kNavDestinations[index].id);
         },
         fab: M3ENavigationRailFabSlot(
           icon: const Icon(Icons.add_rounded),
           label: 'New Task',
           color: M3EFabColor.primary,
-          onPressed: () => TaskEditPane.show(context),
+          onPressed: () {
+            ZetaHaptics.medium();
+            TaskEditPane.show(context);
+          },
         ),
         sections: [
           M3ENavigationRailSection(
@@ -326,7 +332,10 @@ class _FloatingBottomNav extends StatelessWidget {
               return _ToolbarNavItem(
                 destination: dest,
                 isSelected: isSelected,
-                onTap: () => navProvider.setActivePage(dest.id),
+                onTap: () {
+                  ZetaHaptics.selection();
+                  navProvider.setActivePage(dest.id);
+                },
               );
             }).toList(),
           ),
