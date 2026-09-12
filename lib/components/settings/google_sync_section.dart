@@ -1,6 +1,10 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
+import '../../services/supabase_service.dart';
+import '../../services/google_calendar_service.dart';
+import '../../providers/task_provider.dart';
 
 class GoogleSyncSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -12,9 +16,11 @@ class GoogleSyncSection extends StatefulWidget {
 }
 
 class _GoogleSyncSectionState extends State<GoogleSyncSection> {
-  bool _isConnected = true;
-  bool _syncCalendar = true;
-  bool _syncTasks = true;
+  final SupabaseService _supabase = SupabaseService();
+  final GoogleCalendarService _google = GoogleCalendarService();
+
+  late bool _syncCalendar;
+  late bool _syncTasks;
   bool _isSyncing = false;
   bool _showConfig = false;
 
@@ -25,12 +31,27 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
   @override
   void initState() {
     super.initState();
+    _syncCalendar = _google.syncCalendarEnabled;
+    _syncTasks = _google.syncTasksEnabled;
+
     _clientIdController = TextEditingController(
-      text: '891240182410-abc123zeta.apps.googleusercontent.com',
+      text: '834983932254-nphb7j3vaegpnpcsn5d97dbblhrsj14f.apps.googleusercontent.com',
     );
     _clientSecretController = TextEditingController(
-      text: 'GOCSPX-zetaSecretKeyMock99281',
+      text: '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',
     );
+
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    await _google.loadTokens();
+    if (mounted) {
+      setState(() {
+        _syncCalendar = _google.syncCalendarEnabled;
+        _syncTasks = _google.syncTasksEnabled;
+      });
+    }
   }
 
   @override
@@ -40,19 +61,73 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
     super.dispose();
   }
 
-  void _handleSync() {
+  Future<void> _handleSync() async {
     setState(() => _isSyncing = true);
-    Future.delayed(const Duration(milliseconds: 700), () {
+    try {
+      await context.read<TaskProvider>().syncWithCloud(force: true);
       if (!mounted) return;
-      setState(() => _isSyncing = false);
-      widget.onToast?.call('Google Calendar and Tasks synchronized!');
-    });
+      widget.onToast?.call('Google Calendar, Tasks, and Supabase synchronized!');
+    } catch (e) {
+      if (!mounted) return;
+      widget.onToast?.call('Sync warning: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
+
+  Future<void> _handleConnect() async {
+    try {
+      await _supabase.signInWithGoogle();
+      widget.onToast?.call('Redirecting to Google Sign-In...');
+    } catch (e) {
+      widget.onToast?.call('Google Sign-In note: $e');
+    }
+  }
+
+  Future<void> _handleDisconnect() async {
+    try {
+      await _supabase.signOut();
+      if (mounted) {
+        setState(() {});
+      }
+      widget.onToast?.call('Disconnected from Google account.');
+    } catch (e) {
+      widget.onToast?.call('Error disconnecting: $e');
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    try {
+      final clientId = _clientIdController.text.trim();
+      final clientSecret = _clientSecretController.text.trim();
+      if (_supabase.isInitialized) {
+        final userId = _supabase.effectiveUserId;
+        await _supabase.client.from('google_sync_tokens').upsert({
+          'user_id': userId,
+          'client_id': clientId,
+          'client_secret': clientSecret,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        });
+      }
+      await _google.loadTokens(forceReload: true);
+      widget.onToast?.call('Google OAuth credentials updated');
+    } catch (e) {
+      widget.onToast?.call('Error updating credentials: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final taskProvider = context.watch<TaskProvider>();
+
+    final isConnected = _google.isConnected || _supabase.isAuthenticated;
+    final accountEmail = _google.accountEmail ??
+        _supabase.currentUser?.email ??
+        '208akmaurya@gmail.com';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,7 +142,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
         ),
         const SizedBox(height: 2),
         Text(
-          'Two-way real-time synchronization between Zeta tasks and your Google account.',
+          'Two-way real-time synchronization between Zeta tasks, Supabase, and your Google account.',
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -89,14 +164,14 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: _isConnected
+                      color: isConnected
                           ? const Color(0xFF4285F4).withValues(alpha: 0.15)
                           : colorScheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       Icons.sync_alt_rounded,
-                      color: _isConnected
+                      color: isConnected
                           ? const Color(0xFF4285F4)
                           : colorScheme.onSurfaceVariant,
                       size: 24,
@@ -110,7 +185,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                         Row(
                           children: [
                             Text(
-                              'Google Account Sync',
+                              'Google & Supabase Sync',
                               style: textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: colorScheme.onSurface,
@@ -123,18 +198,17 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: _isConnected
-                                    ? const Color(0xFF10B981)
-                                          .withValues(alpha: 0.15)
+                                color: isConnected
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
                                     : colorScheme.errorContainer,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                _isConnected ? 'Active' : 'Disconnected',
+                                isConnected ? 'Active' : 'Disconnected',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
-                                  color: _isConnected
+                                  color: isConnected
                                       ? const Color(0xFF10B981)
                                       : colorScheme.onErrorContainer,
                                 ),
@@ -144,8 +218,8 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _isConnected
-                              ? 'Connected as abhishek@example.com'
+                          isConnected
+                              ? 'Connected as $accountEmail'
                               : 'Connect to sync events and tasks',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
@@ -155,9 +229,9 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (_isConnected) ...[
+                  if (isConnected) ...[
                     M3EButton.icon(
-                      icon: _isSyncing
+                      icon: (_isSyncing || taskProvider.isSyncing)
                           ? const SizedBox(
                               width: 14,
                               height: 14,
@@ -167,16 +241,15 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                       label: const Text('Sync'),
                       style: M3EButtonStyle.tonal,
                       size: M3EButtonSize.sm,
-                      onPressed: _isSyncing ? null : _handleSync,
+                      onPressed: (_isSyncing || taskProvider.isSyncing)
+                          ? null
+                          : _handleSync,
                     ),
                     const SizedBox(width: 6),
                     M3EButton(
                       style: M3EButtonStyle.outlined,
                       size: M3EButtonSize.sm,
-                      onPressed: () {
-                        setState(() => _isConnected = false);
-                        widget.onToast?.call('Google account disconnected');
-                      },
+                      onPressed: _handleDisconnect,
                       child: const Text('Disconnect'),
                     ),
                   ] else ...[
@@ -185,10 +258,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                       label: const Text('Connect'),
                       style: M3EButtonStyle.filled,
                       size: M3EButtonSize.sm,
-                      onPressed: () {
-                        setState(() => _isConnected = true);
-                        widget.onToast?.call('Google account connected');
-                      },
+                      onPressed: _handleConnect,
                     ),
                   ],
                 ],
@@ -218,7 +288,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                           ),
                         ),
                         Text(
-                          'Mirror due dates and revisions into Google Calendar',
+                          'Mirror due dates and subtasks into Google Calendar events',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -231,6 +301,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     value: _syncCalendar,
                     onChanged: (val) {
                       setState(() => _syncCalendar = val);
+                      _google.updateSyncPreferences(calendar: val);
                       widget.onToast?.call(
                         val
                             ? 'Calendar sync enabled'
@@ -278,6 +349,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     value: _syncTasks,
                     onChanged: (val) {
                       setState(() => _syncTasks = val);
+                      _google.updateSyncPreferences(tasks: val);
                       widget.onToast?.call(
                         val
                             ? 'Google Tasks sync enabled'
@@ -384,11 +456,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                         label: const Text('Save Credentials'),
                         style: M3EButtonStyle.filled,
                         size: M3EButtonSize.sm,
-                        onPressed: () {
-                          widget.onToast?.call(
-                            'Google OAuth credentials updated',
-                          );
-                        },
+                        onPressed: _saveCredentials,
                       ),
                     ),
                   ],

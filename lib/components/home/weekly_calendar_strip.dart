@@ -95,7 +95,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final taskProvider = context.watch<TaskProvider>();
     final themeProvider = context.watch<ThemeProvider>();
 
@@ -126,7 +125,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
         // ─── Main Row: Headline & Weather on Left, Week Strip on Right ───────
         LayoutBuilder(
           builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 680;
+            final isCompact = constraints.maxWidth < 1050;
 
             final weather = themeProvider.weatherData;
             final tempStr = weather != null
@@ -411,7 +410,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
-              children: [leftHeader, rightWeekStrip],
+              children: [
+                Flexible(child: leftHeader),
+                const SizedBox(width: 16),
+                rightWeekStrip,
+              ],
             );
           },
         ),

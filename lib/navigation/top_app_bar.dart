@@ -6,6 +6,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
+import '../components/tasks/task_edit_pane.dart';
 
 /// Top App Bar mirroring Sharva's header:
 /// - Leading: Navigation menu toggle + Sharva logo brand + App name
@@ -15,13 +16,13 @@ class TopAppBarWidget extends StatefulWidget implements PreferredSizeWidget {
   const TopAppBarWidget({super.key});
 
   @override
-  State<TopAppBarWidget> createState() => _TopAppBarWidgetState();
+  State<TopAppBarWidget> createState() => TopAppBarWidgetState();
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
 }
 
-class _TopAppBarWidgetState extends State<TopAppBarWidget> {
+class TopAppBarWidgetState extends State<TopAppBarWidget> {
   late final M3ESearchController _searchController;
 
   @override
@@ -34,6 +35,20 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Opens the search bar — callable via GlobalKey from AppScaffold.
+  void openSearch() {
+    if (_searchController.isAttached && !_searchController.isOpen) {
+      _searchController.openView();
+    }
+  }
+
+  /// Closes the search bar if open.
+  void closeSearch() {
+    if (_searchController.isAttached && _searchController.isOpen) {
+      _searchController.closeView(null);
+    }
   }
 
   @override
@@ -246,15 +261,11 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                   color: colorScheme.primary,
                 ),
                 title: const Text('New Task'),
-                subtitle: const Text('Create a new task or note'),
+                subtitle: const Text('Create a new task or note  [N]'),
                 dense: true,
                 onTap: () {
                   controller.closeView(null);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Create task modal — coming soon'),
-                    ),
-                  );
+                  TaskEditPane.show(context);
                 },
               ),
               ListTile(
@@ -332,17 +343,16 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
     return [
       ListTile(
         leading: Icon(Icons.add_rounded, color: colorScheme.primary),
-        title: Text('Create task ""'),
+        title: Text('Create task "$query"'),
         subtitle: const Text('Press Enter to create'),
         onTap: () {
           controller.closeView(null);
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Created task ""')));
+          TaskEditPane.show(context);
         },
       ),
       ListTile(
         leading: const Icon(Icons.search_rounded),
-        title: Text('Search for "" in all tasks'),
+        title: Text('Search for "$query" in all tasks'),
         onTap: () {
           controller.closeView(query);
           navProvider.setActivePage(PageId.tasks);

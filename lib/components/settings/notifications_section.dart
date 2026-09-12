@@ -25,7 +25,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     PomodoroProvider pomodoroProvider,
   ) async {
     setState(() => _isSyncing = true);
-    await Future.delayed(const Duration(milliseconds: 600));
+    await taskProvider.syncWithCloud(force: true);
     if (!mounted) return;
 
     await themeProvider.performCloudSync(
@@ -35,7 +35,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
 
     setState(() => _isSyncing = false);
     widget.onToast?.call(
-      'Backup snapshot synced: ${themeProvider.cloudSyncRecordsCount} records saved to persistent storage.',
+      'Cloud synced: ${taskProvider.totalCount} tasks synchronized with Supabase.',
     );
   }
 

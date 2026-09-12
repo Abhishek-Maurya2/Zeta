@@ -4,20 +4,103 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../providers/navigation_provider.dart';
+import '../providers/task_provider.dart';
 import '../pages/home_page.dart';
 import '../pages/tasks_page.dart';
 import '../pages/revision_page.dart';
 import '../pages/pomodoro_page.dart';
 import '../pages/bin_page.dart';
 import '../pages/settings_page.dart';
+import '../components/tasks/task_edit_pane.dart';
 import 'top_app_bar.dart';
 
 /// Adaptive scaffold mirroring Sharva's layout:
 /// - Compact (<600px): M3EToolbar from material_3_expressive at bottom + full-width body
 /// - Medium / Expanded (≥600px): M3ENavigationRail from material_3_expressive + body
 /// - Top App Bar: Contains rail toggle button (hidden in mobile view)
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends StatefulWidget {
   const AppScaffold({super.key});
+
+  @override
+  State<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends State<AppScaffold> {
+  /// GlobalKey used to call openSearch() / closeSearch() on the TopAppBar.
+  final GlobalKey<TopAppBarWidgetState> _topBarKey =
+      GlobalKey<TopAppBarWidgetState>();
+
+  /// Root FocusNode — we return focus here after dismissing search so that
+  /// subsequent shortcuts (N, R, /) work immediately without a click.
+  final FocusNode _rootFocus = FocusNode(debugLabel: 'ScaffoldRoot');
+
+  @override
+  void initState() {
+    super.initState();
+    // Register a global hardware-keyboard handler.
+    // This fires for EVERY key event regardless of which widget has focus,
+    // so it works even when the search bar's text field holds focus.
+    HardwareKeyboard.instance.addHandler(_globalKeyHandler);
+  }
+
+  @override
+  void dispose() {
+    HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
+    _rootFocus.dispose();
+    super.dispose();
+  }
+
+  /// Global key handler — fires before any widget-level handlers.
+  bool _globalKeyHandler(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
+    if (!mounted) return false;
+
+    final logical = event.logicalKey;
+
+    // ── Esc: always dismiss search and return focus to root ──────────────────
+    if (logical == LogicalKeyboardKey.escape) {
+      final topBar = _topBarKey.currentState;
+      if (topBar != null) {
+        topBar.closeSearch();
+        // Defer so the search overlay finishes collapsing before we steal focus.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _rootFocus.requestFocus();
+        });
+        return true; // consumed
+      }
+      return false;
+    }
+
+    // For all other shortcuts: only fire when NO text field is focused.
+    final primaryFocus = FocusManager.instance.primaryFocus;
+    final isTyping = primaryFocus?.context?.widget is EditableText;
+    if (isTyping) return false;
+
+    // ── /  : open search ─────────────────────────────────────────────────────
+    if (logical == LogicalKeyboardKey.slash) {
+      _topBarKey.currentState?.openSearch();
+      return true;
+    }
+
+    // ── N  : new task ─────────────────────────────────────────────────────────
+    if (logical == LogicalKeyboardKey.keyN) {
+      TaskEditPane.show(context);
+      return true;
+    }
+
+    // ── R  : refresh / sync ──────────────────────────────────────────────────
+    if (logical == LogicalKeyboardKey.keyR) {
+      context.read<TaskProvider>().syncWithCloud(force: true);
+      M3ESnackbar.show(
+        context,
+        message: 'Syncing with cloud…',
+        duration: const Duration(seconds: 2),
+      );
+      return true;
+    }
+
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,57 +130,62 @@ class AppScaffold extends StatelessWidget {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: systemOverlayStyle,
-      child: Scaffold(
-        body: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
-            children: [
-              // 1. Top App Bar (contains rail toggle button, hidden on mobile)
-              if (showTopAppBar) const TopAppBarWidget(),
+      child: Focus(
+        focusNode: _rootFocus,
+        autofocus: true,
+        child: Scaffold(
+          body: SafeArea(
+            top: true,
+            bottom: false,
+            child: Column(
+              children: [
+                // 1. Top App Bar (contains rail toggle button, hidden on mobile)
+                if (showTopAppBar)
+                  TopAppBarWidget(key: _topBarKey),
 
-              // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
-              Expanded(
-                child: isCompact
-                    ? Stack(
-                        children: [
-                          Positioned.fill(
-                            child: _BodyPane(
-                              activePage: navProvider.activePage,
+                // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
+                Expanded(
+                  child: isCompact
+                      ? Stack(
+                          children: [
+                            Positioned.fill(
+                              child: _BodyPane(
+                                activePage: navProvider.activePage,
+                              ),
                             ),
-                          ),
-                          Align(
-                            alignment: Alignment.bottomCenter,
-                            child: SafeArea(
-                              child: Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _FloatingBottomNav(
-                                  navProvider: navProvider,
+                            Align(
+                              alignment: Alignment.bottomCenter,
+                              child: SafeArea(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _FloatingBottomNav(
+                                    navProvider: navProvider,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // M3E Navigation Rail from material_3_expressive (no internal toggle button)
-                          _NavigationRailWidget(
-                            isExpanded: navProvider.isRailExpanded,
-                            navProvider: navProvider,
-                          ),
-
-                          // Body content pane
-                          Expanded(
-                            child: _BodyPane(
-                              activePage: navProvider.activePage,
+                          ],
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // M3E Navigation Rail from material_3_expressive (no internal toggle button)
+                            _NavigationRailWidget(
+                              isExpanded: navProvider.isRailExpanded,
+                              navProvider: navProvider,
                             ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
+
+                            // Body content pane
+                            Expanded(
+                              child: _BodyPane(
+                                activePage: navProvider.activePage,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -155,14 +243,7 @@ class _NavigationRailWidget extends StatelessWidget {
           icon: const Icon(Icons.add_rounded),
           label: 'New Task',
           color: M3EFabColor.primary,
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Create task modal — coming soon'),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
+          onPressed: () => TaskEditPane.show(context),
         ),
         sections: [
           M3ENavigationRailSection(

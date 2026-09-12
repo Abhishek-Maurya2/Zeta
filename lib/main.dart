@@ -8,14 +8,16 @@ import 'providers/task_provider.dart';
 import 'providers/pomodoro_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
+import 'services/supabase_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
     ),
   );
+  await SupabaseService().init();
   runApp(const ZetaApp());
 }
 

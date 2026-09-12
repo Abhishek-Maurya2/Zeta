@@ -38,10 +38,10 @@ class TaskDueDateChip extends StatelessWidget {
         children: [
           Icon(
             isToday ? Icons.schedule_rounded : Icons.calendar_today_outlined,
-            size: 13,
+            size: 15,
             color: const Color(0xFF006A60),
           ),
-          const SizedBox(width: 5),
+          const SizedBox(width: 8),
           Text(
             TaskDateFormatter.formatTaskListDate(
               dueDate: task.dueDate!,
@@ -49,7 +49,7 @@ class TaskDueDateChip extends StatelessWidget {
               dueTime: task.dueTime,
             ),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: isCompleted
                   ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
@@ -107,14 +107,14 @@ class TaskDeletedDateChip extends StatelessWidget {
         children: [
           Icon(
             Icons.schedule_rounded,
-            size: 13,
+            size: 15,
             color: colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 5),
           Text(
             formatDeletedDate(timestamp),
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
               color: colorScheme.onSurfaceVariant,
             ),
@@ -153,15 +153,17 @@ class TaskSubtasksBadge extends StatelessWidget {
         decoration: BoxDecoration(
           color: isExpanded
               ? colorScheme.primaryContainer
-              : colorScheme.surfaceContainerHigh.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(8),
+              : colorScheme.surfaceContainerHigh,
+          borderRadius: isExpanded
+              ? BorderRadius.circular(8)
+              : BorderRadius.circular(18),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.checklist_rounded,
-              size: 14,
+              size: 16,
               color: isExpanded
                   ? colorScheme.onPrimaryContainer
                   : colorScheme.onSurfaceVariant,
@@ -170,7 +172,7 @@ class TaskSubtasksBadge extends StatelessWidget {
             Text(
               '$completedCount/${subtasks.length} Subtasks',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: isExpanded
                     ? colorScheme.onPrimaryContainer
@@ -183,7 +185,7 @@ class TaskSubtasksBadge extends StatelessWidget {
                 isExpanded
                     ? Icons.expand_less_rounded
                     : Icons.expand_more_rounded,
-                size: 15,
+                size: 16,
                 color: isExpanded
                     ? colorScheme.onSecondaryContainer
                     : colorScheme.onSurfaceVariant,
