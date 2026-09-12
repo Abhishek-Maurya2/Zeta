@@ -63,7 +63,11 @@ class TypographySection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Google Sans Flex',
+                themeProvider.fontChoice == 'system'
+                    ? 'Material 3 System'
+                    : themeProvider.fontChoice == 'roboto'
+                        ? 'Roboto Standard'
+                        : 'Google Sans Flex',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,

@@ -43,56 +43,13 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     // Cross-platform sound and haptic alert (Web, Android, Windows)
     themeProvider.playAlert();
 
-    // Expressive in-app banner alert
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: Theme.of(context).colorScheme.inverseSurface,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.notifications_active_rounded,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Zeta Smart Reminder',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.onInverseSurface,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    'Cross-platform notification test sent with audio chime & haptic feedback.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onInverseSurface
-                          .withValues(alpha: 0.8),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    // Expressive Material 3 SnackBar
+    M3ESnackbar.show(
+      context,
+      message: 'Zeta Reminder: Notification test sent with chime & haptics.',
+      actionLabel: 'Dismiss',
+      onAction: () {},
+      duration: const Duration(seconds: 4),
     );
   }
 

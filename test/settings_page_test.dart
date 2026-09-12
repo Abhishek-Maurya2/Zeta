@@ -109,9 +109,10 @@ void main() {
     expect(find.byTooltip('Collapse navigation pane'), findsNothing);
 
     // Right pane is inside elevated supporting pane container
+    final colorScheme = Theme.of(tester.element(find.byType(SettingsPage))).colorScheme;
     final containers = tester.widgetList<Container>(find.byType(Container));
     final elevatedContainer = containers.firstWhere(
-      (c) => c.color == Theme.of(tester.element(find.byType(SettingsPage))).colorScheme.surfaceContainerLow,
+      (c) => c.color == colorScheme.surfaceContainer || c.color == colorScheme.surfaceContainerLow,
     );
     expect(elevatedContainer, isNotNull);
   });

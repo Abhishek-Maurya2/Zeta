@@ -129,18 +129,18 @@ class AppTheme {
             ),
     );
 
-    // Apply font choice to emphasized text theme
+    // Apply font choice to emphasized text theme (defaults to system Material 3)
     final String? fontFamily;
     switch (fontChoice) {
       case 'roboto':
         fontFamily = GoogleFonts.roboto().fontFamily;
         break;
-      case 'system':
-        fontFamily = null;
-        break;
       case 'google-sans':
-      default:
         fontFamily = GoogleFonts.inter().fontFamily;
+        break;
+      case 'system':
+      default:
+        fontFamily = null;
         break;
     }
 

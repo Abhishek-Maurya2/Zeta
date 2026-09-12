@@ -177,13 +177,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showToast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
+    M3ESnackbar.show(
+      context,
+      message: message,
+      duration: const Duration(seconds: 2),
     );
   }
 

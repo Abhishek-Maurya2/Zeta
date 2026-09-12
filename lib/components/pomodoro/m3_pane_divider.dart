@@ -40,11 +40,6 @@ class _M3PaneDividerState extends State<M3PaneDivider> {
     final colorScheme = Theme.of(context).colorScheme;
     final isActive = _isHovered || _isDragging;
 
-    // Divider line styling
-    final lineColor = isActive
-        ? colorScheme.outlineVariant.withValues(alpha: 0.8)
-        : colorScheme.outlineVariant.withValues(alpha: 0.3);
-
     // Handle pill styling (M3 canonical dimensions: 4dp x 48dp, expanding on active)
     final handleWidth = isActive ? 6.0 : 4.0;
     final handleHeight = isActive ? 52.0 : 44.0;

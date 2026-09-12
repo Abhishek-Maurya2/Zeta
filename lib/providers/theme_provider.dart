@@ -187,7 +187,7 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   // ─── Typography & Shape ─────────────────────────────────────────────────
-  String _fontChoice = 'google-sans'; // 'google-sans', 'roboto', 'system'
+  String _fontChoice = 'system'; // 'system', 'google-sans', 'roboto'
   String get fontChoice => _fontChoice;
 
   void setFontChoice(String choice) {
@@ -551,7 +551,7 @@ class ThemeProvider extends ChangeNotifier {
     _highContrast = false;
     _animations = true;
     _compactDensity = false;
-    _fontChoice = 'google-sans';
+    _fontChoice = 'system';
     _fontScale = 'standard';
     _cornerStyle = 'expressive';
     _fontRoundness = 0;
