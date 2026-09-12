@@ -4,9 +4,23 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:googleapis/calendar/v3.dart' as gcal;
 import 'package:googleapis/tasks/v1.dart' as gtasks;
+import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../utils/task_date_formatter.dart';
 import 'supabase_service.dart';
+
+/// Result of pulling remote tasks from Google Tasks API.
+class GoogleTasksSyncResult {
+  final List<Task> remoteTasks;
+  final List<String> deletedTaskIds;
+  final DateTime syncTimestamp;
+
+  GoogleTasksSyncResult({
+    required this.remoteTasks,
+    required this.deletedTaskIds,
+    required this.syncTimestamp,
+  });
+}
 
 /// Custom HTTP client injecting OAuth Bearer token into headers.
 class _OAuthHttpClient extends http.BaseClient {
@@ -199,7 +213,7 @@ class GoogleCalendarService {
       return null;
     }
 
-    final parsedDate = _parseTaskDateTime(task);
+    final parsedDate = parseTaskDateTime(task);
     if (parsedDate == null) return null;
 
     final client = _OAuthHttpClient(token);
@@ -272,6 +286,7 @@ class GoogleCalendarService {
 
   /// Sync a Zeta task to Google Tasks.
   /// Subtasks are natively synchronized as Google Tasks child tasks via the `parent` API parameter.
+  /// Notes/descriptions strictly store user description only without appending subtasks or due dates.
   /// Returns the Google Tasks item ID if synced, or null.
   Future<String?> syncTaskToGoogleTasks(Task task) async {
     if (!_syncTasksEnabled) return null;
@@ -279,7 +294,7 @@ class GoogleCalendarService {
     final token = await _getValidAccessToken();
     if (token == null) return null;
 
-    // If task is deleted, remove from Google Tasks (Google Tasks automatically cascades deletion to subtasks)
+    // If task is deleted, remove from Google Tasks (Google Tasks cascades deletion to child tasks)
     if (task.deletedAt != null) {
       if (task.googleTaskId != null) {
         await deleteGoogleTask(task.googleTaskId!);
@@ -291,28 +306,16 @@ class GoogleCalendarService {
     try {
       final tasksApi = gtasks.TasksApi(client);
 
-      final hasTime =
-          task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
-
+      final cleanNotes = Task.sanitizeDescription(task.description);
       final gtask = gtasks.Task();
       gtask.title = task.title;
-      gtask.notes = (task.description != null && task.description!.trim().isNotEmpty)
-          ? task.description!.trim()
-          : null;
+      // In Google Tasks API, to overwrite/clear any legacy description containing subtask text,
+      // explicitly pass empty string '' if cleanNotes is null or empty.
+      gtask.notes = cleanNotes ?? '';
       gtask.status = task.completed ? 'completed' : 'needsAction';
 
       if (task.dueDate != null && task.dueDate!.trim().isNotEmpty) {
-        final parsedDate = _parseTaskDateTime(task);
-        if (parsedDate != null) {
-          if (hasTime) {
-            gtask.due = parsedDate.toUtc().toIso8601String();
-          } else {
-            final year = parsedDate.year.toString().padLeft(4, '0');
-            final month = parsedDate.month.toString().padLeft(2, '0');
-            final day = parsedDate.day.toString().padLeft(2, '0');
-            gtask.due = '$year-$month-${day}T00:00:00.000Z';
-          }
-        }
+        gtask.due = formatTaskDueForGoogleTasks(task);
       }
 
       String parentTaskId;
@@ -325,7 +328,7 @@ class GoogleCalendarService {
           if (e.status != 404) rethrow;
           final created = await tasksApi.tasks.insert(gtask, '@default');
           parentTaskId = created.id!;
-          debugPrint('GoogleCalendarService: Created Google Task $parentTaskId for "${task.title}"');
+          debugPrint('GoogleCalendarService: Re-created missing Google Task $parentTaskId for "${task.title}"');
         }
       } else {
         final created = await tasksApi.tasks.insert(gtask, '@default');
@@ -334,6 +337,7 @@ class GoogleCalendarService {
       }
 
       task.googleTaskId = parentTaskId;
+      task.lastSyncedAt = DateTime.now();
 
       // ─── Synchronize Subtasks natively with Google Tasks via `parent` parameter ───
       final activeSubtaskGTaskIds = <String>{};
@@ -350,6 +354,18 @@ class GoogleCalendarService {
               '@default',
               subtask.googleTaskId!,
             );
+            // In Google Tasks API, tasks.patch does NOT set the parent relationship.
+            // Move ensures the task is properly parented under parentTaskId as a subtask in Google Tasks.
+            try {
+              await tasksApi.tasks.move(
+                '@default',
+                subtask.googleTaskId!,
+                parent: parentTaskId,
+              );
+            } catch (moveErr) {
+              debugPrint('GoogleCalendarService: Subtask move note - $moveErr');
+            }
+
             if (updatedSub.id != null) activeSubtaskGTaskIds.add(updatedSub.id!);
             debugPrint('GoogleCalendarService: Patched subtask ${updatedSub.id} for "${subtask.title}"');
           } on gtasks.DetailedApiRequestError catch (e) {
@@ -360,7 +376,16 @@ class GoogleCalendarService {
                 parent: parentTaskId,
               );
               subtask.googleTaskId = createdSub.id;
-              if (createdSub.id != null) activeSubtaskGTaskIds.add(createdSub.id!);
+              if (createdSub.id != null) {
+                activeSubtaskGTaskIds.add(createdSub.id!);
+                try {
+                  await tasksApi.tasks.move(
+                    '@default',
+                    createdSub.id!,
+                    parent: parentTaskId,
+                  );
+                } catch (_) {}
+              }
               debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
             } else {
               debugPrint('GoogleCalendarService: Subtask patch error - $e');
@@ -376,7 +401,16 @@ class GoogleCalendarService {
               parent: parentTaskId,
             );
             subtask.googleTaskId = createdSub.id;
-            if (createdSub.id != null) activeSubtaskGTaskIds.add(createdSub.id!);
+            if (createdSub.id != null) {
+              activeSubtaskGTaskIds.add(createdSub.id!);
+              try {
+                await tasksApi.tasks.move(
+                  '@default',
+                  createdSub.id!,
+                  parent: parentTaskId,
+                );
+              } catch (_) {}
+            }
             debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
           } catch (e) {
             debugPrint('GoogleCalendarService: Subtask insert error - $e');
@@ -409,6 +443,111 @@ class GoogleCalendarService {
       return parentTaskId;
     } catch (e) {
       debugPrint('GoogleCalendarService: Failed to sync Google Task for "${task.title}" - $e');
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Pull all tasks from Google Tasks `@default` tasklist.
+  /// If [since] is provided, only retrieves tasks updated since that timestamp.
+  /// Returns a [GoogleTasksSyncResult] with top-level tasks (including native subtasks) and deleted IDs.
+  Future<GoogleTasksSyncResult?> pullGoogleTasks({DateTime? since}) async {
+    if (!_syncTasksEnabled) return null;
+
+    final token = await _getValidAccessToken();
+    if (token == null) return null;
+
+    final client = _OAuthHttpClient(token);
+    try {
+      final tasksApi = gtasks.TasksApi(client);
+      final allItems = <gtasks.Task>[];
+      String? pageToken;
+
+      do {
+        final taskPage = await tasksApi.tasks.list(
+          '@default',
+          showCompleted: true,
+          showHidden: true,
+          showDeleted: true,
+          maxResults: 100,
+          pageToken: pageToken,
+          updatedMin: since?.toUtc().toIso8601String(),
+        );
+
+        if (taskPage.items != null) {
+          allItems.addAll(taskPage.items!);
+        }
+        pageToken = taskPage.nextPageToken;
+      } while (pageToken != null && pageToken.isNotEmpty && allItems.length < 500);
+
+      debugPrint('GoogleCalendarService: Pulled ${allItems.length} raw Google Tasks items.');
+
+      final topLevelItems = <gtasks.Task>[];
+      final subtasksByParentId = <String, List<gtasks.Task>>{};
+      final deletedTaskIds = <String>[];
+
+      for (final item in allItems) {
+        if (item.id == null) continue;
+        if (item.deleted == true) {
+          deletedTaskIds.add(item.id!);
+        }
+        if (item.parent != null && item.parent!.isNotEmpty) {
+          subtasksByParentId.putIfAbsent(item.parent!, () => []).add(item);
+        } else {
+          topLevelItems.add(item);
+        }
+      }
+
+      final List<Task> parsedTasks = [];
+
+      for (final gtask in topLevelItems) {
+        final isDeleted = gtask.deleted == true;
+        final dueInfo = parseGoogleTaskDue(gtask.due);
+        final rawSubtasks = subtasksByParentId[gtask.id] ?? [];
+
+        final subtasks = rawSubtasks.where((s) => s.deleted != true).map((s) {
+          return Subtask(
+            id: s.id ?? const Uuid().v4(),
+            title: s.title ?? '',
+            completed: s.status == 'completed',
+            googleTaskId: s.id,
+          );
+        }).toList();
+
+        final updatedDt = gtask.updated != null
+            ? DateTime.tryParse(gtask.updated!)?.toLocal()
+            : null;
+
+        final task = Task(
+          id: const Uuid().v4(),
+          title: gtask.title ?? '',
+          description: (gtask.notes != null && gtask.notes!.trim().isNotEmpty)
+              ? gtask.notes!.trim()
+              : null,
+          completed: gtask.status == 'completed',
+          dueDate: dueInfo.dueDate,
+          hasTime: dueInfo.hasTime,
+          dueTime: dueInfo.dueTime,
+          subtasks: subtasks,
+          googleTaskId: gtask.id,
+          googleEtag: gtask.etag,
+          createdAt: updatedDt ?? DateTime.now(),
+          updatedAt: updatedDt ?? DateTime.now(),
+          deletedAt: isDeleted ? (updatedDt ?? DateTime.now()) : null,
+          lastSyncedAt: DateTime.now(),
+        );
+
+        parsedTasks.add(task);
+      }
+
+      return GoogleTasksSyncResult(
+        remoteTasks: parsedTasks,
+        deletedTaskIds: deletedTaskIds,
+        syncTimestamp: DateTime.now(),
+      );
+    } catch (e) {
+      debugPrint('GoogleCalendarService: pullGoogleTasks failed - $e');
       return null;
     } finally {
       client.close();
@@ -453,8 +592,66 @@ class GoogleCalendarService {
     }
   }
 
+  /// Parses a Google Tasks RFC 3339 `due` string into Zeta's (dueDate, hasTime, dueTime).
+  ///
+  /// Google Tasks stores all-day due dates as midnight UTC (e.g. `2026-09-15T00:00:00.000Z`).
+  /// To avoid timezone offset day shifting (e.g. Sept 15 UTC becoming Sept 14 in Western timezones),
+  /// all-day dates extract the UTC year, month, and day directly.
+  /// If the timestamp contains a non-zero time, it is converted to local time.
+  static ({String? dueDate, bool hasTime, String? dueTime}) parseGoogleTaskDue(String? dueStr) {
+    if (dueStr == null || dueStr.trim().isEmpty) {
+      return (dueDate: null, hasTime: false, dueTime: null);
+    }
+    try {
+      final clean = dueStr.trim();
+      final parsed = DateTime.parse(clean);
+      final isAllDayUtc = (clean.endsWith('T00:00:00.000Z') || clean.endsWith('T00:00:00Z')) &&
+          parsed.hour == 0 &&
+          parsed.minute == 0 &&
+          parsed.second == 0;
+
+      if (isAllDayUtc) {
+        final date = DateTime(parsed.year, parsed.month, parsed.day);
+        return (
+          dueDate: TaskDateFormatter.format(date),
+          hasTime: false,
+          dueTime: null,
+        );
+      } else {
+        final local = parsed.toLocal();
+        final hour = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
+        final period = local.hour >= 12 ? 'PM' : 'AM';
+        final minuteStr = local.minute.toString().padLeft(2, '0');
+        return (
+          dueDate: TaskDateFormatter.format(local),
+          hasTime: true,
+          dueTime: '${hour.toString().padLeft(2, '0')}:$minuteStr $period',
+        );
+      }
+    } catch (_) {
+      return (dueDate: null, hasTime: false, dueTime: null);
+    }
+  }
+
+  /// Formats a Zeta task's dueDate and dueTime into RFC 3339 for Google Tasks `due` endpoint.
+  static String? formatTaskDueForGoogleTasks(Task task) {
+    if (task.dueDate == null || task.dueDate!.trim().isEmpty) return null;
+    final parsedDate = parseTaskDateTime(task);
+    if (parsedDate == null) return null;
+
+    final hasTime = task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
+    if (hasTime) {
+      return parsedDate.toUtc().toIso8601String();
+    } else {
+      final year = parsedDate.year.toString().padLeft(4, '0');
+      final month = parsedDate.month.toString().padLeft(2, '0');
+      final day = parsedDate.day.toString().padLeft(2, '0');
+      return '$year-$month-${day}T00:00:00.000Z';
+    }
+  }
+
   /// Helper to combine dueDate and dueTime into a local DateTime.
-  DateTime? _parseTaskDateTime(Task task) {
+  static DateTime? parseTaskDateTime(Task task) {
     if (task.dueDate == null || task.dueDate!.trim().isEmpty) return null;
 
     var rawDueDate = task.dueDate!.trim();

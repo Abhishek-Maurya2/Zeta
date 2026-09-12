@@ -14,7 +14,7 @@ enum TaskFilter { all, completed, pending }
 
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
-class TaskProvider extends ChangeNotifier {
+class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _tasksKey = 'zeta_tasks_v1';
   static const String _binTasksKey = 'zeta_bin_tasks_v1';
   static const String _autoSaveKey = 'zeta_auto_save';
@@ -24,12 +24,29 @@ class TaskProvider extends ChangeNotifier {
   final GoogleCalendarService _googleService = GoogleCalendarService();
 
   bool _isSyncing = false;
-  bool get isSyncing => _isSyncing || _syncService.isSyncing;
+  bool _isGoogleSyncing = false;
+  DateTime? _lastGoogleSyncTime;
+  Timer? _googlePollingTimer;
+
+  bool _isDisposed = false;
+
+  bool get isSyncing => _isSyncing || _syncService.isSyncing || _isGoogleSyncing;
   DateTime? get lastSyncedAt => _syncService.lastSyncedAt;
   String? get syncError => _syncService.lastError;
 
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
+  }
+
   TaskProvider() {
+    try {
+      WidgetsBinding.instance.addObserver(this);
+    } catch (_) {}
     _loadFromStorage();
+    _startGooglePollingTimer();
   }
 
   final List<Task> _tasks = [
@@ -292,6 +309,7 @@ class TaskProvider extends ChangeNotifier {
 
     try {
       await _googleService.loadTokens(forceReload: force);
+      _startGooglePollingTimer();
       final remoteTasks = await _syncService.pullTasks();
 
       if (remoteTasks.isNotEmpty) {
@@ -324,11 +342,23 @@ class TaskProvider extends ChangeNotifier {
         await saveTasks();
       }
 
-      // If Google integration is enabled, sync active tasks to Google
-      if (_googleService.syncCalendarEnabled || _googleService.syncTasksEnabled) {
+      // Perform bidirectional synchronization with Google Tasks
+      if (_googleService.syncTasksEnabled && _googleService.isConnected) {
+        await syncGoogleTasks(force: force);
+      }
+
+      // Synchronize active tasks to Google Calendar if enabled
+      if (_googleService.syncCalendarEnabled && _googleService.isConnected) {
         for (final task in _tasks) {
-          await _syncToGoogleServices(task);
+          if (task.dueDate != null || task.googleEventId != null) {
+            final calId = await _googleService.syncTaskToCalendar(task);
+            if (calId != null && calId != task.googleEventId) {
+              task.googleEventId = calId;
+              _syncService.pushTask(task);
+            }
+          }
         }
+        await saveTasks();
       }
     } catch (e) {
       debugPrint('TaskProvider: syncWithCloud error - $e');
@@ -336,6 +366,213 @@ class TaskProvider extends ChangeNotifier {
       _isSyncing = false;
       notifyListeners();
     }
+  }
+
+  /// Pulls remote changes from Google Tasks and reconciles them bidirectionally with Zeta.
+  Future<void> syncGoogleTasks({bool force = false}) async {
+    if (_isGoogleSyncing) return;
+    if (!_googleService.syncTasksEnabled || !_googleService.isConnected) return;
+
+    _isGoogleSyncing = true;
+    try {
+      final result = await _googleService.pullGoogleTasks(
+        since: force ? null : _lastGoogleSyncTime,
+      );
+
+      if (result == null) return;
+      _lastGoogleSyncTime = result.syncTimestamp;
+
+      bool hasChanges = false;
+
+      // 1. Handle deleted tasks from Google Tasks
+      for (final deletedGId in result.deletedTaskIds) {
+        final activeIdx = _tasks.indexWhere((t) => t.googleTaskId == deletedGId);
+        if (activeIdx != -1) {
+          final task = _tasks.removeAt(activeIdx);
+          task.deletedAt = DateTime.now();
+          task.updatedAt = DateTime.now();
+          _binTasks.insert(0, task);
+          hasChanges = true;
+          _syncService.pushTask(task);
+        }
+      }
+
+      // 2. Handle remote tasks (created or updated in Google Tasks)
+      for (final remote in result.remoteTasks) {
+        final activeIdx = _tasks.indexWhere((t) => t.googleTaskId == remote.googleTaskId);
+        final binIdx = _binTasks.indexWhere((t) => t.googleTaskId == remote.googleTaskId);
+
+        if (activeIdx != -1) {
+          final local = _tasks[activeIdx];
+          if (remote.deletedAt != null) {
+            _tasks.removeAt(activeIdx);
+            local.deletedAt = remote.deletedAt;
+            local.updatedAt = DateTime.now();
+            _binTasks.insert(0, local);
+            hasChanges = true;
+            _syncService.pushTask(local);
+          } else {
+            final changed = _reconcileTaskFromGoogle(local, remote);
+            if (changed) {
+              hasChanges = true;
+              _syncService.pushTask(local);
+            }
+          }
+        } else if (binIdx != -1) {
+          final local = _binTasks[binIdx];
+          if (remote.deletedAt == null) {
+            // Task un-deleted in Google Tasks
+            _binTasks.removeAt(binIdx);
+            local.deletedAt = null;
+            local.updatedAt = DateTime.now();
+            _reconcileTaskFromGoogle(local, remote);
+            _tasks.insert(0, local);
+            hasChanges = true;
+            _syncService.pushTask(local);
+          }
+        } else if (remote.deletedAt == null) {
+          // Check for existing local task matching title that has no googleTaskId
+          final matchTitleIdx = _tasks.indexWhere(
+            (t) => t.googleTaskId == null && t.title.trim().toLowerCase() == remote.title.trim().toLowerCase(),
+          );
+          if (matchTitleIdx != -1) {
+            final local = _tasks[matchTitleIdx];
+            local.googleTaskId = remote.googleTaskId;
+            local.googleEtag = remote.googleEtag;
+            _reconcileTaskFromGoogle(local, remote);
+            hasChanges = true;
+            _syncService.pushTask(local);
+          } else {
+            // New task created in Google Tasks
+            _tasks.insert(0, remote);
+            hasChanges = true;
+            _syncService.pushTask(remote);
+          }
+        }
+      }
+
+      // 3. Mirror any local tasks that don't have a googleTaskId to Google Tasks
+      for (final local in _tasks) {
+        if (local.googleTaskId == null && local.deletedAt == null) {
+          final gId = await _googleService.syncTaskToGoogleTasks(local);
+          if (gId != null) {
+            local.googleTaskId = gId;
+            hasChanges = true;
+            _syncService.pushTask(local);
+          }
+        }
+      }
+
+      if (hasChanges) {
+        await saveTasks();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('TaskProvider: syncGoogleTasks error - $e');
+    } finally {
+      _isGoogleSyncing = false;
+    }
+  }
+
+  /// Reconciles fields from remote Google Task into local Task.
+  /// Returns true if changes occurred.
+  bool _reconcileTaskFromGoogle(Task local, Task remote) {
+    bool changed = false;
+
+    if (local.title != remote.title && remote.title.isNotEmpty) {
+      local.title = remote.title;
+      changed = true;
+    }
+    if (local.description != remote.description) {
+      local.description = remote.description;
+      changed = true;
+    }
+    if (local.completed != remote.completed) {
+      local.completed = remote.completed;
+      changed = true;
+    }
+    if (local.dueDate != remote.dueDate) {
+      local.dueDate = remote.dueDate;
+      changed = true;
+    }
+    if (local.hasTime != remote.hasTime) {
+      local.hasTime = remote.hasTime;
+      changed = true;
+    }
+    if (local.dueTime != remote.dueTime) {
+      local.dueTime = remote.dueTime;
+      changed = true;
+    }
+
+    // Reconcile subtasks natively
+    for (final remoteSub in remote.subtasks) {
+      final localSubIdx = local.subtasks.indexWhere(
+        (s) => (s.googleTaskId != null && s.googleTaskId == remoteSub.googleTaskId) ||
+               (s.googleTaskId == null && s.title.trim().toLowerCase() == remoteSub.title.trim().toLowerCase()),
+      );
+      if (localSubIdx != -1) {
+        final localSub = local.subtasks[localSubIdx];
+        if (localSub.googleTaskId == null && remoteSub.googleTaskId != null) {
+          localSub.googleTaskId = remoteSub.googleTaskId;
+          changed = true;
+        }
+        if (localSub.title != remoteSub.title) {
+          localSub.title = remoteSub.title;
+          changed = true;
+        }
+        if (localSub.completed != remoteSub.completed) {
+          localSub.completed = remoteSub.completed;
+          changed = true;
+        }
+      } else {
+        local.subtasks.add(remoteSub);
+        changed = true;
+      }
+    }
+
+    // Clean up local subtasks removed remotely
+    final remoteGTaskIds = remote.subtasks.map((s) => s.googleTaskId).whereType<String>().toSet();
+    if (remoteGTaskIds.isNotEmpty) {
+      final toRemove = local.subtasks
+          .where((s) => s.googleTaskId != null && !remoteGTaskIds.contains(s.googleTaskId))
+          .map((s) => s.id)
+          .toList();
+      if (toRemove.isNotEmpty) {
+        local.subtasks.removeWhere((s) => toRemove.contains(s.id));
+        changed = true;
+      }
+    }
+
+    if (remote.googleEtag != null) {
+      local.googleEtag = remote.googleEtag;
+    }
+    if (changed) {
+      local.updatedAt = DateTime.now();
+      local.lastSyncedAt = DateTime.now();
+    }
+
+    return changed;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // User switched back to Zeta app/window: trigger immediate sync
+      syncGoogleTasks();
+    }
+  }
+
+  void _startGooglePollingTimer() {
+    _googlePollingTimer?.cancel();
+    _googlePollingTimer = null;
+    if (!_googleService.syncTasksEnabled || !_googleService.isConnected) {
+      return;
+    }
+    _googlePollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (_googleService.syncTasksEnabled && _googleService.isConnected) {
+        syncGoogleTasks();
+      }
+    });
   }
 
   Future<void> saveTasks() async {
@@ -380,8 +617,8 @@ class TaskProvider extends ChangeNotifier {
       }
       notifyListeners();
       _autoSaveTasksIfEnabled();
-      _syncService.scheduleDebouncedPush(task);
-      _syncToGoogleServices(task);
+      _syncService.pushTask(task);
+      _syncTaskPipeline(task);
     }
   }
 
@@ -400,8 +637,8 @@ class TaskProvider extends ChangeNotifier {
         }
         notifyListeners();
         _autoSaveTasksIfEnabled();
-        _syncService.scheduleDebouncedPush(_tasks[taskIndex]);
-        _syncToGoogleServices(_tasks[taskIndex]);
+        _syncService.pushTask(_tasks[taskIndex]);
+        _syncTaskPipeline(_tasks[taskIndex]);
       }
     }
   }
@@ -428,8 +665,8 @@ class TaskProvider extends ChangeNotifier {
     _tasks.insert(0, newTask);
     notifyListeners();
     _autoSaveTasksIfEnabled();
-    _syncService.scheduleDebouncedPush(newTask);
-    _syncToGoogleServices(newTask);
+    _syncService.pushTask(newTask);
+    _syncTaskPipeline(newTask);
   }
 
   void updateTask(
@@ -455,8 +692,8 @@ class TaskProvider extends ChangeNotifier {
       if (completed != null) task.completed = completed;
       notifyListeners();
       _autoSaveTasksIfEnabled();
-      _syncService.scheduleDebouncedPush(task);
-      _syncToGoogleServices(task);
+      _syncService.pushTask(task);
+      _syncTaskPipeline(task);
     }
   }
 
@@ -470,7 +707,7 @@ class TaskProvider extends ChangeNotifier {
       _binTasks.insert(0, task);
       notifyListeners();
       _autoSaveTasksIfEnabled();
-      _syncService.scheduleDebouncedPush(task);
+      _syncService.pushTask(task);
       _deleteFromGoogleServices(task);
     }
   }
@@ -485,8 +722,8 @@ class TaskProvider extends ChangeNotifier {
       _tasks.insert(0, task);
       notifyListeners();
       _autoSaveTasksIfEnabled();
-      _syncService.scheduleDebouncedPush(task);
-      _syncToGoogleServices(task);
+      _syncService.pushTask(task);
+      _syncTaskPipeline(task);
     }
   }
 
@@ -519,41 +756,45 @@ class TaskProvider extends ChangeNotifier {
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
-      _syncService.scheduleDebouncedPush(task);
-      _syncToGoogleServices(task);
+      _syncService.pushTask(task);
+      _syncTaskPipeline(task);
     }
     _binTasks.clear();
     notifyListeners();
     _autoSaveTasksIfEnabled();
   }
 
-  Future<void> _syncToGoogleServices(Task task) async {
+  Future<void> _syncTaskPipeline(Task task) async {
     try {
+      // 1. Sync with Google Tasks (natively maps subtasks & due dates)
+      if (_googleService.syncTasksEnabled && _googleService.isConnected) {
+        final gTaskId = await _googleService.syncTaskToGoogleTasks(task);
+        if (gTaskId != null && gTaskId != task.googleTaskId) {
+          task.googleTaskId = gTaskId;
+        }
+      }
+
+      // 2. Sync with Google Calendar if enabled
       if (_googleService.syncCalendarEnabled &&
+          _googleService.isConnected &&
           (task.dueDate != null || task.googleEventId != null)) {
         final calId = await _googleService.syncTaskToCalendar(task);
         if (calId != null && calId != task.googleEventId) {
           task.googleEventId = calId;
-          _syncService.scheduleDebouncedPush(task);
-          _autoSaveTasksIfEnabled();
         } else if (calId == null &&
             task.googleEventId != null &&
             (task.dueDate == null || task.dueDate!.isEmpty)) {
           task.googleEventId = null;
-          _syncService.scheduleDebouncedPush(task);
-          _autoSaveTasksIfEnabled();
         }
       }
-      if (_googleService.syncTasksEnabled) {
-        final gTaskId = await _googleService.syncTaskToGoogleTasks(task);
-        if (gTaskId != null && gTaskId != task.googleTaskId) {
-          task.googleTaskId = gTaskId;
-          _syncService.scheduleDebouncedPush(task);
-          _autoSaveTasksIfEnabled();
-        }
-      }
+
+      // 3. Immediately persist updated task (with any newly assigned foreign IDs)
+      // to local storage AND Supabase DB simultaneously
+      await _autoSaveTasksIfEnabled();
+      await _syncService.pushTask(task);
     } catch (e) {
-      debugPrint('TaskProvider: _syncToGoogleServices note - $e');
+      debugPrint('TaskProvider: _syncTaskPipeline note - $e');
+      _syncService.pushTask(task);
     }
   }
 
@@ -572,6 +813,11 @@ class TaskProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
+    _googlePollingTimer?.cancel();
     _syncService.dispose();
     super.dispose();
   }

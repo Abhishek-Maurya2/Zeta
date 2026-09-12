@@ -79,6 +79,8 @@ class SupabaseSyncService {
 
   /// Immediately pushes a task to Supabase with retries.
   Future<bool> pushTask(Task task) async {
+    _debounceTimers[task.id]?.cancel();
+    _debounceTimers.remove(task.id);
     if (!_supabaseService.isInitialized) return false;
 
     final userId = _supabaseService.effectiveUserId;

@@ -2,7 +2,7 @@ import '../utils/task_date_formatter.dart';
 
 class Subtask {
   final String id;
-  final String title;
+  String title;
   bool completed;
   String? googleTaskId;
 
@@ -64,7 +64,7 @@ class Task {
     required this.id,
     this.userId,
     required this.title,
-    this.description,
+    String? description,
     this.completed = false,
     this.dueDate,
     this.hasTime = false,
@@ -77,9 +77,26 @@ class Task {
     this.googleTaskId,
     this.googleEtag,
     this.lastSyncedAt,
-  })  : subtasks = subtasks ?? [],
+  })  : description = sanitizeDescription(description),
+        subtasks = subtasks ?? [],
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? (createdAt ?? DateTime.now());
+
+  /// Sanitizes descriptions to strip any legacy artificial checklists or scheduled time annotations.
+  static String? sanitizeDescription(String? desc) {
+    if (desc == null) return null;
+    var cleaned = desc;
+    cleaned = cleaned.replaceAll(
+      RegExp(r'(?:\r?\n)*Subtasks:\s*(?:\r?\n\s*\[[ x✓]?\].*)+', caseSensitive: false),
+      '',
+    );
+    cleaned = cleaned.replaceAll(
+      RegExp(r'(?:\r?\n)*⏰\s*Scheduled Time:\s*[^\r\n]+', caseSensitive: false),
+      '',
+    );
+    cleaned = cleaned.trim();
+    return cleaned.isNotEmpty ? cleaned : null;
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,
