@@ -1,11 +1,20 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/segmented_column.dart';
 
+import '../../widgets/segmented_column.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/task_date_formatter.dart';
 
+/// Modal pane / dialog for creating or editing a task.
+///
+/// Features Material 3 Expressive (M3E) design primitives:
+/// - [M3EBottomSheet] on compact viewports (< 600px)
+/// - Expressive rounded dialog on expanded viewports (≥ 600px)
+/// - [M3EButton] for primary (Save/Create), secondary (Cancel), and destructive (Move to Bin) actions
+/// - [M3EChip] for preset date selection (Today, Tomorrow, Next week) and custom date/time filters
+/// - [M3EIconButton] for close, add-subtask, and remove-subtask interactions
+/// - [M3EDatePicker] and [M3ETimePicker] for expressive scheduling dialogs
 class TaskEditPane {
   static Future<void> show(BuildContext context, {Task? task}) {
     final width = MediaQuery.sizeOf(context).width;
@@ -35,6 +44,7 @@ class TaskEditPane {
             borderRadius: BorderRadius.circular(28),
           ),
           backgroundColor: Theme.of(ctx).colorScheme.surfaceContainerHigh,
+          elevation: 6,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 580, maxHeight: 720),
             child: TaskEditFormContent(task: task),
@@ -127,13 +137,13 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     final initial = _dueDate != null
         ? TaskDateFormatter.parse(_dueDate!) ?? now
         : now;
-    final picked = await showDatePicker(
-      context: context,
+    final picked = await M3EDatePicker.show(
+      context,
       initialDate: initial,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now.add(const Duration(days: 365 * 3)),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _dueDate = TaskDateFormatter.format(picked);
       });
@@ -143,14 +153,14 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   Future<void> _pickTime() async {
     final now = TimeOfDay.now();
     final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initial,
+    final picked = await M3ETimePicker.show(
+      context,
+      initialTime: M3ETime(hour: initial.hour, minute: initial.minute),
     );
-    if (picked != null) {
-      final hour = picked.hourOfPeriod == 0 ? 12 : picked.hourOfPeriod;
+    if (picked != null && mounted) {
+      final hour = picked.hourOf12 == 0 ? 12 : picked.hourOf12;
       final minute = picked.minute.toString().padLeft(2, '0');
-      final period = picked.period == DayPeriod.am ? 'AM' : 'PM';
+      final period = picked.isPm ? 'PM' : 'AM';
       setState(() {
         _hasTime = true;
         _dueTime = '$hour:$minute $period';
@@ -222,24 +232,33 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header / Drag indicator
+          // ─── Header ───
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isEditing ? 'Edit Task' : 'New Task',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
+              Row(
+                children: [
+                  const SizedBox(width: 8),
+                  Text(
+                    isEditing ? 'Edit Task' : 'New Task',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
+              M3EIconButton(
                 icon: const Icon(Icons.close_rounded),
+                size: M3EIconButtonSize.sm,
+                width: M3EIconButtonWidth.wide,
+                variant: M3EIconButtonVariant.standard,
+                tooltip: 'Close',
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],
@@ -247,7 +266,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
           const SizedBox(height: 12),
 
-          // Scrollable fields
+          // ─── Scrollable Fields ───
           Flexible(
             child: SingleChildScrollView(
               child: Column(
@@ -257,20 +276,25 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   TextField(
                     controller: _titleController,
                     autofocus: true,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
+                      isDense: true,
                       hintText: 'Task Title',
                       hintStyle: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w600,
                         color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.5,
+                          alpha: 0.65,
                         ),
                       ),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
                       errorText: _errorMessage,
                     ),
                     onChanged: (_) {
@@ -281,78 +305,130 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     onSubmitted: (_) => _handleSave(),
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 18),
 
-                  // 2. Description
-                  TextField(
-                    controller: _descController,
-                    maxLines: 3,
-                    minLines: 1,
-                    style: const TextStyle(fontSize: 14),
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.menu_rounded, size: 20),
-                      hintText: 'Add details / notes...',
-                      hintStyle: TextStyle(
-                        fontSize: 14,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.6,
+                  // 2. Description (max 3 lines)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          Icons.notes_rounded,
+                          size: 20,
+                          // color: colorScheme.onSurfaceVariant.withValues(
+                          //   alpha: 0.8,
+                          // ),
                         ),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: colorScheme.outlineVariant.withValues(
-                            alpha: 1,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _descController,
+                          maxLines: 3,
+                          minLines: 1,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: colorScheme.onSurface,
+                          ),
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'Add details',
+                            hintStyle: TextStyle(
+                              fontSize: 14,
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 25),
 
                   // 3. Due Date & Time Section
-                  Text(
-                    'DUE DATE & TIME',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.event_outlined,
+                        size: 16,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'DUE DATE & TIME',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.8,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (_dueDate != null) ...[
+                        const Spacer(),
+                        Text(
+                          _dueDate! +
+                              (_hasTime && _dueTime != null
+                                  ? ' at $_dueTime'
+                                  : ''),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
 
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 15),
 
+                  // M3E Chips for Due Date Presets + Time
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      InputChip(
-                        avatar: Icon(
-                          Icons.calendar_today_outlined,
-                          size: 16,
-                          color: _dueDate != null
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant,
+                      if (_dueDate != null)
+                        M3EChip(
+                          type: M3EChipType.filter,
+                          label: _dueDate!,
+                          leading: const Icon(
+                            Icons.edit_calendar_rounded,
+                            size: 16,
+                          ),
+                          selected: true,
+                          onPressed: _pickDate,
+                          onDeleted: () => setState(() {
+                            _dueDate = null;
+                            _hasTime = false;
+                            _dueTime = null;
+                          }),
+                        )
+                      else
+                        M3EChip(
+                          type: M3EChipType.assist,
+                          label: 'Pick date',
+                          leading: const Icon(
+                            Icons.calendar_month_rounded,
+                            size: 16,
+                          ),
+                          onPressed: _pickDate,
                         ),
-                        label: Text(_dueDate ?? 'Pick Date'),
-                        selected: _dueDate != null,
-                        showCheckmark: false,
-                        onPressed: _pickDate,
-                        onDeleted: _dueDate != null
-                            ? () => setState(() {
-                                  _dueDate = null;
-                                  _hasTime = false;
-                                  _dueTime = null;
-                                })
-                            : null,
-                        deleteIcon: const Icon(Icons.close_rounded, size: 16),
-                        deleteButtonTooltipMessage: 'Clear date',
-                      ),
-                      InputChip(
-                        avatar: Icon(
+                      M3EChip(
+                        type: _hasTime
+                            ? M3EChipType.filter
+                            : M3EChipType.assist,
+                        label: _hasTime && _dueTime != null
+                            ? _dueTime!
+                            : 'Add Time',
+                        leading: Icon(
                           _hasTime
                               ? Icons.schedule_rounded
                               : Icons.alarm_add_rounded,
@@ -361,22 +437,14 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                               ? colorScheme.primary
                               : colorScheme.onSurfaceVariant,
                         ),
-                        label: Text(
-                          _hasTime && _dueTime != null
-                              ? _dueTime!
-                              : 'Add Time',
-                        ),
                         selected: _hasTime,
-                        showCheckmark: false,
                         onPressed: _pickTime,
                         onDeleted: _hasTime
                             ? () => setState(() {
-                                  _hasTime = false;
-                                  _dueTime = null;
-                                })
+                                _hasTime = false;
+                                _dueTime = null;
+                              })
                             : null,
-                        deleteIcon: const Icon(Icons.close_rounded, size: 16),
-                        deleteButtonTooltipMessage: 'Clear time',
                       ),
                     ],
                   ),
@@ -388,65 +456,85 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     'SUBTASKS',
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.8,
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.subdirectory_arrow_right_rounded,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _newSubtaskController,
-                          decoration: const InputDecoration(
-                            hintText: 'Add a subtask...',
-                            isDense: true,
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: (_) => _addSubtask(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.subdirectory_arrow_right_rounded,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_rounded),
-                        onPressed: _addSubtask,
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _newSubtaskController,
+                            style: const TextStyle(fontSize: 14),
+                            decoration: InputDecoration(
+                              hintText: 'Add a subtask...',
+                              hintStyle: TextStyle(
+                                fontSize: 14,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                              isDense: true,
+                              border: InputBorder.none,
+                            ),
+                            onSubmitted: (_) => _addSubtask(),
+                          ),
+                        ),
+                        M3EIconButton(
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          size: M3EIconButtonSize.xs,
+                          width: M3EIconButtonWidth.narrow,
+                          variant: M3EIconButtonVariant.tonal,
+                          tooltip: 'Add subtask',
+                          onPressed: _addSubtask,
+                        ),
+                      ],
+                    ),
                   ),
 
                   if (_subtasks.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     M3ESegmentedColumn(
                       decoration: const M3ESegmentedListDecoration(
-                        padding: EdgeInsets.all(1.0),
+                        padding: EdgeInsets.all(0),
                       ),
-                      color: colorScheme.surfaceContainerLow,
+                      color: colorScheme.surfaceContainerLowest,
                       children: _subtasks.map((st) {
                         return ListTile(
                           dense: true,
                           leading: InkWell(
+                            borderRadius: BorderRadius.circular(12),
                             onTap: () => _toggleSubtask(st.id),
-                            child: Icon(
-                              st.completed
-                                  ? Icons.check_circle_rounded
-                                  : Icons.radio_button_unchecked_rounded,
-                              size: 18,
-                              color: st.completed
-                                  ? const Color(0xFF10B981)
-                                  : colorScheme.onSurfaceVariant,
+                            child: Padding(
+                              padding: const EdgeInsets.all(1.0),
+                              child: Icon(
+                                st.completed
+                                    ? Icons.check_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                size: 22,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                           title: Text(
                             st.title,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 15,
                               decoration: st.completed
                                   ? TextDecoration.lineThrough
                                   : null,
@@ -455,8 +543,11 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                                   : colorScheme.onSurface,
                             ),
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 16),
+                          trailing: M3EIconButton(
+                            icon: const Icon(Icons.close_rounded, size: 21),
+                            size: M3EIconButtonSize.xs,
+                            variant: M3EIconButtonVariant.standard,
+                            tooltip: 'Remove subtask',
                             onPressed: () => _removeSubtask(st.id),
                           ),
                         );
@@ -470,38 +561,54 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
             ),
           ),
 
-          // Footer buttons
+          // ─── Footer Buttons ───
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (isEditing)
-                OutlinedButton.icon(
+                M3EButton.icon(
                   onPressed: _handleDelete,
-                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text('Move to Bin'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                    side: BorderSide(
-                      color: colorScheme.error.withValues(alpha: 0.5),
+                  // style: M3EButtonStyle.outlined,
+                  size: M3EButtonSize.md,
+                  decoration: M3EButtonDecoration(
+                    backgroundColor: WidgetStatePropertyAll(
+                      colorScheme.errorContainer,
+                    ),
+                    foregroundColor: WidgetStatePropertyAll(
+                      colorScheme.onErrorContainer,
                     ),
                   ),
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 20,
+                    color: colorScheme.error,
+                  ),
+                  label: Text('Move to Bin'),
                 )
               else
-                const SizedBox.shrink(),
-              FilledButton.icon(
+                M3EButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: M3EButtonStyle.text,
+                  size: M3EButtonSize.sm,
+                  child: const Text('Cancel'),
+                ),
+              M3EButton.icon(
                 onPressed: _handleSave,
+                style: M3EButtonStyle.filled,
+                decoration: M3EButtonDecoration(
+                  backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
+                  foregroundColor: WidgetStatePropertyAll(
+                    colorScheme.onSecondary,
+                  ),
+                ),
+                size: M3EButtonSize.md,
                 icon: Icon(
                   isEditing ? Icons.check_rounded : Icons.add_rounded,
-                  size: 18,
+                  size: 20,
                 ),
-                label: Text(isEditing ? 'Save Changes' : 'Create Task'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF006A60),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
+                label: Text(
+                  isEditing ? 'Save Changes' : 'Create Task',
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ],

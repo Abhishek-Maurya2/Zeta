@@ -115,7 +115,7 @@ class TasksPage extends StatelessWidget {
                   // 1. Page Title
                   Text(
                     'Tasks',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.5,
                       color: colorScheme.onSurface,

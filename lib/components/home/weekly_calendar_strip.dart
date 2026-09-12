@@ -146,13 +146,13 @@ class WeeklyCalendarStrip extends StatelessWidget {
                       headlineLabel,
                       style: TextStyle(
                         fontFamily: 'GoogleSansFlex',
-                        fontSize: 35,
+                        fontSize: 40,
                         color: colorScheme.onSurface,
                         fontVariations: const [
                           FontVariation('wght', 600), // Weight
-                          FontVariation('wdth', 50),
-                          FontVariation('GRAD', 80), // Grade stroke density
-                          FontVariation('opsz', 50), // Optical size
+                          FontVariation('wdth', 70),
+                          FontVariation('GRAD', 20), // Grade stroke density
+                          FontVariation('opsz', 15), // Optical size
                           FontVariation('slnt', 0),
                           FontVariation('ROND', 100),
                         ],
@@ -168,7 +168,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                         variant: M3EIconButtonVariant.standard,
                         icon: Icon(
                           Icons.calendar_month_rounded,
-                          size: 18,
+                          size: 23,
                           color: isSelectedToday
                               ? colorScheme.primary
                               : colorScheme.outline,
@@ -387,8 +387,9 @@ class WeeklyCalendarStrip extends StatelessWidget {
                 Tooltip(
                   message: 'Next week',
                   child: M3EIconButton(
-                    size: M3EIconButtonSize.xs,
+                    size: M3EIconButtonSize.md,
                     variant: M3EIconButtonVariant.standard,
+                    width: M3EIconButtonWidth.narrow,
                     icon: const Icon(Icons.chevron_right_rounded, size: 20),
                     onPressed: () => onShiftWeek(1),
                   ),

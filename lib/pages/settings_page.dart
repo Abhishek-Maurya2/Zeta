@@ -297,7 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         children: [
                           Text(
                             'Settings',
-                            style: textTheme.headlineMedium?.copyWith(
+                            style: textTheme.displayMedium?.copyWith(
                               fontWeight: FontWeight.w700,
                               letterSpacing: -0.5,
                               color: colorScheme.onSurface,

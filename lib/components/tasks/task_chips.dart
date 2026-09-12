@@ -27,10 +27,10 @@ class TaskDueDateChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          color: colorScheme.surfaceDim.withValues(alpha: 0.5),
         ),
       ),
       child: Row(
@@ -39,7 +39,7 @@ class TaskDueDateChip extends StatelessWidget {
           Icon(
             isToday ? Icons.schedule_rounded : Icons.calendar_today_outlined,
             size: 15,
-            color: const Color(0xFF006A60),
+            color: colorScheme.onSurface,
           ),
           const SizedBox(width: 8),
           Text(

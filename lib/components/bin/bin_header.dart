@@ -33,7 +33,7 @@ class BinHeader extends StatelessWidget {
               children: [
                 Text(
                   'Bin',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
                     fontWeight: FontWeight.w400,
                     letterSpacing: -0.5,
                     color: colorScheme.onSurface,
@@ -75,9 +75,7 @@ class BinHeader extends StatelessWidget {
         // Compact mobile buttons row
         if (totalCount > 0 && isCompact) ...[
           const SizedBox(height: 12),
-          Center(
-            child: _buildButtonGroup(context),
-          ),
+          Center(child: _buildButtonGroup(context)),
         ],
       ],
     );
