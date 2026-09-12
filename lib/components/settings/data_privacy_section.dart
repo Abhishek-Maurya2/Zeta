@@ -34,14 +34,14 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
       'highContrast': themeProvider.highContrast,
       'animations': themeProvider.animations,
       'compactDensity': themeProvider.compactDensity,
-      'fontChoice': themeProvider.fontChoice,
       'fontScale': themeProvider.fontScale,
       'cornerStyle': themeProvider.cornerStyle,
-      'fontRoundness': themeProvider.fontRoundness,
-      'fontWeight': themeProvider.fontWeight,
-      'fontWidth': themeProvider.fontWidth,
-      'fontSlant': themeProvider.fontSlant,
-      'fontGrade': themeProvider.fontGrade,
+      'typography': {
+        'headings': themeProvider.headingsTypography.toJson(),
+        'titles': themeProvider.titlesTypography.toJson(),
+        'body': themeProvider.bodyTypography.toJson(),
+        'labels': themeProvider.labelsTypography.toJson(),
+      },
       'notifications': themeProvider.notifications,
       'soundEffects': themeProvider.soundEffects,
       'autoSave': themeProvider.autoSave,
@@ -74,9 +74,14 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
         'highContrast': themeProvider.highContrast,
         'animations': themeProvider.animations,
         'compactDensity': themeProvider.compactDensity,
-        'fontChoice': themeProvider.fontChoice,
         'fontScale': themeProvider.fontScale,
         'cornerStyle': themeProvider.cornerStyle,
+        'typography': {
+          'headings': themeProvider.headingsTypography.toJson(),
+          'titles': themeProvider.titlesTypography.toJson(),
+          'body': themeProvider.bodyTypography.toJson(),
+          'labels': themeProvider.labelsTypography.toJson(),
+        },
         'notifications': themeProvider.notifications,
         'soundEffects': themeProvider.soundEffects,
         'autoSave': themeProvider.autoSave,
@@ -179,7 +184,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
         return AlertDialog(
           title: const Text('Reset Workspace Configuration?'),
           content: const Text(
-            'This will reset all theme preferences, typography optical axes, and system settings to their initial defaults.',
+            'This will reset all theme preferences, appearance styling, and system settings to their initial defaults.',
           ),
           actions: [
             TextButton(
@@ -469,7 +474,7 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                             ),
                           ),
                           Text(
-                            'Restore colors, typography, and controls to defaults',
+                            'Restore colors, appearance, and controls to defaults',
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),

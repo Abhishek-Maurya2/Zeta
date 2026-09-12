@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
-/// The 8 settings categories mirroring Sharva.
+/// The settings categories mirroring Sharva.
 enum SettingsCategory {
   profile,
   appearance,
@@ -46,7 +46,7 @@ const List<SettingsCategoryItem> kSettingsCategories = [
   SettingsCategoryItem(
     id: SettingsCategory.typography,
     label: 'Typography',
-    description: 'Fonts, size, and text shape',
+    description: 'Flex fonts & per-role variable axes',
     icon: Icons.text_fields_outlined,
     selectedIcon: Icons.text_fields_rounded,
   ),

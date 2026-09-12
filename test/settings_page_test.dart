@@ -168,4 +168,43 @@ void main() {
     // Returns to categories list
     expect(find.text('PREFERENCES'), findsOneWidget);
   });
+
+  testWidgets('SettingsPage navigates to Typography section and renders flex variable controls',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(createSettingsTestWidget());
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Tap Typography category in left pane
+    expect(find.text('Typography'), findsOneWidget);
+    await tester.tap(find.text('Typography'));
+    await tester.pumpAndSettle();
+
+    // Verify TypographySection is rendered
+    expect(find.byType(TypographySection), findsOneWidget);
+    expect(find.text('TYPOGRAPHY & FLEX VARIABLE FONTS'), findsOneWidget);
+
+    // Verify role switcher buttons
+    expect(find.text('Headings'), findsWidgets);
+    expect(find.text('Titles'), findsWidgets);
+    expect(find.text('Body'), findsWidgets);
+    expect(find.text('Labels'), findsWidgets);
+
+    // Verify Google Sans Flex font option is displayed with ROND badge
+    expect(find.text('Google Sans Flex'), findsOneWidget);
+    expect(find.text('★ ROND (Roundness)'), findsWidgets);
+
+    // Verify variable axis sliders
+    expect(find.text('Weight (wght)'), findsOneWidget);
+    expect(find.text('Width (wdth)'), findsOneWidget);
+    expect(find.text('Slant (slnt)'), findsOneWidget);
+    expect(find.text('Roundness (ROND)'), findsOneWidget);
+    expect(find.text('Grade (GRAD)'), findsOneWidget);
+
+    // Verify Live Preview card is present
+    expect(find.textContaining('LIVE PREVIEW'), findsOneWidget);
+  });
 }

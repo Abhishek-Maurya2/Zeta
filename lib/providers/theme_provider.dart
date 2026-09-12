@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/color_variant.dart';
+import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
 
 /// Seed color preset matching Sharva's design system.
@@ -83,14 +84,12 @@ class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyHighContrast = 'zeta_high_contrast';
   static const String _prefKeyAnimations = 'zeta_animations';
   static const String _prefKeyCompactDensity = 'zeta_compact_density';
-  static const String _prefKeyFontChoice = 'zeta_font_choice';
   static const String _prefKeyFontScale = 'zeta_font_scale';
   static const String _prefKeyCornerStyle = 'zeta_corner_style';
-  static const String _prefKeyFontRoundness = 'zeta_font_roundness';
-  static const String _prefKeyFontWeight = 'zeta_font_weight';
-  static const String _prefKeyFontWidth = 'zeta_font_width';
-  static const String _prefKeyFontSlant = 'zeta_font_slant';
-  static const String _prefKeyFontGrade = 'zeta_font_grade';
+  static const String _prefKeyTypographyHeadings = 'zeta_typo_headings';
+  static const String _prefKeyTypographyTitles = 'zeta_typo_titles';
+  static const String _prefKeyTypographyBody = 'zeta_typo_body';
+  static const String _prefKeyTypographyLabels = 'zeta_typo_labels';
   static const String _prefKeyUserName = 'zeta_user_name';
   static const String _prefKeyUserEmail = 'zeta_user_email';
   static const String _prefKeyAvatarPhoto = 'zeta_avatar_photo';
@@ -186,17 +185,7 @@ class ThemeProvider extends ChangeNotifier {
     _saveSetting(_prefKeyCompactDensity, value);
   }
 
-  // ─── Typography & Shape ─────────────────────────────────────────────────
-  String _fontChoice = 'system'; // 'system', 'google-sans', 'roboto'
-  String get fontChoice => _fontChoice;
-
-  void setFontChoice(String choice) {
-    if (_fontChoice == choice) return;
-    _fontChoice = choice;
-    notifyListeners();
-    _saveSetting(_prefKeyFontChoice, choice);
-  }
-
+  // ─── Shape & Scale ─────────────────────────────────────────────────────
   String _fontScale = 'standard'; // 'compact', 'standard', 'large'
   String get fontScale => _fontScale;
 
@@ -217,55 +206,93 @@ class ThemeProvider extends ChangeNotifier {
     _saveSetting(_prefKeyCornerStyle, style);
   }
 
-  // Variable Font Axes
-  double _fontRoundness = 0; // 0..100
-  double get fontRoundness => _fontRoundness;
+  // ─── Variable Typography Roles ──────────────────────────────────────────
+  RoleTypographyConfig _headingsTypography = RoleTypographyConfig.defaultHeadings;
+  RoleTypographyConfig get headingsTypography => _headingsTypography;
 
-  void setFontRoundness(double val) {
-    if (_fontRoundness == val) return;
-    _fontRoundness = val;
-    notifyListeners();
-    _saveSetting(_prefKeyFontRoundness, val);
+  RoleTypographyConfig _titlesTypography = RoleTypographyConfig.defaultTitles;
+  RoleTypographyConfig get titlesTypography => _titlesTypography;
+
+  RoleTypographyConfig _bodyTypography = RoleTypographyConfig.defaultBody;
+  RoleTypographyConfig get bodyTypography => _bodyTypography;
+
+  RoleTypographyConfig _labelsTypography = RoleTypographyConfig.defaultLabels;
+  RoleTypographyConfig get labelsTypography => _labelsTypography;
+
+  RoleTypographyConfig getTypographyConfigForRole(TypographyRole role) {
+    switch (role) {
+      case TypographyRole.headings:
+        return _headingsTypography;
+      case TypographyRole.titles:
+        return _titlesTypography;
+      case TypographyRole.body:
+        return _bodyTypography;
+      case TypographyRole.labels:
+        return _labelsTypography;
+    }
   }
 
-  double _fontWeight = 400; // 100..900
-  double get fontWeight => _fontWeight;
-
-  void setFontWeight(double val) {
-    if (_fontWeight == val) return;
-    _fontWeight = val;
+  void updateRoleTypography(TypographyRole role, RoleTypographyConfig config) {
+    switch (role) {
+      case TypographyRole.headings:
+        _headingsTypography = config;
+        _saveSetting(_prefKeyTypographyHeadings, jsonEncode(config.toJson()));
+        break;
+      case TypographyRole.titles:
+        _titlesTypography = config;
+        _saveSetting(_prefKeyTypographyTitles, jsonEncode(config.toJson()));
+        break;
+      case TypographyRole.body:
+        _bodyTypography = config;
+        _saveSetting(_prefKeyTypographyBody, jsonEncode(config.toJson()));
+        break;
+      case TypographyRole.labels:
+        _labelsTypography = config;
+        _saveSetting(_prefKeyTypographyLabels, jsonEncode(config.toJson()));
+        break;
+    }
     notifyListeners();
-    _saveSetting(_prefKeyFontWeight, val);
   }
 
-  double _fontWidth = 100; // 50..150
-  double get fontWidth => _fontWidth;
-
-  void setFontWidth(double val) {
-    if (_fontWidth == val) return;
-    _fontWidth = val;
-    notifyListeners();
-    _saveSetting(_prefKeyFontWidth, val);
+  void resetRoleTypography(TypographyRole role) {
+    switch (role) {
+      case TypographyRole.headings:
+        updateRoleTypography(role, RoleTypographyConfig.defaultHeadings);
+        break;
+      case TypographyRole.titles:
+        updateRoleTypography(role, RoleTypographyConfig.defaultTitles);
+        break;
+      case TypographyRole.body:
+        updateRoleTypography(role, RoleTypographyConfig.defaultBody);
+        break;
+      case TypographyRole.labels:
+        updateRoleTypography(role, RoleTypographyConfig.defaultLabels);
+        break;
+    }
   }
 
-  double _fontSlant = 0; // -10..0
-  double get fontSlant => _fontSlant;
-
-  void setFontSlant(double val) {
-    if (_fontSlant == val) return;
-    _fontSlant = val;
+  void applyTypographyPreset(TypographyPreset preset) {
+    _headingsTypography = preset.headings;
+    _titlesTypography = preset.titles;
+    _bodyTypography = preset.body;
+    _labelsTypography = preset.labels;
+    _saveSetting(_prefKeyTypographyHeadings, jsonEncode(preset.headings.toJson()));
+    _saveSetting(_prefKeyTypographyTitles, jsonEncode(preset.titles.toJson()));
+    _saveSetting(_prefKeyTypographyBody, jsonEncode(preset.body.toJson()));
+    _saveSetting(_prefKeyTypographyLabels, jsonEncode(preset.labels.toJson()));
     notifyListeners();
-    _saveSetting(_prefKeyFontSlant, val);
   }
 
-  double _fontGrade = 0; // -200..150
-  double get fontGrade => _fontGrade;
-
-  void setFontGrade(double val) {
-    if (_fontGrade == val) return;
-    _fontGrade = val;
+  void resetAllTypography() {
+    _headingsTypography = RoleTypographyConfig.defaultHeadings;
+    _titlesTypography = RoleTypographyConfig.defaultTitles;
+    _bodyTypography = RoleTypographyConfig.defaultBody;
+    _labelsTypography = RoleTypographyConfig.defaultLabels;
+    _saveSetting(_prefKeyTypographyHeadings, jsonEncode(_headingsTypography.toJson()));
+    _saveSetting(_prefKeyTypographyTitles, jsonEncode(_titlesTypography.toJson()));
+    _saveSetting(_prefKeyTypographyBody, jsonEncode(_bodyTypography.toJson()));
+    _saveSetting(_prefKeyTypographyLabels, jsonEncode(_labelsTypography.toJson()));
     notifyListeners();
-    _saveSetting(_prefKeyFontGrade, val);
   }
 
   // ─── Profile (Photo avatar with first-alphabet fallback) ────────────────
@@ -522,11 +549,34 @@ class ThemeProvider extends ChangeNotifier {
       if (json['compactDensity'] is bool) {
         setCompactDensity(json['compactDensity'] as bool);
       }
-      if (json['fontChoice'] is String) setFontChoice(json['fontChoice'] as String);
       if (json['fontScale'] is String) setFontScale(json['fontScale'] as String);
       if (json['cornerStyle'] is String) setCornerStyle(json['cornerStyle'] as String);
-      if (json['fontWeight'] is num) {
-        setFontWeight((json['fontWeight'] as num).toDouble());
+      if (json['typography'] is Map<String, dynamic>) {
+        final typo = json['typography'] as Map<String, dynamic>;
+        if (typo['headings'] is Map<String, dynamic>) {
+          _headingsTypography = RoleTypographyConfig.fromJson(
+            typo['headings'] as Map<String, dynamic>,
+            fallback: _headingsTypography,
+          );
+        }
+        if (typo['titles'] is Map<String, dynamic>) {
+          _titlesTypography = RoleTypographyConfig.fromJson(
+            typo['titles'] as Map<String, dynamic>,
+            fallback: _titlesTypography,
+          );
+        }
+        if (typo['body'] is Map<String, dynamic>) {
+          _bodyTypography = RoleTypographyConfig.fromJson(
+            typo['body'] as Map<String, dynamic>,
+            fallback: _bodyTypography,
+          );
+        }
+        if (typo['labels'] is Map<String, dynamic>) {
+          _labelsTypography = RoleTypographyConfig.fromJson(
+            typo['labels'] as Map<String, dynamic>,
+            fallback: _labelsTypography,
+          );
+        }
       }
       if (json['notifications'] is bool) {
         setNotifications(json['notifications'] as bool);
@@ -551,14 +601,12 @@ class ThemeProvider extends ChangeNotifier {
     _highContrast = false;
     _animations = true;
     _compactDensity = false;
-    _fontChoice = 'system';
     _fontScale = 'standard';
     _cornerStyle = 'expressive';
-    _fontRoundness = 0;
-    _fontWeight = 400;
-    _fontWidth = 100;
-    _fontSlant = 0;
-    _fontGrade = 0;
+    _headingsTypography = RoleTypographyConfig.defaultHeadings;
+    _titlesTypography = RoleTypographyConfig.defaultTitles;
+    _bodyTypography = RoleTypographyConfig.defaultBody;
+    _labelsTypography = RoleTypographyConfig.defaultLabels;
     _userName = 'Abhishek';
     _userEmail = 'abhishek@example.com';
     _avatarPhoto = null;
@@ -605,14 +653,45 @@ class ThemeProvider extends ChangeNotifier {
       _highContrast = prefs.getBool(_prefKeyHighContrast) ?? _highContrast;
       _animations = prefs.getBool(_prefKeyAnimations) ?? _animations;
       _compactDensity = prefs.getBool(_prefKeyCompactDensity) ?? _compactDensity;
-      _fontChoice = prefs.getString(_prefKeyFontChoice) ?? _fontChoice;
       _fontScale = prefs.getString(_prefKeyFontScale) ?? _fontScale;
       _cornerStyle = prefs.getString(_prefKeyCornerStyle) ?? _cornerStyle;
-      _fontRoundness = prefs.getDouble(_prefKeyFontRoundness) ?? _fontRoundness;
-      _fontWeight = prefs.getDouble(_prefKeyFontWeight) ?? _fontWeight;
-      _fontWidth = prefs.getDouble(_prefKeyFontWidth) ?? _fontWidth;
-      _fontSlant = prefs.getDouble(_prefKeyFontSlant) ?? _fontSlant;
-      _fontGrade = prefs.getDouble(_prefKeyFontGrade) ?? _fontGrade;
+
+      final headingsStr = prefs.getString(_prefKeyTypographyHeadings);
+      if (headingsStr != null) {
+        try {
+          _headingsTypography = RoleTypographyConfig.fromJson(
+            jsonDecode(headingsStr) as Map<String, dynamic>,
+            fallback: RoleTypographyConfig.defaultHeadings,
+          );
+        } catch (_) {}
+      }
+      final titlesStr = prefs.getString(_prefKeyTypographyTitles);
+      if (titlesStr != null) {
+        try {
+          _titlesTypography = RoleTypographyConfig.fromJson(
+            jsonDecode(titlesStr) as Map<String, dynamic>,
+            fallback: RoleTypographyConfig.defaultTitles,
+          );
+        } catch (_) {}
+      }
+      final bodyStr = prefs.getString(_prefKeyTypographyBody);
+      if (bodyStr != null) {
+        try {
+          _bodyTypography = RoleTypographyConfig.fromJson(
+            jsonDecode(bodyStr) as Map<String, dynamic>,
+            fallback: RoleTypographyConfig.defaultBody,
+          );
+        } catch (_) {}
+      }
+      final labelsStr = prefs.getString(_prefKeyTypographyLabels);
+      if (labelsStr != null) {
+        try {
+          _labelsTypography = RoleTypographyConfig.fromJson(
+            jsonDecode(labelsStr) as Map<String, dynamic>,
+            fallback: RoleTypographyConfig.defaultLabels,
+          );
+        } catch (_) {}
+      }
       _userName = prefs.getString(_prefKeyUserName) ?? _userName;
       _userEmail = prefs.getString(_prefKeyUserEmail) ?? _userEmail;
       final savedPhoto = prefs.getString(_prefKeyAvatarPhoto);

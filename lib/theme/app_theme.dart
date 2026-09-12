@@ -1,9 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'color_variant.dart';
+import 'typography_config.dart';
 
 export 'color_variant.dart';
+export 'typography_config.dart';
 
 class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
   const _NoAnimationPageTransitionsBuilder();
@@ -40,12 +41,13 @@ class AppTheme {
     Color seedColor, [
     M3EColorVariant variant = M3EColorVariant.expressive,
     String cornerStyle = 'expressive',
-    String fontChoice = 'google-sans',
     bool highContrast = false,
-    String fontScale = 'standard',
     bool compactDensity = false,
     bool animations = true,
-    double fontWeight = 400,
+    RoleTypographyConfig? headingsTypography,
+    RoleTypographyConfig? titlesTypography,
+    RoleTypographyConfig? bodyTypography,
+    RoleTypographyConfig? labelsTypography,
   ]) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
@@ -55,12 +57,13 @@ class AppTheme {
     return _buildTheme(
       colorScheme,
       cornerStyle: cornerStyle,
-      fontChoice: fontChoice,
       highContrast: highContrast,
-      fontScale: fontScale,
       compactDensity: compactDensity,
       animations: animations,
-      fontWeight: fontWeight,
+      headingsTypography: headingsTypography,
+      titlesTypography: titlesTypography,
+      bodyTypography: bodyTypography,
+      labelsTypography: labelsTypography,
     );
   }
 
@@ -68,12 +71,13 @@ class AppTheme {
     Color seedColor, [
     M3EColorVariant variant = M3EColorVariant.expressive,
     String cornerStyle = 'expressive',
-    String fontChoice = 'google-sans',
     bool highContrast = false,
-    String fontScale = 'standard',
     bool compactDensity = false,
     bool animations = true,
-    double fontWeight = 400,
+    RoleTypographyConfig? headingsTypography,
+    RoleTypographyConfig? titlesTypography,
+    RoleTypographyConfig? bodyTypography,
+    RoleTypographyConfig? labelsTypography,
   ]) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
@@ -83,24 +87,26 @@ class AppTheme {
     return _buildTheme(
       colorScheme,
       cornerStyle: cornerStyle,
-      fontChoice: fontChoice,
       highContrast: highContrast,
-      fontScale: fontScale,
       compactDensity: compactDensity,
       animations: animations,
-      fontWeight: fontWeight,
+      headingsTypography: headingsTypography,
+      titlesTypography: titlesTypography,
+      bodyTypography: bodyTypography,
+      labelsTypography: labelsTypography,
     );
   }
 
   static ThemeData _buildTheme(
     ColorScheme colorScheme, {
     required String cornerStyle,
-    required String fontChoice,
     required bool highContrast,
-    required String fontScale,
     required bool compactDensity,
     required bool animations,
-    required double fontWeight,
+    RoleTypographyConfig? headingsTypography,
+    RoleTypographyConfig? titlesTypography,
+    RoleTypographyConfig? bodyTypography,
+    RoleTypographyConfig? labelsTypography,
   }) {
     final radius = getCornerRadius(cornerStyle);
 
@@ -129,32 +135,37 @@ class AppTheme {
             ),
     );
 
-    // Apply font choice to emphasized text theme (defaults to system Material 3)
-    final String? fontFamily;
-    switch (fontChoice) {
-      case 'roboto':
-        fontFamily = GoogleFonts.roboto().fontFamily;
-        break;
-      case 'google-sans':
-        fontFamily = GoogleFonts.inter().fontFamily;
-        break;
-      case 'system':
-      default:
-        fontFamily = null;
-        break;
-    }
+    final headings = headingsTypography ?? RoleTypographyConfig.defaultHeadings;
+    final titles = titlesTypography ?? RoleTypographyConfig.defaultTitles;
+    final body = bodyTypography ?? RoleTypographyConfig.defaultBody;
+    final labels = labelsTypography ?? RoleTypographyConfig.defaultLabels;
 
-    final baseTextTheme = fontFamily != null
-        ? baseTheme.textTheme.apply(fontFamily: fontFamily)
-        : baseTheme.textTheme;
+    final defaultText = baseTheme.textTheme;
+    final effectiveTextTheme = defaultText.copyWith(
+      // Headings & Display
+      displayLarge: headings.toTextStyle(defaultText.displayLarge!),
+      displayMedium: headings.toTextStyle(defaultText.displayMedium!),
+      displaySmall: headings.toTextStyle(defaultText.displaySmall!),
+      headlineLarge: headings.toTextStyle(defaultText.headlineLarge!),
+      headlineMedium: headings.toTextStyle(defaultText.headlineMedium!),
+      headlineSmall: headings.toTextStyle(defaultText.headlineSmall!),
 
-    final effectiveFontWeight = FontWeight.values[
-        (fontWeight / 100).round().clamp(1, 9) - 1];
+      // Titles & Subheaders
+      titleLarge: titles.toTextStyle(defaultText.titleLarge!),
+      titleMedium: titles.toTextStyle(defaultText.titleMedium!),
+      titleSmall: titles.toTextStyle(defaultText.titleSmall!),
 
-    final effectiveTextTheme = baseTextTheme.copyWith(
-      bodyLarge: baseTextTheme.bodyLarge?.copyWith(fontWeight: effectiveFontWeight),
-      bodyMedium: baseTextTheme.bodyMedium?.copyWith(fontWeight: effectiveFontWeight),
-      labelLarge: const TextStyle(fontSize: 13.5, letterSpacing: 0),
+      // Body & Content
+      bodyLarge: body.toTextStyle(defaultText.bodyLarge!),
+      bodyMedium: body.toTextStyle(defaultText.bodyMedium!),
+      bodySmall: body.toTextStyle(defaultText.bodySmall!),
+
+      // Labels & Controls
+      labelLarge: labels.toTextStyle(
+        defaultText.labelLarge!.copyWith(fontSize: 13.5, letterSpacing: 0),
+      ),
+      labelMedium: labels.toTextStyle(defaultText.labelMedium!),
+      labelSmall: labels.toTextStyle(defaultText.labelSmall!),
     );
 
     final buttonRadius = (radius * 0.6).clamp(6.0, 20.0);

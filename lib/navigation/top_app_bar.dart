@@ -4,7 +4,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/app_text.dart';
 import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
 
@@ -42,6 +41,7 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
     final navProvider = context.watch<NavigationProvider>();
     final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final width = MediaQuery.sizeOf(context).width;
 
     final isCompact = width < 600;
@@ -87,13 +87,13 @@ class _TopAppBarWidgetState extends State<TopAppBarWidget> {
                       const ZetaLogo(size: 28),
                       if (showBrandText) ...[
                         const SizedBox(width: 10),
-                        AppText(
+                        Text(
                           'Zeta',
-                          size: AppTextSize.xl2,
-                          weight: AppTextWeight.medium,
-                          widthPreset: AppTextWidth.wide,
-                          roundness: 100,
-                          color: colorScheme.onSurface,
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                            color: colorScheme.onSurface,
+                          ),
                         ),
                       ],
                     ],

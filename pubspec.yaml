@@ -26,3 +26,19 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: GoogleSansFlex
+      fonts:
+        - asset: assets/fonts/GoogleSansFlex.ttf
+    - family: RobotoFlex
+      fonts:
+        - asset: assets/fonts/RobotoFlex-Variable.ttf
+    - family: RobotoMono
+      fonts:
+        - asset: assets/fonts/RobotoMono-Variable.ttf
+    - family: RobotoSerif
+      fonts:
+        - asset: assets/fonts/RobotoSerif-Variable.ttf
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Variable.ttf
