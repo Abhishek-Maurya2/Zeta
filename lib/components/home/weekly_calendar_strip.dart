@@ -147,7 +147,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                       style: TextStyle(
                         fontFamily: 'GoogleSansFlex',
                         fontSize: 40,
-                        color: colorScheme.onSurface,
+                        color: colorScheme.onSurface.withValues(alpha: 0.9),
                         fontVariations: const [
                           FontVariation('wght', 600), // Weight
                           FontVariation('wdth', 70),
@@ -160,9 +160,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
 
-                    // Calendar Datepicker Trigger
+                    // Calendar Datepicker Trigger (acts as "Reset to Today" in compact mode)
                     Tooltip(
-                      message: 'Open Calendar Picker',
+                      message: isCompact
+                          ? 'Reset to Today'
+                          : 'Open Calendar Picker',
                       child: M3EIconButton(
                         size: M3EIconButtonSize.xs,
                         variant: M3EIconButtonVariant.standard,
@@ -173,12 +175,14 @@ class WeeklyCalendarStrip extends StatelessWidget {
                               ? colorScheme.primary
                               : colorScheme.outline,
                         ),
-                        onPressed: () => _openDatePicker(context),
+                        onPressed: isCompact
+                            ? onResetToToday
+                            : () => _openDatePicker(context),
                       ),
                     ),
 
-                    // Reset to "Today" button
-                    if (!isSelectedToday) ...[
+                    // Reset to "Today" button (hidden in compact mode)
+                    if (!isCompact && !isSelectedToday) ...[
                       const SizedBox(width: 6),
                       InkWell(
                         onTap: onResetToToday,
@@ -215,7 +219,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                       tempStr,
                       style: TextStyle(
                         fontFamily: 'GoogleSansFlex',
-                        fontSize: 23,
+                        fontSize: 26,
                         color: colorScheme.onSurfaceVariant,
                         fontVariations: const [
                           FontVariation('wght', 700), // Weight
@@ -292,7 +296,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                           final dayNumStr = dayDate.day.toString();
 
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 0),
                             child: Tooltip(
                               message:
                                   '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
@@ -301,7 +305,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                 onTap: () => onSelectDate(dayDate),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: isCompact ? 45 : 46,
+                                  width: isCompact ? 40 : 46,
                                   height: 75,
                                   decoration: BoxDecoration(
                                     color: isSelected
