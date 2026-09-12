@@ -262,12 +262,8 @@ class TodaysFocusCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -276,14 +272,14 @@ class TodaysFocusCard extends StatelessWidget {
                           task!.hasTime
                               ? Icons.schedule_rounded
                               : Icons.event_rounded,
-                          size: 14,
+                          size: 16,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 8),
                         Text(
                           dueFormatted,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -313,10 +309,7 @@ class TodaysFocusCard extends StatelessWidget {
                 icon: const Icon(Icons.add_rounded, size: 20),
                 label: const Text(
                   'Add new task',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: M3EButtonStyle.filled,
                 size: M3EButtonSize.md,

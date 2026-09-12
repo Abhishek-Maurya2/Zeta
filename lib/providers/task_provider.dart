@@ -323,6 +323,13 @@ class TaskProvider extends ChangeNotifier {
         }
         await saveTasks();
       }
+
+      // If Google integration is enabled, sync active tasks to Google
+      if (_googleService.syncCalendarEnabled || _googleService.syncTasksEnabled) {
+        for (final task in _tasks) {
+          await _syncToGoogleServices(task);
+        }
+      }
     } catch (e) {
       debugPrint('TaskProvider: syncWithCloud error - $e');
     } finally {
@@ -522,10 +529,17 @@ class TaskProvider extends ChangeNotifier {
 
   Future<void> _syncToGoogleServices(Task task) async {
     try {
-      if (_googleService.syncCalendarEnabled && task.dueDate != null) {
+      if (_googleService.syncCalendarEnabled &&
+          (task.dueDate != null || task.googleEventId != null)) {
         final calId = await _googleService.syncTaskToCalendar(task);
         if (calId != null && calId != task.googleEventId) {
           task.googleEventId = calId;
+          _syncService.scheduleDebouncedPush(task);
+          _autoSaveTasksIfEnabled();
+        } else if (calId == null &&
+            task.googleEventId != null &&
+            (task.dueDate == null || task.dueDate!.isEmpty)) {
+          task.googleEventId = null;
           _syncService.scheduleDebouncedPush(task);
           _autoSaveTasksIfEnabled();
         }

@@ -4,34 +4,40 @@ class Subtask {
   final String id;
   final String title;
   bool completed;
+  String? googleTaskId;
 
   Subtask({
     required this.id,
     required this.title,
     this.completed = false,
+    this.googleTaskId,
   });
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
         'completed': completed,
+        if (googleTaskId != null) 'google_task_id': googleTaskId,
       };
 
   factory Subtask.fromJson(Map<String, dynamic> json) => Subtask(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
         completed: json['completed'] as bool? ?? false,
+        googleTaskId: (json['google_task_id'] ?? json['googleTaskId']) as String?,
       );
 
   Subtask copyWith({
     String? id,
     String? title,
     bool? completed,
+    String? googleTaskId,
   }) {
     return Subtask(
       id: id ?? this.id,
       title: title ?? this.title,
       completed: completed ?? this.completed,
+      googleTaskId: googleTaskId ?? this.googleTaskId,
     );
   }
 }
@@ -128,24 +134,32 @@ class Task {
   /// Converts the task to a PostgreSQL row for the Supabase `public.tasks` table.
   Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
     DateTime? parsedDueDate;
+    final effectiveHasTime =
+        hasTime || (dueTime != null && dueTime!.trim().isNotEmpty);
+
     if (dueDate != null && dueDate!.trim().isNotEmpty) {
       final baseDate = TaskDateFormatter.parse(dueDate!);
       if (baseDate != null) {
-        if (hasTime && dueTime != null && dueTime!.trim().isNotEmpty) {
+        final localBase = baseDate.isUtc ? baseDate.toLocal() : baseDate;
+        if (effectiveHasTime && dueTime != null && dueTime!.trim().isNotEmpty) {
           final timeStr = dueTime!.trim();
-          final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$', caseSensitive: false).firstMatch(timeStr);
+          final match = RegExp(
+            r'^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?\s*$',
+            caseSensitive: false,
+          ).firstMatch(timeStr);
           if (match != null) {
             int h = int.parse(match.group(1)!);
             final m = int.parse(match.group(2)!);
             final period = match.group(3)?.toUpperCase();
             if (period == 'PM' && h < 12) h += 12;
             if (period == 'AM' && h == 12) h = 0;
-            parsedDueDate = DateTime(baseDate.year, baseDate.month, baseDate.day, h, m);
+            parsedDueDate = DateTime(localBase.year, localBase.month, localBase.day, h, m);
           } else {
-            parsedDueDate = baseDate;
+            parsedDueDate = localBase;
           }
         } else {
-          parsedDueDate = baseDate;
+          // Store pure date at noon UTC so timezone conversions anywhere in the world keep the exact same day
+          parsedDueDate = DateTime.utc(localBase.year, localBase.month, localBase.day, 12, 0, 0);
         }
       }
     }
@@ -166,7 +180,7 @@ class Task {
       'description': description ?? '',
       'completed': completed,
       'due_date': parsedDueDate?.toUtc().toIso8601String(),
-      'has_time': hasTime,
+      'has_time': effectiveHasTime,
       'subtasks': subtasks.map((s) => s.toJson()).toList(),
       'deleted_at': deletedAt?.toUtc().toIso8601String(),
       'created_at': createdAt.toUtc().toIso8601String(),
@@ -182,13 +196,19 @@ class Task {
   factory Task.fromSupabaseRow(Map<String, dynamic> row) {
     String? localDueDate;
     String? localDueTime;
+    bool hasTime = row['has_time'] == true;
 
     if (row['due_date'] != null) {
       final parsed = DateTime.tryParse(row['due_date'].toString());
       if (parsed != null) {
         final local = parsed.toLocal();
-        localDueDate = '${local.day}, ${_monthShort(local.month)}';
-        if (row['has_time'] == true) {
+        localDueDate = TaskDateFormatter.format(local);
+
+        final isNoonUtcPlaceholder = parsed.isUtc && parsed.hour == 12 && parsed.minute == 0;
+        final hasNonMidnightTime = local.hour != 0 || local.minute != 0;
+
+        if (hasTime || (!isNoonUtcPlaceholder && hasNonMidnightTime)) {
+          hasTime = true;
           final hour = local.hour > 12
               ? local.hour - 12
               : (local.hour == 0 ? 12 : local.hour);
@@ -213,7 +233,7 @@ class Task {
           : null,
       completed: row['completed'] as bool? ?? false,
       dueDate: localDueDate,
-      hasTime: row['has_time'] as bool? ?? false,
+      hasTime: hasTime,
       dueTime: localDueTime,
       subtasks: subtasksList,
       createdAt: row['created_at'] != null
@@ -234,15 +254,6 @@ class Task {
           ? DateTime.tryParse(row['last_synced_at'].toString())?.toLocal()
           : null,
     );
-  }
-
-  static String _monthShort(int month) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    if (month >= 1 && month <= 12) return months[month - 1];
-    return 'Sep';
   }
 
   Task copyWith({

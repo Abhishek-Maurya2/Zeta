@@ -207,36 +207,26 @@ class GoogleCalendarService {
       final calendarApi = gcal.CalendarApi(client);
       final calendarId = _calendarId ?? 'primary';
 
-      // Build event description with subtask checklist
-      final descBuffer = StringBuffer();
-      if (task.description?.isNotEmpty == true) {
-        descBuffer.writeln(task.description);
-        descBuffer.writeln();
-      }
-      if (task.subtasks.isNotEmpty) {
-        descBuffer.writeln('Subtasks:');
-        for (final sub in task.subtasks) {
-          descBuffer.writeln('${sub.completed ? '[x]' : '[ ]'} ${sub.title}');
-        }
-      }
+      final hasTime =
+          task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
 
       final event = gcal.Event();
       event.id = eventId;
       event.summary = task.completed ? '✓ ${task.title}' : task.title;
-      event.description = descBuffer.isEmpty ? null : descBuffer.toString().trim();
+      event.description = (task.description != null && task.description!.trim().isNotEmpty)
+          ? task.description!.trim()
+          : null;
 
-      if (task.hasTime) {
+      if (hasTime) {
         final startUtc = parsedDate.toUtc();
         final endUtc = parsedDate.add(const Duration(minutes: 30)).toUtc();
         event.start = gcal.EventDateTime(dateTime: startUtc);
         event.end = gcal.EventDateTime(dateTime: endUtc);
       } else {
-        event.start = gcal.EventDateTime(
-          date: DateTime(parsedDate.year, parsedDate.month, parsedDate.day),
-        );
-        event.end = gcal.EventDateTime(
-          date: DateTime(parsedDate.year, parsedDate.month, parsedDate.day),
-        );
+        final startDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+        final endDate = startDate.add(const Duration(days: 1)); // Google Calendar all-day end date is exclusive
+        event.start = gcal.EventDateTime(date: startDate);
+        event.end = gcal.EventDateTime(date: endDate);
       }
 
       // Try patching first, if 404 insert
@@ -281,6 +271,7 @@ class GoogleCalendarService {
   }
 
   /// Sync a Zeta task to Google Tasks.
+  /// Subtasks are natively synchronized as Google Tasks child tasks via the `parent` API parameter.
   /// Returns the Google Tasks item ID if synced, or null.
   Future<String?> syncTaskToGoogleTasks(Task task) async {
     if (!_syncTasksEnabled) return null;
@@ -288,7 +279,7 @@ class GoogleCalendarService {
     final token = await _getValidAccessToken();
     if (token == null) return null;
 
-    // If task is deleted, remove from Google Tasks
+    // If task is deleted, remove from Google Tasks (Google Tasks automatically cascades deletion to subtasks)
     if (task.deletedAt != null) {
       if (task.googleTaskId != null) {
         await deleteGoogleTask(task.googleTaskId!);
@@ -300,45 +291,122 @@ class GoogleCalendarService {
     try {
       final tasksApi = gtasks.TasksApi(client);
 
-      // Build task notes
-      final notesBuffer = StringBuffer();
-      if (task.description?.isNotEmpty == true) {
-        notesBuffer.writeln(task.description);
-        notesBuffer.writeln();
-      }
-      if (task.subtasks.isNotEmpty) {
-        notesBuffer.writeln('Subtasks:');
-        for (final sub in task.subtasks) {
-          notesBuffer.writeln('${sub.completed ? '[x]' : '[ ]'} ${sub.title}');
-        }
-      }
+      final hasTime =
+          task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
 
       final gtask = gtasks.Task();
       gtask.title = task.title;
-      gtask.notes = notesBuffer.isEmpty ? null : notesBuffer.toString().trim();
+      gtask.notes = (task.description != null && task.description!.trim().isNotEmpty)
+          ? task.description!.trim()
+          : null;
       gtask.status = task.completed ? 'completed' : 'needsAction';
 
       if (task.dueDate != null && task.dueDate!.trim().isNotEmpty) {
         final parsedDate = _parseTaskDateTime(task);
         if (parsedDate != null) {
-          gtask.due = parsedDate.toUtc().toIso8601String();
+          if (hasTime) {
+            gtask.due = parsedDate.toUtc().toIso8601String();
+          } else {
+            final year = parsedDate.year.toString().padLeft(4, '0');
+            final month = parsedDate.month.toString().padLeft(2, '0');
+            final day = parsedDate.day.toString().padLeft(2, '0');
+            gtask.due = '$year-$month-${day}T00:00:00.000Z';
+          }
         }
       }
 
+      String parentTaskId;
       if (task.googleTaskId != null && task.googleTaskId!.isNotEmpty) {
         try {
           final updated = await tasksApi.tasks.patch(gtask, '@default', task.googleTaskId!);
-          debugPrint('GoogleCalendarService: Patched Google Task ${updated.id} for "${task.title}"');
-          return updated.id;
+          parentTaskId = updated.id ?? task.googleTaskId!;
+          debugPrint('GoogleCalendarService: Patched Google Task $parentTaskId for "${task.title}"');
         } on gtasks.DetailedApiRequestError catch (e) {
           if (e.status != 404) rethrow;
-          // If 404, fall through to create new task
+          final created = await tasksApi.tasks.insert(gtask, '@default');
+          parentTaskId = created.id!;
+          debugPrint('GoogleCalendarService: Created Google Task $parentTaskId for "${task.title}"');
+        }
+      } else {
+        final created = await tasksApi.tasks.insert(gtask, '@default');
+        parentTaskId = created.id!;
+        debugPrint('GoogleCalendarService: Created Google Task $parentTaskId for "${task.title}"');
+      }
+
+      task.googleTaskId = parentTaskId;
+
+      // ─── Synchronize Subtasks natively with Google Tasks via `parent` parameter ───
+      final activeSubtaskGTaskIds = <String>{};
+
+      for (final subtask in task.subtasks) {
+        final subGTask = gtasks.Task();
+        subGTask.title = subtask.title;
+        subGTask.status = subtask.completed ? 'completed' : 'needsAction';
+
+        if (subtask.googleTaskId != null && subtask.googleTaskId!.isNotEmpty) {
+          try {
+            final updatedSub = await tasksApi.tasks.patch(
+              subGTask,
+              '@default',
+              subtask.googleTaskId!,
+            );
+            if (updatedSub.id != null) activeSubtaskGTaskIds.add(updatedSub.id!);
+            debugPrint('GoogleCalendarService: Patched subtask ${updatedSub.id} for "${subtask.title}"');
+          } on gtasks.DetailedApiRequestError catch (e) {
+            if (e.status == 404) {
+              final createdSub = await tasksApi.tasks.insert(
+                subGTask,
+                '@default',
+                parent: parentTaskId,
+              );
+              subtask.googleTaskId = createdSub.id;
+              if (createdSub.id != null) activeSubtaskGTaskIds.add(createdSub.id!);
+              debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
+            } else {
+              debugPrint('GoogleCalendarService: Subtask patch error - $e');
+            }
+          } catch (e) {
+            debugPrint('GoogleCalendarService: Subtask patch error - $e');
+          }
+        } else {
+          try {
+            final createdSub = await tasksApi.tasks.insert(
+              subGTask,
+              '@default',
+              parent: parentTaskId,
+            );
+            subtask.googleTaskId = createdSub.id;
+            if (createdSub.id != null) activeSubtaskGTaskIds.add(createdSub.id!);
+            debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
+          } catch (e) {
+            debugPrint('GoogleCalendarService: Subtask insert error - $e');
+          }
         }
       }
 
-      final created = await tasksApi.tasks.insert(gtask, '@default');
-      debugPrint('GoogleCalendarService: Created Google Task ${created.id} for "${task.title}"');
-      return created.id;
+      // Clean up remote orphan subtasks in Google Tasks that were deleted in Zeta
+      try {
+        final existingList = await tasksApi.tasks.list(
+          '@default',
+          showCompleted: true,
+          showHidden: true,
+          maxResults: 100,
+        );
+        if (existingList.items != null) {
+          for (final item in existingList.items!) {
+            if (item.parent == parentTaskId && item.id != null) {
+              if (!activeSubtaskGTaskIds.contains(item.id)) {
+                await tasksApi.tasks.delete('@default', item.id!);
+                debugPrint('GoogleCalendarService: Deleted orphan Google subtask ${item.id}');
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('GoogleCalendarService: Subtask cleanup note - $e');
+      }
+
+      return parentTaskId;
     } catch (e) {
       debugPrint('GoogleCalendarService: Failed to sync Google Task for "${task.title}" - $e');
       return null;
@@ -385,25 +453,44 @@ class GoogleCalendarService {
     }
   }
 
-  /// Helper to combine dueDate and dueTime into a DateTime.
+  /// Helper to combine dueDate and dueTime into a local DateTime.
   DateTime? _parseTaskDateTime(Task task) {
     if (task.dueDate == null || task.dueDate!.trim().isEmpty) return null;
-    final baseDate = TaskDateFormatter.parse(task.dueDate!);
-    if (baseDate == null) return null;
 
-    if (task.hasTime && task.dueTime != null && task.dueTime!.trim().isNotEmpty) {
-      final timeStr = task.dueTime!.trim();
-      final match = RegExp(r'^(\d{1,2}):(\d{2})\s*(AM|PM)?$', caseSensitive: false).firstMatch(timeStr);
-      if (match != null) {
-        int h = int.parse(match.group(1)!);
-        final m = int.parse(match.group(2)!);
-        final period = match.group(3)?.toUpperCase();
-        if (period == 'PM' && h < 12) h += 12;
-        if (period == 'AM' && h == 12) h = 0;
-        return DateTime(baseDate.year, baseDate.month, baseDate.day, h, m);
+    var rawDueDate = task.dueDate!.trim();
+    String? extractedTime = task.dueTime?.trim();
+
+    if (rawDueDate.contains('•')) {
+      final parts = rawDueDate.split('•');
+      rawDueDate = parts[0].trim();
+      if ((extractedTime == null || extractedTime.isEmpty) && parts.length > 1) {
+        extractedTime = parts[1].trim();
       }
     }
 
-    return baseDate;
+    final baseDate = TaskDateFormatter.parse(rawDueDate);
+    if (baseDate == null) return null;
+
+    final hasTime = task.hasTime || (extractedTime != null && extractedTime.isNotEmpty);
+
+    if (hasTime && extractedTime != null && extractedTime.isNotEmpty) {
+      final timeStr = extractedTime;
+      final match = RegExp(
+        r'^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$',
+        caseSensitive: false,
+      ).firstMatch(timeStr);
+
+      if (match != null) {
+        int h = int.parse(match.group(1)!);
+        final m = int.parse(match.group(2)!);
+        final s = match.group(3) != null ? int.parse(match.group(3)!) : 0;
+        final period = match.group(4)?.toUpperCase();
+        if (period == 'PM' && h < 12) h += 12;
+        if (period == 'AM' && h == 12) h = 0;
+        return DateTime(baseDate.year, baseDate.month, baseDate.day, h, m, s);
+      }
+    }
+
+    return DateTime(baseDate.year, baseDate.month, baseDate.day);
   }
 }

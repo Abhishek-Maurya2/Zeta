@@ -189,10 +189,12 @@ class TaskCardItem extends StatelessWidget {
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: onToggle != null ? () {
-        ZetaHaptics.light();
-        onToggle!();
-      } : null,
+      onTap: onToggle != null
+          ? () {
+              ZetaHaptics.light();
+              onToggle!();
+            }
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(0),
         child: task.completed

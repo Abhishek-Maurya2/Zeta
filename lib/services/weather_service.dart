@@ -49,13 +49,41 @@ class WeatherData {
     );
   }
 
+  /// Evaluates whether it is currently daytime.
+  /// If device local time is night (before 6 AM or at/after 7 PM), or API reported night, returns false.
+  bool get isEffectivelyDay {
+    final hour = DateTime.now().hour;
+    final isLocalNight = hour < 6 || hour >= 19;
+    if (isLocalNight) {
+      return false;
+    }
+    return isDay;
+  }
+
+  /// Condition string adapted for day or night context
+  String get displayCondition {
+    if (!isEffectivelyDay) {
+      if (condition == 'Clear Sky' || condition == 'Fair' || condition == 'Sunny') {
+        return 'Clear Night';
+      }
+      if (condition == 'Partly Cloudy') {
+        return 'Partly Cloudy Night';
+      }
+      if (condition == 'Mainly Clear') {
+        return 'Mainly Clear Night';
+      }
+    }
+    return condition;
+  }
+
   IconData get icon {
+    final day = isEffectivelyDay;
     switch (weatherCode) {
       case 0:
-        return isDay ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded;
+        return day ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded;
       case 1:
       case 2:
-        return isDay ? Icons.wb_cloudy_rounded : Icons.nightlight_round;
+        return day ? Icons.wb_cloudy_rounded : Icons.nightlight_round;
       case 3:
         return Icons.cloud_rounded;
       case 45:
@@ -83,18 +111,19 @@ class WeatherData {
       case 99:
         return Icons.thunderstorm_rounded;
       default:
-        return isDay ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded;
+        return day ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded;
     }
   }
 
   Color get iconColor {
+    final day = isEffectivelyDay;
     switch (weatherCode) {
       case 0:
-        return isDay ? Colors.amber.shade700 : Colors.indigo.shade300;
+        return day ? Colors.amber.shade700 : Colors.indigo.shade300;
       case 1:
       case 2:
       case 3:
-        return isDay ? Colors.amber.shade600 : Colors.blueGrey.shade300;
+        return day ? Colors.amber.shade600 : Colors.blueGrey.shade300;
       case 51:
       case 53:
       case 55:
@@ -118,6 +147,61 @@ class WeatherData {
         return Colors.deepPurple.shade400;
       default:
         return Colors.amber.shade700;
+    }
+  }
+
+  /// Exact icon name matching Sharva's WeatherIcon component
+  String get iconName {
+    final day = isEffectivelyDay;
+    switch (weatherCode) {
+      case 0:
+        return day ? 'clear_day' : 'clear_night';
+      case 1:
+        return day ? 'mostly_clear_day' : 'mostly_clear_night';
+      case 2:
+        return day ? 'partly_cloudy_day' : 'partly_cloudy_night';
+      case 3:
+        return 'overcast';
+      case 45:
+      case 48:
+        return 'haze_fog_dust_smoke';
+      case 51:
+      case 53:
+      case 55:
+        return day ? 'light_rain_day' : 'light_rain_night';
+      case 56:
+      case 57:
+        return 'sleet_hail';
+      case 61:
+      case 63:
+        return day ? 'rain' : 'light_rain_night';
+      case 65:
+        return 'heavy_rain';
+      case 66:
+      case 67:
+        return 'mixed_precipitation';
+      case 71:
+      case 73:
+        return day ? 'light_snow_day' : 'light_snow_night';
+      case 75:
+        return 'heavy_snow';
+      case 77:
+        return 'snow';
+      case 80:
+      case 81:
+        return day ? 'light_rain_day' : 'light_rain_night';
+      case 82:
+        return 'heavy_rain';
+      case 85:
+        return day ? 'light_snow_day' : 'light_snow_night';
+      case 86:
+        return 'heavy_snow';
+      case 95:
+      case 96:
+      case 99:
+        return 'thunderstorm';
+      default:
+        return day ? 'clear_day' : 'clear_night';
     }
   }
 }
@@ -258,7 +342,7 @@ class WeatherService {
     final fallbackTemp = 18.0 + (seed % 14); // 18..31°C
     final fallbackHumidity = 45 + (seed % 40); // 45..85%
     final fallbackWind = 8.0 + (seed % 15); // 8..23 km/h
-    final isDay = DateTime.now().hour >= 6 && DateTime.now().hour <= 19;
+    final isDay = DateTime.now().hour >= 6 && DateTime.now().hour < 19;
 
     return WeatherData(
       temperature: fallbackTemp,
@@ -270,5 +354,99 @@ class WeatherService {
       isDay: isDay,
       fetchedAt: DateTime.now(),
     );
+  }
+
+  /// Fetches weather directly using latitude and longitude coordinates
+  static Future<WeatherData> fetchWeatherByCoordinates(
+    double lat,
+    double lon,
+    String cityName,
+  ) async {
+    try {
+      final weatherUrl = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&timezone=auto',
+      );
+      final res = await http.get(weatherUrl).timeout(const Duration(seconds: 5));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final current = data['current'] as Map<String, dynamic>;
+
+        final temp = (current['temperature_2m'] as num).toDouble();
+        final humidity = (current['relative_humidity_2m'] as num?)?.toInt() ?? 50;
+        final wind = (current['wind_speed_10m'] as num?)?.toDouble() ?? 10.0;
+        final weatherCode = (current['weather_code'] as num?)?.toInt() ?? 0;
+        final isDay = (current['is_day'] as num?)?.toInt() == 1;
+
+        return WeatherData(
+          temperature: temp,
+          condition: _codeToCondition(weatherCode),
+          humidity: humidity,
+          windSpeed: wind,
+          weatherCode: weatherCode,
+          cityName: cityName,
+          isDay: isDay,
+          fetchedAt: DateTime.now(),
+        );
+      }
+    } catch (_) {
+      // Fallback
+    }
+
+    return fetchWeather(cityName);
+  }
+
+  /// Detects the device location using IP Geolocation
+  static Future<Map<String, dynamic>?> detectLocation() async {
+    // 1. Try ipwho.is (HTTPS, fast, accurate city/country)
+    try {
+      final res = await http
+          .get(Uri.parse('https://ipwho.is/'))
+          .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['success'] == true) {
+          final city = data['city'] as String? ?? '';
+          final country = data['country_code'] as String? ??
+              data['country'] as String? ??
+              '';
+          final lat = (data['latitude'] as num).toDouble();
+          final lon = (data['longitude'] as num).toDouble();
+          final displayName = country.isNotEmpty ? '$city, $country' : city;
+          return {
+            'city': displayName,
+            'lat': lat,
+            'lon': lon,
+            'country': country,
+          };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fallback to ip-api.com
+    try {
+      final res = await http
+          .get(Uri.parse('http://ip-api.com/json/'))
+          .timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['status'] == 'success') {
+          final city = data['city'] as String? ?? '';
+          final country = data['countryCode'] as String? ??
+              data['country'] as String? ??
+              '';
+          final lat = (data['lat'] as num).toDouble();
+          final lon = (data['lon'] as num).toDouble();
+          final displayName = country.isNotEmpty ? '$city, $country' : city;
+          return {
+            'city': displayName,
+            'lat': lat,
+            'lon': lon,
+            'country': country,
+          };
+        }
+      }
+    } catch (_) {}
+
+    return null;
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
 import '../../providers/theme_provider.dart';
+import '../../widgets/weather_icon.dart';
 
 class WeatherSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -58,13 +59,14 @@ class _WeatherSectionState extends State<WeatherSection> {
     final tempDisplay = weather != null
         ? '${weather.temperature.round()}°C'
         : '24°C';
-    final conditionDisplay = weather?.condition ?? 'Partly Cloudy';
+    final conditionDisplay = weather?.displayCondition ??
+        (DateTime.now().hour < 6 || DateTime.now().hour >= 19
+            ? 'Clear Night'
+            : 'Partly Cloudy');
     final humidityDisplay = weather != null ? '${weather.humidity}%' : '65%';
     final windDisplay = weather != null
         ? '${weather.windSpeed.round()} km/h'
         : '12 km/h';
-    final iconData = weather?.icon ?? Icons.wb_sunny_rounded;
-    final iconColor = weather?.iconColor ?? Colors.amber.shade700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,7 +145,17 @@ class _WeatherSectionState extends State<WeatherSection> {
                                   ),
                                 ),
                               )
-                            : Icon(iconData, color: iconColor, size: 28),
+                            : Center(
+                                child: WeatherIcon(
+                                  name: weather?.iconName ??
+                                      (DateTime.now().hour < 6 ||
+                                              DateTime.now().hour >= 19
+                                          ? 'clear_night'
+                                          : 'clear_day'),
+                                  isDay: weather?.isEffectivelyDay,
+                                  size: 32,
+                                ),
+                              ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -235,6 +247,33 @@ class _WeatherSectionState extends State<WeatherSection> {
                     runSpacing: 8,
                     children: [
                       M3EButton.icon(
+                        icon: const Icon(
+                          Icons.my_location_rounded,
+                          size: 16,
+                        ),
+                        label: const Text('Use my location'),
+                        style: M3EButtonStyle.tonal,
+                        size: M3EButtonSize.sm,
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                widget.onToast
+                                    ?.call('Detecting device location...');
+                                final success =
+                                    await themeProvider.detectUserLocation();
+                                if (success) {
+                                  _cityController.text = themeProvider.cityName;
+                                  widget.onToast?.call(
+                                    'Location updated to ${themeProvider.cityName}',
+                                  );
+                                } else {
+                                  widget.onToast?.call(
+                                    'Could not detect location. Please search manually.',
+                                  );
+                                }
+                              },
+                      ),
+                      M3EButton.icon(
                         icon: Icon(
                           _isEditing
                               ? Icons.close_rounded
@@ -242,7 +281,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                           size: 16,
                         ),
                         label: Text(_isEditing ? 'Close' : 'Change city'),
-                        style: M3EButtonStyle.tonal,
+                        style: M3EButtonStyle.outlined,
                         size: M3EButtonSize.sm,
                         onPressed: () {
                           setState(() => _isEditing = !_isEditing);

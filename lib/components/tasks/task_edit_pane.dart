@@ -87,9 +87,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     _dueDate = widget.task?.dueDate != null
         ? TaskDateFormatter.formatString(widget.task!.dueDate!)
         : null;
-    _hasTime = widget.task?.hasTime ?? false;
+    _hasTime = (widget.task?.hasTime ?? false) ||
+        (widget.task?.dueTime != null && widget.task!.dueTime!.trim().isNotEmpty);
     _dueTime = widget.task?.dueTime;
-    if (_hasTime && _dueTime == null) {
+    if (_hasTime && (_dueTime == null || _dueTime!.isEmpty)) {
       _dueTime = '09:00 AM';
     }
     _subtasks = widget.task?.subtasks.map((s) => s.copyWith()).toList() ?? [];
@@ -174,16 +175,19 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
   TimeOfDay? _parseTimeOfDay(String str) {
     try {
-      final parts = str.trim().split(' ');
-      final timeParts = parts[0].split(':');
-      var hour = int.parse(timeParts[0]);
-      final minute = int.parse(timeParts[1]);
-      if (parts.length > 1) {
-        final period = parts[1].toUpperCase();
+      final match = RegExp(
+        r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$',
+        caseSensitive: false,
+      ).firstMatch(str.trim());
+      if (match != null) {
+        var hour = int.parse(match.group(1)!);
+        final minute = int.parse(match.group(2)!);
+        final period = match.group(3)?.toUpperCase();
         if (period == 'PM' && hour < 12) hour += 12;
         if (period == 'AM' && hour == 12) hour = 0;
+        return TimeOfDay(hour: hour, minute: minute);
       }
-      return TimeOfDay(hour: hour, minute: minute);
+      return null;
     } catch (_) {
       return null;
     }
@@ -615,7 +619,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                 decoration: M3EButtonDecoration(
                   backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
                   foregroundColor: WidgetStatePropertyAll(
-                    colorScheme.onSecondary,
+                    colorScheme.onPrimary,
                   ),
                 ),
                 size: M3EButtonSize.md,

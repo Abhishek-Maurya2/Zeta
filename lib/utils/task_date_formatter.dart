@@ -49,7 +49,10 @@ class TaskDateFormatter {
   /// Checks if the given date string represents "Today".
   static bool isToday(String? dateStr) {
     if (dateStr == null) return false;
-    final trimmed = dateStr.trim();
+    var trimmed = dateStr.trim();
+    if (trimmed.contains('•')) {
+      trimmed = trimmed.split('•')[0].trim();
+    }
     if (trimmed.toLowerCase() == 'today') return true;
     final parsed = parse(trimmed);
     if (parsed != null) {
@@ -62,27 +65,31 @@ class TaskDateFormatter {
   }
 
   /// Formats the date and time for a task list item chip:
-  /// - Only shows time if the date is for Today and hasTime is true with a valid dueTime.
-  /// - Format when for today with time: 'Today • 10:00 AM'
-  /// - Format when not today: '13, Sep' or 'Tomorrow' or 'Yesterday' (time omitted).
+  /// - Shows time whenever hasTime is true with a valid dueTime.
+  /// - Format: 'Today • 10:00 AM' or 'Tomorrow • 02:30 PM' or '13, Sep • 11:15 AM'.
+  /// - Format when no time: 'Today', 'Tomorrow', '13, Sep'.
   static String formatTaskListDate({
     required String dueDate,
     required bool hasTime,
     String? dueTime,
   }) {
     final formattedDate = formatString(dueDate);
-    final today = isToday(dueDate);
 
-    if (today && hasTime && dueTime != null && dueTime.trim().isNotEmpty) {
+    if (hasTime && dueTime != null && dueTime.trim().isNotEmpty) {
       return '$formattedDate • $dueTime';
     }
 
     return formattedDate;
   }
 
-  /// Parses strings like 'Today', 'Tomorrow', 'Yesterday', '13, Sep', or '13 Sep'.
+  /// Parses strings like 'Today', 'Tomorrow', 'Yesterday', '13, Sep', '13 Sep',
+  /// composite strings like 'Today • 10:00 AM', or ISO timestamps.
   static DateTime? parse(String str) {
-    final clean = str.trim();
+    var clean = str.trim();
+    if (clean.contains('•')) {
+      clean = clean.split('•')[0].trim();
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -91,29 +98,31 @@ class TaskDateFormatter {
     if (lower == 'tomorrow') return today.add(const Duration(days: 1));
     if (lower == 'yesterday') return today.subtract(const Duration(days: 1));
 
-    // Formats like "13, Sep" or "13 Sep"
+    // Formats like "13, Sep", "13 Sep", or "13, Sep 2026"
     final parts = clean.replaceAll(',', ' ').split(RegExp(r'\s+'));
     if (parts.length >= 2) {
       final day = int.tryParse(parts[0]);
       final monthLower = parts[1].toLowerCase();
       final monthIndex =
           months.indexWhere((m) => m.toLowerCase() == monthLower);
+      final year = parts.length >= 3 ? int.tryParse(parts[2]) ?? now.year : now.year;
       if (day != null && monthIndex != -1) {
-        return DateTime(now.year, monthIndex + 1, day);
+        return DateTime(year, monthIndex + 1, day);
       }
 
-      // Check reverse format: "Sep 13"
+      // Check reverse format: "Sep 13" or "Sep 13 2026"
       final revMonthIndex =
           months.indexWhere((m) => m.toLowerCase() == parts[0].toLowerCase());
       final revDay = int.tryParse(parts[1]);
       if (revMonthIndex != -1 && revDay != null) {
-        return DateTime(now.year, revMonthIndex + 1, revDay);
+        return DateTime(year, revMonthIndex + 1, revDay);
       }
     }
 
-    // Try ISO or standard DateTime parse
+    // Try ISO or standard DateTime parse (ensure local representation)
     try {
-      return DateTime.parse(clean);
+      final dt = DateTime.parse(clean);
+      return dt.isUtc ? dt.toLocal() : dt;
     } catch (_) {
       return null;
     }

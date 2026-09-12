@@ -7,6 +7,7 @@ import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/task_date_formatter.dart';
 import '../../utils/haptics.dart';
+import '../../widgets/weather_icon.dart';
 
 /// Interactive Material 3 Expressive Weekly Calendar Strip mirroring Sharva's design:
 /// - Left: Selected Date headline, Calendar DatePicker launcher, "Today" reset pill, and Weather readout.
@@ -132,9 +133,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
             final tempStr = weather != null
                 ? '${weather.temperature.round()}°C'
                 : '24°C';
-            final conditionStr = weather?.condition ?? 'Partly Cloudy';
-            final iconData = weather?.icon ?? Icons.wb_sunny_rounded;
-            final iconColor = weather?.iconColor ?? Colors.amber.shade600;
+            final conditionStr =
+                weather?.displayCondition ??
+                (DateTime.now().hour < 6 || DateTime.now().hour >= 19
+                    ? 'Clear Night'
+                    : 'Partly Cloudy');
 
             final leftHeader = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,13 +242,18 @@ class WeeklyCalendarStrip extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 15),
                     Tooltip(
                       message:
                           '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [Icon(iconData, size: 26, color: iconColor)],
+                      child: WeatherIcon(
+                        name:
+                            weather?.iconName ??
+                            (DateTime.now().hour < 6 ||
+                                    DateTime.now().hour >= 19
+                                ? 'partly_cloudy_night'
+                                : 'partly_cloudy_day'),
+                        size: 28,
                       ),
                     ),
                   ],

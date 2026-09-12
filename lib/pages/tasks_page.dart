@@ -267,7 +267,7 @@ class TasksPage extends StatelessWidget {
             cornerRadius: isCompact ? 16 : 15,
             extendedHorizontalPadding: isCompact ? 20 : 30,
             iconLabelGap: isCompact ? 12 : 15,
-            labelFontSize: isCompact ? 16 : 20,
+            labelFontSize: isCompact ? 16 : 18,
             labelFontWeight: FontWeight.w600,
             onPressed: () => TaskEditPane.show(context),
           ),

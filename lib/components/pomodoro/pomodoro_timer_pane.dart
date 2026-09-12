@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../utils/haptics.dart';
 
 import '../../providers/pomodoro_provider.dart';
@@ -73,10 +74,12 @@ class PomodoroTimerPane extends StatelessWidget {
                               Icons.fullscreen_rounded,
                               size: 20,
                             ),
-                            onPressed: onToggleAod != null ? () {
-                              ZetaHaptics.light();
-                              onToggleAod!();
-                            } : null,
+                            onPressed: onToggleAod != null
+                                ? () {
+                                    ZetaHaptics.light();
+                                    onToggleAod!();
+                                  }
+                                : null,
                           ),
                         ],
                       ),
@@ -121,12 +124,23 @@ class PomodoroTimerPane extends StatelessWidget {
                                 children: [
                                   Text(
                                     provider.formattedTime,
-                                    style: textTheme.displayMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: -1.0,
+                                    style: TextStyle(
+                                      fontFamily: isRunning
+                                          ? 'GoogleSansFlex'
+                                          : 'RobotoFlex',
+                                      fontSize: 70,
+                                      letterSpacing: isRunning ? 1 : 5,
                                       color: colorScheme.onSurface,
-                                      fontFeatures: const [
-                                        FontFeature.tabularFigures(),
+                                      fontVariations: [
+                                        FontVariation(
+                                          'wght',
+                                          isRunning ? 900 : 600,
+                                        ),
+                                        FontVariation(
+                                          'wdth',
+                                          isRunning ? 80 : 180,
+                                        ),
+                                        FontVariation('ROND', 100),
                                       ],
                                     ),
                                   ),

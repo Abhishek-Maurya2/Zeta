@@ -415,10 +415,10 @@ class _SettingsPageState extends State<SettingsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 15),
           child: Text(
             'PREFERENCES',
-            style: textTheme.labelSmall?.copyWith(
+            style: textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
               color: colorScheme.onSurfaceVariant,
@@ -426,12 +426,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         M3ESegmentedColumn(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           color: colorScheme.surfaceContainerLowest,
           selectedIndex: selectedIndex,
-          // colorBuilder: (index) => (isTwoPane && index == selectedIndex)
-          //     ? colorScheme.secondaryContainer
-          //     : colorScheme.surfaceContainer,
           onTap: (index) {
             ZetaHaptics.selection();
             setState(() => _selectedCategory = kSettingsCategories[index].id);
@@ -443,19 +440,19 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Icon(
                   isSelected ? category.selectedIcon : category.icon,
-                  size: 22,
+                  size: 25,
                   color: isSelected
                       ? colorScheme.onSecondaryContainer
                       : colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 18),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         category.label,
-                        style: textTheme.bodyMedium?.copyWith(
+                        style: textTheme.bodyLarge?.copyWith(
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,
@@ -464,12 +461,12 @@ class _SettingsPageState extends State<SettingsPage> {
                               : colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
                         category.description,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodySmall?.copyWith(
+                        style: textTheme.bodyMedium?.copyWith(
                           color: isSelected
                               ? colorScheme.onSecondaryContainer.withValues(
                                   alpha: 0.8,

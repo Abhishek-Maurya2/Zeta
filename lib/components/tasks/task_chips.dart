@@ -19,27 +19,24 @@ class TaskDueDateChip extends StatelessWidget {
     if (task.dueDate == null) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
-    final isToday =
-        TaskDateFormatter.isToday(task.dueDate) &&
-        task.hasTime &&
-        task.dueTime != null;
+    final hasScheduledTime =
+        task.hasTime && task.dueTime != null && task.dueTime!.trim().isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
+        color: colorScheme.secondaryContainer,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colorScheme.surfaceDim.withValues(alpha: 0.5),
-        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isToday ? Icons.schedule_rounded : Icons.calendar_today_outlined,
+            hasScheduledTime
+                ? Icons.schedule_rounded
+                : Icons.calendar_today_outlined,
             size: 15,
-            color: colorScheme.onSurface,
+            color: colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: 8),
           Text(
@@ -52,8 +49,8 @@ class TaskDueDateChip extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: isCompleted
-                  ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
-                  : colorScheme.onSurface,
+                  ? colorScheme.onSecondaryContainer.withValues(alpha: 0.6)
+                  : colorScheme.onSecondaryContainer,
             ),
           ),
         ],

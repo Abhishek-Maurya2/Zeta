@@ -378,6 +378,21 @@ class ThemeProvider extends ChangeNotifier {
     _isWeatherLoading = true;
     notifyListeners();
     try {
+      if (_cityName == 'San Francisco, US') {
+        final loc = await WeatherService.detectLocation();
+        if (loc != null) {
+          final city = loc['city'] as String;
+          final lat = loc['lat'] as double;
+          final lon = loc['lon'] as double;
+          _cityName = city;
+          _saveSetting(_prefKeyCityName, _cityName);
+          final data =
+              await WeatherService.fetchWeatherByCoordinates(lat, lon, city);
+          _weatherData = data;
+          _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
+          return;
+        }
+      }
       final data = await WeatherService.fetchWeather(_cityName);
       _weatherData = data;
       _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
@@ -387,6 +402,31 @@ class ThemeProvider extends ChangeNotifier {
       _isWeatherLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Detects the user's location via device/IP geolocation and refreshes weather
+  Future<bool> detectUserLocation() async {
+    _isWeatherLoading = true;
+    notifyListeners();
+    try {
+      final loc = await WeatherService.detectLocation();
+      if (loc != null) {
+        final city = loc['city'] as String;
+        final lat = loc['lat'] as double;
+        final lon = loc['lon'] as double;
+        _cityName = city;
+        _saveSetting(_prefKeyCityName, _cityName);
+        final data = await WeatherService.fetchWeatherByCoordinates(lat, lon, city);
+        _weatherData = data;
+        _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
+        _isWeatherLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {}
+    _isWeatherLoading = false;
+    notifyListeners();
+    return false;
   }
 
   // ─── Cross-Platform Sound & Notifications ────────────────────────────────
