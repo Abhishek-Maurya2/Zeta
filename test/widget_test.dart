@@ -59,6 +59,8 @@ void main() {
 
     // Verify Add Task FAB
     expect(find.text('Add Task'), findsOneWidget);
+    final Text fabText = tester.widget<Text>(find.text('Add Task'));
+    expect(fabText.style?.fontSize, 18.0);
   });
 
   testWidgets('Right-click context menu on tasks (pending and completed)',
@@ -257,6 +259,10 @@ void main() {
     // And aligned to the right side (justify-end)
     final compactSortRight = tester.getTopRight(sortFinder);
     expect(compactSortRight.dx, closeTo(400 - 16, 2.0));
+
+    // Verify compact FAB font size
+    final Text compactFabText = tester.widget<Text>(find.text('Add Task'));
+    expect(compactFabText.style?.fontSize, 16.0);
   });
 }
 

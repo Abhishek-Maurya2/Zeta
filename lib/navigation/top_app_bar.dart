@@ -51,6 +51,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     }
   }
 
+  /// Whether the search view is currently open.
+  bool get isSearchOpen =>
+      _searchController.isAttached && _searchController.isOpen;
+
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
@@ -130,7 +134,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   child: M3ESearchAnchor.bar(
                     searchController: _searchController,
 
-                    barHintText: isCompact ? 'Search' : 'Search tasks, notes, subtasks... (Press / to search)',
+                    barHintText: isCompact
+                        ? 'Search'
+                        : 'Search tasks, notes, subtasks',
                     barTrailing: [
                       if (!isCompact)
                         Container(
@@ -197,10 +203,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const UserAvatar(
-                      radius: 17,
-                      ringWidth: 2,
-                    ),
+                    const UserAvatar(radius: 17, ringWidth: 2),
                     // Online status badge dot
                     Positioned(
                       bottom: 0,

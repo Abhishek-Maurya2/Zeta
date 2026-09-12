@@ -33,6 +33,9 @@ void main() {
     // 3. Verify TodaysFocusCard exists
     expect(find.byType(TodaysFocusCard), findsOneWidget);
     expect(find.text("Today's Focus"), findsOneWidget);
+    expect(find.text('Add new task'), findsOneWidget);
+    final Text addNewTaskText = tester.widget<Text>(find.text('Add new task'));
+    expect(addNewTaskText.style?.fontSize, 16.0);
 
     // 4. Verify RecentTasksSection exists
     expect(find.byType(RecentTasksSection), findsOneWidget);

@@ -57,10 +57,10 @@ class _AppScaffoldState extends State<AppScaffold> {
 
     final logical = event.logicalKey;
 
-    // ── Esc: always dismiss search and return focus to root ──────────────────
+    // ── Esc: dismiss search ONLY when the search view is currently open ──────
     if (logical == LogicalKeyboardKey.escape) {
       final topBar = _topBarKey.currentState;
-      if (topBar != null) {
+      if (topBar != null && topBar.isSearchOpen) {
         topBar.closeSearch();
         // Defer so the search overlay finishes collapsing before we steal focus.
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,13 +68,32 @@ class _AppScaffoldState extends State<AppScaffold> {
         });
         return true; // consumed
       }
+      // When search is not open, let Esc propagate to dialogs, menus, sheets, etc.
       return false;
     }
 
-    // For all other shortcuts: only fire when NO text field is focused.
-    final primaryFocus = FocusManager.instance.primaryFocus;
-    final isTyping = primaryFocus?.context?.widget is EditableText;
-    if (isTyping) return false;
+    // Never trigger shortcuts if modifier keys (Ctrl, Alt, Meta) are held.
+    final hasModifier = HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
+    if (hasModifier) return false;
+
+    // Only fire shortcuts when the scaffold itself is the active, top-most route.
+    // If a modal bottom sheet, dialog (e.g. TaskEditPane), or popup is showing,
+    // the user is interacting with that modal — don't trigger page-level shortcuts.
+    final currentRoute = ModalRoute.of(context);
+    if (currentRoute != null && !currentRoute.isCurrent) {
+      return false;
+    }
+
+    // If search view is open, user is searching — do not fire other shortcuts.
+    final topBar = _topBarKey.currentState;
+    if (topBar != null && topBar.isSearchOpen) {
+      return false;
+    }
+
+    // For all other shortcuts: only fire when NO text field or form input is focused.
+    if (_isTyping()) return false;
 
     // ── /  : open search ─────────────────────────────────────────────────────
     if (logical == LogicalKeyboardKey.slash) {
@@ -83,13 +102,15 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
 
     // ── N  : new task ─────────────────────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.keyN) {
+    if (logical == LogicalKeyboardKey.keyN &&
+        !HardwareKeyboard.instance.isShiftPressed) {
       TaskEditPane.show(context);
       return true;
     }
 
     // ── R  : refresh / sync ──────────────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.keyR) {
+    if (logical == LogicalKeyboardKey.keyR &&
+        !HardwareKeyboard.instance.isShiftPressed) {
       context.read<TaskProvider>().syncWithCloud(force: true);
       M3ESnackbar.show(
         context,
@@ -97,6 +118,26 @@ class _AppScaffoldState extends State<AppScaffold> {
         duration: const Duration(seconds: 2),
       );
       return true;
+    }
+
+    return false;
+  }
+
+  /// Checks whether focus is currently on an editable text input or form field.
+  bool _isTyping() {
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus == null) return false;
+
+    // 1. Direct label check (Flutter sets debugLabel: 'EditableText')
+    final label = focus.debugLabel;
+    if (label != null && label.contains('EditableText')) return true;
+
+    // 2. Element tree traversal check
+    final ctx = focus.context;
+    if (ctx != null && ctx.mounted) {
+      if (ctx.widget is EditableText) return true;
+      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null) return true;
+      if (ctx.findAncestorStateOfType<EditableTextState>() != null) return true;
     }
 
     return false;

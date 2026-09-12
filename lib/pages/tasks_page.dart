@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../widgets/segmented_column.dart';
+import '../widgets/zeta_button.dart';
 
 import '../providers/task_provider.dart';
 import '../models/task.dart';
@@ -250,27 +251,19 @@ class TasksPage extends StatelessWidget {
         Positioned(
           bottom: isCompact ? 84 : 28,
           right: isCompact ? 16 : 36,
-          child: M3ETheme(
-            data: M3EThemeData.fromMaterial(Theme.of(context)).copyWith(
-              fabTheme: M3EFabTheme(
-                extended: isCompact
-                    ? const M3EExtendedFabTheme()
-                    : const M3EExtendedFabTheme(
-                        height: 64,
-                        iconSize: 28,
-                        cornerRadius: 15,
-                        extendedHorizontalPadding: 30,
-                        iconLabelGap: 15,
-                      ),
-              ),
-            ),
-            child: M3EExtendedFab(
-              color: M3EFabColor.primary,
-              extended: true,
-              icon: Icon(Icons.add_rounded, size: isCompact ? 24 : 28),
-              label: 'Add Task',
-              onPressed: () => TaskEditPane.show(context),
-            ),
+          child: ZetaExtendedFab(
+            color: M3EFabColor.primary,
+            extended: true,
+            icon: const Icon(Icons.add_rounded),
+            label: 'Add Task',
+            height: isCompact ? 56 : 64,
+            iconSize: isCompact ? 24 : 28,
+            cornerRadius: isCompact ? 16 : 15,
+            extendedHorizontalPadding: isCompact ? 20 : 30,
+            iconLabelGap: isCompact ? 12 : 15,
+            labelFontSize: isCompact ? 16 : 20,
+            labelFontWeight: FontWeight.w600,
+            onPressed: () => TaskEditPane.show(context),
           ),
         ),
       ],
