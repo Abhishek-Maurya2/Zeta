@@ -129,8 +129,9 @@ class WeeklyCalendarStrip extends StatelessWidget {
             final isCompact = constraints.maxWidth < 680;
 
             final weather = themeProvider.weatherData;
-            final tempStr =
-                weather != null ? '${weather.temperature.round()}°C' : '24°C';
+            final tempStr = weather != null
+                ? '${weather.temperature.round()}°C'
+                : '24°C';
             final conditionStr = weather?.condition ?? 'Partly Cloudy';
             final iconData = weather?.icon ?? Icons.wb_sunny_rounded;
             final iconColor = weather?.iconColor ?? Colors.amber.shade600;
@@ -144,10 +145,18 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   children: [
                     Text(
                       headlineLabel,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.5,
+                      style: TextStyle(
+                        fontFamily: 'GoogleSansFlex',
+                        fontSize: 35,
                         color: colorScheme.onSurface,
+                        fontVariations: const [
+                          FontVariation('wght', 600), // Weight
+                          FontVariation('wdth', 50),
+                          FontVariation('GRAD', 80), // Grade stroke density
+                          FontVariation('opsz', 50), // Optical size
+                          FontVariation('slnt', 0),
+                          FontVariation('ROND', 100),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -205,9 +214,17 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   children: [
                     Text(
                       tempStr,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                      style: TextStyle(
+                        fontFamily: 'GoogleSansFlex',
+                        fontSize: 23,
                         color: colorScheme.onSurfaceVariant,
+                        fontVariations: const [
+                          FontVariation('wght', 700), // Weight
+                          FontVariation('wdth', 180),
+                          FontVariation('GRAD', 180), // Grade stroke density
+                          FontVariation('opsz', 220), // Optical size
+                          FontVariation('slnt', -10),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -216,21 +233,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                           '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            iconData,
-                            size: 18,
-                            color: iconColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            conditionStr,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+                        children: [Icon(iconData, size: 24, color: iconColor)],
                       ),
                     ),
                   ],
