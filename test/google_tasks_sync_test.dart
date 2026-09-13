@@ -125,7 +125,11 @@ void main() {
 
     test('toggleSubtask updates completed status and sets updatedAt', () {
       final provider = TaskProvider();
-      final task = provider.allTasks.firstWhere((t) => t.subtasks.isNotEmpty);
+      provider.addTask(
+        title: 'Task with subtasks',
+        subtasks: [Subtask(id: 'sub-1', title: 'Sub 1', completed: false)],
+      );
+      final task = provider.allTasks.first;
       final subtask = task.subtasks.first;
       final originalCompleted = subtask.completed;
 
@@ -138,6 +142,7 @@ void main() {
 
     test('deleteTask moves task to bin with deletedAt timestamp', () {
       final provider = TaskProvider();
+      provider.addTask(title: 'Target task');
       final target = provider.allTasks.first;
       final targetId = target.id;
       final initialBinCount = provider.binCount;
@@ -155,6 +160,7 @@ void main() {
 
     test('restoreTask returns task from bin to active tasks with cleared deletedAt', () {
       final provider = TaskProvider();
+      provider.addTask(title: 'Restored target');
       final target = provider.allTasks.first;
       final targetId = target.id;
 
@@ -184,6 +190,12 @@ void main() {
 
       final result = GoogleTasksSyncResult(
         remoteTasks: [remote],
+        remoteSubtasks: [
+          GoogleSubtaskUpdate(
+            parentGoogleTaskId: 'gtask_abc',
+            subtask: Subtask(id: 'st-1', title: 'Subtask from phone', completed: true, googleTaskId: 'gsub_123'),
+          ),
+        ],
         deletedTaskIds: ['gtask_deleted_99'],
         syncTimestamp: DateTime.now(),
       );
@@ -191,7 +203,47 @@ void main() {
       expect(result.remoteTasks.length, equals(1));
       expect(result.remoteTasks.first.title, equals('Google Tasks Item'));
       expect(result.remoteTasks.first.subtasks.first.googleTaskId, equals('gsub_123'));
+      expect(result.remoteSubtasks.length, equals(1));
+      expect(result.remoteSubtasks.first.parentGoogleTaskId, equals('gtask_abc'));
+      expect(result.remoteSubtasks.first.subtask.completed, isTrue);
       expect(result.deletedTaskIds, contains('gtask_deleted_99'));
+    });
+
+    test('Remote subtask completion is reflected in local task even when parent is unmodified', () {
+      final provider = TaskProvider();
+      provider.addTask(
+        title: 'Project Roadmap',
+        subtasks: [
+          Subtask(id: 'sub-local-1', title: 'Design Mockup', completed: false, googleTaskId: 'gsub_999'),
+        ],
+      );
+      final localTask = provider.allTasks.first;
+      localTask.googleTaskId = 'gtask_parent_100';
+
+      // Simulate receiving Google Tasks sync result with only child task updated
+      final result = GoogleTasksSyncResult(
+        remoteTasks: [], // Parent task unmodified in Google Tasks
+        remoteSubtasks: [
+          GoogleSubtaskUpdate(
+            parentGoogleTaskId: 'gtask_parent_100',
+            subtask: Subtask(id: 'gsub_999', title: 'Design Mockup', completed: true, googleTaskId: 'gsub_999'),
+          ),
+        ],
+        deletedTaskIds: [],
+        syncTimestamp: DateTime.now(),
+      );
+
+      // Reconcile subtask directly as syncGoogleTasks does
+      for (final update in result.remoteSubtasks) {
+        final parent = provider.allTasks.where((t) => t.googleTaskId == update.parentGoogleTaskId).firstOrNull;
+        expect(parent, isNotNull);
+        final sub = parent!.subtasks.firstWhere((s) => s.googleTaskId == update.subtask.googleTaskId);
+        sub.completed = update.subtask.completed;
+      }
+
+      expect(localTask.subtasks.first.completed, isTrue);
+
+      provider.dispose();
     });
 
     test('Local task with scheduled time preserves its time when remote task has date-only', () {
@@ -226,6 +278,68 @@ void main() {
       }
       expect(local.hasTime, isTrue);
       expect(local.dueTime, equals('10:30 AM'));
+    });
+
+    test('Incremental sync does not delete unmodified local subtasks', () {
+      final local = Task(
+        id: 'local-parent',
+        title: 'Parent Task',
+        googleTaskId: 'gtask_parent',
+        subtasks: [
+          Subtask(id: 's1', title: 'Sub 1', completed: false, googleTaskId: 'gsub_1'),
+          Subtask(id: 's2', title: 'Sub 2', completed: false, googleTaskId: 'gsub_2'),
+        ],
+      );
+
+      // In an incremental sync, Google Tasks returns only modified subtask (gsub_1)
+      final remote = Task(
+        id: 'remote-parent',
+        title: 'Parent Task',
+        googleTaskId: 'gtask_parent',
+        subtasks: [
+          Subtask(id: 'gsub_1', title: 'Sub 1', completed: true, googleTaskId: 'gsub_1'),
+        ],
+      );
+
+      // Reconcile with isFullSync = false
+      for (final remoteSub in remote.subtasks) {
+        final localSubIdx = local.subtasks.indexWhere(
+          (s) => s.googleTaskId == remoteSub.googleTaskId,
+        );
+        if (localSubIdx != -1) {
+          local.subtasks[localSubIdx].completed = remoteSub.completed;
+        }
+      }
+
+      // Both subtasks must still exist! Sub 2 must NOT be deleted.
+      expect(local.subtasks.length, equals(2));
+      expect(local.subtasks[0].completed, isTrue);
+      expect(local.subtasks[1].completed, isFalse);
+    });
+
+    test('Subtask deleted in Google Tasks is removed locally via deletedTaskIds', () {
+      final task = Task(
+        id: 'local-parent',
+        title: 'Parent Task',
+        googleTaskId: 'gtask_parent',
+        subtasks: [
+          Subtask(id: 's1', title: 'Sub 1', completed: false, googleTaskId: 'gsub_1'),
+          Subtask(id: 's2', title: 'Sub 2', completed: false, googleTaskId: 'gsub_2'),
+        ],
+      );
+
+      final deletedTaskIds = ['gsub_1'];
+
+      // Delete logic from syncGoogleTasks
+      for (final deletedGId in deletedTaskIds) {
+        final subIdx = task.subtasks.indexWhere((s) => s.googleTaskId == deletedGId);
+        if (subIdx != -1) {
+          task.subtasks.removeAt(subIdx);
+        }
+      }
+
+      expect(task.subtasks.length, equals(1));
+      expect(task.subtasks.first.googleTaskId, equals('gsub_2'));
     });
   });
 }

@@ -1,24 +1,40 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:googleapis/calendar/v3.dart' as gcal;
 import 'package:googleapis/tasks/v1.dart' as gtasks;
 import 'package:uuid/uuid.dart';
+
 import '../models/task.dart';
 import '../utils/task_date_formatter.dart';
 import 'supabase_service.dart';
 
+/// Represents a subtask item update pulled from Google Tasks.
+class GoogleSubtaskUpdate {
+  final String parentGoogleTaskId;
+  final Subtask subtask;
+
+  GoogleSubtaskUpdate({
+    required this.parentGoogleTaskId,
+    required this.subtask,
+  });
+}
+
 /// Result of pulling remote tasks from Google Tasks API.
 class GoogleTasksSyncResult {
   final List<Task> remoteTasks;
+  final List<GoogleSubtaskUpdate> remoteSubtasks;
   final List<String> deletedTaskIds;
   final DateTime syncTimestamp;
+  final bool isFullSync;
 
   GoogleTasksSyncResult({
     required this.remoteTasks,
+    this.remoteSubtasks = const [],
     required this.deletedTaskIds,
     required this.syncTimestamp,
+    this.isFullSync = false,
   });
 }
 
@@ -44,7 +60,8 @@ class _OAuthHttpClient extends http.BaseClient {
 
 /// Service managing synchronization with Google Calendar and Google Tasks APIs.
 class GoogleCalendarService {
-  static final GoogleCalendarService _instance = GoogleCalendarService._internal();
+  static final GoogleCalendarService _instance =
+      GoogleCalendarService._internal();
   factory GoogleCalendarService() => _instance;
   GoogleCalendarService._internal();
 
@@ -93,20 +110,25 @@ class GoogleCalendarService {
         _accessToken = row['access_token'] as String?;
         _refreshToken = row['refresh_token'] as String?;
         if (row['access_token_expires_at'] != null) {
-          _expiresAt = DateTime.tryParse(row['access_token_expires_at'].toString());
+          _expiresAt = DateTime.tryParse(
+            row['access_token_expires_at'].toString(),
+          );
         }
         _calendarId = (row['calendar_id'] as String?)?.isNotEmpty == true
             ? row['calendar_id'] as String
             : 'primary';
-        _clientId = row['client_id'] as String? ??
-            '834983932254-nphb7j3vaegpnpcsn5d97dbblhrsj14f.apps.googleusercontent.com';
-        _clientSecret = row['client_secret'] as String? ?? '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';
+        _clientId = row['client_id'] as String? ?? '834983932254-nphb7j3vaegpnpcsn5d97dbblhrsj14f.apps.googleusercontent.com';
+        _clientSecret =
+            row['client_secret'] as String? ??
+            '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';
         _accountEmail = row['account_email'] as String?;
         _syncCalendarEnabled = row['sync_calendar_enabled'] as bool? ?? true;
         _syncTasksEnabled = row['sync_tasks_enabled'] as bool? ?? true;
         _isLoaded = true;
 
-        debugPrint('GoogleCalendarService: Loaded tokens for ${_accountEmail ?? userId}');
+        debugPrint(
+          'GoogleCalendarService: Loaded tokens for ${_accountEmail ?? userId}',
+        );
       }
     } catch (e) {
       debugPrint('GoogleCalendarService: Error loading tokens - $e');
@@ -123,7 +145,9 @@ class GoogleCalendarService {
 
     // Check if current token is valid (with 3-minute grace period)
     final now = DateTime.now();
-    if (_accessToken != null && _expiresAt != null && _expiresAt!.isAfter(now.add(const Duration(minutes: 3)))) {
+    if (_accessToken != null &&
+        _expiresAt != null &&
+        _expiresAt!.isAfter(now.add(const Duration(minutes: 3)))) {
       return _accessToken;
     }
 
@@ -141,17 +165,21 @@ class GoogleCalendarService {
   /// Exchanges the refresh token for a fresh access token at Google's OAuth endpoint.
   Future<bool> _refreshAccessToken() async {
     try {
-      debugPrint('GoogleCalendarService: Refreshing Google OAuth access token...');
-      final response = await http.post(
-        Uri.parse('https://oauth2.googleapis.com/token'),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'client_id': _clientId,
-          'client_secret': _clientSecret,
-          'refresh_token': _refreshToken,
-          'grant_type': 'refresh_token',
-        },
-      ).timeout(const Duration(seconds: 15));
+      debugPrint(
+        'GoogleCalendarService: Refreshing Google OAuth access token...',
+      );
+      final response = await http
+          .post(
+            Uri.parse('https://oauth2.googleapis.com/token'),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {
+              'client_id': _clientId,
+              'client_secret': _clientSecret,
+              'refresh_token': _refreshToken,
+              'grant_type': 'refresh_token',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -172,29 +200,25 @@ class GoogleCalendarService {
             'updated_at': DateTime.now().toUtc().toIso8601String(),
           });
         } catch (e) {
-          debugPrint('GoogleCalendarService: Warning updating refreshed token in DB: $e');
+          debugPrint(
+            'GoogleCalendarService: Warning updating refreshed token in DB: $e',
+          );
         }
 
-        debugPrint('GoogleCalendarService: Token refreshed successfully (expires in ${expiresIn}s)');
+        debugPrint(
+          'GoogleCalendarService: Token refreshed successfully (expires in ${expiresIn}s)',
+        );
         return true;
       } else {
-        debugPrint('GoogleCalendarService: Failed to refresh token. HTTP ${response.statusCode}: ${response.body}');
+        debugPrint(
+          'GoogleCalendarService: Failed to refresh token. HTTP ${response.statusCode}: ${response.body}',
+        );
         return false;
       }
     } catch (e) {
       debugPrint('GoogleCalendarService: Exception during token refresh - $e');
       return false;
     }
-  }
-
-  /// Creates a valid base32hex/alphanumeric Google Calendar event ID from Zeta task UUID.
-  String _deterministicEventId(String taskId) {
-    // Google Calendar event ID requires characters: [a-v0-9] and length 5-1024.
-    final clean = taskId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
-    if (clean.length < 5) {
-      return clean.padLeft(16, '0');
-    }
-    return clean;
   }
 
   /// Sync a Zeta task to Google Calendar — disabled per user request (Google Tasks only).
@@ -245,19 +269,29 @@ class GoogleCalendarService {
       String parentTaskId;
       if (task.googleTaskId != null && task.googleTaskId!.isNotEmpty) {
         try {
-          final updated = await tasksApi.tasks.patch(gtask, '@default', task.googleTaskId!);
+          final updated = await tasksApi.tasks.patch(
+            gtask,
+            '@default',
+            task.googleTaskId!,
+          );
           parentTaskId = updated.id ?? task.googleTaskId!;
-          debugPrint('GoogleCalendarService: Patched Google Task $parentTaskId for "${task.title}"');
+          debugPrint(
+            'GoogleCalendarService: Patched Google Task $parentTaskId for "${task.title}"',
+          );
         } on gtasks.DetailedApiRequestError catch (e) {
           if (e.status != 404) rethrow;
           final created = await tasksApi.tasks.insert(gtask, '@default');
           parentTaskId = created.id!;
-          debugPrint('GoogleCalendarService: Re-created missing Google Task $parentTaskId for "${task.title}"');
+          debugPrint(
+            'GoogleCalendarService: Re-created missing Google Task $parentTaskId for "${task.title}"',
+          );
         }
       } else {
         final created = await tasksApi.tasks.insert(gtask, '@default');
         parentTaskId = created.id!;
-        debugPrint('GoogleCalendarService: Created Google Task $parentTaskId for "${task.title}"');
+        debugPrint(
+          'GoogleCalendarService: Created Google Task $parentTaskId for "${task.title}"',
+        );
       }
 
       task.googleTaskId = parentTaskId;
@@ -287,7 +321,8 @@ class GoogleCalendarService {
               );
             } catch (_) {}
 
-            if (updatedSub.id != null) activeSubtaskGTaskIds.add(updatedSub.id!);
+            if (updatedSub.id != null)
+              activeSubtaskGTaskIds.add(updatedSub.id!);
           } on gtasks.DetailedApiRequestError catch (e) {
             if (e.status == 404) {
               final createdSub = await tasksApi.tasks.insert(
@@ -336,7 +371,9 @@ class GoogleCalendarService {
 
       return parentTaskId;
     } catch (e) {
-      debugPrint('GoogleCalendarService: Failed to sync Google Task for "${task.title}" - $e');
+      debugPrint(
+        'GoogleCalendarService: Failed to sync Google Task for "${task.title}" - $e',
+      );
       return null;
     } finally {
       client.close();
@@ -345,7 +382,7 @@ class GoogleCalendarService {
 
   /// Pull all tasks from Google Tasks `@default` tasklist.
   /// If [since] is provided, only retrieves tasks updated since that timestamp.
-  /// Returns a [GoogleTasksSyncResult] with top-level tasks (including native subtasks) and deleted IDs.
+  /// Returns a [GoogleTasksSyncResult] with top-level tasks, remote subtasks, and deleted IDs.
   Future<GoogleTasksSyncResult?> pullGoogleTasks({DateTime? since}) async {
     if (!_syncTasksEnabled) return null;
 
@@ -353,6 +390,7 @@ class GoogleCalendarService {
     if (token == null) return null;
 
     final client = _OAuthHttpClient(token);
+    final fetchStart = DateTime.now();
     try {
       final tasksApi = gtasks.TasksApi(client);
       final allItems = <gtasks.Task>[];
@@ -373,9 +411,13 @@ class GoogleCalendarService {
           allItems.addAll(taskPage.items!);
         }
         pageToken = taskPage.nextPageToken;
-      } while (pageToken != null && pageToken.isNotEmpty && allItems.length < 500);
+      } while (pageToken != null &&
+          pageToken.isNotEmpty &&
+          allItems.length < 500);
 
-      debugPrint('GoogleCalendarService: Pulled ${allItems.length} raw Google Tasks items.');
+      debugPrint(
+        'GoogleCalendarService: Pulled ${allItems.length} raw Google Tasks items.',
+      );
 
       final topLevelItems = <gtasks.Task>[];
       final subtasksByParentId = <String, List<gtasks.Task>>{};
@@ -387,9 +429,9 @@ class GoogleCalendarService {
           deletedTaskIds.add(item.id!);
           continue; // NEVER treat deleted items as active tasks
         }
-        if (item.hidden == true) {
-          continue; // Ignore hidden internal items
-        }
+        // NOTE: Do NOT ignore item.hidden == true! In Google Tasks API, completed
+        // subtasks (and cleared completed tasks) are marked with hidden: true.
+        // Skipping hidden items caused completed subtasks to be completely dropped.
         final itemTitle = item.title?.trim() ?? '';
         if (itemTitle.isEmpty) {
           continue; // NEVER process empty-titled tasks
@@ -401,6 +443,25 @@ class GoogleCalendarService {
         }
       }
 
+      final List<GoogleSubtaskUpdate> parsedSubtasks = [];
+      subtasksByParentId.forEach((parentId, rawList) {
+        for (final s in rawList) {
+          if (s.deleted != true && (s.title?.trim().isNotEmpty ?? false)) {
+            parsedSubtasks.add(
+              GoogleSubtaskUpdate(
+                parentGoogleTaskId: parentId,
+                subtask: Subtask(
+                  id: s.id ?? const Uuid().v4(),
+                  title: s.title!.trim(),
+                  completed: s.status == 'completed',
+                  googleTaskId: s.id,
+                ),
+              ),
+            );
+          }
+        }
+      });
+
       final List<Task> parsedTasks = [];
 
       for (final gtask in topLevelItems) {
@@ -410,15 +471,18 @@ class GoogleCalendarService {
         final rawSubtasks = subtasksByParentId[gtask.id] ?? [];
 
         final subtasks = rawSubtasks
-            .where((s) => s.deleted != true && (s.title?.trim().isNotEmpty ?? false))
+            .where(
+              (s) => s.deleted != true && (s.title?.trim().isNotEmpty ?? false),
+            )
             .map((s) {
-          return Subtask(
-            id: s.id ?? const Uuid().v4(),
-            title: s.title!.trim(),
-            completed: s.status == 'completed',
-            googleTaskId: s.id,
-          );
-        }).toList();
+              return Subtask(
+                id: s.id ?? const Uuid().v4(),
+                title: s.title!.trim(),
+                completed: s.status == 'completed',
+                googleTaskId: s.id,
+              );
+            })
+            .toList();
 
         final updatedDt = gtask.updated != null
             ? DateTime.tryParse(gtask.updated!)?.toLocal()
@@ -448,8 +512,10 @@ class GoogleCalendarService {
 
       return GoogleTasksSyncResult(
         remoteTasks: parsedTasks,
+        remoteSubtasks: parsedSubtasks,
         deletedTaskIds: deletedTaskIds,
-        syncTimestamp: DateTime.now(),
+        syncTimestamp: fetchStart.subtract(const Duration(seconds: 5)),
+        isFullSync: since == null,
       );
     } catch (e) {
       debugPrint('GoogleCalendarService: pullGoogleTasks failed - $e');
@@ -491,7 +557,9 @@ class GoogleCalendarService {
         'sync_tasks_enabled': _syncTasksEnabled,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       });
-      debugPrint('GoogleCalendarService: Updated sync preferences (Calendar: $_syncCalendarEnabled, Tasks: $_syncTasksEnabled)');
+      debugPrint(
+        'GoogleCalendarService: Updated sync preferences (Calendar: $_syncCalendarEnabled, Tasks: $_syncTasksEnabled)',
+      );
     } catch (e) {
       debugPrint('GoogleCalendarService: Error saving sync preferences - $e');
     }
@@ -506,7 +574,9 @@ class GoogleCalendarService {
   ///
   /// All-day dates are stored as midnight UTC (e.g. `2026-09-15T00:00:00.000Z`).
   /// UTC year/month/day are extracted directly to avoid timezone day-shifting.
-  static ({String? dueDate, bool hasTime, String? dueTime}) parseGoogleTaskDue(String? dueStr) {
+  static ({String? dueDate, bool hasTime, String? dueTime}) parseGoogleTaskDue(
+    String? dueStr,
+  ) {
     if (dueStr == null || dueStr.trim().isEmpty) {
       return (dueDate: null, hasTime: false, dueTime: null);
     }
@@ -516,8 +586,8 @@ class GoogleCalendarService {
       final date = DateTime(parsed.year, parsed.month, parsed.day);
       return (
         dueDate: TaskDateFormatter.format(date),
-        hasTime: false,  // Time is NEVER available from Google Tasks API
-        dueTime: null,   // Fetch time from Google Calendar event instead
+        hasTime: false, // Time is NEVER available from Google Tasks API
+        dueTime: null, // Fetch time from Google Calendar event instead
       );
     } catch (_) {
       return (dueDate: null, hasTime: false, dueTime: null);
@@ -556,7 +626,8 @@ class GoogleCalendarService {
     if (rawDueDate.contains('•')) {
       final parts = rawDueDate.split('•');
       rawDueDate = parts[0].trim();
-      if ((extractedTime == null || extractedTime.isEmpty) && parts.length > 1) {
+      if ((extractedTime == null || extractedTime.isEmpty) &&
+          parts.length > 1) {
         extractedTime = parts[1].trim();
       }
     }
@@ -564,7 +635,8 @@ class GoogleCalendarService {
     final baseDate = TaskDateFormatter.parse(rawDueDate);
     if (baseDate == null) return null;
 
-    final hasTime = task.hasTime || (extractedTime != null && extractedTime.isNotEmpty);
+    final hasTime =
+        task.hasTime || (extractedTime != null && extractedTime.isNotEmpty);
 
     if (hasTime && extractedTime != null && extractedTime.isNotEmpty) {
       final timeStr = extractedTime;

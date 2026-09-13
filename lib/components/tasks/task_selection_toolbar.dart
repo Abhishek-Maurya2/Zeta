@@ -21,8 +21,6 @@ class TaskSelectionToolbar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final selectedCount = taskProvider.selectedCount;
     final visibleTasks = taskProvider.filteredAndSortedTasks;
-    final allSelected =
-        visibleTasks.isNotEmpty && selectedCount >= visibleTasks.length;
 
     return M3EToolbar(
       alignment: Alignment.bottomCenter,

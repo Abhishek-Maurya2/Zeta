@@ -348,7 +348,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       bool hasChanges = false;
 
-      // 1. Handle deleted tasks from Google Tasks
+      // 1. Handle deleted tasks and subtasks from Google Tasks
       for (final deletedGId in result.deletedTaskIds) {
         final activeIdx = _tasks.indexWhere((t) => t.googleTaskId == deletedGId);
         if (activeIdx != -1) {
@@ -358,6 +358,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
           _binTasks.insert(0, task);
           hasChanges = true;
           _syncService.pushTask(task);
+          continue;
+        }
+
+        // Check active tasks for deleted subtasks
+        for (final task in _tasks) {
+          final subIdx = task.subtasks.indexWhere((s) => s.googleTaskId == deletedGId);
+          if (subIdx != -1) {
+            task.subtasks.removeAt(subIdx);
+            task.updatedAt = DateTime.now();
+            hasChanges = true;
+            _syncService.pushTask(task);
+            break;
+          }
         }
       }
 
@@ -379,7 +392,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
             hasChanges = true;
             _syncService.pushTask(local);
           } else {
-            final changed = _reconcileTaskFromGoogle(local, remote);
+            final changed = _reconcileTaskFromGoogle(local, remote, isFullSync: result.isFullSync);
             if (changed) {
               hasChanges = true;
               _syncService.pushTask(local);
@@ -392,7 +405,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
             _binTasks.removeAt(binIdx);
             local.deletedAt = null;
             local.updatedAt = DateTime.now();
-            _reconcileTaskFromGoogle(local, remote);
+            _reconcileTaskFromGoogle(local, remote, isFullSync: result.isFullSync);
             _tasks.insert(0, local);
             hasChanges = true;
             _syncService.pushTask(local);
@@ -408,7 +421,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
             final local = _tasks[matchTitleIdx];
             local.googleTaskId = remote.googleTaskId;
             local.googleEtag = remote.googleEtag;
-            _reconcileTaskFromGoogle(local, remote);
+            _reconcileTaskFromGoogle(local, remote, isFullSync: result.isFullSync);
             hasChanges = true;
             _syncService.pushTask(local);
           } else {
@@ -420,7 +433,54 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
-      // 3. Mirror any local tasks that don't have a googleTaskId to Google Tasks
+      // 3. Handle remote subtasks (especially child tasks updated in Google Tasks while parent was unmodified)
+      for (final update in result.remoteSubtasks) {
+        final parentGId = update.parentGoogleTaskId;
+        final remoteSub = update.subtask;
+
+        Task? parentTask = _tasks.where((t) => t.googleTaskId == parentGId).firstOrNull;
+        parentTask ??= _tasks.where((t) => t.subtasks.any((s) => s.googleTaskId == remoteSub.googleTaskId)).firstOrNull;
+        parentTask ??= _binTasks.where((t) => t.googleTaskId == parentGId).firstOrNull;
+
+        if (parentTask != null) {
+          final localSubIdx = parentTask.subtasks.indexWhere(
+            (s) => (s.googleTaskId != null && s.googleTaskId == remoteSub.googleTaskId) ||
+                   (s.googleTaskId == null && s.title.trim().toLowerCase() == remoteSub.title.trim().toLowerCase()),
+          );
+
+          if (localSubIdx != -1) {
+            final localSub = parentTask.subtasks[localSubIdx];
+            bool subChanged = false;
+            if (localSub.googleTaskId == null && remoteSub.googleTaskId != null) {
+              localSub.googleTaskId = remoteSub.googleTaskId;
+              subChanged = true;
+            }
+            if (localSub.title != remoteSub.title) {
+              localSub.title = remoteSub.title;
+              subChanged = true;
+            }
+            if (localSub.completed != remoteSub.completed) {
+              localSub.completed = remoteSub.completed;
+              subChanged = true;
+            }
+            if (subChanged) {
+              parentTask.updatedAt = DateTime.now();
+              parentTask.lastSyncedAt = DateTime.now();
+              hasChanges = true;
+              _syncService.pushTask(parentTask);
+            }
+          } else {
+            // New subtask added under this parent in Google Tasks
+            parentTask.subtasks.add(remoteSub);
+            parentTask.updatedAt = DateTime.now();
+            parentTask.lastSyncedAt = DateTime.now();
+            hasChanges = true;
+            _syncService.pushTask(parentTask);
+          }
+        }
+      }
+
+      // 4. Mirror any local tasks that don't have a googleTaskId to Google Tasks
       for (final local in _tasks) {
         if (local.googleTaskId == null &&
             local.deletedAt == null &&
@@ -447,7 +507,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Reconciles fields from remote Google Task into local Task.
   /// Returns true if changes occurred.
-  bool _reconcileTaskFromGoogle(Task local, Task remote) {
+  bool _reconcileTaskFromGoogle(Task local, Task remote, {bool isFullSync = false}) {
     bool changed = false;
 
     if (local.title != remote.title && remote.title.isNotEmpty) {
@@ -515,9 +575,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
 
-    // Clean up local subtasks removed remotely
-    final remoteGTaskIds = remote.subtasks.map((s) => s.googleTaskId).whereType<String>().toSet();
-    if (remoteGTaskIds.isNotEmpty) {
+    // Clean up local subtasks removed remotely ONLY on full sync!
+    // On incremental sync, remote.subtasks only contains subtasks modified since last sync.
+    if (isFullSync && remote.subtasks.isNotEmpty) {
+      final remoteGTaskIds = remote.subtasks.map((s) => s.googleTaskId).whereType<String>().toSet();
       final toRemove = local.subtasks
           .where((s) => s.googleTaskId != null && !remoteGTaskIds.contains(s.googleTaskId))
           .map((s) => s.id)
