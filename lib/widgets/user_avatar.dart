@@ -1,17 +1,26 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/theme_provider.dart';
 
 /// Renders the user's avatar.
 /// If a photo is set, displays the photo.
-/// If no photo is set, strictly displays the first alphabet of the user's name.
+/// If no photo is set, displays the first letter of the user's name.
+///
+/// [ringColor] overrides the ring and glow color — e.g. pass a sync-status
+/// color from [TaskProvider] to reflect sync state in the ring.
+/// When null the avatar accent color from [ThemeProvider] is used.
 class UserAvatar extends StatelessWidget {
   final double radius;
   final bool showRing;
   final double ringWidth;
   final double? fontSize;
   final VoidCallback? onTap;
+
+  /// Optional ring + glow color override. Null = use accent color from ThemeProvider.
+  final Color? ringColor;
 
   const UserAvatar({
     super.key,
@@ -20,12 +29,14 @@ class UserAvatar extends StatelessWidget {
     this.ringWidth = 2.0,
     this.fontSize,
     this.onTap,
+    this.ringColor,
   });
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final accentColor = themeProvider.currentAvatarColor;
+    final effectiveRingColor = ringColor ?? accentColor;
     final diameter = radius * 2;
     final initial = themeProvider.avatarInitial;
     final effectiveFontSize = fontSize ?? (radius * 0.85);
@@ -56,7 +67,9 @@ class UserAvatar extends StatelessWidget {
               errorBuilder: (context, error, stackTrace) => fallbackInitial(),
             );
           } else if (photo.startsWith('data:image')) {
-            final base64Str = photo.contains(',') ? photo.split(',').last : photo;
+            final base64Str = photo.contains(',')
+                ? photo.split(',').last
+                : photo;
             final bytes = base64Decode(base64Str.trim());
             return Image.memory(
               bytes,
@@ -90,14 +103,11 @@ class UserAvatar extends StatelessWidget {
       decoration: showRing
           ? BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(
-                color: accentColor,
-                width: ringWidth,
-              ),
+              border: Border.all(color: effectiveRingColor, width: ringWidth),
               boxShadow: [
                 BoxShadow(
-                  color: accentColor.withValues(alpha: 0.25),
-                  blurRadius: 6,
+                  color: effectiveRingColor.withValues(alpha: 0.30),
+                  blurRadius: 8,
                 ),
               ],
             )

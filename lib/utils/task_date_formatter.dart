@@ -65,21 +65,25 @@ class TaskDateFormatter {
   }
 
   /// Formats the date and time for a task list item chip:
-  /// - Shows time whenever hasTime is true with a valid dueTime.
-  /// - Format: 'Today • 10:00 AM' or 'Tomorrow • 02:30 PM' or '13, Sep • 11:15 AM'.
-  /// - Format when no time: 'Today', 'Tomorrow', '13, Sep'.
+  /// - Due **today** with time  → shows time only (e.g. '10:30 AM').
+  /// - Due **today** without time → 'Today'.
+  /// - **Any other date** with or without time → date label only
+  ///   ('Yesterday', 'Tomorrow', or '13, Sep'). Time is omitted to keep
+  ///   the chip compact — the date context is more useful here.
   static String formatTaskListDate({
     required String dueDate,
     required bool hasTime,
     String? dueTime,
   }) {
-    final formattedDate = formatString(dueDate);
+    final todayForTask = isToday(dueDate);
 
-    if (hasTime && dueTime != null && dueTime.trim().isNotEmpty) {
-      return '$formattedDate • $dueTime';
+    if (todayForTask && hasTime && dueTime != null && dueTime.trim().isNotEmpty) {
+      // Due today with a specific time — show only the time.
+      return dueTime.trim();
     }
 
-    return formattedDate;
+    // For all other cases show the date label only (no time appended).
+    return formatString(dueDate);
   }
 
   /// Parses strings like 'Today', 'Tomorrow', 'Yesterday', '13, Sep', '13 Sep',

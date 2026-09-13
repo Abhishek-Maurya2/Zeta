@@ -49,83 +49,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startGooglePollingTimer();
   }
 
-  final List<Task> _tasks = [
-    Task(
-      id: '1',
-      title: 'Answer writting',
-      description: 'Society Indian Society',
-      dueDate: 'Yesterday',
-      completed: false,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    Task(
-      id: '2',
-      title: 'Society',
-      dueDate: '15, Sep',
-      completed: false,
-      subtasks: [
-        Subtask(id: 's1', title: 'Read chapter 3', completed: false),
-        Subtask(id: 's2', title: 'Prepare notes', completed: false),
-      ],
-      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
-    ),
-    Task(
-      id: '3',
-      title: 'Population',
-      dueDate: 'Today',
-      hasTime: true,
-      dueTime: '10:00 AM',
-      completed: false,
-      createdAt: DateTime.now().subtract(const Duration(hours: 6)),
-    ),
-    Task(
-      id: '4',
-      title: 'Women Organisation',
-      dueDate: 'Tomorrow',
-      completed: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-    Task(
-      id: '5',
-      title: 'Role of Women',
-      dueDate: '13, Sep',
-      hasTime: true,
-      dueTime: '02:30 PM',
-      completed: true,
-      createdAt: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ];
+  final List<Task> _tasks = [];
 
-  final List<Task> _binTasks = [
-    Task(
-      id: 'b1',
-      title: 'Geography Map Practice',
-      description: 'Rivers and mountain passes revision',
-      dueDate: '5, Sep',
-      completed: false,
-      deletedAt: DateTime.now().subtract(const Duration(hours: 4)),
-      subtasks: [
-        Subtask(id: 'bs1', title: 'Himalayan rivers', completed: true),
-        Subtask(id: 'bs2', title: 'Peninsular rivers', completed: false),
-      ],
-      createdAt: DateTime.now().subtract(const Duration(days: 6)),
-    ),
-    Task(
-      id: 'b2',
-      title: 'Modern History Timeline',
-      description: '1857 to 1947 important events and acts',
-      dueDate: '4, Sep',
-      hasTime: true,
-      dueTime: '11:15 AM',
-      completed: true,
-      deletedAt: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-      createdAt: DateTime.now().subtract(const Duration(days: 7)),
-    ),
-  ];
+  final List<Task> _binTasks = [];
 
   TaskFilter _filter = TaskFilter.all;
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
   final Set<String> _expandedTaskIds = {};
+  final Set<String> _selectedTaskIds = {};
 
   List<Task> get allTasks => List.unmodifiable(_tasks);
   List<Task> get binTasks => List.unmodifiable(_binTasks);
@@ -138,6 +69,43 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get binCount => _binTasks.length;
 
   bool isTaskExpanded(String taskId) => _expandedTaskIds.contains(taskId);
+
+  // ─── Multi-Selection Support ───────────────────────────────────────────────
+
+  bool get isSelectionMode => _selectedTaskIds.isNotEmpty;
+  Set<String> get selectedTaskIds => Set.unmodifiable(_selectedTaskIds);
+  int get selectedCount => _selectedTaskIds.length;
+
+  bool isTaskSelected(String taskId) => _selectedTaskIds.contains(taskId);
+
+  void toggleTaskSelection(String taskId) {
+    if (_selectedTaskIds.contains(taskId)) {
+      _selectedTaskIds.remove(taskId);
+    } else {
+      _selectedTaskIds.add(taskId);
+    }
+    notifyListeners();
+  }
+
+  void selectTask(String taskId) {
+    if (!_selectedTaskIds.contains(taskId)) {
+      _selectedTaskIds.add(taskId);
+      notifyListeners();
+    }
+  }
+
+  void selectAllTasks() {
+    final visible = filteredAndSortedTasks;
+    _selectedTaskIds.addAll(visible.map((t) => t.id));
+    notifyListeners();
+  }
+
+  void clearSelection() {
+    if (_selectedTaskIds.isNotEmpty) {
+      _selectedTaskIds.clear();
+      notifyListeners();
+    }
+  }
 
   void toggleTaskExpanded(String taskId) {
     if (_expandedTaskIds.contains(taskId)) {
@@ -249,10 +217,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         final loaded = list
             .map((item) => Task.fromJson(item as Map<String, dynamic>))
             .toList();
-        if (loaded.isNotEmpty) {
-          _tasks.clear();
-          _tasks.addAll(loaded);
-        }
+        _tasks.clear();
+        _tasks.addAll(loaded);
       }
 
       final binRaw = prefs.getString(_binTasksKey);
@@ -264,6 +230,11 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         _binTasks.clear();
         _binTasks.addAll(loaded);
       }
+
+      // Purge any corrupted or empty tasks from local cache
+      _tasks.removeWhere((t) => t.title.trim().isEmpty);
+      _binTasks.removeWhere((t) => t.title.trim().isEmpty);
+
       notifyListeners();
     } catch (_) {}
 
@@ -279,6 +250,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _tasks.removeWhere((t) => t.id == remoteTask.id);
       _binTasks.removeWhere((t) => t.id == remoteTask.id);
     } else {
+      if (remoteTask.title.trim().isEmpty) return; // Discard empty tasks
+
       if (remoteTask.deletedAt != null) {
         _tasks.removeWhere((t) => t.id == remoteTask.id);
         final binIdx = _binTasks.indexWhere((t) => t.id == remoteTask.id);
@@ -301,7 +274,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  /// Synchronize all tasks with Supabase backend and Google Calendar/Tasks.
+  /// Synchronize all tasks with Supabase backend and Google Tasks.
   Future<void> syncWithCloud({bool force = false}) async {
     if (_isSyncing) return;
     _isSyncing = true;
@@ -311,6 +284,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       await _googleService.loadTokens(forceReload: force);
       _startGooglePollingTimer();
       final remoteTasks = await _syncService.pullTasks();
+      remoteTasks.removeWhere((t) => t.title.trim().isEmpty);
 
       if (remoteTasks.isNotEmpty) {
         // If local tasks are only initial placeholder mocks, replace with remote
@@ -342,23 +316,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         await saveTasks();
       }
 
+      // Clean up any empty tasks that may exist locally
+      _tasks.removeWhere((t) => t.title.trim().isEmpty);
+      _binTasks.removeWhere((t) => t.title.trim().isEmpty);
+
       // Perform bidirectional synchronization with Google Tasks
       if (_googleService.syncTasksEnabled && _googleService.isConnected) {
         await syncGoogleTasks(force: force);
-      }
-
-      // Synchronize active tasks to Google Calendar if enabled
-      if (_googleService.syncCalendarEnabled && _googleService.isConnected) {
-        for (final task in _tasks) {
-          if (task.dueDate != null || task.googleEventId != null) {
-            final calId = await _googleService.syncTaskToCalendar(task);
-            if (calId != null && calId != task.googleEventId) {
-              task.googleEventId = calId;
-              _syncService.pushTask(task);
-            }
-          }
-        }
-        await saveTasks();
       }
     } catch (e) {
       debugPrint('TaskProvider: syncWithCloud error - $e');
@@ -399,6 +363,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // 2. Handle remote tasks (created or updated in Google Tasks)
       for (final remote in result.remoteTasks) {
+        // Discard any empty-titled tasks
+        if (remote.title.trim().isEmpty) continue;
+
         final activeIdx = _tasks.indexWhere((t) => t.googleTaskId == remote.googleTaskId);
         final binIdx = _binTasks.indexWhere((t) => t.googleTaskId == remote.googleTaskId);
 
@@ -433,7 +400,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         } else if (remote.deletedAt == null) {
           // Check for existing local task matching title that has no googleTaskId
           final matchTitleIdx = _tasks.indexWhere(
-            (t) => t.googleTaskId == null && t.title.trim().toLowerCase() == remote.title.trim().toLowerCase(),
+            (t) => t.googleTaskId == null &&
+                t.title.trim().isNotEmpty &&
+                t.title.trim().toLowerCase() == remote.title.trim().toLowerCase(),
           );
           if (matchTitleIdx != -1) {
             final local = _tasks[matchTitleIdx];
@@ -453,7 +422,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // 3. Mirror any local tasks that don't have a googleTaskId to Google Tasks
       for (final local in _tasks) {
-        if (local.googleTaskId == null && local.deletedAt == null) {
+        if (local.googleTaskId == null &&
+            local.deletedAt == null &&
+            local.title.trim().isNotEmpty) {
           final gId = await _googleService.syncTaskToGoogleTasks(local);
           if (gId != null) {
             local.googleTaskId = gId;
@@ -491,16 +462,30 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       local.completed = remote.completed;
       changed = true;
     }
-    if (local.dueDate != remote.dueDate) {
-      local.dueDate = remote.dueDate;
-      changed = true;
-    }
-    if (local.hasTime != remote.hasTime) {
-      local.hasTime = remote.hasTime;
-      changed = true;
-    }
-    if (local.dueTime != remote.dueTime) {
-      local.dueTime = remote.dueTime;
+    // Reconcile due date from Google Tasks (date only — Tasks API never carries time).
+    // Time is preserved from the local task and rehydrated from Google Calendar separately.
+    if (remote.dueDate != null && remote.dueDate!.isNotEmpty) {
+      final localDate = TaskDateFormatter.parse(local.dueDate ?? '');
+      final remoteDate = TaskDateFormatter.parse(remote.dueDate!);
+
+      final isSameDay = localDate != null &&
+          remoteDate != null &&
+          localDate.year == remoteDate.year &&
+          localDate.month == remoteDate.month &&
+          localDate.day == remoteDate.day;
+
+      if (!isSameDay) {
+        local.dueDate = remote.dueDate;
+        changed = true;
+      }
+      // Note: hasTime and dueTime are intentionally NOT reconciled from the Google Tasks
+      // remote object. Google Tasks API always strips time — it is date-only by design.
+      // Time is rehydrated from the linked Google Calendar event in syncGoogleTasks.
+    } else if (local.dueDate != null) {
+      // Remote cleared the due date entirely
+      local.dueDate = null;
+      local.hasTime = false;
+      local.dueTime = null;
       changed = true;
     }
 
@@ -699,6 +684,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Moves active task to bin
   void deleteTask(String id) {
+    _selectedTaskIds.remove(id);
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
       final task = _tasks.removeAt(index);
@@ -712,6 +698,55 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Batch deletes all currently selected tasks into the bin
+  void deleteSelectedTasks() {
+    if (_selectedTaskIds.isEmpty) return;
+    final idsToDelete = _selectedTaskIds.toList();
+    _selectedTaskIds.clear();
+
+    for (final id in idsToDelete) {
+      final index = _tasks.indexWhere((t) => t.id == id);
+      if (index != -1) {
+        final task = _tasks.removeAt(index);
+        task.deletedAt = DateTime.now();
+        task.updatedAt = DateTime.now();
+        _binTasks.insert(0, task);
+        _syncService.pushTask(task);
+        _deleteFromGoogleServices(task);
+      }
+    }
+
+    notifyListeners();
+    _autoSaveTasksIfEnabled();
+    ZetaHaptics.medium();
+  }
+
+  /// Batch marks all currently selected tasks as complete (or incomplete)
+  void completeSelectedTasks({bool? markAs}) {
+    if (_selectedTaskIds.isEmpty) return;
+    final idsToToggle = _selectedTaskIds.toList();
+    final selectedTasks = _tasks.where((t) => idsToToggle.contains(t.id)).toList();
+
+    // If markAs is null, determine target: if any are incomplete, mark all complete; else incomplete
+    final targetState = markAs ?? selectedTasks.any((t) => !t.completed);
+
+    for (final task in selectedTasks) {
+      task.completed = targetState;
+      task.updatedAt = DateTime.now();
+      _syncService.pushTask(task);
+      _syncTaskPipeline(task);
+    }
+
+    if (targetState) {
+      _playSoundIfEnabled();
+    }
+
+    _selectedTaskIds.clear();
+    notifyListeners();
+    _autoSaveTasksIfEnabled();
+    ZetaHaptics.medium();
+  }
+
   /// Restores task from bin back to active tasks
   void restoreTask(String id) {
     final index = _binTasks.indexWhere((t) => t.id == id);
@@ -719,6 +754,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       final task = _binTasks.removeAt(index);
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
+      // Clear stale Google IDs so the task and its subtasks are freshly inserted
+      // rather than failing with 404 on deleted IDs
+      task.googleTaskId = null;
+      task.googleEventId = null;
+      task.googleEtag = null;
+      for (final sub in task.subtasks) {
+        sub.googleTaskId = null;
+      }
       _tasks.insert(0, task);
       notifyListeners();
       _autoSaveTasksIfEnabled();
@@ -732,6 +775,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     final taskIndex = _binTasks.indexWhere((t) => t.id == id);
     if (taskIndex != -1) {
       final task = _binTasks.removeAt(taskIndex);
+      // If task still had google IDs, make sure they are cleaned up
       _deleteFromGoogleServices(task);
     }
     _syncService.deleteTask(id, soft: false);
@@ -755,6 +799,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     for (final task in _binTasks) {
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
+      task.googleTaskId = null;
+      task.googleEventId = null;
+      task.googleEtag = null;
+      for (final sub in task.subtasks) {
+        sub.googleTaskId = null;
+      }
       _tasks.insert(0, task);
       _syncService.pushTask(task);
       _syncTaskPipeline(task);
@@ -766,6 +816,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _syncTaskPipeline(Task task) async {
     try {
+      if (task.title.trim().isEmpty) return;
+
       // 1. Sync with Google Tasks (natively maps subtasks & due dates)
       if (_googleService.syncTasksEnabled && _googleService.isConnected) {
         final gTaskId = await _googleService.syncTaskToGoogleTasks(task);
@@ -774,22 +826,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
-      // 2. Sync with Google Calendar if enabled
-      if (_googleService.syncCalendarEnabled &&
-          _googleService.isConnected &&
-          (task.dueDate != null || task.googleEventId != null)) {
-        final calId = await _googleService.syncTaskToCalendar(task);
-        if (calId != null && calId != task.googleEventId) {
-          task.googleEventId = calId;
-        } else if (calId == null &&
-            task.googleEventId != null &&
-            (task.dueDate == null || task.dueDate!.isEmpty)) {
-          task.googleEventId = null;
-        }
-      }
-
-      // 3. Immediately persist updated task (with any newly assigned foreign IDs)
-      // to local storage AND Supabase DB simultaneously
+      // 2. Immediately persist updated task to local storage AND Supabase DB simultaneously
       await _autoSaveTasksIfEnabled();
       await _syncService.pushTask(task);
     } catch (e) {
@@ -800,9 +837,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _deleteFromGoogleServices(Task task) async {
     try {
-      if (task.googleEventId != null) {
-        await _googleService.deleteCalendarEvent(task.googleEventId!);
-      }
       if (task.googleTaskId != null) {
         await _googleService.deleteGoogleTask(task.googleTaskId!);
       }

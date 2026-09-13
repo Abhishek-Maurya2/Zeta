@@ -19,7 +19,6 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
   final SupabaseService _supabase = SupabaseService();
   final GoogleCalendarService _google = GoogleCalendarService();
 
-  late bool _syncCalendar;
   late bool _syncTasks;
   bool _isSyncing = false;
   bool _showConfig = false;
@@ -31,7 +30,6 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
   @override
   void initState() {
     super.initState();
-    _syncCalendar = _google.syncCalendarEnabled;
     _syncTasks = _google.syncTasksEnabled;
 
     _clientIdController = TextEditingController(
@@ -48,7 +46,6 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
     await _google.loadTokens();
     if (mounted) {
       setState(() {
-        _syncCalendar = _google.syncCalendarEnabled;
         _syncTasks = _google.syncTasksEnabled;
       });
     }
@@ -66,7 +63,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
     try {
       await context.read<TaskProvider>().syncWithCloud(force: true);
       if (!mounted) return;
-      widget.onToast?.call('Google Calendar, Tasks, and Supabase synchronized!');
+      widget.onToast?.call('Google Tasks and Supabase synchronized!');
     } catch (e) {
       if (!mounted) return;
       widget.onToast?.call('Sync warning: $e');
@@ -133,7 +130,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'GOOGLE CALENDAR & TASKS SYNC',
+          'GOOGLE TASKS SYNC',
           style: textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 1.1,
@@ -142,7 +139,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
         ),
         const SizedBox(height: 2),
         Text(
-          'Two-way real-time synchronization between Zeta tasks, Supabase, and your Google account.',
+          'Two-way real-time synchronization between Zeta tasks, Supabase, and Google Tasks.',
           style: textTheme.bodySmall?.copyWith(
             color: colorScheme.onSurfaceVariant,
           ),
@@ -220,7 +217,7 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                         Text(
                           isConnected
                               ? 'Connected as $accountEmail'
-                              : 'Connect to sync events and tasks',
+                              : 'Connect to sync Google Tasks',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -261,54 +258,6 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                       onPressed: _handleConnect,
                     ),
                   ],
-                ],
-              ),
-            ),
-
-            // Toggle Calendar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_rounded,
-                    size: 22,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sync Google Calendar Events',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Mirror due dates and subtasks into Google Calendar events',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  M3ESwitch(
-                    value: _syncCalendar,
-                    onChanged: (val) {
-                      setState(() => _syncCalendar = val);
-                      _google.updateSyncPreferences(calendar: val);
-                      widget.onToast?.call(
-                        val
-                            ? 'Calendar sync enabled'
-                            : 'Calendar sync disabled',
-                      );
-                    },
-                  ),
                 ],
               ),
             ),

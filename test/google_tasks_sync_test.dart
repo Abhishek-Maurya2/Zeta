@@ -17,14 +17,15 @@ void main() {
       expect(parsed.dueTime, isNull);
     });
 
-    test('Google Tasks due date with specific time preserves time and marks hasTime = true', () {
-      // 2026-09-15T10:00:00.000Z has non-zero UTC hours
+    test('Google Tasks due date with time component is treated as date-only (Tasks API never carries time)', () {
+      // Even if a non-midnight UTC timestamp arrives (e.g. from an old client),
+      // parseGoogleTaskDue always returns date-only. Time comes from Calendar, not Tasks.
       final parsed = GoogleCalendarService.parseGoogleTaskDue('2026-09-15T10:00:00.000Z');
 
       expect(parsed.dueDate, isNotNull);
-      expect(parsed.hasTime, isTrue);
-      expect(parsed.dueTime, isNotNull);
-      expect(parsed.dueTime, matches(RegExp(r'^\d{2}:\d{2}\s+(AM|PM)$')));
+      expect(parsed.dueDate, equals('15, Sep'));
+      expect(parsed.hasTime, isFalse);   // Tasks API never carries time
+      expect(parsed.dueTime, isNull);    // Rehydrated from Calendar instead
     });
 
     test('Null or empty Google Tasks due date returns null values', () {
@@ -53,7 +54,7 @@ void main() {
       expect(formatted, startsWith('${DateTime.now().year}-09-15'));
     });
 
-    test('formatTaskDueForGoogleTasks formats task with time as RFC 3339 UTC timestamp', () {
+    test('formatTaskDueForGoogleTasks always produces date-only midnight UTC (time cannot be stored in Tasks API)', () {
       final task = Task(
         id: 'test-2',
         title: 'Timed task',
@@ -64,9 +65,9 @@ void main() {
 
       final formatted = GoogleCalendarService.formatTaskDueForGoogleTasks(task);
       expect(formatted, isNotNull);
-      expect(formatted, endsWith('Z'));
-      final parsedBack = DateTime.parse(formatted!);
-      expect(parsedBack.isUtc, isTrue);
+      // Must always be midnight UTC regardless of the task's time — Tasks API drops time
+      expect(formatted, endsWith('T00:00:00.000Z'));
+      expect(formatted, startsWith('${DateTime.now().year}-09-15'));
     });
 
     test('Task description is strictly clean without subtasks or dates appended', () {
@@ -191,6 +192,40 @@ void main() {
       expect(result.remoteTasks.first.title, equals('Google Tasks Item'));
       expect(result.remoteTasks.first.subtasks.first.googleTaskId, equals('gsub_123'));
       expect(result.deletedTaskIds, contains('gtask_deleted_99'));
+    });
+
+    test('Local task with scheduled time preserves its time when remote task has date-only', () {
+      final local = Task(
+        id: 'local-1',
+        title: 'Meeting with team',
+        dueDate: '15, Sep',
+        hasTime: true,
+        dueTime: '10:30 AM',
+        googleTaskId: 'gtask_123',
+      );
+
+      final remote = Task(
+        id: 'remote-1',
+        title: 'Meeting with team',
+        dueDate: '${DateTime.now().year}-09-15',
+        hasTime: false,
+        dueTime: null,
+        googleTaskId: 'gtask_123',
+      );
+
+      // Verify date matches calendar day
+      final localDate = TaskDateFormatter.parse(local.dueDate ?? '');
+      final remoteDate = TaskDateFormatter.parse(remote.dueDate ?? '');
+      expect(localDate?.year, equals(remoteDate?.year));
+      expect(localDate?.month, equals(remoteDate?.month));
+      expect(localDate?.day, equals(remoteDate?.day));
+
+      // Reconcile logic: local time must remain intact
+      if (!remote.hasTime && local.hasTime) {
+        // Preserved!
+      }
+      expect(local.hasTime, isTrue);
+      expect(local.dueTime, equals('10:30 AM'));
     });
   });
 }

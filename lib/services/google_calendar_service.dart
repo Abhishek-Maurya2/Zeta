@@ -197,91 +197,14 @@ class GoogleCalendarService {
     return clean;
   }
 
-  /// Sync a Zeta task to Google Calendar.
-  /// Returns the Google Calendar event ID if synced, or null.
+  /// Sync a Zeta task to Google Calendar — disabled per user request (Google Tasks only).
   Future<String?> syncTaskToCalendar(Task task) async {
-    if (!_syncCalendarEnabled) return null;
-
-    final token = await _getValidAccessToken();
-    if (token == null) return null;
-
-    final eventId = task.googleEventId ?? _deterministicEventId(task.id);
-
-    // If task is soft-deleted or has no due date, delete existing event if any
-    if (task.deletedAt != null || task.dueDate == null || task.dueDate!.trim().isEmpty) {
-      await deleteCalendarEvent(eventId);
-      return null;
-    }
-
-    final parsedDate = parseTaskDateTime(task);
-    if (parsedDate == null) return null;
-
-    final client = _OAuthHttpClient(token);
-    try {
-      final calendarApi = gcal.CalendarApi(client);
-      final calendarId = _calendarId ?? 'primary';
-
-      final hasTime =
-          task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
-
-      final event = gcal.Event();
-      event.id = eventId;
-      event.summary = task.completed ? '✓ ${task.title}' : task.title;
-      event.description = (task.description != null && task.description!.trim().isNotEmpty)
-          ? task.description!.trim()
-          : null;
-
-      if (hasTime) {
-        final startUtc = parsedDate.toUtc();
-        final endUtc = parsedDate.add(const Duration(minutes: 30)).toUtc();
-        event.start = gcal.EventDateTime(dateTime: startUtc);
-        event.end = gcal.EventDateTime(dateTime: endUtc);
-      } else {
-        final startDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
-        final endDate = startDate.add(const Duration(days: 1)); // Google Calendar all-day end date is exclusive
-        event.start = gcal.EventDateTime(date: startDate);
-        event.end = gcal.EventDateTime(date: endDate);
-      }
-
-      // Try patching first, if 404 insert
-      try {
-        await calendarApi.events.patch(event, calendarId, eventId);
-        debugPrint('GoogleCalendarService: Patched event $eventId for "${task.title}"');
-      } on gcal.DetailedApiRequestError catch (e) {
-        if (e.status == 404) {
-          await calendarApi.events.insert(event, calendarId);
-          debugPrint('GoogleCalendarService: Inserted event $eventId for "${task.title}"');
-        } else {
-          rethrow;
-        }
-      }
-
-      return eventId;
-    } catch (e) {
-      debugPrint('GoogleCalendarService: Failed to sync event for "${task.title}" - $e');
-      return null;
-    } finally {
-      client.close();
-    }
+    return null;
   }
 
-  /// Delete a Google Calendar event.
+  /// Delete a Google Calendar event — disabled per user request.
   Future<void> deleteCalendarEvent(String eventId) async {
-    final token = await _getValidAccessToken();
-    if (token == null) return;
-
-    final client = _OAuthHttpClient(token);
-    try {
-      final calendarApi = gcal.CalendarApi(client);
-      final calendarId = _calendarId ?? 'primary';
-      await calendarApi.events.delete(calendarId, eventId);
-      debugPrint('GoogleCalendarService: Deleted calendar event $eventId');
-    } catch (e) {
-      // 404 or 410 (already gone) is safe to ignore
-      debugPrint('GoogleCalendarService: deleteCalendarEvent note - $e');
-    } finally {
-      client.close();
-    }
+    // No-op: Calendar sync removed
   }
 
   /// Sync a Zeta task to Google Tasks.
@@ -290,6 +213,7 @@ class GoogleCalendarService {
   /// Returns the Google Tasks item ID if synced, or null.
   Future<String?> syncTaskToGoogleTasks(Task task) async {
     if (!_syncTasksEnabled) return null;
+    if (task.title.trim().isEmpty) return null;
 
     final token = await _getValidAccessToken();
     if (token == null) return null;
@@ -308,7 +232,7 @@ class GoogleCalendarService {
 
       final cleanNotes = Task.sanitizeDescription(task.description);
       final gtask = gtasks.Task();
-      gtask.title = task.title;
+      gtask.title = task.title.trim();
       // In Google Tasks API, to overwrite/clear any legacy description containing subtask text,
       // explicitly pass empty string '' if cleanNotes is null or empty.
       gtask.notes = cleanNotes ?? '';
@@ -343,8 +267,9 @@ class GoogleCalendarService {
       final activeSubtaskGTaskIds = <String>{};
 
       for (final subtask in task.subtasks) {
+        if (subtask.title.trim().isEmpty) continue;
         final subGTask = gtasks.Task();
-        subGTask.title = subtask.title;
+        subGTask.title = subtask.title.trim();
         subGTask.status = subtask.completed ? 'completed' : 'needsAction';
 
         if (subtask.googleTaskId != null && subtask.googleTaskId!.isNotEmpty) {
@@ -354,20 +279,15 @@ class GoogleCalendarService {
               '@default',
               subtask.googleTaskId!,
             );
-            // In Google Tasks API, tasks.patch does NOT set the parent relationship.
-            // Move ensures the task is properly parented under parentTaskId as a subtask in Google Tasks.
             try {
               await tasksApi.tasks.move(
                 '@default',
                 subtask.googleTaskId!,
                 parent: parentTaskId,
               );
-            } catch (moveErr) {
-              debugPrint('GoogleCalendarService: Subtask move note - $moveErr');
-            }
+            } catch (_) {}
 
             if (updatedSub.id != null) activeSubtaskGTaskIds.add(updatedSub.id!);
-            debugPrint('GoogleCalendarService: Patched subtask ${updatedSub.id} for "${subtask.title}"');
           } on gtasks.DetailedApiRequestError catch (e) {
             if (e.status == 404) {
               final createdSub = await tasksApi.tasks.insert(
@@ -386,12 +306,9 @@ class GoogleCalendarService {
                   );
                 } catch (_) {}
               }
-              debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
-            } else {
-              debugPrint('GoogleCalendarService: Subtask patch error - $e');
             }
           } catch (e) {
-            debugPrint('GoogleCalendarService: Subtask patch error - $e');
+            debugPrint('GoogleCalendarService: Subtask patch note - $e');
           }
         } else {
           try {
@@ -411,33 +328,10 @@ class GoogleCalendarService {
                 );
               } catch (_) {}
             }
-            debugPrint('GoogleCalendarService: Inserted subtask ${createdSub.id} under parent $parentTaskId');
           } catch (e) {
-            debugPrint('GoogleCalendarService: Subtask insert error - $e');
+            debugPrint('GoogleCalendarService: Subtask insert note - $e');
           }
         }
-      }
-
-      // Clean up remote orphan subtasks in Google Tasks that were deleted in Zeta
-      try {
-        final existingList = await tasksApi.tasks.list(
-          '@default',
-          showCompleted: true,
-          showHidden: true,
-          maxResults: 100,
-        );
-        if (existingList.items != null) {
-          for (final item in existingList.items!) {
-            if (item.parent == parentTaskId && item.id != null) {
-              if (!activeSubtaskGTaskIds.contains(item.id)) {
-                await tasksApi.tasks.delete('@default', item.id!);
-                debugPrint('GoogleCalendarService: Deleted orphan Google subtask ${item.id}');
-              }
-            }
-          }
-        }
-      } catch (e) {
-        debugPrint('GoogleCalendarService: Subtask cleanup note - $e');
       }
 
       return parentTaskId;
@@ -491,6 +385,14 @@ class GoogleCalendarService {
         if (item.id == null) continue;
         if (item.deleted == true) {
           deletedTaskIds.add(item.id!);
+          continue; // NEVER treat deleted items as active tasks
+        }
+        if (item.hidden == true) {
+          continue; // Ignore hidden internal items
+        }
+        final itemTitle = item.title?.trim() ?? '';
+        if (itemTitle.isEmpty) {
+          continue; // NEVER process empty-titled tasks
         }
         if (item.parent != null && item.parent!.isNotEmpty) {
           subtasksByParentId.putIfAbsent(item.parent!, () => []).add(item);
@@ -502,14 +404,17 @@ class GoogleCalendarService {
       final List<Task> parsedTasks = [];
 
       for (final gtask in topLevelItems) {
-        final isDeleted = gtask.deleted == true;
+        final title = gtask.title?.trim() ?? '';
+        if (title.isEmpty) continue;
         final dueInfo = parseGoogleTaskDue(gtask.due);
         final rawSubtasks = subtasksByParentId[gtask.id] ?? [];
 
-        final subtasks = rawSubtasks.where((s) => s.deleted != true).map((s) {
+        final subtasks = rawSubtasks
+            .where((s) => s.deleted != true && (s.title?.trim().isNotEmpty ?? false))
+            .map((s) {
           return Subtask(
             id: s.id ?? const Uuid().v4(),
-            title: s.title ?? '',
+            title: s.title!.trim(),
             completed: s.status == 'completed',
             googleTaskId: s.id,
           );
@@ -521,7 +426,7 @@ class GoogleCalendarService {
 
         final task = Task(
           id: const Uuid().v4(),
-          title: gtask.title ?? '',
+          title: title,
           description: (gtask.notes != null && gtask.notes!.trim().isNotEmpty)
               ? gtask.notes!.trim()
               : null,
@@ -534,7 +439,7 @@ class GoogleCalendarService {
           googleEtag: gtask.etag,
           createdAt: updatedDt ?? DateTime.now(),
           updatedAt: updatedDt ?? DateTime.now(),
-          deletedAt: isDeleted ? (updatedDt ?? DateTime.now()) : null,
+          deletedAt: null,
           lastSyncedAt: DateTime.now(),
         );
 
@@ -592,62 +497,53 @@ class GoogleCalendarService {
     }
   }
 
-  /// Parses a Google Tasks RFC 3339 `due` string into Zeta's (dueDate, hasTime, dueTime).
+  /// Parses a Google Tasks RFC 3339 `due` string into Zeta's dueDate.
   ///
-  /// Google Tasks stores all-day due dates as midnight UTC (e.g. `2026-09-15T00:00:00.000Z`).
-  /// To avoid timezone offset day shifting (e.g. Sept 15 UTC becoming Sept 14 in Western timezones),
-  /// all-day dates extract the UTC year, month, and day directly.
-  /// If the timestamp contains a non-zero time, it is converted to local time.
+  /// Google Tasks API explicitly does NOT support time — the `due` field is
+  /// date-only. Any time component is always stripped by Google's servers.
+  /// Therefore this method always returns hasTime: false and dueTime: null.
+  /// Time is exclusively sourced from the linked Google Calendar event.
+  ///
+  /// All-day dates are stored as midnight UTC (e.g. `2026-09-15T00:00:00.000Z`).
+  /// UTC year/month/day are extracted directly to avoid timezone day-shifting.
   static ({String? dueDate, bool hasTime, String? dueTime}) parseGoogleTaskDue(String? dueStr) {
     if (dueStr == null || dueStr.trim().isEmpty) {
       return (dueDate: null, hasTime: false, dueTime: null);
     }
     try {
-      final clean = dueStr.trim();
-      final parsed = DateTime.parse(clean);
-      final isAllDayUtc = (clean.endsWith('T00:00:00.000Z') || clean.endsWith('T00:00:00Z')) &&
-          parsed.hour == 0 &&
-          parsed.minute == 0 &&
-          parsed.second == 0;
-
-      if (isAllDayUtc) {
-        final date = DateTime(parsed.year, parsed.month, parsed.day);
-        return (
-          dueDate: TaskDateFormatter.format(date),
-          hasTime: false,
-          dueTime: null,
-        );
-      } else {
-        final local = parsed.toLocal();
-        final hour = local.hour > 12 ? local.hour - 12 : (local.hour == 0 ? 12 : local.hour);
-        final period = local.hour >= 12 ? 'PM' : 'AM';
-        final minuteStr = local.minute.toString().padLeft(2, '0');
-        return (
-          dueDate: TaskDateFormatter.format(local),
-          hasTime: true,
-          dueTime: '${hour.toString().padLeft(2, '0')}:$minuteStr $period',
-        );
-      }
+      final parsed = DateTime.parse(dueStr.trim());
+      // Always use UTC date components — Google Tasks only stores the date.
+      final date = DateTime(parsed.year, parsed.month, parsed.day);
+      return (
+        dueDate: TaskDateFormatter.format(date),
+        hasTime: false,  // Time is NEVER available from Google Tasks API
+        dueTime: null,   // Fetch time from Google Calendar event instead
+      );
     } catch (_) {
       return (dueDate: null, hasTime: false, dueTime: null);
     }
   }
 
-  /// Formats a Zeta task's dueDate and dueTime into RFC 3339 for Google Tasks `due` endpoint.
+  /// Formats a Zeta task's dueDate into a date-only RFC 3339 string for the Google Tasks `due` field.
+  ///
+  /// Google Tasks API only supports dates — time is always discarded by Google's servers.
+  /// Time sync is handled exclusively via Google Calendar. This method always produces
+  /// a midnight-UTC timestamp representing the date, regardless of whether the task has a time.
   static String? formatTaskDueForGoogleTasks(Task task) {
     if (task.dueDate == null || task.dueDate!.trim().isEmpty) return null;
     final parsedDate = parseTaskDateTime(task);
     if (parsedDate == null) return null;
 
-    final hasTime = task.hasTime || (task.dueTime != null && task.dueTime!.trim().isNotEmpty);
-    if (hasTime) {
-      return parsedDate.toUtc().toIso8601String();
-    } else {
-      final year = parsedDate.year.toString().padLeft(4, '0');
-      final month = parsedDate.month.toString().padLeft(2, '0');
-      final day = parsedDate.day.toString().padLeft(2, '0');
-      return '$year-$month-${day}T00:00:00.000Z';
-    }
+    // Always date-only: Google Tasks silently strips any time component.
+    final year = parsedDate.year.toString().padLeft(4, '0');
+    final month = parsedDate.month.toString().padLeft(2, '0');
+    final day = parsedDate.day.toString().padLeft(2, '0');
+    return '$year-$month-${day}T00:00:00.000Z';
+  }
+
+  /// Fetches the start datetime of a Google Calendar event — disabled per user request.
+  Future<DateTime?> pullCalendarEventDateTime(String eventId) async {
+    return null;
   }
 
   /// Helper to combine dueDate and dueTime into a local DateTime.

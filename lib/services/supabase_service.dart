@@ -65,7 +65,7 @@ class SupabaseService {
       return await client.auth.signInWithOAuth(
         OAuthProvider.google,
         redirectTo: redirect,
-        scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/tasks',
+        scopes: 'https://www.googleapis.com/auth/tasks',
       );
     } catch (e) {
       debugPrint('SupabaseService: signInWithGoogle error - $e');

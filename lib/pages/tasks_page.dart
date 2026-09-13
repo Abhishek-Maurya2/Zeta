@@ -26,6 +26,7 @@ class TasksPage extends StatelessWidget {
       position: position,
       task: task,
       isBin: false,
+      onSelect: () => provider.toggleTaskSelection(task.id),
       onToggleComplete: () => provider.toggleTask(task.id),
       onEdit: () => TaskEditPane.show(context, task: task),
       onDelete: () => provider.deleteTask(task.id),
@@ -257,19 +258,34 @@ class TasksPage extends StatelessWidget {
         Positioned(
           bottom: isCompact ? 84 : 28,
           right: isCompact ? 16 : 36,
-          child: ZetaExtendedFab(
-            color: M3EFabColor.primary,
-            extended: true,
-            icon: const Icon(Icons.add_rounded),
-            label: 'Add Task',
-            height: isCompact ? 56 : 64,
-            iconSize: isCompact ? 24 : 28,
-            cornerRadius: isCompact ? 16 : 15,
-            extendedHorizontalPadding: isCompact ? 20 : 30,
-            iconLabelGap: isCompact ? 12 : 15,
-            labelFontSize: isCompact ? 16 : 18,
-            labelFontWeight: FontWeight.w600,
-            onPressed: () => TaskEditPane.show(context),
+          child: AnimatedSlide(
+            offset: taskProvider.isSelectionMode
+                ? const Offset(0, 2.0)
+                : Offset.zero,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubicEmphasized,
+            child: AnimatedScale(
+              scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOutCubic,
+              child: IgnorePointer(
+                ignoring: taskProvider.isSelectionMode,
+                child: ZetaExtendedFab(
+                  color: M3EFabColor.primary,
+                  extended: true,
+                  icon: const Icon(Icons.add_rounded),
+                  label: 'Add Task',
+                  height: isCompact ? 56 : 64,
+                  iconSize: isCompact ? 24 : 28,
+                  cornerRadius: isCompact ? 16 : 15,
+                  extendedHorizontalPadding: isCompact ? 20 : 30,
+                  iconLabelGap: isCompact ? 12 : 15,
+                  labelFontSize: isCompact ? 16 : 18,
+                  labelFontWeight: FontWeight.w600,
+                  onPressed: () => TaskEditPane.show(context),
+                ),
+              ),
+            ),
           ),
         ),
       ],
@@ -295,6 +311,7 @@ class TasksPage extends StatelessWidget {
         gap: 3,
       ),
       leadingActionsBuilder: (index) {
+        if (provider.isSelectionMode) return [];
         final task = tasks[index];
         return [
           M3EListSwipeAction(
@@ -312,6 +329,7 @@ class TasksPage extends StatelessWidget {
         ];
       },
       trailingActionsBuilder: (index) {
+        if (provider.isSelectionMode) return [];
         final task = tasks[index];
         return [
           M3EListSwipeAction(
@@ -323,6 +341,7 @@ class TasksPage extends StatelessWidget {
         ];
       },
       onDismiss: (index, direction) async {
+        if (provider.isSelectionMode) return false;
         final task = tasks[index];
         if (direction == DismissDirection.endToStart) {
           provider.deleteTask(task.id);
@@ -343,15 +362,30 @@ class TasksPage extends StatelessWidget {
     Task task,
     TaskProvider provider,
   ) {
+    final isSelectionMode = provider.isSelectionMode;
+    final isSelected = provider.isTaskSelected(task.id);
+
     return TaskCardItem(
       key: ValueKey(task.id),
       task: task,
       isExpanded: provider.isTaskExpanded(task.id),
-      onToggle: () => provider.toggleTask(task.id),
+      isSelected: isSelected,
+      isSelectionMode: isSelectionMode,
+      onToggle: isSelectionMode
+          ? () {
+              ZetaHaptics.selection();
+              provider.toggleTaskSelection(task.id);
+            }
+          : () => provider.toggleTask(task.id),
       onToggleExpand: () => provider.toggleTaskExpanded(task.id),
       onToggleSubtask: (subtaskId) =>
           provider.toggleSubtask(task.id, subtaskId),
-      onTap: () => TaskEditPane.show(context, task: task),
+      onTap: isSelectionMode
+          ? () {
+              ZetaHaptics.selection();
+              provider.toggleTaskSelection(task.id);
+            }
+          : () => TaskEditPane.show(context, task: task),
       onContextMenu: (pos) => _showContextMenu(context, pos, task, provider),
       onDelete: () => provider.deleteTask(task.id),
     );

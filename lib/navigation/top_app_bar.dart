@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import '../utils/haptics.dart';
 
 import '../providers/navigation_provider.dart';
+import '../providers/task_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
@@ -134,114 +135,119 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
           // ─── Center Section: M3E Search Bar with Theme Switch in Trailing ─
           Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: M3ESearchAnchor.bar(
-                    searchController: _searchController,
-                    barOverlayColor: const WidgetStatePropertyAll(
-                      Colors.transparent,
-                    ),
-                    barHintText: isCompact
-                        ? 'Search'
-                        : 'Search tasks, notes, subtasks',
-                    barTrailing: [
-                      if (!isCompact)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: colorScheme.outline.withValues(alpha: 0.2),
+            child: ClipRect(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: M3ESearchAnchor.bar(
+                      searchController: _searchController,
+                      barOverlayColor: const WidgetStatePropertyAll(
+                        Colors.transparent,
+                      ),
+                      barHintText: isCompact
+                          ? 'Search'
+                          : 'Search tasks, notes, subtasks',
+                      barTrailing: [
+                        if (!isCompact)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: colorScheme.outline.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Text(
+                              '/',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            '/',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontFamily: 'monospace',
+                        // Theme Switch Icon Button Standard inside SearchBar
+                        if (!isCompact)
+                          M3EIconButton(
+                            variant: M3EIconButtonVariant.standard,
+                            tooltip: themeProvider.themeMode == ThemeMode.dark
+                                ? 'Light theme'
+                                : 'Dark theme',
+                            icon: Icon(
+                              themeProvider.themeMode == ThemeMode.dark
+                                  ? Icons.light_mode_outlined
+                                  : Icons.dark_mode_outlined,
                               color: colorScheme.onSurfaceVariant,
                             ),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              themeProvider.toggleTheme();
+                            },
                           ),
-                        ),
-                      // Theme Switch Icon Button Standard inside SearchBar
-                      M3EIconButton(
-                        variant: M3EIconButtonVariant.standard,
-                        // size: M3EIconButtonSize.sm,
-                        tooltip: themeProvider.themeMode == ThemeMode.dark
-                            ? 'Light theme'
-                            : 'Dark theme',
-                        icon: Icon(
-                          themeProvider.themeMode == ThemeMode.dark
-                              ? Icons.light_mode_outlined
-                              : Icons.dark_mode_outlined,
-                          // size: 20,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        onPressed: () {
-                          ZetaHaptics.light();
-                          themeProvider.toggleTheme();
-                        },
-                      ),
-                    ],
-                    suggestionsBuilder: (context, controller) {
-                      return _buildSearchSuggestions(
-                        context,
-                        controller,
-                        navProvider,
-                      );
-                    },
+                      ],
+                      suggestionsBuilder: (context, controller) {
+                        return _buildSearchSuggestions(
+                          context,
+                          controller,
+                          navProvider,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
           ),
 
+
           // const SizedBox(width: 12),
 
-          // ─── Trailing Section: Profile Avatar with Status Ring ───────────
-          Tooltip(
-            message: 'Profile: ${themeProvider.userName} • Online',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
-                ZetaHaptics.selection();
-                navProvider.setActivePage(PageId.settings);
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const UserAvatar(radius: 17, ringWidth: 2),
-                    // Online status badge dot
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: colorScheme.surface,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          // ─── Trailing Section: Profile Avatar with Sync-Status Ring ─────
+          Builder(builder: (context) {
+            final taskProvider = context.watch<TaskProvider>();
+
+            // Map sync state → ring color
+            final Color syncRingColor;
+            final String syncLabel;
+            if (taskProvider.isSyncing) {
+              syncRingColor = const Color(0xFFF59E0B); // amber — syncing
+              syncLabel = 'Syncing…';
+            } else if (taskProvider.syncError != null) {
+              syncRingColor = Theme.of(context).colorScheme.error; // red — error
+              syncLabel = 'Sync error';
+            } else if (taskProvider.lastSyncedAt != null) {
+              syncRingColor = const Color(0xFF10B981); // green — synced
+              syncLabel = 'Synced';
+            } else {
+              syncRingColor = themeProvider.currentAvatarColor; // accent — never synced
+              syncLabel = 'Not synced';
+            }
+
+            return Tooltip(
+              message: '${themeProvider.userName} • $syncLabel',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  ZetaHaptics.selection();
+                  navProvider.setActivePage(PageId.settings);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: UserAvatar(
+                    radius: 17,
+                    ringWidth: 2,
+                    ringColor: syncRingColor,
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          }),
         ],
       ),
     );

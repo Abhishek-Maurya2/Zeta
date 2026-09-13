@@ -5,6 +5,7 @@ import '../../models/task.dart';
 import '../../utils/haptics.dart';
 
 enum TaskContextAction {
+  select,
   toggleComplete,
   edit,
   delete,
@@ -18,6 +19,7 @@ class TaskContextMenu {
     required Offset position,
     required Task task,
     bool isBin = false,
+    VoidCallback? onSelect,
     VoidCallback? onToggleComplete,
     VoidCallback? onEdit,
     VoidCallback? onDelete,
@@ -30,7 +32,7 @@ class TaskContextMenu {
       anchor: Rect.fromLTWH(position.dx, position.dy, 1, 1),
       position: M3EMenuAnchorPosition.bottomStart,
       colorStyle: M3EMenuColorStyle.vibrant,
-      preferredWidth: 210,
+      preferredWidth: 230,
       children: isBin
           ? [
               const M3EMenuEntry(
@@ -47,6 +49,12 @@ class TaskContextMenu {
               ),
             ]
           : [
+              const M3EMenuEntry(
+                value: TaskContextAction.select,
+                label: 'Select',
+                leading: Icon(Icons.check_circle_outline_rounded, size: 20),
+              ),
+              const M3EMenuDivider(),
               M3EMenuEntry(
                 value: TaskContextAction.toggleComplete,
                 label: task.completed
@@ -78,6 +86,9 @@ class TaskContextMenu {
     ZetaHaptics.light();
 
     switch (selected) {
+      case TaskContextAction.select:
+        onSelect?.call();
+        break;
       case TaskContextAction.toggleComplete:
         onToggleComplete?.call();
         break;

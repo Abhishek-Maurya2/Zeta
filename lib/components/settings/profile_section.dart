@@ -335,8 +335,9 @@ class _ProfileSectionState extends State<ProfileSection> {
                         ),
                         Text(
                           themeProvider.hasAvatarPhoto
-                              ? 'Choose accent color for avatar ring'
-                              : 'Choose accent tone for letter "${themeProvider.avatarInitial}"',
+                              ? 'Choose accent color for letter fill'
+                              : 'Choose accent tone for letter "${themeProvider.avatarInitial}"'
+                                  ' • Ring shows sync status',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),

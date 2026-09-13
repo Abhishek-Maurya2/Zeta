@@ -12,6 +12,8 @@ class TaskCardItem extends StatelessWidget {
   final Task task;
   final bool isExpanded;
   final bool isDeleted;
+  final bool isSelected;
+  final bool isSelectionMode;
   final VoidCallback? onToggle;
   final VoidCallback? onToggleExpand;
   final void Function(String subtaskId)? onToggleSubtask;
@@ -29,6 +31,8 @@ class TaskCardItem extends StatelessWidget {
     required this.task,
     this.isExpanded = false,
     this.isDeleted = false,
+    this.isSelected = false,
+    this.isSelectionMode = false,
     this.onToggle,
     this.onToggleExpand,
     this.onToggleSubtask,
@@ -55,12 +59,26 @@ class TaskCardItem extends StatelessWidget {
           onContextMenu?.call(details.globalPosition),
       onLongPressStart: (details) =>
           onContextMenu?.call(details.globalPosition),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primaryContainer.withValues(alpha: 0.35)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected
+              ? Border.all(
+                  color: colorScheme.primary.withValues(alpha: 0.5),
+                  width: 1.5,
+                )
+              : Border.all(color: Colors.transparent, width: 1.5),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ─── Header: Leading, Title/Description, Trailing ────────────
@@ -170,8 +188,9 @@ class TaskCardItem extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLeading(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -183,6 +202,28 @@ class TaskCardItem extends StatelessWidget {
           Icons.delete_outline_rounded,
           size: 22,
           color: colorScheme.outline,
+        ),
+      );
+    }
+
+    if (isSelectionMode) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 0),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: isSelected
+              ? Icon(
+                  Icons.check_circle_rounded,
+                  key: const ValueKey('selected'),
+                  size: 22,
+                  color: colorScheme.primary,
+                )
+              : Icon(
+                  Icons.radio_button_unchecked_rounded,
+                  key: const ValueKey('unselected'),
+                  size: 22,
+                  color: colorScheme.outline,
+                ),
         ),
       );
     }

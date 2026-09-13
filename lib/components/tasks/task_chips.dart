@@ -19,8 +19,13 @@ class TaskDueDateChip extends StatelessWidget {
     if (task.dueDate == null) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
-    final hasScheduledTime =
-        task.hasTime && task.dueTime != null && task.dueTime!.trim().isNotEmpty;
+    // Show clock icon only when the chip is displaying time-only
+    // (i.e. due today with a scheduled time). All other cases show the calendar.
+    final showTimeOnly =
+        TaskDateFormatter.isToday(task.dueDate) &&
+        task.hasTime &&
+        task.dueTime != null &&
+        task.dueTime!.trim().isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -32,10 +37,10 @@ class TaskDueDateChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            hasScheduledTime
+            showTimeOnly
                 ? Icons.schedule_rounded
                 : Icons.calendar_today_outlined,
-            size: 15,
+            size: 16,
             color: colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: 8),

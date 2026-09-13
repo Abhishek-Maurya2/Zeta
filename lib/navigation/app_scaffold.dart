@@ -14,6 +14,7 @@ import '../pages/pomodoro_page.dart';
 import '../pages/bin_page.dart';
 import '../pages/settings_page.dart';
 import '../components/tasks/task_edit_pane.dart';
+import '../components/tasks/task_selection_toolbar.dart';
 import 'top_app_bar.dart';
 
 /// Adaptive scaffold mirroring Sharva's layout:
@@ -75,7 +76,8 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
 
     // Never trigger shortcuts if modifier keys (Ctrl, Alt, Meta) are held.
-    final hasModifier = HardwareKeyboard.instance.isControlPressed ||
+    final hasModifier =
+        HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isAltPressed ||
         HardwareKeyboard.instance.isMetaPressed;
     if (hasModifier) return false;
@@ -138,7 +140,8 @@ class _AppScaffoldState extends State<AppScaffold> {
     final ctx = focus.context;
     if (ctx != null && ctx.mounted) {
       if (ctx.widget is EditableText) return true;
-      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null) return true;
+      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null)
+        return true;
       if (ctx.findAncestorStateOfType<EditableTextState>() != null) return true;
     }
 
@@ -148,16 +151,22 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
+    final taskProvider = context.watch<TaskProvider>();
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < 600;
     final isExpanded = width >= 840;
+    final isSelectionMode =
+        taskProvider.isSelectionMode && navProvider.activePage == PageId.tasks;
 
     // Top app bar visibility
+    // In compact mode the floating bottom nav handles navigation; the top bar
+    // is hidden to avoid its search row overflowing in narrow viewports.
     final showTopAppBar =
-        isExpanded ||
-        (navProvider.activePage != PageId.settings &&
-            navProvider.activePage != PageId.pomodoro &&
-            navProvider.activePage != PageId.revision);
+        !isCompact &&
+        (isExpanded ||
+            (navProvider.activePage != PageId.settings &&
+                navProvider.activePage != PageId.pomodoro &&
+                navProvider.activePage != PageId.revision));
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -183,8 +192,7 @@ class _AppScaffoldState extends State<AppScaffold> {
             child: Column(
               children: [
                 // 1. Top App Bar (contains rail toggle button, hidden on mobile)
-                if (showTopAppBar)
-                  TopAppBarWidget(key: _topBarKey),
+                if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
                 // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
                 Expanded(
@@ -196,13 +204,54 @@ class _AppScaffoldState extends State<AppScaffold> {
                                 activePage: navProvider.activePage,
                               ),
                             ),
-                            Align(
-                              alignment: Alignment.bottomCenter,
-                              child: SafeArea(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _FloatingBottomNav(
-                                    navProvider: navProvider,
+                            // Floating Bottom Navigation: moves down out of view when selecting
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 16,
+                              height: 56,
+                              child: AnimatedSlide(
+                                offset: isSelectionMode
+                                    ? const Offset(0, 2.0)
+                                    : Offset.zero,
+                                duration: const Duration(milliseconds: 320),
+                                curve: Curves.easeInOutCubicEmphasized,
+                                child: AnimatedOpacity(
+                                  opacity: isSelectionMode ? 0.0 : 1.0,
+                                  duration: const Duration(milliseconds: 220),
+                                  child: IgnorePointer(
+                                    ignoring: isSelectionMode,
+                                    child: Center(
+                                      child: SizedBox(
+                                        height: 56,
+                                        child: _FloatingBottomNav(
+                                          navProvider: navProvider,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Floating Selection Toolbar: moves up from bottom into position
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 16,
+                              child: AnimatedSlide(
+                                offset: isSelectionMode
+                                    ? Offset.zero
+                                    : const Offset(0, 2.0),
+                                duration: const Duration(milliseconds: 320),
+                                curve: Curves.easeInOutCubicEmphasized,
+                                child: AnimatedOpacity(
+                                  opacity: isSelectionMode ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 250),
+                                  child: IgnorePointer(
+                                    ignoring: !isSelectionMode,
+                                    child: TaskSelectionToolbar(
+                                      taskProvider: taskProvider,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -218,10 +267,42 @@ class _AppScaffoldState extends State<AppScaffold> {
                               navProvider: navProvider,
                             ),
 
-                            // Body content pane
+                            // Body content pane + floating selection toolbar
                             Expanded(
-                              child: _BodyPane(
-                                activePage: navProvider.activePage,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: _BodyPane(
+                                      activePage: navProvider.activePage,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 24,
+                                    child: AnimatedSlide(
+                                      offset: isSelectionMode
+                                          ? Offset.zero
+                                          : const Offset(0, 2.0),
+                                      duration: const Duration(
+                                        milliseconds: 320,
+                                      ),
+                                      curve: Curves.easeInOutCubicEmphasized,
+                                      child: AnimatedOpacity(
+                                        opacity: isSelectionMode ? 1.0 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        child: IgnorePointer(
+                                          ignoring: !isSelectionMode,
+                                          child: TaskSelectionToolbar(
+                                            taskProvider: taskProvider,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -281,6 +362,7 @@ class _NavigationRailWidget extends StatelessWidget {
         selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
         onDestinationSelected: (index) {
           ZetaHaptics.selection();
+          context.read<TaskProvider>().clearSelection();
           navProvider.setActivePage(kNavDestinations[index].id);
         },
         fab: M3ENavigationRailFabSlot(
@@ -334,6 +416,7 @@ class _FloatingBottomNav extends StatelessWidget {
                 isSelected: isSelected,
                 onTap: () {
                   ZetaHaptics.selection();
+                  context.read<TaskProvider>().clearSelection();
                   navProvider.setActivePage(dest.id);
                 },
               );
@@ -371,8 +454,8 @@ class _ToolbarNavItem extends StatelessWidget {
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 12 : 9,
-              vertical: 12,
+              horizontal: isSelected ? 12 : 6,
+              vertical: 10,
             ),
             decoration: BoxDecoration(
               color: isSelected
@@ -382,6 +465,7 @@ class _ToolbarNavItem extends StatelessWidget {
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(
                   isSelected ? destination.selectedIcon : destination.icon,
@@ -395,9 +479,10 @@ class _ToolbarNavItem extends StatelessWidget {
                   Text(
                     destination.label,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface,
+                      // height: 1.0,
                     ),
                   ),
                 ],
