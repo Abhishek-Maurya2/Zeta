@@ -4,7 +4,6 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": ".",
-  "public": true,
   "cleanUrls": true,
   "rewrites": [
     {
