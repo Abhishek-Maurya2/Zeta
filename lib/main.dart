@@ -6,6 +6,7 @@ import 'providers/theme_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/pomodoro_provider.dart';
+import 'providers/update_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 import 'services/supabase_service.dart';
@@ -13,9 +14,7 @@ import 'services/supabase_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-    ),
+    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
   await SupabaseService().init();
   runApp(const ZetaApp());
@@ -32,6 +31,7 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),
+        ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: const _ZetaAppView(),
     );
@@ -47,8 +47,8 @@ class _ZetaAppView extends StatelessWidget {
     final double textScaleFactor = themeProvider.fontScale == 'compact'
         ? 0.92
         : themeProvider.fontScale == 'large'
-            ? 1.08
-            : 1.0;
+        ? 1.08
+        : 1.0;
 
     return MaterialApp(
       title: 'Zeta',
@@ -56,9 +56,8 @@ class _ZetaAppView extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(textScaleFactor),
-          ),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScaleFactor)),
           child: child ?? const SizedBox.shrink(),
         );
       },

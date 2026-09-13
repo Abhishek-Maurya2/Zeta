@@ -10,6 +10,7 @@ enum SettingsCategory {
   notifications,
   googleSync,
   data,
+  updates,
 }
 
 class SettingsCategoryItem {
@@ -84,5 +85,12 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     description: 'Storage, backup, and diagnostics',
     icon: Icons.security_outlined,
     selectedIcon: Icons.security_rounded,
+  ),
+  SettingsCategoryItem(
+    id: SettingsCategory.updates,
+    label: 'Updates',
+    description: 'Version, changelog, and downloads',
+    icon: Icons.system_update_outlined,
+    selectedIcon: Icons.system_update_rounded,
   ),
 ];

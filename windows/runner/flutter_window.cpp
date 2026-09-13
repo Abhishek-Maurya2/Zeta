@@ -1,5 +1,6 @@
 #include "flutter_window.h"
 
+#include <dwmapi.h>
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
@@ -27,6 +28,70 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  title_bar_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "zeta/windows_title_bar",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  title_bar_channel_->SetMethodCallHandler(
+      [this](const auto& call, auto result) {
+        if (call.method_name() == "updateTitleBar") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          if (args) {
+            HWND hwnd = GetHandle();
+            if (hwnd && IsWindow(hwnd)) {
+              auto dark_it = args->find(flutter::EncodableValue("isDark"));
+              if (dark_it != args->end()) {
+                if (const auto* val = std::get_if<bool>(&dark_it->second)) {
+                  BOOL dark = *val ? TRUE : FALSE;
+                  DwmSetWindowAttribute(hwnd, 20, &dark, sizeof(dark));
+                }
+              }
+
+              auto color_it = args->find(flutter::EncodableValue("color"));
+              if (color_it != args->end()) {
+                COLORREF cref = 0;
+                bool has_color = false;
+                if (const auto* val = std::get_if<int32_t>(&color_it->second)) {
+                  int32_t c = *val;
+                  cref = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+                  has_color = true;
+                } else if (const auto* val64 = std::get_if<int64_t>(&color_it->second)) {
+                  int64_t c = *val64;
+                  cref = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+                  has_color = true;
+                }
+                if (has_color) {
+                  DwmSetWindowAttribute(hwnd, 35, &cref, sizeof(cref));
+                }
+              }
+
+              auto text_it = args->find(flutter::EncodableValue("textColor"));
+              if (text_it != args->end()) {
+                COLORREF text_cref = 0;
+                bool has_text = false;
+                if (const auto* val = std::get_if<int32_t>(&text_it->second)) {
+                  int32_t c = *val;
+                  text_cref = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+                  has_text = true;
+                } else if (const auto* val64 = std::get_if<int64_t>(&text_it->second)) {
+                  int64_t c = *val64;
+                  text_cref = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+                  has_text = true;
+                }
+                if (has_text) {
+                  DwmSetWindowAttribute(hwnd, 36, &text_cref, sizeof(text_cref));
+                }
+              }
+            }
+          }
+          result->Success();
+        } else {
+          result->NotImplemented();
+        }
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -40,6 +105,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  title_bar_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

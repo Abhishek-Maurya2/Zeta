@@ -24,6 +24,11 @@ dependencies:
   url_launcher: ^6.3.0
   uuid: ^4.5.1
   flutter_svg: ^2.3.0
+  ffi: ^2.2.0
+  package_info_plus: ^10.2.1
+  path_provider: ^2.1.5
+  open_filex: ^4.5.0
+  dio: ^5.7.0
 
 dev_dependencies:
   flutter_test:

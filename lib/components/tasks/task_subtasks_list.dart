@@ -34,7 +34,8 @@ class TaskSubtasksList extends StatelessWidget {
         outerRadius: 16,
         innerRadius: 6,
       ),
-      color: effectiveBgColor,
+      // color: effectiveBgColor,
+      color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
       children: subtasks.map((subtask) {
         final rowContent = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

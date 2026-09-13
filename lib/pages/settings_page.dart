@@ -6,6 +6,7 @@ import '../widgets/segmented_column.dart';
 import '../widgets/m3_pane_divider.dart';
 import '../utils/haptics.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/update_provider.dart';
 
 import '../components/settings/settings.dart';
 
@@ -226,7 +227,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     if (_selectedCategory != null) {
                       setState(() => _selectedCategory = null);
                     } else {
-                      context.read<NavigationProvider>().setActivePage(PageId.tasks);
+                      context.read<NavigationProvider>().setActivePage(
+                        PageId.tasks,
+                      );
                     }
                   },
                 ),
@@ -481,6 +484,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                 ),
+                if (category.id == SettingsCategory.updates &&
+                    context.watch<UpdateProvider>().isUpdateAvailable)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'NEW',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ),
                 if (!isTwoPane)
                   Icon(
                     Icons.chevron_right_rounded,
@@ -513,6 +537,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return GoogleSyncSection(onToast: _showToast);
       case SettingsCategory.data:
         return DataPrivacySection(onToast: _showToast);
+      case SettingsCategory.updates:
+        return UpdatesSection(onToast: _showToast);
       case null:
         return const SizedBox.shrink();
     }

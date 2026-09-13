@@ -7,3 +7,4 @@ export 'pomodoro_section.dart';
 export 'notifications_section.dart';
 export 'google_sync_section.dart';
 export 'data_privacy_section.dart';
+export 'updates_section.dart';

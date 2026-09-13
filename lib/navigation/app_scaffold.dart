@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../utils/haptics.dart';
+import '../utils/windows_title_bar.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
@@ -165,6 +166,16 @@ class _AppScaffoldState extends State<AppScaffold> {
         isExpanded || navProvider.activePage != PageId.settings;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Sync native Windows window title bar with theme colors safely via MethodChannel
+    WindowsTitleBar.update(
+      isDark: isDark,
+      captionColor: isDark
+          ? colorScheme.surfaceContainer
+          : colorScheme.surface,
+      textColor: colorScheme.onSurface,
+    );
 
     final systemOverlayStyle = SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,

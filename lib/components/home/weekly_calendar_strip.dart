@@ -143,83 +143,87 @@ class WeeklyCalendarStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      headlineLabel,
-                      style: TextStyle(
-                        fontFamily: 'GoogleSansFlex',
-                        fontSize: 40,
-                        color: colorScheme.onSurface.withValues(alpha: 0.9),
-                        fontVariations: const [
-                          FontVariation('wght', 600), // Weight
-                          FontVariation('wdth', 70),
-                          FontVariation('GRAD', 20), // Grade stroke density
-                          FontVariation('opsz', 15), // Optical size
-                          FontVariation('slnt', 0),
-                          FontVariation('ROND', 100),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-
-                    // Calendar Datepicker Trigger (acts as "Reset to Today" in compact mode)
-                    Tooltip(
-                      message: isCompact
-                          ? 'Reset to Today'
-                          : 'Open Calendar Picker',
-                      child: M3EIconButton(
-                        size: M3EIconButtonSize.xs,
-                        variant: M3EIconButtonVariant.standard,
-                        icon: Icon(
-                          Icons.calendar_month_rounded,
-                          size: 23,
-                          color: isSelectedToday
-                              ? colorScheme.primary
-                              : colorScheme.outline,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        headlineLabel,
+                        style: TextStyle(
+                          fontFamily: 'GoogleSansFlex',
+                          fontSize: 40,
+                          color: colorScheme.onSurface.withValues(alpha: 0.9),
+                          fontVariations: const [
+                            FontVariation('wght', 600), // Weight
+                            FontVariation('wdth', 70),
+                            FontVariation('GRAD', 20), // Grade stroke density
+                            FontVariation('opsz', 15), // Optical size
+                            FontVariation('slnt', 0),
+                            FontVariation('ROND', 100),
+                          ],
                         ),
-                        onPressed: () {
-                          ZetaHaptics.light();
-                          if (isCompact) {
-                            onResetToToday();
-                          } else {
-                            _openDatePicker(context);
-                          }
-                        },
                       ),
-                    ),
+                      const SizedBox(width: 8),
 
-                    // Reset to "Today" button (hidden in compact mode)
-                    if (!isCompact && !isSelectedToday) ...[
-                      const SizedBox(width: 6),
-                      InkWell(
-                        onTap: () {
-                          ZetaHaptics.light();
-                          onResetToToday();
-                        },
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 3,
+                      // Calendar Datepicker Trigger (acts as "Reset to Today" in compact mode)
+                      Tooltip(
+                        message: isCompact
+                            ? 'Reset to Today'
+                            : 'Open Calendar Picker',
+                        child: M3EIconButton(
+                          size: M3EIconButtonSize.xs,
+                          variant: M3EIconButtonVariant.standard,
+                          icon: Icon(
+                            Icons.calendar_month_rounded,
+                            size: 23,
+                            color: isSelectedToday
+                                ? colorScheme.primary
+                                : colorScheme.outline,
                           ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            'Today',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: colorScheme.onPrimaryContainer,
+                          onPressed: () {
+                            ZetaHaptics.light();
+                            if (isCompact) {
+                              onResetToToday();
+                            } else {
+                              _openDatePicker(context);
+                            }
+                          },
+                        ),
+                      ),
+
+                      // Reset to "Today" button (hidden in compact mode)
+                      if (!isCompact && !isSelectedToday) ...[
+                        const SizedBox(width: 6),
+                        InkWell(
+                          onTap: () {
+                            ZetaHaptics.light();
+                            onResetToToday();
+                          },
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              'Today',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 4),
 
