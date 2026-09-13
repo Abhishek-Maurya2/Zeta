@@ -128,8 +128,15 @@ class ThemeProvider extends ChangeNotifier {
     _saveSetting(_prefKeyThemeMode, mode.name);
   }
 
-  void toggleTheme() {
-    final next = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+  bool isDarkMode(BuildContext context) {
+    if (_themeMode == ThemeMode.dark) return true;
+    if (_themeMode == ThemeMode.light) return false;
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  void toggleTheme([bool? isCurrentlyDark]) {
+    final bool isDark = isCurrentlyDark ?? (_themeMode == ThemeMode.dark);
+    final next = isDark ? ThemeMode.light : ThemeMode.dark;
     setThemeMode(next);
   }
 

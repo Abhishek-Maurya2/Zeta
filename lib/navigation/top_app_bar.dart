@@ -62,18 +62,35 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final themeProvider = context.watch<ThemeProvider>();
+    final taskProvider = context.watch<TaskProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final width = MediaQuery.sizeOf(context).width;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final isCompact = width < 600;
     final showBrandText = width >= 640;
+
+    final isSearchOpen =
+        _searchController.isAttached && _searchController.isOpen;
+    if (!isSearchOpen && _searchController.text != taskProvider.searchQuery) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          final currentlyOpen =
+              _searchController.isAttached && _searchController.isOpen;
+          if (!currentlyOpen &&
+              _searchController.text != taskProvider.searchQuery) {
+            _searchController.text = taskProvider.searchQuery;
+          }
+        }
+      });
+    }
 
     return Container(
       height: isCompact ? 56 : 64,
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
+        color: isDark
             ? colorScheme.surfaceContainer
             : colorScheme.surface,
       ),
@@ -150,8 +167,33 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                       barHintText: isCompact
                           ? 'Search'
                           : 'Search tasks, notes, subtasks',
+                      onSubmitted: (query) {
+                        final trimmed = query.trim();
+                        if (trimmed.isNotEmpty) {
+                          taskProvider.setSearchQuery(trimmed);
+                          navProvider.setActivePage(PageId.tasks);
+                          if (_searchController.isAttached &&
+                              _searchController.isOpen) {
+                            _searchController.closeView(trimmed);
+                          }
+                        }
+                      },
                       barTrailing: [
-                        if (!isCompact)
+                        if (taskProvider.searchQuery.isNotEmpty ||
+                            _searchController.text.isNotEmpty)
+                          Tooltip(
+                            message: 'Clear search',
+                            child: IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              color: colorScheme.onSurfaceVariant,
+                              onPressed: () {
+                                ZetaHaptics.light();
+                                _searchController.clear();
+                                taskProvider.clearSearchQuery();
+                              },
+                            ),
+                          )
+                        else if (!isCompact)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -176,21 +218,20 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             ),
                           ),
                         // Theme Switch Icon Button Standard inside SearchBar
-                        // if (!isCompact)
                         M3EIconButton(
                           variant: M3EIconButtonVariant.standard,
-                          tooltip: themeProvider.themeMode == ThemeMode.dark
-                              ? 'Light theme'
-                              : 'Dark theme',
+                          tooltip: isDark
+                              ? 'Switch to light theme'
+                              : 'Switch to dark theme',
                           icon: Icon(
-                            themeProvider.themeMode == ThemeMode.dark
+                            isDark
                                 ? Icons.light_mode_outlined
                                 : Icons.dark_mode_outlined,
                             color: colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () {
                             ZetaHaptics.light();
-                            themeProvider.toggleTheme();
+                            themeProvider.toggleTheme(isDark);
                           },
                         ),
                       ],
@@ -213,8 +254,6 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           // ─── Trailing Section: Profile Avatar with Sync-Status Ring ─────
           Builder(
             builder: (context) {
-              final taskProvider = context.watch<TaskProvider>();
-
               // Map sync state → ring color
               final Color syncRingColor;
               final String syncLabel;
@@ -269,6 +308,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final colorScheme = Theme.of(context).colorScheme;
     final query = controller.text.trim();
 
+    void safeCloseView([String? result]) {
+      if (controller.isAttached && controller.isOpen) {
+        controller.closeView(result);
+      }
+    }
+
     if (query.isEmpty) {
       return [
         Padding(
@@ -296,7 +341,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 subtitle: const Text('Create a new task or note  [N]'),
                 dense: true,
                 onTap: () {
-                  controller.closeView(null);
+                  safeCloseView(null);
                   TaskEditPane.show(context);
                 },
               ),
@@ -309,7 +354,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 subtitle: const Text('Recycle bin and archived tasks'),
                 dense: true,
                 onTap: () {
-                  controller.closeView(null);
+                  safeCloseView(null);
                   navProvider.setActivePage(PageId.bin);
                 },
               ),
@@ -322,7 +367,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 subtitle: const Text('Focus intervals and session tracker'),
                 dense: true,
                 onTap: () {
-                  controller.closeView(null);
+                  safeCloseView(null);
                   navProvider.setActivePage(PageId.pomodoro);
                 },
               ),
@@ -335,7 +380,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 subtitle: const Text('Customize theme, typography and sync'),
                 dense: true,
                 onTap: () {
-                  controller.closeView(null);
+                  safeCloseView(null);
                   navProvider.setActivePage(PageId.settings);
                 },
               ),
@@ -373,26 +418,244 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       ];
     }
 
-    // Query results
-    return [
+    final taskProvider = context.read<TaskProvider>();
+    final matchingTasks = taskProvider.searchTasks(query);
+    final matchingBinTasks = taskProvider.searchBinTasks(query);
+    final widgets = <Widget>[];
+
+    // 1. Primary Action: Filter Tasks page
+    widgets.add(
       ListTile(
-        leading: Icon(Icons.add_rounded, color: colorScheme.primary),
-        title: Text('Create task "$query"'),
-        subtitle: const Text('Press Enter to create'),
-        onTap: () {
-          controller.closeView(null);
-          TaskEditPane.show(context);
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.search_rounded),
+        leading: Icon(Icons.search_rounded, color: colorScheme.primary),
         title: Text('Search for "$query" in all tasks'),
+        subtitle: Text('Filter Tasks page • ${matchingTasks.length} found'),
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '${matchingTasks.length}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ),
         onTap: () {
-          controller.closeView(query);
+          safeCloseView(query);
+          taskProvider.setSearchQuery(query);
           navProvider.setActivePage(PageId.tasks);
         },
       ),
-    ];
+    );
+
+    // 2. Action: Create task with this title
+    widgets.add(
+      ListTile(
+        leading: Icon(Icons.add_task_rounded, color: colorScheme.primary),
+        title: Text('Create task "$query"'),
+        subtitle: const Text('Add a new task with this title'),
+        onTap: () {
+          safeCloseView(null);
+          TaskEditPane.show(context, initialTitle: query);
+        },
+      ),
+    );
+
+    // 3. Matching Tasks
+    if (matchingTasks.isNotEmpty) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(
+            'MATCHING TASKS (${matchingTasks.length})',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: colorScheme.primary,
+            ),
+          ),
+        ),
+      );
+
+      final qLower = query.toLowerCase();
+      for (final task in matchingTasks.take(15)) {
+        String? snippet;
+        if (task.description != null &&
+            task.description!.toLowerCase().contains(qLower)) {
+          final desc = task.description!;
+          final idx = desc.toLowerCase().indexOf(qLower);
+          final start = (idx - 15).clamp(0, desc.length);
+          final end = (idx + query.length + 25).clamp(0, desc.length);
+          final prefix = start > 0 ? '…' : '';
+          final suffix = end < desc.length ? '…' : '';
+          snippet =
+              'Note: $prefix${desc.substring(start, end).replaceAll('\n', ' ')}$suffix';
+        } else {
+          final matchedSubtask = task.subtasks
+              .where((s) => s.title.toLowerCase().contains(qLower))
+              .firstOrNull;
+          if (matchedSubtask != null) {
+            snippet = 'Subtask: ${matchedSubtask.title}';
+          } else if (task.dueDate != null) {
+            snippet =
+                'Due: ${task.dueDate}${task.hasTime && task.dueTime != null ? ' at ${task.dueTime}' : ''}';
+          } else if (task.subtasks.isNotEmpty) {
+            final compSub = task.subtasks.where((s) => s.completed).length;
+            snippet = '$compSub/${task.subtasks.length} subtasks completed';
+          }
+        }
+
+        widgets.add(
+          ListTile(
+            leading: Icon(
+              task.completed
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 20,
+              color: task.completed
+                  ? const Color(0xFF10B981)
+                  : colorScheme.onSurfaceVariant,
+            ),
+            title: Text(
+              task.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                decoration:
+                    task.completed ? TextDecoration.lineThrough : null,
+                color: task.completed
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: snippet != null
+                ? Text(
+                    snippet,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  )
+                : null,
+            trailing: task.dueDate != null
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      task.dueDate!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                : null,
+            onTap: () {
+              safeCloseView(null);
+              TaskEditPane.show(context, task: task);
+            },
+          ),
+        );
+      }
+    }
+
+    // 4. Matching Bin Tasks
+    if (matchingBinTasks.isNotEmpty) {
+      widgets.add(const SizedBox(height: 8));
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Text(
+            'BIN (${matchingBinTasks.length})',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: colorScheme.error,
+            ),
+          ),
+        ),
+      );
+
+      for (final binTask in matchingBinTasks.take(5)) {
+        widgets.add(
+          ListTile(
+            leading: Icon(
+              Icons.delete_outline_rounded,
+              color: colorScheme.error,
+              size: 20,
+            ),
+            title: Text(
+              binTask.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+            subtitle: const Text('In Bin (Deleted)'),
+            onTap: () {
+              safeCloseView(null);
+              navProvider.setActivePage(PageId.bin);
+            },
+          ),
+        );
+      }
+    }
+
+    // 5. Empty State
+    if (matchingTasks.isEmpty && matchingBinTasks.isEmpty) {
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 40,
+                  color: colorScheme.outlineVariant,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'No tasks found for "$query"',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tap "Create task" above to add it to your list.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   Widget _shortcutTag(String label, String keyChar, ColorScheme colorScheme) {

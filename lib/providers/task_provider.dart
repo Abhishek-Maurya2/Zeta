@@ -55,6 +55,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   TaskFilter _filter = TaskFilter.all;
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
+  String _searchQuery = '';
   final Set<String> _expandedTaskIds = {};
   final Set<String> _selectedTaskIds = {};
 
@@ -62,6 +63,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task> get binTasks => List.unmodifiable(_binTasks);
   TaskFilter get filter => _filter;
   TaskSortOption get sortBy => _sortBy;
+  String get searchQuery => _searchQuery;
 
   int get totalCount => _tasks.length;
   int get completedCount => _tasks.where((t) => t.completed).length;
@@ -69,6 +71,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get binCount => _binTasks.length;
 
   bool isTaskExpanded(String taskId) => _expandedTaskIds.contains(taskId);
+
+  void setSearchQuery(String query) {
+    final trimmed = query.trim();
+    if (_searchQuery == trimmed) return;
+    _searchQuery = trimmed;
+    notifyListeners();
+  }
+
+  void clearSearchQuery() {
+    if (_searchQuery.isEmpty) return;
+    _searchQuery = '';
+    notifyListeners();
+  }
 
   // ─── Multi-Selection Support ───────────────────────────────────────────────
 
@@ -163,10 +178,45 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Returns true if [task] matches the given search query [query].
+  static bool matchesSearch(Task task, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    if (task.title.toLowerCase().contains(q)) return true;
+    if (task.description != null &&
+        task.description!.toLowerCase().contains(q)) {
+      return true;
+    }
+    if (task.dueDate != null && task.dueDate!.toLowerCase().contains(q)) {
+      return true;
+    }
+    for (final subtask in task.subtasks) {
+      if (subtask.title.toLowerCase().contains(q)) return true;
+    }
+    return false;
+  }
+
+  /// Searches active tasks directly by [query].
+  List<Task> searchTasks(String query) {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+    return _tasks.where((t) => matchesSearch(t, q)).toList();
+  }
+
+  /// Searches bin tasks directly by [query].
+  List<Task> searchBinTasks(String query) {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+    return _binTasks.where((t) => matchesSearch(t, q)).toList();
+  }
+
   List<Task> get filteredAndSortedTasks {
     final list = _tasks.where((task) {
       if (_filter == TaskFilter.pending && task.completed) return false;
       if (_filter == TaskFilter.completed && !task.completed) return false;
+      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
+        return false;
+      }
       return true;
     }).toList();
 

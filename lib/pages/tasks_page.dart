@@ -43,6 +43,10 @@ class TasksPage extends StatelessWidget {
     final pending = taskProvider.pendingTasks;
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
+    final isSearching = taskProvider.searchQuery.isNotEmpty;
+    final totalCount = isSearching
+        ? pending.length + completed.length
+        : taskProvider.totalCount;
 
     final selectedFilterIndex = filter == TaskFilter.all
         ? 0
@@ -67,7 +71,7 @@ class TasksPage extends StatelessWidget {
           }
         },
         actions: [
-          M3EButtonGroupAction(label: Text('All (${taskProvider.totalCount})')),
+          M3EButtonGroupAction(label: Text('All ($totalCount)')),
           M3EButtonGroupAction(label: Text('Completed (${completed.length})')),
           M3EButtonGroupAction(label: Text('Pending (${pending.length})')),
         ],
@@ -131,6 +135,81 @@ class TasksPage extends StatelessWidget {
 
                   const SizedBox(height: 18),
 
+                  // Active Search Query Banner
+                  if (isSearching) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer
+                            .withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant
+                              .withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                            color: colorScheme.onSecondaryContainer,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text.rich(
+                              TextSpan(
+                                text: 'Search results for ',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: colorScheme.onSecondaryContainer,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: '"${taskProvider.searchQuery}"',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text:
+                                        '  •  ${pending.length + completed.length} found',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSecondaryContainer
+                                          .withValues(alpha: 0.75),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            label: const Text('Clear'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              foregroundColor:
+                                  colorScheme.onSecondaryContainer,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                            ),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              taskProvider.clearSearchQuery();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // 2. Filter & Sort Bar
                   if (isCompact) ...[
                     Center(child: filterButtonGroup),
@@ -158,8 +237,26 @@ class TasksPage extends StatelessWidget {
                     if (completed.isEmpty)
                       _buildEmptyState(
                         context,
-                        'No completed tasks yet',
-                        'Tasks marked as completed will appear here.',
+                        isSearching
+                            ? 'No completed tasks found'
+                            : 'No completed tasks yet',
+                        isSearching
+                            ? 'No completed tasks match "${taskProvider.searchQuery}".'
+                            : 'Tasks marked as completed will appear here.',
+                        icon: isSearching ? Icons.search_off_rounded : null,
+                        action: isSearching
+                            ? OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.clear_all_rounded,
+                                  size: 16,
+                                ),
+                                label: const Text('Clear search filter'),
+                                onPressed: () {
+                                  ZetaHaptics.light();
+                                  taskProvider.clearSearchQuery();
+                                },
+                              )
+                            : null,
                       )
                     else
                       _buildDismissibleTaskList(
@@ -173,8 +270,26 @@ class TasksPage extends StatelessWidget {
                     if (pending.isEmpty)
                       _buildEmptyState(
                         context,
-                        'No pending tasks',
-                        'You have completed all pending tasks!',
+                        isSearching
+                            ? 'No pending tasks found'
+                            : 'No pending tasks',
+                        isSearching
+                            ? 'No pending tasks match "${taskProvider.searchQuery}".'
+                            : 'You have completed all pending tasks!',
+                        icon: isSearching ? Icons.search_off_rounded : null,
+                        action: isSearching
+                            ? OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.clear_all_rounded,
+                                  size: 16,
+                                ),
+                                label: const Text('Clear search filter'),
+                                onPressed: () {
+                                  ZetaHaptics.light();
+                                  taskProvider.clearSearchQuery();
+                                },
+                              )
+                            : null,
                       )
                     else
                       _buildDismissibleTaskList(
@@ -185,66 +300,80 @@ class TasksPage extends StatelessWidget {
                       ),
                   ] else ...[
                     // All tasks view
-                    if (pending.isEmpty && completed.isNotEmpty)
+                    if (pending.isEmpty && completed.isEmpty)
                       _buildEmptyState(
                         context,
-                        'No pending tasks',
-                        'You have completed all pending tasks!',
+                        isSearching
+                            ? 'No tasks found'
+                            : 'No tasks yet',
+                        isSearching
+                            ? 'No tasks match "${taskProvider.searchQuery}". Try a different keyword.'
+                            : 'Click "+ Add Task" to create your first task.',
+                        icon: isSearching ? Icons.search_off_rounded : null,
+                        action: isSearching
+                            ? OutlinedButton.icon(
+                                icon: const Icon(
+                                  Icons.clear_all_rounded,
+                                  size: 16,
+                                ),
+                                label: const Text('Clear search filter'),
+                                onPressed: () {
+                                  ZetaHaptics.light();
+                                  taskProvider.clearSearchQuery();
+                                },
+                              )
+                            : null,
                       )
-                    else if (pending.isEmpty && completed.isEmpty)
-                      _buildEmptyState(
-                        context,
-                        'No tasks yet',
-                        'Click "+ Add Task" to create your first task.',
-                      )
-                    else if (pending.isNotEmpty)
-                      _buildDismissibleTaskList(
-                        context,
-                        pending,
-                        taskProvider,
-                        colorScheme,
-                      ),
-
-                    // Completed Section (Divider & Completed Segmented List)
-                    if (filter == TaskFilter.all && completed.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            size: 16,
-                            color: Color(0xFF10B981),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'COMPLETED (${completed.length})',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.1,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Divider(
-                              color: colorScheme.outlineVariant.withValues(
-                                alpha: 0.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Opacity(
-                        opacity: 0.85,
-                        child: _buildDismissibleTaskList(
+                    else ...[
+                      if (pending.isNotEmpty)
+                        _buildDismissibleTaskList(
                           context,
-                          completed,
+                          pending,
                           taskProvider,
                           colorScheme,
                         ),
-                      ),
+
+                      // Completed Section (Divider & Completed Segmented List)
+                      if (completed.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: 16,
+                              color: Color(0xFF10B981),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'COMPLETED (${completed.length})',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Divider(
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Opacity(
+                          opacity: 0.85,
+                          child: _buildDismissibleTaskList(
+                            context,
+                            completed,
+                            taskProvider,
+                            colorScheme,
+                          ),
+                        ),
+                      ],
                     ],
                   ],
                   const SizedBox(height: 100),
@@ -391,7 +520,13 @@ class TasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, String title, String subtitle) {
+  Widget _buildEmptyState(
+    BuildContext context,
+    String title,
+    String subtitle, {
+    IconData? icon,
+    Widget? action,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
@@ -401,7 +536,7 @@ class TasksPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.check_circle_outline_rounded,
+              icon ?? Icons.check_circle_outline_rounded,
               size: 56,
               color: colorScheme.outlineVariant,
             ),
@@ -414,13 +549,21 @@ class TasksPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 13,
-                color: colorScheme.onSurfaceVariant,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action,
+            ],
           ],
         ),
       ),

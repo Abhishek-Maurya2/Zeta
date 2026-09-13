@@ -17,7 +17,11 @@ import '../../utils/haptics.dart';
 /// - [M3EIconButton] for close, add-subtask, and remove-subtask interactions
 /// - [M3EDatePicker] and [M3ETimePicker] for expressive scheduling dialogs
 class TaskEditPane {
-  static Future<void> show(BuildContext context, {Task? task}) {
+  static Future<void> show(
+    BuildContext context, {
+    Task? task,
+    String? initialTitle,
+  }) {
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < 600;
 
@@ -33,7 +37,7 @@ class TaskEditPane {
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            child: TaskEditFormContent(task: task),
+            child: TaskEditFormContent(task: task, initialTitle: initialTitle),
           ),
         ),
       );
@@ -48,7 +52,7 @@ class TaskEditPane {
           elevation: 6,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 580, maxHeight: 720),
-            child: TaskEditFormContent(task: task),
+            child: TaskEditFormContent(task: task, initialTitle: initialTitle),
           ),
         ),
       );
@@ -58,7 +62,8 @@ class TaskEditPane {
 
 class TaskEditFormContent extends StatefulWidget {
   final Task? task;
-  const TaskEditFormContent({super.key, this.task});
+  final String? initialTitle;
+  const TaskEditFormContent({super.key, this.task, this.initialTitle});
 
   @override
   State<TaskEditFormContent> createState() => _TaskEditFormContentState();
@@ -80,7 +85,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.task?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.task?.title ?? widget.initialTitle ?? '',
+    );
     _descController = TextEditingController(
       text: widget.task?.description ?? '',
     );

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -9,22 +10,34 @@ import 'providers/pomodoro_provider.dart';
 import 'providers/update_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
+import 'pages/splash_screen.dart';
 import 'services/supabase_service.dart';
+
+bool get _isTestMode =>
+    WidgetsBinding.instance.runtimeType.toString().contains('Test');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
-  await SupabaseService().init();
+  // Asynchronously initialize Supabase without blocking the initial frame
+  unawaited(SupabaseService().init());
   runApp(const ZetaApp());
 }
 
 class ZetaApp extends StatelessWidget {
-  const ZetaApp({super.key});
+  final bool? showSplash;
+
+  const ZetaApp({
+    super.key,
+    this.showSplash,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveShowSplash = showSplash ?? !_isTestMode;
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
@@ -33,13 +46,15 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
-      child: const _ZetaAppView(),
+      child: _ZetaAppView(showSplash: effectiveShowSplash),
     );
   }
 }
 
 class _ZetaAppView extends StatelessWidget {
-  const _ZetaAppView();
+  final bool showSplash;
+
+  const _ZetaAppView({required this.showSplash});
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +100,48 @@ class _ZetaAppView extends StatelessWidget {
         themeProvider.bodyTypography,
         themeProvider.labelsTypography,
       ),
-      home: const AppScaffold(),
+      home: ZetaAppRoot(showSplash: showSplash),
+    );
+  }
+}
+
+/// Root widget hosting the underlying [AppScaffold] and the animated [SplashScreen] overlay.
+/// When the splash finishes its exit animation, it dissolves cleanly with zero frame drop.
+class ZetaAppRoot extends StatefulWidget {
+  final bool showSplash;
+
+  const ZetaAppRoot({super.key, this.showSplash = true});
+
+  @override
+  State<ZetaAppRoot> createState() => _ZetaAppRootState();
+}
+
+class _ZetaAppRootState extends State<ZetaAppRoot> {
+  late bool _displaySplash;
+
+  @override
+  void initState() {
+    super.initState();
+    _displaySplash = widget.showSplash;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const AppScaffold(),
+        if (_displaySplash)
+          SplashScreen(
+            onInitializationComplete: () {
+              if (mounted) {
+                setState(() {
+                  _displaySplash = false;
+                });
+              }
+            },
+          ),
+      ],
     );
   }
 }
