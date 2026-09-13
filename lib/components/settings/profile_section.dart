@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../widgets/segmented_column.dart';
 import '../../widgets/user_avatar.dart';
 import '../../providers/theme_provider.dart';
+import '../../utils/haptics.dart';
 
 class ProfileSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -286,121 +287,6 @@ class _ProfileSectionState extends State<ProfileSection> {
     );
   }
 
-  void _showAvatarColorSheet(
-    BuildContext context,
-    ThemeProvider themeProvider,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final colorScheme = Theme.of(sheetContext).colorScheme;
-        final textTheme = Theme.of(sheetContext).textTheme;
-
-        return Container(
-          constraints: const BoxConstraints(maxWidth: 480),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLow,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 32,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  UserAvatar(radius: 22, showRing: true, ringWidth: 2),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Avatar Accent Tone',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        Text(
-                          themeProvider.hasAvatarPhoto
-                              ? 'Choose accent color for letter fill'
-                              : 'Choose accent tone for letter "${themeProvider.avatarInitial}"'
-                                  ' • Ring shows sync status',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: List.generate(ThemeProvider.avatarColors.length, (
-                  index,
-                ) {
-                  final color = ThemeProvider.avatarColors[index];
-                  final isSelected = themeProvider.avatarColorIndex == index;
-
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(24),
-                    onTap: () {
-                      themeProvider.setAvatarColorIndex(index);
-                      Navigator.of(sheetContext).pop();
-                      widget.onToast?.call('Avatar accent updated');
-                    },
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isSelected
-                              ? colorScheme.onSurface
-                              : Colors.transparent,
-                          width: 3,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.35),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                      child: isSelected
-                          ? const Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: 22,
-                            )
-                          : null,
-                    ),
-                  );
-                }),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
@@ -463,11 +349,25 @@ class _ProfileSectionState extends State<ProfileSection> {
                     ],
                   );
 
-                  final buttonsWidget = Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      M3EButton.icon(
+                  final buttonsWidget = M3EButtonGroup(
+                    type: M3EButtonGroupType.standard,
+                    style: M3EButtonStyle.tonal,
+                    size: M3EButtonSize.sm,
+                    selectedIndex: null,
+                    onSelectedIndexChanged: (index) {
+                      if (index == 0) {
+                        ZetaHaptics.light();
+                        _showPhotoOptionsSheet(context, themeProvider);
+                      } else if (index == 1 && hasPhoto) {
+                        ZetaHaptics.light();
+                        themeProvider.clearAvatarPhoto();
+                        widget.onToast?.call(
+                          'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
+                        );
+                      }
+                    },
+                    actions: [
+                      M3EButtonGroupAction(
                         icon: Icon(
                           hasPhoto
                               ? Icons.photo_camera_rounded
@@ -475,31 +375,11 @@ class _ProfileSectionState extends State<ProfileSection> {
                           size: 16,
                         ),
                         label: Text(hasPhoto ? 'Change' : 'Photo'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: () =>
-                            _showPhotoOptionsSheet(context, themeProvider),
-                      ),
-                      M3EButton.icon(
-                        icon: const Icon(Icons.palette_outlined, size: 16),
-                        label: const Text('Color'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: () =>
-                            _showAvatarColorSheet(context, themeProvider),
                       ),
                       if (hasPhoto)
-                        M3EButton.icon(
-                          icon: const Icon(Icons.close_rounded, size: 16),
-                          label: const Text('Remove'),
-                          style: M3EButtonStyle.outlined,
-                          size: M3EButtonSize.sm,
-                          onPressed: () {
-                            themeProvider.clearAvatarPhoto();
-                            widget.onToast?.call(
-                              'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
-                            );
-                          },
+                        const M3EButtonGroupAction(
+                          icon: Icon(Icons.close_rounded, size: 16),
+                          tooltip: 'Remove photo',
                         ),
                     ],
                   );

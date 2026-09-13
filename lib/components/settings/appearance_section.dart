@@ -291,42 +291,44 @@ class AppearanceSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: M3EButtonGroup(
-                      type: M3EButtonGroupType.connected,
-                      size: M3EButtonSize.sm,
-                      style: M3EButtonStyle.tonal,
-                      selectedIndex: themeModeIndex,
-                      onSelectedIndexChanged: (index) {
-                        if (index != null) ZetaHaptics.selection();
-                        if (index == 0) {
-                          themeProvider.setThemeMode(ThemeMode.light);
-                          onToast?.call('Theme set to Light');
-                        } else if (index == 1) {
-                          themeProvider.setThemeMode(ThemeMode.dark);
-                          onToast?.call('Theme set to Dark');
-                        } else if (index == 2) {
-                          themeProvider.setThemeMode(ThemeMode.system);
-                          onToast?.call(
-                            'Theme set to Auto (System preference)',
-                          );
-                        }
-                      },
-                      actions: const [
-                        M3EButtonGroupAction(
-                          icon: Icon(Icons.light_mode_outlined, size: 16),
-                          label: Text('Light'),
-                        ),
-                        M3EButtonGroupAction(
-                          icon: Icon(Icons.dark_mode_outlined, size: 16),
-                          label: Text('Dark'),
-                        ),
-                        M3EButtonGroupAction(
-                          icon: Icon(Icons.brightness_auto_outlined, size: 16),
-                          label: Text('Auto'),
-                        ),
-                      ],
+                  Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: M3EButtonGroup(
+                        type: M3EButtonGroupType.connected,
+                        size: M3EButtonSize.sm,
+                        style: M3EButtonStyle.tonal,
+                        selectedIndex: themeModeIndex,
+                        onSelectedIndexChanged: (index) {
+                          if (index != null) ZetaHaptics.selection();
+                          if (index == 0) {
+                            themeProvider.setThemeMode(ThemeMode.light);
+                            onToast?.call('Theme set to Light');
+                          } else if (index == 1) {
+                            themeProvider.setThemeMode(ThemeMode.dark);
+                            onToast?.call('Theme set to Dark');
+                          } else if (index == 2) {
+                            themeProvider.setThemeMode(ThemeMode.system);
+                            onToast?.call(
+                              'Theme set to Auto (System preference)',
+                            );
+                          }
+                        },
+                        actions: const [
+                          M3EButtonGroupAction(
+                            icon: Icon(Icons.light_mode_outlined, size: 16),
+                            label: Text('Light'),
+                          ),
+                          M3EButtonGroupAction(
+                            icon: Icon(Icons.dark_mode_outlined, size: 16),
+                            label: Text('Dark'),
+                          ),
+                          M3EButtonGroupAction(
+                            icon: Icon(Icons.brightness_auto_outlined, size: 16),
+                            label: Text('Auto'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -370,31 +372,33 @@ class AppearanceSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: M3EButtonGroup(
-                      type: M3EButtonGroupType.connected,
-                      size: M3EButtonSize.sm,
-                      style: M3EButtonStyle.tonal,
-                      selectedIndex: variantIndex,
-                      onSelectedIndexChanged: (index) {
-                        if (index != null) ZetaHaptics.selection();
-                        if (index == 0) {
-                          themeProvider.setVariant(M3EColorVariant.expressive);
-                          onToast?.call('Applied Expressive algorithm');
-                        } else if (index == 1) {
-                          themeProvider.setVariant(M3EColorVariant.tonalSpot);
-                          onToast?.call('Applied Tonal Spot algorithm');
-                        } else if (index == 2) {
-                          themeProvider.setVariant(M3EColorVariant.vibrant);
-                          onToast?.call('Applied Vibrant algorithm');
-                        }
-                      },
-                      actions: const [
-                        M3EButtonGroupAction(label: Text('Expressive')),
-                        M3EButtonGroupAction(label: Text('Tonal Spot')),
-                        M3EButtonGroupAction(label: Text('Vibrant')),
-                      ],
+                  Center(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: M3EButtonGroup(
+                        type: M3EButtonGroupType.connected,
+                        size: M3EButtonSize.sm,
+                        style: M3EButtonStyle.tonal,
+                        selectedIndex: variantIndex,
+                        onSelectedIndexChanged: (index) {
+                          if (index != null) ZetaHaptics.selection();
+                          if (index == 0) {
+                            themeProvider.setVariant(M3EColorVariant.expressive);
+                            onToast?.call('Applied Expressive algorithm');
+                          } else if (index == 1) {
+                            themeProvider.setVariant(M3EColorVariant.tonalSpot);
+                            onToast?.call('Applied Tonal Spot algorithm');
+                          } else if (index == 2) {
+                            themeProvider.setVariant(M3EColorVariant.vibrant);
+                            onToast?.call('Applied Vibrant algorithm');
+                          }
+                        },
+                        actions: const [
+                          M3EButtonGroupAction(label: Text('Expressive')),
+                          M3EButtonGroupAction(label: Text('Tonal Spot')),
+                          M3EButtonGroupAction(label: Text('Vibrant')),
+                        ],
+                      ),
                     ),
                   ),
                 ],

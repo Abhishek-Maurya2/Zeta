@@ -5,6 +5,7 @@ import '../../widgets/segmented_column.dart';
 import '../../services/supabase_service.dart';
 import '../../services/google_calendar_service.dart';
 import '../../providers/task_provider.dart';
+import '../../utils/haptics.dart';
 
 class GoogleSyncSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -155,9 +156,12 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 450;
+                  final isSyncBusy = _isSyncing || taskProvider.isSyncing;
+
+                  final iconWidget = Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
@@ -173,92 +177,137 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                           : colorScheme.onSurfaceVariant,
                       size: 24,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
+                  );
+
+                  final infoWidget = Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
                               'Google & Supabase Sync',
                               style: textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                                 color: colorScheme.onSurface,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isConnected
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                                    : colorScheme.errorContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isConnected ? 'Active' : 'Disconnected',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: isConnected
-                                      ? const Color(0xFF10B981)
-                                      : colorScheme.onErrorContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          isConnected
-                              ? 'Connected as $accountEmail'
-                              : 'Connect to sync Google Tasks',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
                           ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isConnected
+                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                  : colorScheme.errorContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isConnected ? 'Active' : 'Disconnected',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: isConnected
+                                    ? const Color(0xFF10B981)
+                                    : colorScheme.onErrorContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        isConnected
+                            ? 'Connected as $accountEmail'
+                            : 'Connect to sync Google Tasks',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  );
+
+                  final buttonsWidget = M3EButtonGroup(
+                    type: M3EButtonGroupType.standard,
+                    style: M3EButtonStyle.tonal,
+                    size: M3EButtonSize.sm,
+                    selectedIndex: null,
+                    onSelectedIndexChanged: (index) {
+                      if (isConnected) {
+                        if (index == 0) {
+                          if (!isSyncBusy) {
+                            ZetaHaptics.light();
+                            _handleSync();
+                          }
+                        } else if (index == 1) {
+                          ZetaHaptics.light();
+                          _handleDisconnect();
+                        }
+                      } else {
+                        if (index == 0) {
+                          ZetaHaptics.light();
+                          _handleConnect();
+                        }
+                      }
+                    },
+                    actions: [
+                      if (isConnected) ...[
+                        M3EButtonGroupAction(
+                          icon: isSyncBusy
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.sync_rounded, size: 16),
+                          label: const Text('Sync'),
+                          tooltip: isSyncBusy ? 'Syncing...' : 'Sync now',
+                        ),
+                        const M3EButtonGroupAction(
+                          icon: Icon(Icons.close_rounded, size: 16),
+                          tooltip: 'Disconnect',
+                        ),
+                      ] else ...[
+                        const M3EButtonGroupAction(
+                          icon: Icon(Icons.login_rounded, size: 16),
+                          label: Text('Connect'),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  if (isConnected) ...[
-                    M3EButton.icon(
-                      icon: (_isSyncing || taskProvider.isSyncing)
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync_rounded, size: 16),
-                      label: const Text('Sync'),
-                      style: M3EButtonStyle.tonal,
-                      size: M3EButtonSize.sm,
-                      onPressed: (_isSyncing || taskProvider.isSyncing)
-                          ? null
-                          : _handleSync,
-                    ),
-                    const SizedBox(width: 6),
-                    M3EButton(
-                      style: M3EButtonStyle.outlined,
-                      size: M3EButtonSize.sm,
-                      onPressed: _handleDisconnect,
-                      child: const Text('Disconnect'),
-                    ),
-                  ] else ...[
-                    M3EButton.icon(
-                      icon: const Icon(Icons.login_rounded, size: 16),
-                      label: const Text('Connect'),
-                      style: M3EButtonStyle.filled,
-                      size: M3EButtonSize.sm,
-                      onPressed: _handleConnect,
-                    ),
-                  ],
-                ],
+                    ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            iconWidget,
+                            const SizedBox(width: 14),
+                            Expanded(child: infoWidget),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        buttonsWidget,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      iconWidget,
+                      const SizedBox(width: 16),
+                      Expanded(child: infoWidget),
+                      const SizedBox(width: 8),
+                      buttonsWidget,
+                    ],
+                  );
+                },
               ),
             ),
 
