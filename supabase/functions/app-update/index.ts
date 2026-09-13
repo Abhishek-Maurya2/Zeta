@@ -17,7 +17,7 @@ serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
     const owner = url.searchParams.get("owner") || "Abhishek-Maurya2";
-    const repo = url.searchParams.get("repo") || "antimatter";
+    const repo = url.searchParams.get("repo") || "Zeta";
     const assetId = url.searchParams.get("asset_id");
 
     // Secret stored in Supabase Project Settings -> Edge Functions -> Secrets

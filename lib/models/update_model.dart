@@ -32,7 +32,7 @@ class UpdateAsset {
   }
 
   bool get isApk => extension == 'apk';
-  bool get isExe => extension == 'exe';
+  bool get isExe => extension == 'exe' || extension == 'msix' || extension == 'zip';
 
   String get formattedSize {
     if (sizeBytes <= 0) return '';

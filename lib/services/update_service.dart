@@ -33,7 +33,7 @@ class UpdateService {
 
   // Defaults
   static const String defaultOwner = 'Abhishek-Maurya2';
-  static const String defaultRepo = 'antimatter';
+  static const String defaultRepo = 'Zeta';
 
   // Optional compile-time token injected via --dart-define=GITHUB_UPDATE_TOKEN=...
   static const String _compileTimeToken = String.fromEnvironment('GITHUB_UPDATE_TOKEN');
