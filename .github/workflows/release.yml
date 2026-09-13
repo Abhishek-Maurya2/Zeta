@@ -115,15 +115,27 @@ jobs:
             flutter build windows --release
           }
 
-      - name: Package Windows Bundle into ZIP & Executable
+      - name: Compile Windows Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
+        with:
+          path: packaging/windows/zeta_installer.iss
+          options: |
+            /DMyAppVersion=${{ env.VERSION }}
+
+      - name: Package Windows Bundle into ZIP & Installer
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           $releaseDir = "build\windows\x64\runner\Release"
+          $installerDir = "build\windows\installer"
           
-          # Copy main executable to artifacts for direct update launcher
-          if (Test-Path "$releaseDir\zeta.exe") {
-            Copy-Item "$releaseDir\zeta.exe" -Destination "artifacts\zeta-setup-${{ env.VERSION }}.exe"
+          # Copy Inno Setup installer to artifacts
+          if (Test-Path "$installerDir") {
+            $installer = Get-ChildItem -Path "$installerDir\*.exe" | Select-Object -First 1
+            if ($installer) {
+              Copy-Item $installer.FullName -Destination "artifacts\zeta-setup-${{ env.VERSION }}.exe"
+              Copy-Item $installer.FullName -Destination "artifacts\$($installer.Name)"
+            }
           }
           
           # Create comprehensive distribution zip
