@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,7 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 
 /// Renders the user's avatar.
-/// If a photo is set, displays the photo.
+/// If a photo is set, displays the photo without blinking or refreshing.
 /// If no photo is set, displays the first letter of the user's name.
 ///
 /// [ringColor] overrides the ring and glow color — e.g. pass a sync-status
@@ -31,6 +32,26 @@ class UserAvatar extends StatelessWidget {
     this.onTap,
     this.ringColor,
   });
+
+  // In-memory cache for decoded base64 avatar bytes to avoid re-allocating
+  // and re-resolving MemoryImage on every rebuild (which causes photo blinking).
+  static final Map<int, Uint8List> _base64Cache = {};
+
+  static Uint8List? getOrDecodeBase64(String? str) {
+    if (str == null || str.isEmpty) return null;
+    final key = str.hashCode;
+    final cached = _base64Cache[key];
+    if (cached != null) return cached;
+    try {
+      if (_base64Cache.length > 20) _base64Cache.clear();
+      final base64Str = str.contains(',') ? str.split(',').last : str;
+      final decoded = base64Decode(base64Str.trim());
+      _base64Cache[key] = decoded;
+      return decoded;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,46 +78,39 @@ class UserAvatar extends StatelessWidget {
     Widget avatarContent() {
       if (themeProvider.hasAvatarPhoto) {
         final photo = themeProvider.avatarPhoto!;
-        try {
-          if (photo.startsWith('http://') || photo.startsWith('https://')) {
-            return Image.network(
-              photo,
-              width: diameter,
-              height: diameter,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => fallbackInitial(),
-            );
-          } else if (photo.startsWith('data:image')) {
-            final base64Str = photo.contains(',')
-                ? photo.split(',').last
-                : photo;
-            final bytes = base64Decode(base64Str.trim());
+        if (photo.startsWith('http://') || photo.startsWith('https://')) {
+          return Image.network(
+            photo,
+            key: ValueKey(photo),
+            width: diameter,
+            height: diameter,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (context, error, stackTrace) => fallbackInitial(),
+          );
+        } else {
+          final bytes = getOrDecodeBase64(photo);
+          if (bytes != null) {
             return Image.memory(
               bytes,
+              key: ValueKey(bytes),
               width: diameter,
               height: diameter,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => fallbackInitial(),
-            );
-          } else {
-            // Raw base64 string or URI
-            final bytes = base64Decode(photo.trim());
-            return Image.memory(
-              bytes,
-              width: diameter,
-              height: diameter,
-              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
               errorBuilder: (context, error, stackTrace) => fallbackInitial(),
             );
           }
-        } catch (_) {
-          return fallbackInitial();
         }
       }
       return fallbackInitial();
     }
 
-    Widget content = Container(
+    Widget content = AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
       width: diameter + (showRing ? (ringWidth * 2 + 4) : 0),
       height: diameter + (showRing ? (ringWidth * 2 + 4) : 0),
       padding: showRing ? const EdgeInsets.all(2) : EdgeInsets.zero,
@@ -106,18 +120,20 @@ class UserAvatar extends StatelessWidget {
               border: Border.all(color: effectiveRingColor, width: ringWidth),
               boxShadow: [
                 BoxShadow(
-                  color: effectiveRingColor.withValues(alpha: 0.30),
+                  color: effectiveRingColor.withValues(alpha: 0.35),
                   blurRadius: 8,
                 ),
               ],
             )
           : null,
-      child: ClipOval(
-        child: Container(
-          width: diameter,
-          height: diameter,
-          color: accentColor.withValues(alpha: 0.18),
-          child: avatarContent(),
+      child: RepaintBoundary(
+        child: ClipOval(
+          child: Container(
+            width: diameter,
+            height: diameter,
+            color: accentColor.withValues(alpha: 0.18),
+            child: avatarContent(),
+          ),
         ),
       ),
     );

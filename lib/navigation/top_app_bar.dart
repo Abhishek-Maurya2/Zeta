@@ -108,19 +108,20 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   navProvider.setActivePage(PageId.home);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 0),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const ZetaLogo(size: 28),
+                      const ZetaLogo(size: 45),
                       if (showBrandText) ...[
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 15),
                         Text(
                           'Zeta',
                           style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
                             letterSpacing: -0.5,
                             color: colorScheme.onSurface,
+                            fontSize: 30,
                           ),
                         ),
                       ],
@@ -160,7 +161,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                               color: colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: colorScheme.outline.withValues(alpha: 0.2),
+                                color: colorScheme.outline.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             child: Text(
@@ -205,49 +208,53 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             ),
           ),
 
-
           // const SizedBox(width: 12),
 
           // ─── Trailing Section: Profile Avatar with Sync-Status Ring ─────
-          Builder(builder: (context) {
-            final taskProvider = context.watch<TaskProvider>();
+          Builder(
+            builder: (context) {
+              final taskProvider = context.watch<TaskProvider>();
 
-            // Map sync state → ring color
-            final Color syncRingColor;
-            final String syncLabel;
-            if (taskProvider.isSyncing) {
-              syncRingColor = const Color(0xFFF59E0B); // amber — syncing
-              syncLabel = 'Syncing…';
-            } else if (taskProvider.syncError != null) {
-              syncRingColor = Theme.of(context).colorScheme.error; // red — error
-              syncLabel = 'Sync error';
-            } else if (taskProvider.lastSyncedAt != null) {
-              syncRingColor = const Color(0xFF10B981); // green — synced
-              syncLabel = 'Synced';
-            } else {
-              syncRingColor = themeProvider.currentAvatarColor; // accent — never synced
-              syncLabel = 'Not synced';
-            }
+              // Map sync state → ring color
+              final Color syncRingColor;
+              final String syncLabel;
+              if (taskProvider.isSyncing) {
+                syncRingColor = const Color(0xFFF59E0B); // amber — syncing
+                syncLabel = 'Syncing…';
+              } else if (taskProvider.syncError != null) {
+                syncRingColor = Theme.of(context)
+                    .colorScheme
+                    .error; // red — error
+                syncLabel = 'Sync error';
+              } else if (taskProvider.lastSyncedAt != null) {
+                syncRingColor = const Color(0xFF10B981); // green — synced
+                syncLabel = 'Synced';
+              } else {
+                syncRingColor =
+                    themeProvider.currentAvatarColor; // accent — never synced
+                syncLabel = 'Not synced';
+              }
 
-            return Tooltip(
-              message: '${themeProvider.userName} • $syncLabel',
-              child: InkWell(
-                borderRadius: BorderRadius.circular(20),
-                onTap: () {
-                  ZetaHaptics.selection();
-                  navProvider.setActivePage(PageId.settings);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: UserAvatar(
-                    radius: 17,
-                    ringWidth: 2,
-                    ringColor: syncRingColor,
+              return Tooltip(
+                message: '${themeProvider.userName} • $syncLabel',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    ZetaHaptics.selection();
+                    navProvider.setActivePage(PageId.settings);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: UserAvatar(
+                      radius: 17,
+                      ringWidth: 2,
+                      ringColor: syncRingColor,
+                    ),
                   ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
         ],
       ),
     );
