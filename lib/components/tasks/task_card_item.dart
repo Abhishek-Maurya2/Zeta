@@ -140,34 +140,37 @@ class TaskCardItem extends StatelessWidget {
                   ],
                 ),
 
-                // ─── Chips: Takes full horizontal space ───────────────────────
+                // ─── Chips: Aligned with Title & Description ─────────────────
                 if ((isDeleted && task.deletedAt != null) ||
                     task.dueDate != null ||
                     hasSubtasks ||
                     (extraChips != null && extraChips!.isNotEmpty)) ...[
                   const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (isDeleted && task.deletedAt != null)
-                          TaskDeletedDateChip(timestamp: task.deletedAt),
-                        if (task.dueDate != null)
-                          TaskDueDateChip(
-                            task: task,
-                            isCompleted: isCompletedOrDeleted,
-                          ),
-                        if (hasSubtasks)
-                          TaskSubtasksBadge(
-                            subtasks: subtasks,
-                            isExpanded: isExpanded,
-                            onToggleExpand: onToggleExpand,
-                          ),
-                        ...?extraChips,
-                      ],
+                  Padding(
+                    padding: const EdgeInsets.only(left: 34),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (isDeleted && task.deletedAt != null)
+                            TaskDeletedDateChip(timestamp: task.deletedAt),
+                          if (task.dueDate != null)
+                            TaskDueDateChip(
+                              task: task,
+                              isCompleted: isCompletedOrDeleted,
+                            ),
+                          if (hasSubtasks)
+                            TaskSubtasksBadge(
+                              subtasks: subtasks,
+                              isExpanded: isExpanded,
+                              onToggleExpand: onToggleExpand,
+                            ),
+                          ...?extraChips,
+                        ],
+                      ),
                     ),
                   ),
                 ],
