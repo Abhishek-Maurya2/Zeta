@@ -739,12 +739,15 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'No tasks scheduled',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic,
-                            color: colorScheme.onSurfaceVariant,
+                        Flexible(
+                          child: Text(
+                            'No tasks scheduled',
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                         InkWell(

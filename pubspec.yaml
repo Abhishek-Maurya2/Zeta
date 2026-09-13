@@ -36,20 +36,6 @@ flutter:
   assets:
     - assets/logo/
 
-flutter_launcher_icons:
-  android: true
-  image_path: "assets/logo/logo.png"
-  min_sdk_android: 21
-  web:
-    generate: true
-    image_path: "assets/logo/logo.png"
-    background_color: "#1E1E2E"
-    theme_color: "#6750A4"
-  windows:
-    generate: true
-    image_path: "assets/logo/logo.png"
-    icon_size: 48
-
   fonts:
     - family: GoogleSansFlex
       fonts:
@@ -66,3 +52,17 @@ flutter_launcher_icons:
     - family: NotoSans
       fonts:
         - asset: assets/fonts/NotoSans-Variable.ttf
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/logo/logo.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/logo/logo.png"
+    background_color: "#1E1E2E"
+    theme_color: "#6750A4"
+  windows:
+    generate: true
+    image_path: "assets/logo/logo.png"
+    icon_size: 48

@@ -1,10 +1,11 @@
-import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/segmented_column.dart';
 import '../widgets/m3_pane_divider.dart';
 import '../utils/haptics.dart';
+import '../providers/navigation_provider.dart';
 
 import '../components/settings/settings.dart';
 
@@ -217,12 +218,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icon(
                     _selectedCategory != null
                         ? Icons.arrow_back_rounded
-                        : Icons.settings_rounded,
+                        : Icons.arrow_back_rounded,
                     color: colorScheme.onSurface,
                   ),
                   onPressed: () {
+                    ZetaHaptics.light();
                     if (_selectedCategory != null) {
                       setState(() => _selectedCategory = null);
+                    } else {
+                      context.read<NavigationProvider>().setActivePage(PageId.tasks);
                     }
                   },
                 ),

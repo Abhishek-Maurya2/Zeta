@@ -70,8 +70,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final showBrandText = width >= 640;
 
     return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: isCompact ? 56 : 64,
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
       decoration: BoxDecoration(
         color: Theme.of(context).brightness == Brightness.dark
             ? colorScheme.surfaceContainer
@@ -112,7 +112,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const ZetaLogo(size: 45),
+                      ZetaLogo(size: isCompact ? 32 : 45),
                       if (showBrandText) ...[
                         const SizedBox(width: 15),
                         Text(
@@ -132,7 +132,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             ],
           ),
 
-          // const SizedBox(width: 6),
+          SizedBox(width: isCompact ? 6 : 10),
 
           // ─── Center Section: M3E Search Bar with Theme Switch in Trailing ─
           Expanded(
@@ -176,23 +176,23 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             ),
                           ),
                         // Theme Switch Icon Button Standard inside SearchBar
-                        if (!isCompact)
-                          M3EIconButton(
-                            variant: M3EIconButtonVariant.standard,
-                            tooltip: themeProvider.themeMode == ThemeMode.dark
-                                ? 'Light theme'
-                                : 'Dark theme',
-                            icon: Icon(
-                              themeProvider.themeMode == ThemeMode.dark
-                                  ? Icons.light_mode_outlined
-                                  : Icons.dark_mode_outlined,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              themeProvider.toggleTheme();
-                            },
+                        // if (!isCompact)
+                        M3EIconButton(
+                          variant: M3EIconButtonVariant.standard,
+                          tooltip: themeProvider.themeMode == ThemeMode.dark
+                              ? 'Light theme'
+                              : 'Dark theme',
+                          icon: Icon(
+                            themeProvider.themeMode == ThemeMode.dark
+                                ? Icons.light_mode_outlined
+                                : Icons.dark_mode_outlined,
+                            color: colorScheme.onSurfaceVariant,
                           ),
+                          onPressed: () {
+                            ZetaHaptics.light();
+                            themeProvider.toggleTheme();
+                          },
+                        ),
                       ],
                       suggestionsBuilder: (context, controller) {
                         return _buildSearchSuggestions(
@@ -208,7 +208,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             ),
           ),
 
-          // const SizedBox(width: 12),
+          SizedBox(width: isCompact ? 6 : 10),
 
           // ─── Trailing Section: Profile Avatar with Sync-Status Ring ─────
           Builder(
@@ -246,7 +246,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   child: Padding(
                     padding: const EdgeInsets.all(4),
                     child: UserAvatar(
-                      radius: 17,
+                      radius: isCompact ? 15 : 17,
                       ringWidth: 2,
                       ringColor: syncRingColor,
                     ),
@@ -340,31 +340,33 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 },
               ),
 
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 8),
+              if (MediaQuery.sizeOf(context).width >= 600) ...[
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
 
-              // ─── Keyboard Shortcuts Hint ────────────────────────────────
-              Text(
-                'KEYBOARD SHORTCUTS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
-                  color: colorScheme.onSurfaceVariant,
+                // ─── Keyboard Shortcuts Hint ────────────────────────────────
+                Text(
+                  'KEYBOARD SHORTCUTS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _shortcutTag('Search', '/', colorScheme),
-                  _shortcutTag('New Task', 'N', colorScheme),
-                  _shortcutTag('Refresh', 'R', colorScheme),
-                  _shortcutTag('Dismiss', 'Esc', colorScheme),
-                ],
-              ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _shortcutTag('Search', '/', colorScheme),
+                    _shortcutTag('New Task', 'N', colorScheme),
+                    _shortcutTag('Refresh', 'R', colorScheme),
+                    _shortcutTag('Dismiss', 'Esc', colorScheme),
+                  ],
+                ),
+              ],
             ],
           ),
         ),

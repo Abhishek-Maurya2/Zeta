@@ -1,12 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:zeta/main.dart';
-import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/navigation/top_app_bar.dart';
 import 'package:zeta/components/tasks/task_edit_pane.dart';
-import 'package:zeta/providers/navigation_provider.dart';
 
 void main() {
   testWidgets(

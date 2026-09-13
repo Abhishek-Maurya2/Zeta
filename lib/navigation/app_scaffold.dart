@@ -159,14 +159,10 @@ class _AppScaffoldState extends State<AppScaffold> {
         taskProvider.isSelectionMode && navProvider.activePage == PageId.tasks;
 
     // Top app bar visibility
-    // In compact mode the floating bottom nav handles navigation; the top bar
-    // is hidden to avoid its search row overflowing in narrow viewports.
+    // Visible across both desktop and mobile. On compact screens, Settings
+    // has its own dedicated top header with back navigation.
     final showTopAppBar =
-        !isCompact &&
-        (isExpanded ||
-            (navProvider.activePage != PageId.settings &&
-                navProvider.activePage != PageId.pomodoro &&
-                navProvider.activePage != PageId.revision));
+        isExpanded || navProvider.activePage != PageId.settings;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

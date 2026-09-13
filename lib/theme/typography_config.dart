@@ -168,27 +168,44 @@ class RoleTypographyConfig {
     final weightIndex = (clampedWeight / 100).round().clamp(1, 9) - 1;
     final effectiveFontWeight = FontWeight.values[weightIndex];
 
-    // Assemble variable font variations
-    final variations = <FontVariation>[
-      FontVariation('wght', weight.clamp(1.0, 1000.0)),
-      FontVariation('wdth', width.clamp(25.0, 151.0)),
-      if (slant != 0)
-        FontVariation('slnt', slant.clamp(-10.0, 0.0))
-      else if (font.supportsAxis('slnt'))
-        const FontVariation('slnt', 0.0),
-      if (roundness > 0)
-        FontVariation('ROND', roundness.clamp(0.0, 100.0))
-      else if (font.supportsAxis('ROND'))
-        const FontVariation('ROND', 0.0),
-      if (grade != 0)
-        FontVariation('GRAD', grade.clamp(-200.0, 150.0))
-      else if (font.supportsAxis('GRAD'))
-        const FontVariation('GRAD', 0.0),
-      if (opticalSize != null)
-        FontVariation('opsz', opticalSize!)
-      else if (baseStyle.fontSize != null)
-        FontVariation('opsz', baseStyle.fontSize!.clamp(6.0, 144.0)),
-    ];
+    // Assemble variable font variations strictly supported by the font
+    final variations = <FontVariation>[];
+    if (font.id != 'system') {
+      if (font.supportsAxis('wght')) {
+        variations.add(FontVariation('wght', weight.clamp(1.0, 1000.0)));
+      }
+      if (font.supportsAxis('wdth')) {
+        variations.add(FontVariation('wdth', width.clamp(25.0, 151.0)));
+      }
+      if (slant != 0) {
+        if (font.supportsAxis('slnt')) {
+          variations.add(FontVariation('slnt', slant.clamp(-10.0, 0.0)));
+        }
+      } else if (font.supportsAxis('slnt')) {
+        variations.add(const FontVariation('slnt', 0.0));
+      }
+      if (roundness > 0) {
+        if (font.supportsAxis('ROND')) {
+          variations.add(FontVariation('ROND', roundness.clamp(0.0, 100.0)));
+        }
+      } else if (font.supportsAxis('ROND')) {
+        variations.add(const FontVariation('ROND', 0.0));
+      }
+      if (grade != 0) {
+        if (font.supportsAxis('GRAD')) {
+          variations.add(FontVariation('GRAD', grade.clamp(-200.0, 150.0)));
+        }
+      } else if (font.supportsAxis('GRAD')) {
+        variations.add(const FontVariation('GRAD', 0.0));
+      }
+      if (font.supportsAxis('opsz')) {
+        if (opticalSize != null) {
+          variations.add(FontVariation('opsz', opticalSize!));
+        } else if (baseStyle.fontSize != null) {
+          variations.add(FontVariation('opsz', baseStyle.fontSize!.clamp(6.0, 144.0)));
+        }
+      }
+    }
 
     return baseStyle.copyWith(
       fontFamily: family,

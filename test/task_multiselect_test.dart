@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
-import 'package:zeta/pages/tasks_page.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/components/tasks/task_selection_toolbar.dart';

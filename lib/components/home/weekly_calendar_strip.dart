@@ -127,7 +127,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
         // ─── Main Row: Headline & Weather on Left, Week Strip on Right ───────
         LayoutBuilder(
           builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 1050;
+            final isCompact = constraints.maxWidth < 800;
 
             final weather = themeProvider.weatherData;
             final tempStr = weather != null
