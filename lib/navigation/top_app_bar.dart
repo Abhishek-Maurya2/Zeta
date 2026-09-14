@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../utils/haptics.dart';
 
@@ -9,6 +8,7 @@ import '../providers/task_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/segmented_column.dart';
 import '../components/tasks/task_edit_pane.dart';
 
 /// Top App Bar mirroring Sharva's header:
@@ -159,99 +159,102 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                     constraints: const BoxConstraints(maxWidth: 600),
                     child: M3ESearchAnchor(
                       searchController: _searchController,
-                      builder: (
-                        BuildContext context,
-                        M3ESearchController controller,
-                      ) {
-                        return M3ESearchBar(
-                          controller: controller,
-                          leading: isCompact
-                              ? null
-                              : const Icon(M3EIcons.search),
-                          readOnly: true,
-                          hintText: isCompact
-                              ? 'Search'
-                              : 'Search tasks, notes, subtasks',
-                          overlayColor: const WidgetStatePropertyAll(
-                            Colors.transparent,
-                          ),
-                          onTap: () {
-                            if (!controller.isOpen) {
-                              controller.openView();
-                            }
-                          },
-                          onSubmitted: (query) {
-                            final trimmed = query.trim();
-                            if (trimmed.isNotEmpty) {
-                              taskProvider.setSearchQuery(trimmed);
-                              navProvider.setActivePage(PageId.tasks);
-                              if (controller.isAttached && controller.isOpen) {
-                                controller.closeView(trimmed);
-                              }
-                            }
-                          },
-                          trailing: [
-                            if (taskProvider.searchQuery.isNotEmpty ||
-                                _searchController.text.isNotEmpty)
-                              Tooltip(
-                                message: 'Clear search',
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 18,
-                                  ),
-                                  color: colorScheme.onSurfaceVariant,
-                                  onPressed: () {
-                                    ZetaHaptics.light();
-                                    _searchController.clear();
-                                    taskProvider.clearSearchQuery();
-                                  },
-                                ),
-                              )
-                            else if (!isCompact)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: colorScheme.outline.withValues(
-                                      alpha: 0.2,
+                      builder:
+                          (
+                            BuildContext context,
+                            M3ESearchController controller,
+                          ) {
+                            return M3ESearchBar(
+                              controller: controller,
+                              leading: isCompact
+                                  ? null
+                                  : const Icon(M3EIcons.search),
+                              readOnly: true,
+                              hintText: isCompact
+                                  ? 'Search'
+                                  : 'Search tasks, notes, subtasks',
+                              overlayColor: const WidgetStatePropertyAll(
+                                Colors.transparent,
+                              ),
+                              onTap: () {
+                                if (!controller.isOpen) {
+                                  controller.openView();
+                                }
+                              },
+                              onSubmitted: (query) {
+                                final trimmed = query.trim();
+                                if (trimmed.isNotEmpty) {
+                                  taskProvider.setSearchQuery(trimmed);
+                                  navProvider.setActivePage(PageId.tasks);
+                                  if (controller.isAttached &&
+                                      controller.isOpen) {
+                                    controller.closeView(trimmed);
+                                  }
+                                }
+                              },
+                              trailing: [
+                                if (taskProvider.searchQuery.isNotEmpty ||
+                                    _searchController.text.isNotEmpty)
+                                  Tooltip(
+                                    message: 'Clear search',
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close_rounded,
+                                        size: 18,
+                                      ),
+                                      color: colorScheme.onSurfaceVariant,
+                                      onPressed: () {
+                                        ZetaHaptics.light();
+                                        _searchController.clear();
+                                        taskProvider.clearSearchQuery();
+                                      },
+                                    ),
+                                  )
+                                else if (!isCompact)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: colorScheme.outline.withValues(
+                                          alpha: 0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '/',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontFamily: 'monospace',
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                child: Text(
-                                  '/',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontFamily: 'monospace',
+                                // Theme Switch Icon Button Standard inside SearchBar
+                                M3EIconButton(
+                                  variant: M3EIconButtonVariant.standard,
+                                  tooltip: isDark
+                                      ? 'Switch to light theme'
+                                      : 'Switch to dark theme',
+                                  icon: Icon(
+                                    isDark
+                                        ? Icons.light_mode_outlined
+                                        : Icons.dark_mode_outlined,
                                     color: colorScheme.onSurfaceVariant,
                                   ),
+                                  onPressed: () {
+                                    ZetaHaptics.light();
+                                    themeProvider.toggleTheme(isDark);
+                                  },
                                 ),
-                              ),
-                            // Theme Switch Icon Button Standard inside SearchBar
-                            M3EIconButton(
-                              variant: M3EIconButtonVariant.standard,
-                              tooltip: isDark
-                                  ? 'Switch to light theme'
-                                  : 'Switch to dark theme',
-                              icon: Icon(
-                                isDark
-                                    ? Icons.light_mode_outlined
-                                    : Icons.dark_mode_outlined,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              onPressed: () {
-                                ZetaHaptics.light();
-                                themeProvider.toggleTheme(isDark);
-                              },
-                            ),
-                          ],
-                        );
-                      },
+                              ],
+                            );
+                          },
                       suggestionsBuilder: (context, controller) {
                         return _buildSearchSuggestions(
                           context,
@@ -349,57 +352,67 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 ),
               ),
               const SizedBox(height: 6),
-              ListTile(
-                leading: Icon(
-                  Icons.add_circle_outline_rounded,
-                  color: colorScheme.primary,
+              M3ESegmentedColumn(
+                decoration: const M3ESegmentedListDecoration(
+                  padding: EdgeInsets.all(0),
                 ),
-                title: const Text('New Task'),
-                subtitle: const Text('Create a new task or note  [N]'),
-                dense: true,
-                onTap: () {
-                  safeCloseView(null);
-                  TaskEditPane.show(context);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline_rounded,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                title: const Text('Bin (Deleted Tasks)'),
-                subtitle: const Text('Recycle bin and archived tasks'),
-                dense: true,
-                onTap: () {
-                  safeCloseView(null);
-                  navProvider.setActivePage(PageId.bin);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.timer_outlined,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                title: const Text('Pomodoro Timer'),
-                subtitle: const Text('Focus intervals and session tracker'),
-                dense: true,
-                onTap: () {
-                  safeCloseView(null);
-                  navProvider.setActivePage(PageId.pomodoro);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.settings_outlined,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                title: const Text('Settings & Preferences'),
-                subtitle: const Text('Customize theme, typography and sync'),
-                dense: true,
-                onTap: () {
-                  safeCloseView(null);
-                  navProvider.setActivePage(PageId.settings);
-                },
+                color: colorScheme.surfaceBright,
+                children: [
+                  ListTile(
+                    leading: Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: colorScheme.primary,
+                    ),
+                    title: const Text('New Task'),
+                    subtitle: const Text('Create a new task or note  [N]'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      TaskEditPane.show(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.delete_outline_rounded,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    title: const Text('Bin (Deleted Tasks)'),
+                    subtitle: const Text('Recycle bin and archived tasks'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.bin);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.timer_outlined,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    title: const Text('Pomodoro Timer'),
+                    subtitle: const Text('Focus intervals and session tracker'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.pomodoro);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(
+                      Icons.settings_outlined,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    title: const Text('Settings & Preferences'),
+                    subtitle: const Text(
+                      'Customize theme, typography and sync',
+                    ),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.settings);
+                    },
+                  ),
+                ],
               ),
 
               if (MediaQuery.sizeOf(context).width >= 600) ...[
@@ -440,49 +453,43 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final matchingBinTasks = taskProvider.searchBinTasks(query);
     final widgets = <Widget>[];
 
-    // 1. Primary Action: Filter Tasks page
+    // 1. Primary Actions (Filter Tasks page, Create task)
     widgets.add(
-      ListTile(
-        leading: Icon(Icons.search_rounded, color: colorScheme.primary),
-        title: Text('Search for "$query" in all tasks'),
-        subtitle: Text('Filter Tasks page • ${matchingTasks.length} found'),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(12),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: M3ESegmentedColumn(
+          decoration: const M3ESegmentedListDecoration(
+            padding: EdgeInsets.all(0),
           ),
-          child: Text(
-            '${matchingTasks.length}',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onPrimaryContainer,
+          color: colorScheme.surfaceBright,
+          children: [
+            ListTile(
+              leading: Icon(Icons.search_rounded, color: colorScheme.primary),
+              title: Text('Search all for "$query"'),
+              subtitle: Text(
+                'Filter Tasks page • ${matchingTasks.length} found',
+              ),
+
+              onTap: () {
+                safeCloseView(query);
+                taskProvider.setSearchQuery(query);
+                navProvider.setActivePage(PageId.tasks);
+              },
             ),
-          ),
+            ListTile(
+              leading: Icon(Icons.add_task_rounded, color: colorScheme.primary),
+              title: Text('Create task "$query"'),
+              onTap: () {
+                safeCloseView(null);
+                TaskEditPane.show(context, initialTitle: query);
+              },
+            ),
+          ],
         ),
-        onTap: () {
-          safeCloseView(query);
-          taskProvider.setSearchQuery(query);
-          navProvider.setActivePage(PageId.tasks);
-        },
       ),
     );
 
-    // 2. Action: Create task with this title
-    widgets.add(
-      ListTile(
-        leading: Icon(Icons.add_task_rounded, color: colorScheme.primary),
-        title: Text('Create task "$query"'),
-        subtitle: const Text('Add a new task with this title'),
-        onTap: () {
-          safeCloseView(null);
-          TaskEditPane.show(context, initialTitle: query);
-        },
-      ),
-    );
-
-    // 3. Matching Tasks
+    // 2. Matching Tasks
     if (matchingTasks.isNotEmpty) {
       widgets.add(const SizedBox(height: 8));
       widgets.add(
@@ -501,6 +508,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       );
 
       final qLower = query.toLowerCase();
+      final taskTiles = <Widget>[];
       for (final task in matchingTasks.take(15)) {
         String? snippet;
         if (task.description != null &&
@@ -528,7 +536,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           }
         }
 
-        widgets.add(
+        taskTiles.add(
           ListTile(
             leading: Icon(
               task.completed
@@ -588,9 +596,22 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           ),
         );
       }
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: M3ESegmentedColumn(
+            decoration: const M3ESegmentedListDecoration(
+              padding: EdgeInsets.all(0),
+            ),
+            color: colorScheme.surfaceBright,
+            children: taskTiles,
+          ),
+        ),
+      );
     }
 
-    // 4. Matching Bin Tasks
+    // 3. Matching Bin Tasks
     if (matchingBinTasks.isNotEmpty) {
       widgets.add(const SizedBox(height: 8));
       widgets.add(
@@ -608,8 +629,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         ),
       );
 
+      final binTiles = <Widget>[];
       for (final binTask in matchingBinTasks.take(5)) {
-        widgets.add(
+        binTiles.add(
           ListTile(
             leading: Icon(
               Icons.delete_outline_rounded,
@@ -630,6 +652,19 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           ),
         );
       }
+
+      widgets.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: M3ESegmentedColumn(
+            decoration: const M3ESegmentedListDecoration(
+              padding: EdgeInsets.all(0),
+            ),
+            color: colorScheme.surfaceBright,
+            children: binTiles,
+          ),
+        ),
+      );
     }
 
     // 5. Empty State

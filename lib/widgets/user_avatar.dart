@@ -118,12 +118,6 @@ class UserAvatar extends StatelessWidget {
           ? BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: effectiveRingColor, width: ringWidth),
-              boxShadow: [
-                BoxShadow(
-                  color: effectiveRingColor.withValues(alpha: 0.35),
-                  blurRadius: 8,
-                ),
-              ],
             )
           : null,
       child: RepaintBoundary(

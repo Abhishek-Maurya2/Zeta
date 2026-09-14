@@ -443,6 +443,8 @@ class _FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final isTasksPage = navProvider.activePage == PageId.tasks;
+
     return M3ETheme(
       data: M3ETheme.of(context).copyWith(
         toolbarTheme: M3ETheme.of(context).toolbarTheme
@@ -453,16 +455,20 @@ class _FloatingBottomNav extends StatelessWidget {
         backgroundColor: colorScheme.primaryContainer,
         size: M3EToolbarSize.large,
         padding: const EdgeInsets.symmetric(horizontal: 1),
-        fabIcon: const Tooltip(
-          message: 'New Task',
-          child: Icon(Icons.add_rounded, size: 26),
-        ),
+        fabIcon: isTasksPage
+            ? const Tooltip(
+                message: 'New Task',
+                child: Icon(Icons.add_rounded, size: 26),
+              )
+            : null,
         fabPosition: M3EToolbarFabPosition.end,
         fabExpandsToolbar: false,
-        onFabPressed: () {
-          ZetaHaptics.medium();
-          TaskEditPane.show(context);
-        },
+        onFabPressed: isTasksPage
+            ? () {
+                ZetaHaptics.medium();
+                TaskEditPane.show(context);
+              }
+            : null,
         actions: [
           M3EToolbarWidget(
             child: Row(
