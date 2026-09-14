@@ -214,7 +214,6 @@ class _AppScaffoldState extends State<AppScaffold> {
                               left: 0,
                               right: 0,
                               bottom: 16,
-                              height: 56,
                               child: AnimatedSlide(
                                 offset: isSelectionMode
                                     ? const Offset(0, 2.0)
@@ -227,11 +226,8 @@ class _AppScaffoldState extends State<AppScaffold> {
                                   child: IgnorePointer(
                                     ignoring: isSelectionMode,
                                     child: Center(
-                                      child: SizedBox(
-                                        height: 56,
-                                        child: _FloatingBottomNav(
-                                          navProvider: navProvider,
-                                        ),
+                                      child: _FloatingBottomNav(
+                                        navProvider: navProvider,
                                       ),
                                     ),
                                   ),
@@ -407,28 +403,42 @@ class _FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return M3EToolbar(
-      alignment: Alignment.bottomCenter,
-      backgroundColor: colorScheme.primaryContainer,
-      actions: [
-        M3EToolbarWidget(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: kNavDestinations.map((dest) {
-              final isSelected = dest.id == navProvider.activePage;
-              return _ToolbarNavItem(
-                destination: dest,
-                isSelected: isSelected,
-                onTap: () {
-                  ZetaHaptics.selection();
-                  context.read<TaskProvider>().clearSelection();
-                  navProvider.setActivePage(dest.id);
-                },
-              );
-            }).toList(),
+    return M3ETheme(
+      data: M3ETheme.of(context).copyWith(
+        toolbarTheme: M3ETheme.of(context).toolbarTheme
+            .copyWith(containerSize: 65),
+      ),
+      child: M3EToolbar(
+        alignment: Alignment.bottomCenter,
+        backgroundColor: colorScheme.primaryContainer,
+        size: M3EToolbarSize.large,
+        padding: const EdgeInsets.symmetric(horizontal: 1),
+        actions: [
+          M3EToolbarWidget(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: kNavDestinations
+                  .where(
+                    (dest) =>
+                        dest.id != PageId.settings && dest.id != PageId.bin,
+                  )
+                  .map((dest) {
+                    final isSelected = dest.id == navProvider.activePage;
+                    return _ToolbarNavItem(
+                      destination: dest,
+                      isSelected: isSelected,
+                      onTap: () {
+                        ZetaHaptics.selection();
+                        context.read<TaskProvider>().clearSelection();
+                        navProvider.setActivePage(dest.id);
+                      },
+                    );
+                  })
+                  .toList(),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -449,24 +459,28 @@ class _ToolbarNavItem extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0),
+      padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Tooltip(
         message: destination.label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(28),
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
+            constraints: BoxConstraints(
+              // minHeight: 48,
+              minWidth: isSelected ? 40 : 35,
+            ),
             padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 12 : 6,
-              vertical: 10,
+              horizontal: isSelected ? 10 : 6,
+              vertical: 12,
             ),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.surfaceBright
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(28),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -474,20 +488,19 @@ class _ToolbarNavItem extends StatelessWidget {
               children: [
                 Icon(
                   isSelected ? destination.selectedIcon : destination.icon,
-                  size: isSelected ? 24 : 23,
+                  size: isSelected ? 26 : 24,
                   color: isSelected
                       ? colorScheme.onSurface
                       : colorScheme.onPrimaryContainer,
                 ),
                 if (isSelected) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
                     destination.label,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface,
-                      // height: 1.0,
                     ),
                   ),
                 ],

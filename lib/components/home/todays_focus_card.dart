@@ -370,8 +370,11 @@ class TodaysFocusCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 M3EButton.icon(
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: Text('Create Task'),
+                  icon: const Icon(Icons.add_rounded, size: 26),
+                  label: Text(
+                    'Create Task',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                   style: M3EButtonStyle.filled,
                   size: M3EButtonSize.lg,
                   onPressed: () {

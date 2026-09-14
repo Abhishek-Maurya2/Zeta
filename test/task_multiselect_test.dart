@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/providers/navigation_provider.dart';
@@ -218,6 +219,53 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(taskProvider.isSelectionMode, isFalse);
+    });
+
+    testWidgets(
+        'Selected task card uses native selection style with full border radius and secondaryContainer',
+        (WidgetTester tester) async {
+      FlutterError.onError = (details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        FlutterError.dumpErrorToConsole(details);
+      };
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(const ZetaApp());
+      final BuildContext context = tester.element(find.byType(AppScaffold));
+      context.read<NavigationProvider>().setActivePage(PageId.tasks);
+      await tester.pumpAndSettle();
+
+      final taskProvider = context.read<TaskProvider>();
+      taskProvider.addTask(title: 'Task A');
+      taskProvider.addTask(title: 'Task B');
+      await tester.pumpAndSettle();
+
+      final colorScheme = Theme.of(context).colorScheme;
+
+      // Select Task A
+      final taskA =
+          taskProvider.allTasks.firstWhere((t) => t.title == 'Task A');
+      taskProvider.toggleTaskSelection(taskA.id);
+      await tester.pumpAndSettle();
+
+      expect(taskProvider.isSelectionMode, isTrue);
+      expect(taskProvider.isTaskSelected(taskA.id), isTrue);
+
+      // Verify selected title text color is onSecondaryContainer
+      final titleWidget = tester.widget<Text>(find.text('Task A'));
+      expect(titleWidget.style?.color, colorScheme.onSecondaryContainer);
+
+      // Verify M3ECard for Task A has secondaryContainer background and 50px border radius
+      final cards = tester.widgetList<M3ECard>(find.byType(M3ECard)).toList();
+      final selectedCards =
+          cards.where((c) => c.color == colorScheme.secondaryContainer).toList();
+      expect(selectedCards, isNotEmpty);
+      expect(
+        (selectedCards.first.borderRadius as BorderRadius).topLeft.x,
+        50.0,
+      );
     });
   });
 }

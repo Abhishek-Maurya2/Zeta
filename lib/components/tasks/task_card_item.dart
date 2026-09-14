@@ -59,136 +59,128 @@ class TaskCardItem extends StatelessWidget {
           onContextMenu?.call(details.globalPosition),
       onLongPressStart: (details) =>
           onContextMenu?.call(details.globalPosition),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? colorScheme.primaryContainer.withValues(alpha: 0.35)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: isSelected
-              ? Border.all(
-                  color: colorScheme.primary.withValues(alpha: 0.5),
-                  width: 1.5,
-                )
-              : Border.all(color: Colors.transparent, width: 1.5),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ─── Header: Leading, Title/Description, Trailing ────────────
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Leading: Checkbox or Delete Icon
-                    leading ?? _buildLeading(context),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(isSelected ? 50.0 : 16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ─── Header: Leading, Title/Description, Trailing ────────────
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Leading: Checkbox or Delete Icon
+                  leading ?? _buildLeading(context),
 
-                    const SizedBox(width: 12),
+                  const SizedBox(width: 12),
 
-                    // Content: Title and Description
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  // Content: Title and Description
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? colorScheme.onSecondaryContainer
+                                : (isCompletedOrDeleted
+                                    ? colorScheme.onSurfaceVariant.withValues(
+                                        alpha: isDeleted ? 0.75 : 0.7,
+                                      )
+                                    : colorScheme.onSurface),
+                            decoration: isCompletedOrDeleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        if (task.description != null &&
+                            task.description!.isNotEmpty) ...[
+                          const SizedBox(height: 3),
                           Text(
-                            task.title,
+                            task.description!,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: isCompletedOrDeleted
-                                  ? colorScheme.onSurfaceVariant.withValues(
-                                      alpha: isDeleted ? 0.75 : 0.7,
-                                    )
-                                  : colorScheme.onSurface,
+                              fontSize: 13,
+                              color: isSelected
+                                  ? colorScheme.onSecondaryContainer
+                                      .withValues(alpha: 0.8)
+                                  : colorScheme.onSurfaceVariant.withValues(
+                                      alpha: isDeleted ? 0.6 : 0.8,
+                                    ),
                               decoration: isCompletedOrDeleted
                                   ? TextDecoration.lineThrough
                                   : null,
                             ),
                           ),
-                          if (task.description != null &&
-                              task.description!.isNotEmpty) ...[
-                            const SizedBox(height: 3),
-                            Text(
-                              task.description!,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: isDeleted ? 0.6 : 0.8,
-                                ),
-                                decoration: isCompletedOrDeleted
-                                    ? TextDecoration.lineThrough
-                                    : null,
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
+                      ],
                     ),
+                  ),
 
-                    // Trailing: Actions (Restore/Delete in Bin, or custom)
-                    if (trailing != null || isDeleted) ...[
-                      const SizedBox(width: 8),
-                      trailing ?? _buildBinTrailing(context),
-                    ],
+                  // Trailing: Actions (Restore/Delete in Bin, or custom)
+                  if (trailing != null || isDeleted) ...[
+                    const SizedBox(width: 8),
+                    trailing ?? _buildBinTrailing(context),
                   ],
-                ),
-
-                // ─── Chips: Aligned with Title & Description ─────────────────
-                if ((isDeleted && task.deletedAt != null) ||
-                    task.dueDate != null ||
-                    hasSubtasks ||
-                    (extraChips != null && extraChips!.isNotEmpty)) ...[
-                  const SizedBox(height: 15),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 34),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (isDeleted && task.deletedAt != null)
-                            TaskDeletedDateChip(timestamp: task.deletedAt),
-                          if (task.dueDate != null)
-                            TaskDueDateChip(
-                              task: task,
-                              isCompleted: isCompletedOrDeleted,
-                            ),
-                          if (hasSubtasks)
-                            TaskSubtasksBadge(
-                              subtasks: subtasks,
-                              isExpanded: isExpanded,
-                              onToggleExpand: onToggleExpand,
-                            ),
-                          ...?extraChips,
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
+              ),
 
-                // ─── Subtasks List: Takes full horizontal space ───────────────
-                if (isExpanded && hasSubtasks) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
+              // ─── Chips: Aligned with Title & Description ─────────────────
+              if ((isDeleted && task.deletedAt != null) ||
+                  task.dueDate != null ||
+                  hasSubtasks ||
+                  (extraChips != null && extraChips!.isNotEmpty)) ...[
+                const SizedBox(height: 15),
+                Padding(
+                  padding: const EdgeInsets.only(left: 34),
+                  child: SizedBox(
                     width: double.infinity,
-                    child: TaskSubtasksList(
-                      subtasks: subtasks,
-                      onToggleSubtask: isDeleted ? null : onToggleSubtask,
-                      isReadOnly: isDeleted,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (isDeleted && task.deletedAt != null)
+                          TaskDeletedDateChip(timestamp: task.deletedAt),
+                        if (task.dueDate != null)
+                          TaskDueDateChip(
+                            task: task,
+                            isCompleted: isCompletedOrDeleted,
+                          ),
+                        if (hasSubtasks)
+                          TaskSubtasksBadge(
+                            subtasks: subtasks,
+                            isExpanded: isExpanded,
+                            onToggleExpand: isDeleted ? null : onToggleExpand,
+                          ),
+                        ...?extraChips,
+                      ],
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
+
+              // ─── Subtasks List: Takes full horizontal space ───────────────
+              if (isExpanded && hasSubtasks) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: TaskSubtasksList(
+                    subtasks: subtasks,
+                    onToggleSubtask: isDeleted ? null : onToggleSubtask,
+                    isReadOnly: isDeleted,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

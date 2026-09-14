@@ -144,12 +144,14 @@ class TasksPage extends StatelessWidget {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer
-                            .withValues(alpha: 0.6),
+                        color: colorScheme.secondaryContainer.withValues(
+                          alpha: 0.6,
+                        ),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: colorScheme.outlineVariant
-                              .withValues(alpha: 0.3),
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: 0.3,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -193,8 +195,7 @@ class TasksPage extends StatelessWidget {
                             label: const Text('Clear'),
                             style: TextButton.styleFrom(
                               visualDensity: VisualDensity.compact,
-                              foregroundColor:
-                                  colorScheme.onSecondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
                                 vertical: 4,
@@ -303,9 +304,7 @@ class TasksPage extends StatelessWidget {
                     if (pending.isEmpty && completed.isEmpty)
                       _buildEmptyState(
                         context,
-                        isSearching
-                            ? 'No tasks found'
-                            : 'No tasks yet',
+                        isSearching ? 'No tasks found' : 'No tasks yet',
                         isSearching
                             ? 'No tasks match "${taskProvider.searchQuery}". Try a different keyword.'
                             : 'Click "+ Add Task" to create your first task.',
@@ -439,6 +438,22 @@ class TasksPage extends StatelessWidget {
         innerRadius: 4,
         gap: 3,
       ),
+      colorBuilder: (index) {
+        if (index < 0 || index >= tasks.length) return null;
+        final task = tasks[index];
+        if (provider.isTaskSelected(task.id)) {
+          return colorScheme.secondaryContainer;
+        }
+        return null;
+      },
+      borderRadiusBuilder: (index, position) {
+        if (index < 0 || index >= tasks.length) return null;
+        final task = tasks[index];
+        if (provider.isTaskSelected(task.id)) {
+          return BorderRadius.circular(35.0);
+        }
+        return null;
+      },
       leadingActionsBuilder: (index) {
         if (provider.isSelectionMode) return [];
         final task = tasks[index];
@@ -560,10 +575,7 @@ class TasksPage extends StatelessWidget {
                 ),
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 16),
-              action,
-            ],
+            if (action != null) ...[const SizedBox(height: 16), action],
           ],
         ),
       ),
