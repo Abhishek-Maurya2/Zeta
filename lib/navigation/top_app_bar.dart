@@ -90,9 +90,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       height: isCompact ? 56 : 64,
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
       decoration: BoxDecoration(
-        color: isDark
-            ? colorScheme.surfaceContainer
-            : colorScheme.surface,
+        color: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
       ),
       child: Row(
         children: [
@@ -159,82 +157,101 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 600),
-                    child: M3ESearchAnchor.bar(
+                    child: M3ESearchAnchor(
                       searchController: _searchController,
-                      barOverlayColor: const WidgetStatePropertyAll(
-                        Colors.transparent,
-                      ),
-                      barHintText: isCompact
-                          ? 'Search'
-                          : 'Search tasks, notes, subtasks',
-                      onSubmitted: (query) {
-                        final trimmed = query.trim();
-                        if (trimmed.isNotEmpty) {
-                          taskProvider.setSearchQuery(trimmed);
-                          navProvider.setActivePage(PageId.tasks);
-                          if (_searchController.isAttached &&
-                              _searchController.isOpen) {
-                            _searchController.closeView(trimmed);
-                          }
-                        }
-                      },
-                      barTrailing: [
-                        if (taskProvider.searchQuery.isNotEmpty ||
-                            _searchController.text.isNotEmpty)
-                          Tooltip(
-                            message: 'Clear search',
-                            child: IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              color: colorScheme.onSurfaceVariant,
-                              onPressed: () {
-                                ZetaHaptics.light();
-                                _searchController.clear();
-                                taskProvider.clearSearchQuery();
-                              },
-                            ),
-                          )
-                        else if (!isCompact)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: colorScheme.outline.withValues(
-                                  alpha: 0.2,
+                      builder: (
+                        BuildContext context,
+                        M3ESearchController controller,
+                      ) {
+                        return M3ESearchBar(
+                          controller: controller,
+                          leading: isCompact
+                              ? null
+                              : const Icon(M3EIcons.search),
+                          readOnly: true,
+                          hintText: isCompact
+                              ? 'Search'
+                              : 'Search tasks, notes, subtasks',
+                          overlayColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                          onTap: () {
+                            if (!controller.isOpen) {
+                              controller.openView();
+                            }
+                          },
+                          onSubmitted: (query) {
+                            final trimmed = query.trim();
+                            if (trimmed.isNotEmpty) {
+                              taskProvider.setSearchQuery(trimmed);
+                              navProvider.setActivePage(PageId.tasks);
+                              if (controller.isAttached && controller.isOpen) {
+                                controller.closeView(trimmed);
+                              }
+                            }
+                          },
+                          trailing: [
+                            if (taskProvider.searchQuery.isNotEmpty ||
+                                _searchController.text.isNotEmpty)
+                              Tooltip(
+                                message: 'Clear search',
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
+                                  ),
+                                  color: colorScheme.onSurfaceVariant,
+                                  onPressed: () {
+                                    ZetaHaptics.light();
+                                    _searchController.clear();
+                                    taskProvider.clearSearchQuery();
+                                  },
+                                ),
+                              )
+                            else if (!isCompact)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: colorScheme.outline.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  '/',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
-                            ),
-                            child: Text(
-                              '/',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontFamily: 'monospace',
+                            // Theme Switch Icon Button Standard inside SearchBar
+                            M3EIconButton(
+                              variant: M3EIconButtonVariant.standard,
+                              tooltip: isDark
+                                  ? 'Switch to light theme'
+                                  : 'Switch to dark theme',
+                              icon: Icon(
+                                isDark
+                                    ? Icons.light_mode_outlined
+                                    : Icons.dark_mode_outlined,
                                 color: colorScheme.onSurfaceVariant,
                               ),
+                              onPressed: () {
+                                ZetaHaptics.light();
+                                themeProvider.toggleTheme(isDark);
+                              },
                             ),
-                          ),
-                        // Theme Switch Icon Button Standard inside SearchBar
-                        M3EIconButton(
-                          variant: M3EIconButtonVariant.standard,
-                          tooltip: isDark
-                              ? 'Switch to light theme'
-                              : 'Switch to dark theme',
-                          icon: Icon(
-                            isDark
-                                ? Icons.light_mode_outlined
-                                : Icons.dark_mode_outlined,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            themeProvider.toggleTheme(isDark);
-                          },
-                        ),
-                      ],
+                          ],
+                        );
+                      },
                       suggestionsBuilder: (context, controller) {
                         return _buildSearchSuggestions(
                           context,
@@ -527,8 +544,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                decoration:
-                    task.completed ? TextDecoration.lineThrough : null,
+                decoration: task.completed ? TextDecoration.lineThrough : null,
                 color: task.completed
                     ? colorScheme.onSurfaceVariant
                     : colorScheme.onSurface,
@@ -604,9 +620,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               binTask.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                decoration: TextDecoration.lineThrough,
-              ),
+              style: const TextStyle(decoration: TextDecoration.lineThrough),
             ),
             subtitle: const Text('In Bin (Deleted)'),
             onTap: () {
