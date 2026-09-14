@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
-import 'package:zeta/widgets/zeta_button.dart';
 
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';

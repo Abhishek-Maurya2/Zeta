@@ -382,40 +382,41 @@ class TasksPage extends StatelessWidget {
           ),
         ),
 
-        // ─── Floating Action Button: + Add Task ──────────────────────────────
-        Positioned(
-          bottom: isCompact ? 84 : 28,
-          right: isCompact ? 16 : 36,
-          child: AnimatedSlide(
-            offset: taskProvider.isSelectionMode
-                ? const Offset(0, 2.0)
-                : Offset.zero,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOutCubicEmphasized,
-            child: AnimatedScale(
-              scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOutCubic,
-              child: IgnorePointer(
-                ignoring: taskProvider.isSelectionMode,
-                child: ZetaExtendedFab(
-                  color: M3EFabColor.primary,
-                  extended: true,
-                  icon: const Icon(Icons.add_rounded),
-                  label: 'Add Task',
-                  height: isCompact ? 56 : 64,
-                  iconSize: isCompact ? 24 : 28,
-                  cornerRadius: isCompact ? 16 : 15,
-                  extendedHorizontalPadding: isCompact ? 20 : 30,
-                  iconLabelGap: isCompact ? 12 : 15,
-                  labelFontSize: isCompact ? 16 : 18,
-                  labelFontWeight: FontWeight.w600,
-                  onPressed: () => TaskEditPane.show(context),
+        // ─── Floating Action Button: + Add Task (Desktop/Tablet only; compact uses M3EToolbar FAB) ──
+        if (!isCompact)
+          Positioned(
+            bottom: 28,
+            right: 36,
+            child: AnimatedSlide(
+              offset: taskProvider.isSelectionMode
+                  ? const Offset(0, 2.0)
+                  : Offset.zero,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOutCubicEmphasized,
+              child: AnimatedScale(
+                scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOutCubic,
+                child: IgnorePointer(
+                  ignoring: taskProvider.isSelectionMode,
+                  child: ZetaExtendedFab(
+                    color: M3EFabColor.primary,
+                    extended: true,
+                    icon: const Icon(Icons.add_rounded),
+                    label: 'Add Task',
+                    height: 64,
+                    iconSize: 28,
+                    cornerRadius: 15,
+                    extendedHorizontalPadding: 30,
+                    iconLabelGap: 15,
+                    labelFontSize: 18,
+                    labelFontWeight: FontWeight.w600,
+                    onPressed: () => TaskEditPane.show(context),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

@@ -453,6 +453,16 @@ class _FloatingBottomNav extends StatelessWidget {
         backgroundColor: colorScheme.primaryContainer,
         size: M3EToolbarSize.large,
         padding: const EdgeInsets.symmetric(horizontal: 1),
+        fabIcon: const Tooltip(
+          message: 'New Task',
+          child: Icon(Icons.add_rounded, size: 26),
+        ),
+        fabPosition: M3EToolbarFabPosition.end,
+        fabExpandsToolbar: false,
+        onFabPressed: () {
+          ZetaHaptics.medium();
+          TaskEditPane.show(context);
+        },
         actions: [
           M3EToolbarWidget(
             child: Row(
