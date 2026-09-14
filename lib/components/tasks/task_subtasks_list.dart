@@ -26,7 +26,7 @@ class TaskSubtasksList extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final effectiveBgColor =
         backgroundColor ??
-        colorScheme.surfaceContainerHigh.withValues(alpha: 0.45);
+        colorScheme.tertiaryContainer.withValues(alpha: 0.4);
 
     return M3ESegmentedColumn(
       decoration: const M3ESegmentedListDecoration(
@@ -34,8 +34,7 @@ class TaskSubtasksList extends StatelessWidget {
         outerRadius: 16,
         innerRadius: 6,
       ),
-      // color: effectiveBgColor,
-      color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+      color: effectiveBgColor,
       children: subtasks.map((subtask) {
         final rowContent = Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

@@ -6,7 +6,9 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../components/tasks/task_edit_pane.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/haptics.dart';
+import '../common/standard_chips.dart';
 
 /// Streak Calendar Card mirroring Sharva's StreakCalendarCard:
 /// - Fire icon badge with warm gradient, current streak counter, and active pill.
@@ -33,30 +35,6 @@ class StreakCalendarCard extends StatefulWidget {
 class _StreakCalendarCardState extends State<StreakCalendarCard> {
   late DateTime _displayedMonth;
 
-  static const List<String> _monthsShort = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  static const List<String> _weekdaysShort = [
-    'S',
-    'M',
-    'T',
-    'W',
-    'T',
-    'F',
-    'S',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -80,23 +58,13 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     }
   }
 
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   bool _isTaskOnDate(Task task, DateTime date) {
     if (task.dueDate == null) return false;
     final parsed = TaskDateFormatter.parse(task.dueDate!);
     if (parsed != null) {
-      return _isSameDay(parsed, date);
+      return DateTimeUtils.isSameDay(parsed, date);
     }
     return false;
-  }
-
-  String _formatDateYMD(DateTime d) {
-    final m = d.month.toString().padLeft(2, '0');
-    final day = d.day.toString().padLeft(2, '0');
-    return '${d.year}-$m-$day';
   }
 
   void _prevMonth() {
@@ -139,13 +107,13 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
       if (t.completed && t.dueDate != null) {
         final parsed = TaskDateFormatter.parse(t.dueDate!);
         if (parsed != null) {
-          completedDateStrings.add(_formatDateYMD(parsed));
+          completedDateStrings.add(DateTimeUtils.formatDateYMD(parsed));
         }
       }
     }
 
-    final curTodayStr = _formatDateYMD(today);
-    final yesterdayStr = _formatDateYMD(yesterday);
+    final curTodayStr = DateTimeUtils.formatDateYMD(today);
+    final yesterdayStr = DateTimeUtils.formatDateYMD(yesterday);
 
     final isCompletedToday = completedDateStrings.contains(curTodayStr);
     final isCompletedYesterday = completedDateStrings.contains(yesterdayStr);
@@ -159,7 +127,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
       rangeEnd = isCompletedToday ? today : yesterday;
 
       var cursor = startCheck;
-      while (completedDateStrings.contains(_formatDateYMD(cursor))) {
+      while (completedDateStrings.contains(DateTimeUtils.formatDateYMD(cursor))) {
         currentStreak++;
         rangeStart = cursor;
         cursor = cursor.subtract(const Duration(days: 1));
@@ -192,20 +160,11 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     final hasActiveStreak = currentStreak > 0;
 
     // Range label
-    String rangeLabel;
-    if (!hasActiveStreak || rangeStart == null || rangeEnd == null) {
-      rangeLabel = 'Start today';
-    } else {
-      final startM = _monthsShort[rangeStart.month - 1];
-      final startD = rangeStart.day;
-      final endM = _monthsShort[rangeEnd.month - 1];
-      final endD = rangeEnd.day;
-      if (startM == endM) {
-        rangeLabel = '$startM $startD – $endD';
-      } else {
-        rangeLabel = '$startM $startD – $endM $endD';
-      }
-    }
+    final rangeLabel = DateTimeUtils.formatStreakRange(
+      hasActiveStreak: hasActiveStreak,
+      rangeStart: rangeStart,
+      rangeEnd: rangeEnd,
+    );
 
     // Tasks on selected date
     final selectedDayTasks = taskProvider.allTasks
@@ -213,10 +172,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
         .toList();
 
     // Formatted selected date
-    final monthName = _monthsShort[widget.selectedDate.month - 1];
-    final selectedDayStr = _isSameDay(widget.selectedDate, today)
-        ? 'Today, $monthName ${widget.selectedDate.day}'
-        : '$monthName ${widget.selectedDate.day}';
+    final selectedDayStr =
+        DateTimeUtils.formatSelectedDay(widget.selectedDate, today);
 
     final cardContent = Container(
       width: widget.width,
@@ -310,51 +267,10 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: hasActiveStreak
-                          ? Colors.amber.withValues(alpha: 0.18)
-                          : colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.bolt_rounded,
-                          size: 13,
-                          color: hasActiveStreak
-                              ? Colors.amber.shade700
-                              : colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          hasActiveStreak ? 'Active' : 'Ready',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: hasActiveStreak
-                                ? Colors.amber.shade800
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  StreakStatusChip(hasActiveStreak: hasActiveStreak),
                   if (bestStreak > 1) ...[
                     const SizedBox(height: 3),
-                    Text(
-                      'Best: ${bestStreak}d',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.outline,
-                      ),
-                    ),
+                    StreakBestBadge(bestStreak: bestStreak),
                   ],
                 ],
               ),
@@ -364,42 +280,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
           const SizedBox(height: 14),
 
           // ─── Streak Period Badge ──────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.date_range_rounded,
-                  size: 14,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Streak Period:',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  rangeLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          StreakPeriodChip(rangeLabel: rangeLabel),
 
           const SizedBox(height: 12),
 
@@ -409,7 +290,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '${_monthsShort[_displayedMonth.month - 1]} ${_displayedMonth.year}',
+                '${DateTimeUtils.monthsShort[_displayedMonth.month - 1]} ${_displayedMonth.year}',
                 style: textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colorScheme.onSurface,
@@ -448,7 +329,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
 
           // Weekday headers
           Row(
-            children: _weekdaysShort.map((dayLabel) {
+            children: DateTimeUtils.weekdaysSingleLetter.map((dayLabel) {
               return Expanded(
                 child: Center(
                   child: Text(
@@ -846,8 +727,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               _displayedMonth.month,
               dayNum,
             );
-            final isSelected = _isSameDay(cellDate, widget.selectedDate);
-            final isToday = _isSameDay(cellDate, today);
+            final isSelected =
+                DateTimeUtils.isSameDay(cellDate, widget.selectedDate);
+            final isToday = DateTimeUtils.isSameDay(cellDate, today);
 
             // Streak range calculation
             final inStreakRange =
@@ -859,12 +741,12 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
 
             final isStreakStart =
                 inStreakRange &&
-                (_isSameDay(cellDate, rangeStart) ||
+                (DateTimeUtils.isSameDay(cellDate, rangeStart) ||
                     colIdx == 0 ||
                     dayNum == 1);
             final isStreakEnd =
                 inStreakRange &&
-                (_isSameDay(cellDate, rangeEnd) ||
+                (DateTimeUtils.isSameDay(cellDate, rangeEnd) ||
                     colIdx == 6 ||
                     dayNum == daysInMonth);
 

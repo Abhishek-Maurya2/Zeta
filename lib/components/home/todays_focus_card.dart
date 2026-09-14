@@ -5,7 +5,9 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../components/tasks/task_edit_pane.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/date_time_utils.dart';
 import '../../widgets/segmented_column.dart';
+import '../common/standard_chips.dart';
 
 /// Today's Focus Card mirroring Sharva's TodaysFocusCard:
 /// - Header with track changes icon, title, and Scheduled badge.
@@ -25,34 +27,6 @@ class TodaysFocusCard extends StatelessWidget {
     this.onOpenCreate,
   });
 
-  static const List<String> _weekdaysFull = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  static const List<String> _monthsShort = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -61,11 +35,8 @@ class TodaysFocusCard extends StatelessWidget {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final isToday = _isSameDay(selectedDate, today);
-
-    final weekdayName = _weekdaysFull[selectedDate.weekday - 1];
-    final monthName = _monthsShort[selectedDate.month - 1];
-    final formattedDate = '$weekdayName, $monthName ${selectedDate.day}';
+    final isToday = DateTimeUtils.isSameDay(selectedDate, today);
+    final formattedDate = DateTimeUtils.formatFocusDate(selectedDate);
 
     final dueFormatted = task?.dueDate != null
         ? TaskDateFormatter.formatTaskListDate(
@@ -256,36 +227,9 @@ class TodaysFocusCard extends StatelessWidget {
                 // Due Date Chip
                 if (dueFormatted != null) ...[
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: colorScheme.outlineVariant),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          task!.hasTime
-                              ? Icons.schedule_rounded
-                              : Icons.event_rounded,
-                          size: 16,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          dueFormatted,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                  FocusTaskDueDateChip(
+                    dueFormatted: dueFormatted,
+                    hasTime: task!.hasTime,
                   ),
                 ],
               ],

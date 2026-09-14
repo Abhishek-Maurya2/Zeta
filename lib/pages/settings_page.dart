@@ -244,10 +244,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: selectedCategory != null
                   ? _buildCategoryContent(selectedCategory)
                   : _buildCategoryList(
@@ -437,9 +434,9 @@ class _SettingsPageState extends State<SettingsPage> {
           selectedIndex: selectedIndex,
           onTap: (index) {
             ZetaHaptics.selection();
-            context
-                .read<NavigationProvider>()
-                .setSettingsCategory(kSettingsCategories[index].id);
+            context.read<NavigationProvider>().setSettingsCategory(
+              kSettingsCategories[index].id,
+            );
           },
           children: kSettingsCategories.map((category) {
             final isSelected = isTwoPane && activeCategory == category.id;

@@ -71,7 +71,6 @@ class GoogleCalendarService {
   String? _accessToken;
   String? _refreshToken;
   DateTime? _expiresAt;
-  String? _calendarId;
   String? _clientId;
   String? _clientSecret;
   String? _accountEmail;
@@ -114,9 +113,6 @@ class GoogleCalendarService {
             row['access_token_expires_at'].toString(),
           );
         }
-        _calendarId = (row['calendar_id'] as String?)?.isNotEmpty == true
-            ? row['calendar_id'] as String
-            : 'primary';
         _clientId = row['client_id'] as String? ?? '834983932254-nphb7j3vaegpnpcsn5d97dbblhrsj14f.apps.googleusercontent.com';
         _clientSecret =
             row['client_secret'] as String? ??
@@ -321,8 +317,9 @@ class GoogleCalendarService {
               );
             } catch (_) {}
 
-            if (updatedSub.id != null)
+            if (updatedSub.id != null) {
               activeSubtaskGTaskIds.add(updatedSub.id!);
+            }
           } on gtasks.DetailedApiRequestError catch (e) {
             if (e.status == 404) {
               final createdSub = await tasksApi.tasks.insert(

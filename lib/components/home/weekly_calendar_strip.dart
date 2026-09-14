@@ -6,6 +6,7 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/task_date_formatter.dart';
+import '../../utils/date_time_utils.dart';
 import '../../utils/haptics.dart';
 import '../../widgets/weather_icon.dart';
 
@@ -29,48 +30,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
     required this.onResetToToday,
   });
 
-  static const List<String> _weekdaysShort = [
-    'MON',
-    'TUE',
-    'WED',
-    'THU',
-    'FRI',
-    'SAT',
-    'SUN',
-  ];
-  static const List<String> _weekdaysFull = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-  static const List<String> _monthsShort = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
   bool _isTaskOnDate(Task task, DateTime date) {
     if (task.dueDate == null) return false;
     final parsed = TaskDateFormatter.parse(task.dueDate!);
     if (parsed != null) {
-      return _isSameDay(parsed, date);
+      return DateTimeUtils.isSameDay(parsed, date);
     }
     return false;
   }
@@ -102,22 +66,16 @@ class WeeklyCalendarStrip extends StatelessWidget {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final isSelectedToday = _isSameDay(selectedDate, today);
+    final isSelectedToday = DateTimeUtils.isSameDay(selectedDate, today);
 
     // Headline formatted: e.g. "Tuesday, 11 Sep"
-    final weekdayName = _weekdaysFull[selectedDate.weekday - 1];
-    final monthName = _monthsShort[selectedDate.month - 1];
-    final headlineLabel = '$weekdayName, ${selectedDate.day} $monthName';
+    final headlineLabel = DateTimeUtils.formatHeadline(selectedDate);
 
     // Calculate 7 days for the active week window (Monday -> Sunday)
-    final base = today.add(Duration(days: weekOffset * 7));
-    final distanceToMonday = base.weekday - DateTime.monday;
-    final monday = base.subtract(Duration(days: distanceToMonday));
-
-    final weekDays = List.generate(7, (i) {
-      final day = monday.add(Duration(days: i));
-      return day;
-    });
+    final weekDays = DateTimeUtils.getWeeklyCalendarStripDays(
+      today,
+      weekOffset,
+    );
 
     final allTasks = [...taskProvider.allTasks, ...taskProvider.binTasks];
 
@@ -297,8 +255,10 @@ class WeeklyCalendarStrip extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: weekDays.map((dayDate) {
-                          final isSelected = _isSameDay(dayDate, selectedDate);
-                          final isDayToday = _isSameDay(dayDate, today);
+                          final isSelected =
+                              DateTimeUtils.isSameDay(dayDate, selectedDate);
+                          final isDayToday =
+                              DateTimeUtils.isSameDay(dayDate, today);
                           final isPast = dayDate.isBefore(today);
 
                           // Task indicators
@@ -321,7 +281,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                           }
 
                           final dayNameShort =
-                              _weekdaysShort[dayDate.weekday - 1];
+                              DateTimeUtils.weekdaysShortUpper[dayDate.weekday - 1];
                           final dayNumStr = dayDate.day.toString();
 
                           return Padding(

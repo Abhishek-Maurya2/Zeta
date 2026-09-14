@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../models/pomodoro.dart';
 import '../providers/pomodoro_provider.dart';
 import '../services/ambient_mode_service.dart';
 import '../utils/haptics.dart';
@@ -110,26 +109,9 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
     AmbientModeService.exit();
   }
 
-  Color _getModeColor(PomodoroMode mode, ColorScheme scheme) {
-    switch (mode) {
-      case PomodoroMode.focus:
-        return scheme.primary;
-      case PomodoroMode.shortBreak:
-        return const Color(0xFF4CAF50); // Bright fresh green
-      case PomodoroMode.longBreak:
-        return const Color(0xFF29B6F6); // Serene blue
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final modeColor = _getModeColor(provider.mode, colorScheme);
-    final currentSession = provider.currentSession;
-    final sessionNum = currentSession?.sessionNumber;
-    final totalInterval = provider.settings.longBreakInterval;
 
     return CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
