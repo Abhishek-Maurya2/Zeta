@@ -427,7 +427,9 @@ class TasksPage extends StatelessWidget {
     ColorScheme colorScheme,
   ) {
     return M3EDismissibleList(
-      key: ValueKey('dismissible_${tasks.map((t) => t.id).join('_')}'),
+      key: ValueKey(
+        'dismissible_${tasks.map((t) => t.id).join('_')}_${provider.selectedTaskIds.join(',')}',
+      ),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: tasks.length,

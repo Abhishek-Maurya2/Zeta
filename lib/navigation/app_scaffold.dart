@@ -141,8 +141,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     final ctx = focus.context;
     if (ctx != null && ctx.mounted) {
       if (ctx.widget is EditableText) return true;
-      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null)
+      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
         return true;
+      }
       if (ctx.findAncestorStateOfType<EditableTextState>() != null) return true;
     }
 
@@ -185,12 +186,40 @@ class _AppScaffoldState extends State<AppScaffold> {
           : Brightness.dark,
     );
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: systemOverlayStyle,
-      child: Focus(
-        focusNode: _rootFocus,
-        autofocus: true,
-        child: Scaffold(
+    final canPop = !isSelectionMode && navProvider.activePage == PageId.home;
+
+    return PopScope(
+      canPop: canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // 1. If multi-selection mode is active, dismiss it first
+        if (isSelectionMode) {
+          ZetaHaptics.light();
+          taskProvider.clearSelection();
+          return;
+        }
+
+        // 2. If top app bar search view is open, close it
+        final topBar = _topBarKey.currentState;
+        if (topBar != null && topBar.isSearchOpen) {
+          topBar.closeSearch();
+          return;
+        }
+
+        // 3. If on any other page, return to Home page
+        if (navProvider.activePage != PageId.home) {
+          ZetaHaptics.light();
+          navProvider.setActivePage(PageId.home);
+          return;
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: systemOverlayStyle,
+        child: Focus(
+          focusNode: _rootFocus,
+          autofocus: true,
+          child: Scaffold(
           body: SafeArea(
             top: true,
             bottom: false,
@@ -314,8 +343,9 @@ class _AppScaffoldState extends State<AppScaffold> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ─── Navigation Rail (from material_3_expressive) ───────────────────────────

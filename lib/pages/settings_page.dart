@@ -204,61 +204,71 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (!isTwoPane) {
       // ─── Compact Single Pane Layout (<640px) ─────────────────────────────
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 56,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+      return PopScope(
+        canPop: _selectedCategory == null,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (_selectedCategory != null) {
+            ZetaHaptics.light();
+            setState(() => _selectedCategory = null);
+          }
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
 
-            child: Row(
-              children: [
-                M3EIconButton(
-                  variant: M3EIconButtonVariant.standard,
-                  size: M3EIconButtonSize.sm,
-                  icon: Icon(
-                    _selectedCategory != null
-                        ? Icons.arrow_back_rounded
-                        : Icons.arrow_back_rounded,
-                    color: colorScheme.onSurface,
-                  ),
-                  onPressed: () {
-                    ZetaHaptics.light();
-                    if (_selectedCategory != null) {
-                      setState(() => _selectedCategory = null);
-                    } else {
-                      context.read<NavigationProvider>().setActivePage(
-                        PageId.tasks,
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  _selectedCategory != null
-                      ? activeCategoryMeta?.label ?? 'Settings'
-                      : 'Settings',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: _selectedCategory != null
-                  ? _buildCategoryContent(_selectedCategory)
-                  : _buildCategoryList(
-                      context,
-                      activeCategory: null,
-                      isTwoPane: false,
+              child: Row(
+                children: [
+                  M3EIconButton(
+                    variant: M3EIconButtonVariant.standard,
+                    size: M3EIconButtonSize.sm,
+                    icon: Icon(
+                      _selectedCategory != null
+                          ? Icons.arrow_back_rounded
+                          : Icons.arrow_back_rounded,
+                      color: colorScheme.onSurface,
                     ),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      if (_selectedCategory != null) {
+                        setState(() => _selectedCategory = null);
+                      } else {
+                        context.read<NavigationProvider>().setActivePage(
+                          PageId.home,
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    _selectedCategory != null
+                        ? activeCategoryMeta?.label ?? 'Settings'
+                        : 'Settings',
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: _selectedCategory != null
+                    ? _buildCategoryContent(_selectedCategory)
+                    : _buildCategoryList(
+                        context,
+                        activeCategory: null,
+                        isTwoPane: false,
+                      ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 

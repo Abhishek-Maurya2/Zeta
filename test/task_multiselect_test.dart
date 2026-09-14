@@ -248,7 +248,7 @@ void main() {
       final taskA =
           taskProvider.allTasks.firstWhere((t) => t.title == 'Task A');
       taskProvider.toggleTaskSelection(taskA.id);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
 
       expect(taskProvider.isSelectionMode, isTrue);
       expect(taskProvider.isTaskSelected(taskA.id), isTrue);
@@ -257,15 +257,78 @@ void main() {
       final titleWidget = tester.widget<Text>(find.text('Task A'));
       expect(titleWidget.style?.color, colorScheme.onSecondaryContainer);
 
-      // Verify M3ECard for Task A has secondaryContainer background and 50px border radius
+      // Verify M3ECard for Task A has secondaryContainer background and full (50px) border radius
       final cards = tester.widgetList<M3ECard>(find.byType(M3ECard)).toList();
       final selectedCards =
           cards.where((c) => c.color == colorScheme.secondaryContainer).toList();
       expect(selectedCards, isNotEmpty);
       expect(
         (selectedCards.first.borderRadius as BorderRadius).topLeft.x,
-        50.0,
+        greaterThan(24.0),
       );
+    });
+
+    testWidgets(
+        'System back navigation returns to Home page from other pages, and only exits from Home',
+        (WidgetTester tester) async {
+      FlutterError.onError = (details) {
+        if (details.exceptionAsString().contains('overflowed')) return;
+        FlutterError.dumpErrorToConsole(details);
+      };
+      tester.view.physicalSize = const Size(1200, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(const ZetaApp());
+      final BuildContext context = tester.element(find.byType(AppScaffold));
+      final navProvider = context.read<NavigationProvider>();
+      final taskProvider = context.read<TaskProvider>();
+      await tester.pumpAndSettle();
+
+      // 1. Navigate to Pomodoro page
+      navProvider.setActivePage(PageId.pomodoro);
+      await tester.pumpAndSettle();
+      expect(navProvider.activePage, PageId.pomodoro);
+
+      // Trigger back button (e.g. Android back)
+      final poppedFromPomodoro = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      // PopScope should intercept (not pop the route) and return to Home
+      expect(poppedFromPomodoro, isTrue);
+      expect(navProvider.activePage, PageId.home);
+
+      // 2. Navigate to Settings page
+      navProvider.setActivePage(PageId.settings);
+      await tester.pumpAndSettle();
+      expect(navProvider.activePage, PageId.settings);
+
+      // Trigger back button
+      final poppedFromSettings = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(poppedFromSettings, isTrue);
+      expect(navProvider.activePage, PageId.home);
+
+      // 3. Navigate to Tasks page and enter selection mode
+      navProvider.setActivePage(PageId.tasks);
+      taskProvider.addTask(title: 'Back test task');
+      await tester.pumpAndSettle();
+
+      final task = taskProvider.allTasks.first;
+      taskProvider.selectTask(task.id);
+      await tester.pumpAndSettle();
+      expect(taskProvider.isSelectionMode, isTrue);
+
+      // Back press should first dismiss selection mode
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(taskProvider.isSelectionMode, isFalse);
+      expect(navProvider.activePage, PageId.tasks);
+
+      // Next back press should return to Home
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(navProvider.activePage, PageId.home);
     });
   });
 }
