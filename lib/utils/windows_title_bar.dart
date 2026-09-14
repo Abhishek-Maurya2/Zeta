@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -32,6 +32,22 @@ class WindowsTitleBar {
         'color': (r << 16) | (g << 8) | b,
         'textColor': (tr << 16) | (tg << 8) | tb,
       }).catchError((_) {});
+    } catch (_) {}
+  }
+
+  /// Toggle true borderless fullscreen on Windows covering taskbar and window frame.
+  static Future<void> setFullscreen(bool fullscreen) async {
+    if (kIsWeb || !Platform.isWindows) return;
+    try {
+      await _channel.invokeMethod('setFullscreen', {'fullscreen': fullscreen});
+    } catch (_) {}
+  }
+
+  /// Keep Windows awake and display on using native Win32 SetThreadExecutionState.
+  static Future<void> setWakeLock(bool enable) async {
+    if (kIsWeb || !Platform.isWindows) return;
+    try {
+      await _channel.invokeMethod('setWakeLock', {'enable': enable});
     } catch (_) {}
   }
 }

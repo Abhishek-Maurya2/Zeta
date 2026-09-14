@@ -287,12 +287,12 @@ void main() {
 
       // 1. Navigate to Pomodoro page
       navProvider.setActivePage(PageId.pomodoro);
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
       expect(navProvider.activePage, PageId.pomodoro);
 
       // Trigger back button (e.g. Android back)
       final poppedFromPomodoro = await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 300));
 
       // PopScope should intercept (not pop the route) and return to Home
       expect(poppedFromPomodoro, isTrue);

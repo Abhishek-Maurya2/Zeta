@@ -1,7 +1,7 @@
 name: zeta
 description: "Zeta - Flutter clone of Sharva (Xeno) with Material 3 Expressive UI"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.5+5
 
 environment:
   sdk: ^3.13.3
@@ -29,6 +29,8 @@ dependencies:
   path_provider: ^2.1.5
   open_filex: ^4.5.0
   dio: ^5.7.0
+  wakelock_plus: ^1.8.0
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

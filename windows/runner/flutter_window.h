@@ -33,6 +33,13 @@ class FlutterWindow : public Win32Window {
 
   // Title bar channel for syncing color and theme
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> title_bar_channel_;
+
+  bool is_fullscreen_ = false;
+  WINDOWPLACEMENT wp_prev_ = {sizeof(WINDOWPLACEMENT)};
+  DWORD dw_prev_style_ = 0;
+  DWORD dw_prev_ex_style_ = 0;
+
+  void SetFullscreen(bool fullscreen);
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

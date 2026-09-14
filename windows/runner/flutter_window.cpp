@@ -87,6 +87,34 @@ bool FlutterWindow::OnCreate() {
             }
           }
           result->Success();
+        } else if (call.method_name() == "setFullscreen") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          if (args) {
+            auto it = args->find(flutter::EncodableValue("fullscreen"));
+            if (it != args->end()) {
+              if (const auto* val = std::get_if<bool>(&it->second)) {
+                SetFullscreen(*val);
+              }
+            }
+          }
+          result->Success();
+        } else if (call.method_name() == "setWakeLock") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          if (args) {
+            auto it = args->find(flutter::EncodableValue("enable"));
+            if (it != args->end()) {
+              if (const auto* val = std::get_if<bool>(&it->second)) {
+                if (*val) {
+                  SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
+                } else {
+                  SetThreadExecutionState(ES_CONTINUOUS);
+                }
+              }
+            }
+          }
+          result->Success();
         } else {
           result->NotImplemented();
         }
@@ -104,7 +132,42 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::SetFullscreen(bool fullscreen) {
+  HWND hwnd = GetHandle();
+  if (!hwnd || !IsWindow(hwnd)) return;
+
+  if (fullscreen && !is_fullscreen_) {
+    dw_prev_style_ = GetWindowLong(hwnd, GWL_STYLE);
+    dw_prev_ex_style_ = GetWindowLong(hwnd, GWL_EXSTYLE);
+    GetWindowPlacement(hwnd, &wp_prev_);
+
+    HMONITOR hmon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO mi = { sizeof(mi) };
+    if (GetMonitorInfo(hmon, &mi)) {
+      SetWindowLong(hwnd, GWL_STYLE, dw_prev_style_ & ~WS_OVERLAPPEDWINDOW);
+      SetWindowPos(hwnd, HWND_TOP,
+                   mi.rcMonitor.left, mi.rcMonitor.top,
+                   mi.rcMonitor.right - mi.rcMonitor.left,
+                   mi.rcMonitor.bottom - mi.rcMonitor.top,
+                   SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+      is_fullscreen_ = true;
+    }
+  } else if (!fullscreen && is_fullscreen_) {
+    SetWindowLong(hwnd, GWL_STYLE, dw_prev_style_);
+    SetWindowLong(hwnd, GWL_EXSTYLE, dw_prev_ex_style_);
+    SetWindowPlacement(hwnd, &wp_prev_);
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                 SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    is_fullscreen_ = false;
+  }
+}
+
 void FlutterWindow::OnDestroy() {
+  if (is_fullscreen_) {
+    SetFullscreen(false);
+  }
+  SetThreadExecutionState(ES_CONTINUOUS);
   title_bar_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;

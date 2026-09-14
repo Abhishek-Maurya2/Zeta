@@ -10,6 +10,7 @@ import '../components/pomodoro/pomodoro_queue_pane.dart';
 import '../components/pomodoro/pomodoro_analysis_pane.dart';
 import '../components/pomodoro/m3_pane_divider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'pomodoro_ambient_page.dart';
 
 enum PomodoroTab {
   timer,
@@ -60,7 +61,6 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
   PomodoroTab _activeTab = PomodoroTab.timer;
   SecondaryPaneTab _secondaryTab = SecondaryPaneTab.queue;
-  bool _isAodMode = false;
   double _supportingPaneWidth = _largeSupportingPaneWidth;
   bool _hasCustomWidth = false;
   bool _isSupportingPaneCollapsed = false;
@@ -167,20 +167,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
   }
 
   void _enterAodMode() {
-    setState(() => _isAodMode = true);
-    final provider = context.read<PomodoroProvider>();
-    if (!provider.isRunning) {
-      provider.startTimer();
-    }
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  }
-
-  void _exitAodMode() {
-    setState(() => _isAodMode = false);
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
+    PomodoroAmbientPage.open(context);
   }
 
   @override
@@ -191,24 +178,16 @@ class _PomodoroPageState extends State<PomodoroPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Stack(
-      children: [
-        // ─── Main Content ───────────────────────────────────────────────────
-        Scaffold(
-          backgroundColor: Colors.transparent,
-          body: isTwoPane
-              ? _buildTwoPaneLayout(context, provider, colorScheme, textTheme)
-              : _buildSinglePaneLayout(
-                  context,
-                  provider,
-                  colorScheme,
-                  textTheme,
-                ),
-        ),
-
-        // ─── Always-On Display (AOD) Fullscreen Overlay ─────────────────────
-        if (_isAodMode) _buildAodOverlay(context, provider, textTheme),
-      ],
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: isTwoPane
+          ? _buildTwoPaneLayout(context, provider, colorScheme, textTheme)
+          : _buildSinglePaneLayout(
+              context,
+              provider,
+              colorScheme,
+              textTheme,
+            ),
     );
   }
 
@@ -432,87 +411,6 @@ class _PomodoroPageState extends State<PomodoroPage> {
           ),
         ),
       ],
-    );
-  }
-
-  // ─── Always-On Display (AOD) Fullscreen Mode ─────────────────────────────
-  Widget _buildAodOverlay(
-    BuildContext context,
-    PomodoroProvider provider,
-    TextTheme textTheme,
-  ) {
-    return Material(
-      color: Colors.black,
-      child: SafeArea(
-        child: InkWell(
-          onTap: () => provider.toggleTimer(),
-          child: Stack(
-            children: [
-              // Top Bar
-              Positioned(
-                top: 16,
-                left: 24,
-                right: 24,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      provider.mode.label.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 3.0,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.fullscreen_exit_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      tooltip: 'Exit full screen',
-                      onPressed: _exitAodMode,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Giant Countdown Display
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        provider.formattedTime,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 120,
-                          fontWeight: FontWeight.w200,
-                          letterSpacing: -3.0,
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      provider.isRunning ? 'RUNNING' : 'PAUSED',
-                      style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 4.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

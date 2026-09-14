@@ -14,6 +14,9 @@ import 'package:zeta/components/pomodoro/pomodoro_analysis_pane.dart';
 import 'package:zeta/components/pomodoro/pomodoro_settings_sheet.dart';
 import 'package:zeta/components/pomodoro/m3_pane_divider.dart';
 import 'package:zeta/widgets/segmented_column.dart';
+import 'package:zeta/pages/pomodoro_ambient_page.dart';
+import 'package:zeta/services/ambient_mode_service.dart';
+import 'package:flutter/services.dart';
 
 Widget createPomodoroTestWidget({
   PomodoroProvider? pomodoroProvider,
@@ -307,5 +310,96 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('No sessions recorded yet'), findsOneWidget);
     expect(find.text('Load Sample Data'), findsOneWidget);
+  });
+
+  testWidgets(
+      'PomodoroAmbientPage opens on fullscreen button tap, takes over screen, and enables wakelock/ambient mode',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final provider = PomodoroProvider();
+
+    await tester.pumpWidget(
+      createPomodoroTestWidget(pomodoroProvider: provider),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(AmbientModeService.isActive, isFalse);
+
+    // Find and tap the Always-on display (fullscreen) button in PomodoroTimerPane
+    final aodBtn = find.byTooltip('Always-on display');
+    expect(aodBtn, findsOneWidget);
+    await tester.tap(aodBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Verify PomodoroAmbientPage is rendered as a top-level route
+    expect(find.byType(PomodoroAmbientPage), findsOneWidget);
+    expect(AmbientModeService.isActive, isTrue);
+
+    // Verify ambient mode displays formatted time, mode badge, and status
+    expect(find.text('25:00'), findsAtLeastNWidgets(1));
+    expect(find.text('FOCUS'), findsOneWidget);
+    expect(find.text('RUNNING'), findsOneWidget);
+    expect(provider.isRunning, isTrue);
+
+    // Verify exit button is present and tap it to exit
+    final exitBtn = find.byTooltip('Exit full screen (Esc)');
+    expect(exitBtn, findsOneWidget);
+    await tester.tap(exitBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    // Verify ambient mode exited, wakelock disabled, and returned to PomodoroPage
+    expect(find.byType(PomodoroAmbientPage), findsNothing);
+    expect(AmbientModeService.isActive, isFalse);
+    expect(find.byType(PomodoroPage), findsOneWidget);
+  });
+
+  testWidgets(
+      'PomodoroAmbientPage interactions: screen tap toggles pause/resume and Esc key exits',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final provider = PomodoroProvider();
+
+    await tester.pumpWidget(
+      createPomodoroTestWidget(pomodoroProvider: provider),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final aodBtn = find.byTooltip('Always-on display');
+    await tester.tap(aodBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(PomodoroAmbientPage), findsOneWidget);
+    expect(provider.isRunning, isTrue);
+
+    // Tap screen to pause
+    await tester.tap(find.byType(PomodoroAmbientPage));
+    await tester.pump();
+    expect(provider.isRunning, isFalse);
+    expect(find.text('PAUSED'), findsOneWidget);
+
+    // Tap screen again to resume
+    await tester.tap(find.byType(PomodoroAmbientPage));
+    await tester.pump();
+    expect(provider.isRunning, isTrue);
+    expect(find.text('RUNNING'), findsOneWidget);
+
+    // Press Escape key to exit fullscreen
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(find.byType(PomodoroAmbientPage), findsNothing);
+    expect(AmbientModeService.isActive, isFalse);
   });
 }

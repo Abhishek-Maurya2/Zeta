@@ -257,7 +257,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: _selectedCategory != null
                     ? _buildCategoryContent(_selectedCategory)
                     : _buildCategoryList(
@@ -525,6 +528,7 @@ class _SettingsPageState extends State<SettingsPage> {
             );
           }).toList(),
         ),
+        const SizedBox(height: 90),
       ],
     );
   }

@@ -62,7 +62,7 @@ class UpdateService {
 
   bool get hasToken => effectiveToken != null && effectiveToken!.isNotEmpty;
 
-  /// Loads configuration from SharedPreferences.
+  /// Loads configuration from SharedPreferences and environment/Git credentials.
   Future<void> init() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -71,9 +71,107 @@ class UpdateService {
       _customToken = prefs.getString(prefKeyGithubToken);
       _useSupabaseProxy = prefs.getBool(prefKeyUseSupabaseProxy) ?? false;
       _autoCheck = prefs.getBool(prefKeyAutoCheck) ?? true;
+
+      // 1. Fetch GitHub PAT from Supabase database automatically without asking the user
+      if (_customToken == null || _customToken!.trim().isEmpty) {
+        final dbToken = await _resolveTokenFromDatabase();
+        if (dbToken != null && dbToken.isNotEmpty) {
+          _customToken = dbToken;
+        }
+      }
+
+      // 2. Fallbacks for offline or desktop developer environments
+      if ((_customToken == null || _customToken!.trim().isEmpty) && !kIsWeb) {
+        final envToken = Platform.environment['GITHUB_UPDATE_TOKEN'] ??
+            Platform.environment['GITHUB_TOKEN'] ??
+            Platform.environment['GH_TOKEN'];
+        if (envToken != null && envToken.trim().isNotEmpty) {
+          _customToken = envToken.trim();
+        } else if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+          final gitToken = await _resolveTokenFromGit();
+          if (gitToken != null && gitToken.isNotEmpty) {
+            _customToken = gitToken;
+          }
+        }
+      }
     } catch (e) {
       debugPrint('UpdateService.init warning: $e');
     }
+  }
+
+  /// Fetches the GitHub update PAT from the Supabase database automatically.
+  Future<String?> _resolveTokenFromDatabase() async {
+    try {
+      final supa = SupabaseService();
+      if (!supa.isInitialized) {
+        await supa.init();
+      }
+      final response = await supa.client
+          .from('app_config')
+          .select('value')
+          .eq('key', 'github_update_pat')
+          .maybeSingle();
+
+      if (response != null && response['value'] != null) {
+        final token = (response['value'] as String).trim();
+        if (token.isNotEmpty) {
+          debugPrint('UpdateService: Successfully fetched GitHub PAT from Supabase DB.');
+          return token;
+        }
+      }
+    } catch (e) {
+      debugPrint('UpdateService: Supabase SDK query note: $e, trying direct REST fetch...');
+      try {
+        final res = await http.get(
+          Uri.parse(
+            '${SupabaseService.supaUrl}/rest/v1/app_config?select=value&key=eq.github_update_pat',
+          ),
+          headers: {
+            'apikey': SupabaseService.supaAnonKey,
+            'Authorization': 'Bearer ${SupabaseService.supaAnonKey}',
+          },
+        );
+        if (res.statusCode == 200) {
+          final list = jsonDecode(res.body) as List<dynamic>;
+          if (list.isNotEmpty && list.first['value'] != null) {
+            final token = (list.first['value'] as String).trim();
+            if (token.isNotEmpty) {
+              return token;
+            }
+          }
+        }
+      } catch (err) {
+        debugPrint('UpdateService: Direct REST fetch note: $err');
+      }
+    }
+    return null;
+  }
+
+  /// Attempts to query the local Git Credential Manager on desktop for github.com token.
+  Future<String?> _resolveTokenFromGit() async {
+    try {
+      final process = await Process.start('git', ['credential', 'fill']);
+      process.stdin.writeln('protocol=https');
+      process.stdin.writeln('host=github.com');
+      process.stdin.writeln('');
+      await process.stdin.flush();
+      await process.stdin.close();
+
+      final output = await process.stdout.transform(utf8.decoder).join();
+      final exitCode = await process.exitCode;
+      if (exitCode == 0) {
+        for (final line in output.split('\n')) {
+          final trimmed = line.trim();
+          if (trimmed.startsWith('password=')) {
+            final token = trimmed.substring('password='.length).trim();
+            if (token.isNotEmpty) return token;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('UpdateService: Git credential resolution skipped ($e)');
+    }
+    return null;
   }
 
   /// Updates repository settings and persists to storage.
@@ -112,7 +210,7 @@ class UpdateService {
     try {
       final info = await PackageInfo.fromPlatform();
       if (info.version.isNotEmpty) {
-        if (info.buildNumber.isNotEmpty) {
+        if (info.buildNumber.isNotEmpty && info.buildNumber != '0') {
           return '${info.version}+${info.buildNumber}';
         }
         return info.version;
@@ -120,12 +218,20 @@ class UpdateService {
     } catch (e) {
       debugPrint('UpdateService.getCurrentVersion failed: $e');
     }
-    return '1.0.0+1';
+    return '1.0.5+5';
   }
 
   /// Checks for the latest release from GitHub or Supabase proxy.
   Future<AppUpdateInfo> checkForUpdates() async {
     final currentVersion = await getCurrentVersion();
+
+    // Ensure we fetch the token from the database if not yet loaded
+    if (effectiveToken == null || effectiveToken!.isEmpty) {
+      final dbToken = await _resolveTokenFromDatabase();
+      if (dbToken != null && dbToken.isNotEmpty) {
+        _customToken = dbToken;
+      }
+    }
 
     if (_useSupabaseProxy) {
       return _checkViaSupabaseProxy(currentVersion);
@@ -139,6 +245,7 @@ class UpdateService {
     final url = 'https://api.github.com/repos/$_owner/$_repo/releases/latest';
     final headers = <String, String>{
       'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'Zeta-App-Updater',
     };
 
     final token = effectiveToken;
@@ -154,7 +261,7 @@ class UpdateService {
     } else if (response.statusCode == 404) {
       if (token == null || token.isEmpty) {
         throw Exception(
-          'Release not found (404). If this repository is private, please provide a GitHub Personal Access Token.',
+          'Release not found (404). If this repository is private, please configure a GitHub access token.',
         );
       }
       throw Exception('No releases found for $_owner/$_repo.');

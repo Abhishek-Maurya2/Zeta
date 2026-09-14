@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zeta/components/settings/updates_section.dart';
 import 'package:zeta/models/update_model.dart';
 import 'package:zeta/services/update_service.dart';
 
@@ -236,6 +237,50 @@ void main() {
       expect(info.exeAsset, isNotNull);
       expect(info.exeAsset!.name, 'Zeta-v1.2.0-Windows-Setup.exe');
       expect(info.exeAsset!.isWindowsSetup, isTrue);
+    });
+  });
+
+  group('Version Display & Up-To-Date Logic Tests', () {
+    test('formats version with build number as vX.Y.Z (#build)', () {
+      expect(UpdatesSection.formatDisplayVersion('1.0.5+5'), 'v1.0.5 (#5)');
+      expect(UpdatesSection.formatDisplayVersion('1.0.0+1'), 'v1.0.0 (#1)');
+      expect(UpdatesSection.formatDisplayVersion('v1.0.5+5'), 'v1.0.5 (#5)');
+    });
+
+    test('formats version without build number as vX.Y.Z', () {
+      expect(UpdatesSection.formatDisplayVersion('1.0.5'), 'v1.0.5');
+      expect(UpdatesSection.formatDisplayVersion('v1.0.5'), 'v1.0.5');
+      expect(UpdatesSection.formatDisplayVersion(''), 'v1.0.5');
+    });
+
+    test('considers app up-to-date when current is 1.0.5+5 and latest release is 1.0.5', () {
+      const update = AppUpdateInfo(
+        currentVersion: '1.0.5+5',
+        latestVersion: '1.0.5',
+        tagName: 'v1.0.5',
+        releaseNotes: 'Zeta v1.0.5 release',
+      );
+
+      expect(update.isUpdateAvailable, isFalse);
+    });
+
+    test('considers update available when current is 1.0.4 and latest release is 1.0.5', () {
+      const update = AppUpdateInfo(
+        currentVersion: '1.0.4',
+        latestVersion: '1.0.5',
+        tagName: 'v1.0.5',
+        releaseNotes: 'Zeta v1.0.5 release',
+      );
+
+      expect(update.isUpdateAvailable, isTrue);
+    });
+
+    test('verifies default repository coordinates and fallback version', () async {
+      final service = UpdateService();
+      expect(UpdateService.defaultOwner, 'Abhishek-Maurya2');
+      expect(UpdateService.defaultRepo, 'Zeta');
+      expect(service.owner, 'Abhishek-Maurya2');
+      expect(service.repo, 'Zeta');
     });
   });
 }

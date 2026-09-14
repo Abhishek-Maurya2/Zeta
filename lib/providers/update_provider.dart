@@ -27,6 +27,9 @@ class UpdateProvider extends ChangeNotifier {
   CancelToken? _cancelToken;
   DateTime? _lastCheckedAt;
 
+  String _currentVersion = '1.0.5+5';
+  String get currentVersion => _updateInfo?.currentVersion ?? _currentVersion;
+
   UpdateStatus get status => _status;
   AppUpdateInfo? get updateInfo => _updateInfo;
   DownloadProgress? get downloadProgress => _downloadProgress;
@@ -54,6 +57,8 @@ class UpdateProvider extends ChangeNotifier {
 
   Future<void> _init() async {
     await _service.init();
+    _currentVersion = await _service.getCurrentVersion();
+    notifyListeners();
     if (_service.autoCheck) {
       // Delay slightly to allow the app to initialize before checking
       Future.delayed(const Duration(seconds: 2), () {
@@ -73,6 +78,7 @@ class UpdateProvider extends ChangeNotifier {
     try {
       final info = await _service.checkForUpdates();
       _updateInfo = info;
+      _currentVersion = info.currentVersion;
       _lastCheckedAt = DateTime.now();
 
       if (info.isUpdateAvailable) {
@@ -141,7 +147,8 @@ class UpdateProvider extends ChangeNotifier {
         _downloadProgress = null;
       } else {
         _status = UpdateStatus.error;
-        _errorMessage = 'Download failed: ${e.toString().replaceFirst('Exception: ', '')}';
+        _errorMessage =
+            'Download failed: ${e.toString().replaceFirst('Exception: ', '')}';
       }
       notifyListeners();
     } finally {

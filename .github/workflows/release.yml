@@ -57,9 +57,9 @@ jobs:
           UPDATE_PAT: ${{ secrets.UPDATE_PAT }}
         run: |
           if [ -n "$UPDATE_PAT" ]; then
-            flutter build apk --release --dart-define=GITHUB_UPDATE_TOKEN="$UPDATE_PAT"
+            flutter build apk --release --build-name="${{ env.VERSION }}" --build-number="${{ github.run_number }}" --dart-define=GITHUB_UPDATE_TOKEN="$UPDATE_PAT"
           else
-            flutter build apk --release
+            flutter build apk --release --build-name="${{ env.VERSION }}" --build-number="${{ github.run_number }}"
           fi
 
       - name: Rename APK Artifact
@@ -110,9 +110,9 @@ jobs:
           UPDATE_PAT: ${{ secrets.UPDATE_PAT }}
         run: |
           if ($env:UPDATE_PAT) {
-            flutter build windows --release --dart-define=GITHUB_UPDATE_TOKEN="$env:UPDATE_PAT"
+            flutter build windows --release --build-name="$env:VERSION" --build-number="$env:GITHUB_RUN_NUMBER" --dart-define=GITHUB_UPDATE_TOKEN="$env:UPDATE_PAT"
           } else {
-            flutter build windows --release
+            flutter build windows --release --build-name="$env:VERSION" --build-number="$env:GITHUB_RUN_NUMBER"
           }
 
       - name: Compile Windows Installer
@@ -170,9 +170,9 @@ jobs:
           UPDATE_PAT: ${{ secrets.UPDATE_PAT }}
         run: |
           if [ -n "$UPDATE_PAT" ]; then
-            flutter build web --release --dart-define=GITHUB_UPDATE_TOKEN="$UPDATE_PAT"
+            flutter build web --release --build-name="${{ env.VERSION }}" --build-number="${{ github.run_number }}" --dart-define=GITHUB_UPDATE_TOKEN="$UPDATE_PAT"
           else
-            flutter build web --release
+            flutter build web --release --build-name="${{ env.VERSION }}" --build-number="${{ github.run_number }}"
           fi
 
       - name: Install Vercel CLI
