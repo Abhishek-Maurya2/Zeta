@@ -23,6 +23,7 @@ class PomodoroAmbientPage extends StatefulWidget {
         transitionsBuilder: (context, anim, _, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 250),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
       ),
     );
   }
@@ -34,6 +35,7 @@ class PomodoroAmbientPage extends StatefulWidget {
 class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   Timer? _inactivityTimer;
   bool _controlsVisible = true;
+  bool _isExiting = false;
 
   @override
   void initState() {
@@ -53,8 +55,16 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
 
     // 3. Listen for browser/system-level fullscreen exit (e.g. Esc in web)
     AmbientModeService.setPlatformFullscreenListener((isFullscreen) {
-      if (!isFullscreen && mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
+      if (!isFullscreen && mounted && !_isExiting) {
+        _isExiting = true;
+        AmbientModeService.setPlatformFullscreenListener(null);
+        if (mounted) {
+          final nav = Navigator.of(context, rootNavigator: true);
+          if (nav.canPop()) {
+            nav.pop();
+          }
+        }
+        AmbientModeService.exit();
       }
     });
 
@@ -63,6 +73,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
 
   @override
   void dispose() {
+    _isExiting = true;
     _inactivityTimer?.cancel();
     AmbientModeService.setPlatformFullscreenListener(null);
     AmbientModeService.exit();
@@ -85,11 +96,17 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   }
 
   void _exitFullscreen() {
-    debugPrint('--> _exitFullscreen CALLED!');
+    if (_isExiting) return;
+    _isExiting = true;
+    AmbientModeService.setPlatformFullscreenListener(null);
     ZetaHaptics.light();
     if (mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
+      final nav = Navigator.of(context, rootNavigator: true);
+      if (nav.canPop()) {
+        nav.pop();
+      }
     }
+    AmbientModeService.exit();
   }
 
   Color _getModeColor(PomodoroMode mode, ColorScheme scheme) {
@@ -139,6 +156,8 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
           canPop: true,
           onPopInvokedWithResult: (didPop, _) {
             if (didPop) {
+              _isExiting = true;
+              AmbientModeService.setPlatformFullscreenListener(null);
               AmbientModeService.exit();
             }
           },
@@ -165,7 +184,8 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                     ),
 
                     // ─── Center: Enormous Clock & Progress ───────────────
-                    Center(
+                    IgnorePointer(
+                      child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -254,6 +274,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                           ],
                         ),
                       ),
+                    ),
 
                       // ─── Top Bar: Mode Title & Fullscreen Exit ───────────
                       Positioned(

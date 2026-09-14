@@ -6,7 +6,6 @@ export 'ambient_platform_stub.dart';
 
 class IoAmbientPlatformAdapter implements AmbientPlatformAdapter {
   bool _isFullscreen = false;
-  FullscreenChangeCallback? _listener;
 
   @override
   Future<void> enterFullscreen() async {
@@ -24,7 +23,6 @@ class IoAmbientPlatformAdapter implements AmbientPlatformAdapter {
         ),
       );
     }
-    _listener?.call(true);
   }
 
   @override
@@ -42,16 +40,13 @@ class IoAmbientPlatformAdapter implements AmbientPlatformAdapter {
         overlays: SystemUiOverlay.values,
       );
     }
-    _listener?.call(false);
   }
 
   @override
   bool get isFullscreen => _isFullscreen;
 
   @override
-  void setFullscreenListener(FullscreenChangeCallback? callback) {
-    _listener = callback;
-  }
+  void setFullscreenListener(FullscreenChangeCallback? callback) {}
 }
 
 AmbientPlatformAdapter getAmbientPlatformAdapter() =>

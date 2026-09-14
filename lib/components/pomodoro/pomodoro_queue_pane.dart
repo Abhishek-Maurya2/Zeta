@@ -119,10 +119,7 @@ class PomodoroQueuePane extends StatelessWidget {
             )
           else
             M3ESegmentedColumn(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               color: colorScheme.surfaceContainerLowest,
               selectedIndex: activeIndex,
               onTap: (idx) => provider.jumpToSession(idx),
@@ -154,8 +151,7 @@ class PomodoroQueuePane extends StatelessWidget {
                                   ? Icons.check_rounded
                                   : (item.mode == PomodoroMode.focus
                                         ? Icons.psychology_rounded
-                                        : (item.mode ==
-                                                  PomodoroMode.shortBreak
+                                        : (item.mode == PomodoroMode.shortBreak
                                               ? Icons.coffee_rounded
                                               : Icons.hotel_rounded))),
                         size: 18,
@@ -185,8 +181,9 @@ class PomodoroQueuePane extends StatelessWidget {
                                   color: isActive
                                       ? colorScheme.onSecondaryContainer
                                       : (isPast
-                                            ? colorScheme.onSurface
-                                                  .withValues(alpha: 0.6)
+                                            ? colorScheme.onSurface.withValues(
+                                                alpha: 0.6,
+                                              )
                                             : colorScheme.onSurface),
                                 ),
                               ),
@@ -211,8 +208,9 @@ class PomodoroQueuePane extends StatelessWidget {
                             style: textTheme.labelSmall?.copyWith(
                               fontFamily: 'monospace',
                               color: isActive
-                                  ? colorScheme.onSecondaryContainer
-                                        .withValues(alpha: 0.8)
+                                  ? colorScheme.onSecondaryContainer.withValues(
+                                      alpha: 0.8,
+                                    )
                                   : colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -244,9 +242,7 @@ class PomodoroQueuePane extends StatelessWidget {
                         Icons.play_circle_outline_rounded,
                         size: 20,
                         color: isPast
-                            ? colorScheme.outlineVariant.withValues(
-                                alpha: 0.5,
-                              )
+                            ? colorScheme.outlineVariant.withValues(alpha: 0.5)
                             : colorScheme.outline,
                       ),
                   ],

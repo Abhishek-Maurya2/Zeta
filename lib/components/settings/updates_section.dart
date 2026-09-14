@@ -51,10 +51,7 @@ class UpdatesSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // ─── App Logo ──────────────────────────────────────────────
-            ZetaLogo(
-              size: 88,
-              borderRadius: BorderRadius.circular(44),
-            ),
+            ZetaLogo(size: 88, borderRadius: BorderRadius.circular(44)),
             const SizedBox(height: 18),
 
             // ─── App Name ──────────────────────────────────────────────
@@ -82,16 +79,18 @@ class UpdatesSection extends StatelessWidget {
             if (isDownloading) ...[
               // Linear wavy progress bar when downloading
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
+                constraints: const BoxConstraints(maxWidth: 390),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),
                       child: SizedBox(
-                        height: 8,
+                        height: 15,
                         child: M3EProgressIndicator.linearWavy(
-                          value: (updateProvider.downloadProgress?.progress ?? 0) > 0
+                          value:
+                              (updateProvider.downloadProgress?.progress ?? 0) >
+                                  0
                               ? updateProvider.downloadProgress!.progress
                               : null,
                           color: colorScheme.primary,
@@ -101,7 +100,7 @@ class UpdatesSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           updateProvider.downloadProgress != null
@@ -112,13 +111,19 @@ class UpdatesSection extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        IconButton(
+                        M3EIconButton(
                           icon: const Icon(Icons.close_rounded, size: 16),
                           onPressed: () {
                             ZetaHaptics.light();
                             updateProvider.cancelDownload();
                           },
-                          visualDensity: VisualDensity.compact,
+                          variant: M3EIconButtonVariant.standard,
+                          width: M3EIconButtonWidth.narrow,
+                          decoration: M3EIconButtonDecoration(
+                            backgroundColor: WidgetStateProperty.all(
+                              colorScheme.onSurface.withValues(alpha: 0.1),
+                            ),
+                          ),
                           tooltip: 'Cancel download',
                         ),
                       ],
@@ -206,7 +211,10 @@ class UpdatesSection extends StatelessWidget {
                   }
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [

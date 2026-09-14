@@ -51,6 +51,9 @@ class AmbientModeService {
     if (!_isActive) return;
     _isActive = false;
 
+    // Immediately detach listener so programmatic exit does not trigger spurious callbacks
+    _adapter.setFullscreenListener(null);
+
     try {
       await WakelockPlus.disable();
     } catch (e) {

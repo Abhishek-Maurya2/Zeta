@@ -26,7 +26,6 @@ class _SettingsPageState extends State<SettingsPage> {
   static const String _prefKeyPaneWidth = 'settings_pane_width';
   static const String _prefKeyPaneCollapsed = 'settings_pane_collapsed';
 
-  SettingsCategory? _selectedCategory;
   double _paneWidth = _defaultPaneWidth;
   bool _hasCustomWidth = false;
   bool _isPaneCollapsed = false;
@@ -189,14 +188,16 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final navProvider = context.watch<NavigationProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final width = MediaQuery.sizeOf(context).width;
     final isTwoPane = width >= 640;
 
+    final selectedCategory = navProvider.selectedSettingsCategory;
     final activeCategory = isTwoPane
-        ? (_selectedCategory ?? SettingsCategory.profile)
-        : _selectedCategory;
+        ? (selectedCategory ?? SettingsCategory.profile)
+        : selectedCategory;
 
     final activeCategoryMeta = activeCategory != null
         ? kSettingsCategories.firstWhere((c) => c.id == activeCategory)
@@ -204,74 +205,59 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (!isTwoPane) {
       // ─── Compact Single Pane Layout (<640px) ─────────────────────────────
-      return PopScope(
-        canPop: _selectedCategory == null,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (_selectedCategory != null) {
-            ZetaHaptics.light();
-            setState(() => _selectedCategory = null);
-          }
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-
-              child: Row(
-                children: [
-                  M3EIconButton(
-                    variant: M3EIconButtonVariant.standard,
-                    size: M3EIconButtonSize.sm,
-                    icon: Icon(
-                      _selectedCategory != null
-                          ? Icons.arrow_back_rounded
-                          : Icons.arrow_back_rounded,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: () {
-                      ZetaHaptics.light();
-                      if (_selectedCategory != null) {
-                        setState(() => _selectedCategory = null);
-                      } else {
-                        context.read<NavigationProvider>().setActivePage(
-                          PageId.home,
-                        );
-                      }
-                    },
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              children: [
+                M3EIconButton(
+                  variant: M3EIconButtonVariant.standard,
+                  size: M3EIconButtonSize.sm,
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: colorScheme.onSurface,
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _selectedCategory != null
-                        ? activeCategoryMeta?.label ?? 'Settings'
-                        : 'Settings',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
+                  onPressed: () {
+                    ZetaHaptics.light();
+                    if (selectedCategory != null) {
+                      navProvider.clearSettingsCategory();
+                    } else {
+                      navProvider.setActivePage(PageId.home);
+                    }
+                  },
                 ),
-                child: _selectedCategory != null
-                    ? _buildCategoryContent(_selectedCategory)
-                    : _buildCategoryList(
-                        context,
-                        activeCategory: null,
-                        isTwoPane: false,
-                      ),
-              ),
+                const SizedBox(width: 5),
+                Text(
+                  selectedCategory != null
+                      ? activeCategoryMeta?.label ?? 'Settings'
+                      : 'Settings',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              child: selectedCategory != null
+                  ? _buildCategoryContent(selectedCategory)
+                  : _buildCategoryList(
+                      context,
+                      activeCategory: null,
+                      isTwoPane: false,
+                    ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -451,7 +437,9 @@ class _SettingsPageState extends State<SettingsPage> {
           selectedIndex: selectedIndex,
           onTap: (index) {
             ZetaHaptics.selection();
-            setState(() => _selectedCategory = kSettingsCategories[index].id);
+            context
+                .read<NavigationProvider>()
+                .setSettingsCategory(kSettingsCategories[index].id);
           },
           children: kSettingsCategories.map((category) {
             final isSelected = isTwoPane && activeCategory == category.id;

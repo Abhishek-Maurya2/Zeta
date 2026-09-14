@@ -7,6 +7,7 @@ import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
+import 'package:zeta/components/settings/settings_category.dart';
 import 'package:zeta/components/tasks/task_selection_toolbar.dart';
 
 void main() {
@@ -298,12 +299,21 @@ void main() {
       expect(poppedFromPomodoro, isTrue);
       expect(navProvider.activePage, PageId.home);
 
-      // 2. Navigate to Settings page
+      // 2. Navigate to Settings page and enter a settings section
       navProvider.setActivePage(PageId.settings);
+      navProvider.setSettingsCategory(SettingsCategory.updates);
       await tester.pumpAndSettle();
       expect(navProvider.activePage, PageId.settings);
+      expect(navProvider.selectedSettingsCategory, SettingsCategory.updates);
 
-      // Trigger back button
+      // Back press from section should pop out to Settings page (not Home)
+      final poppedFromSection = await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(poppedFromSection, isTrue);
+      expect(navProvider.activePage, PageId.settings);
+      expect(navProvider.selectedSettingsCategory, isNull);
+
+      // Second back press from Settings page should return to Home
       final poppedFromSettings = await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(poppedFromSettings, isTrue);

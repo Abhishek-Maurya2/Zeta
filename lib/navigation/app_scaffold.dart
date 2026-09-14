@@ -186,7 +186,9 @@ class _AppScaffoldState extends State<AppScaffold> {
           : Brightness.dark,
     );
 
-    final canPop = !isSelectionMode && navProvider.activePage == PageId.home;
+    final canPop = !isSelectionMode &&
+        navProvider.activePage == PageId.home &&
+        (_topBarKey.currentState == null || !_topBarKey.currentState!.isSearchOpen);
 
     return PopScope(
       canPop: canPop,
@@ -207,7 +209,15 @@ class _AppScaffoldState extends State<AppScaffold> {
           return;
         }
 
-        // 3. If on any other page, return to Home page
+        // 3. If in Settings and inside a specific section, pop back to Settings main page first
+        if (navProvider.activePage == PageId.settings &&
+            navProvider.selectedSettingsCategory != null) {
+          ZetaHaptics.light();
+          navProvider.clearSettingsCategory();
+          return;
+        }
+
+        // 4. If on any other page (including Settings main page), return to Home page
         if (navProvider.activePage != PageId.home) {
           ZetaHaptics.light();
           navProvider.setActivePage(PageId.home);

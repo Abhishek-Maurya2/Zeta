@@ -311,10 +311,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             )
           else
             M3ESegmentedColumn(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               color: colorScheme.surfaceContainerLowest,
               children: sessionLog.reversed.take(20).map((entry) {
                 final date = DateTime.fromMillisecondsSinceEpoch(

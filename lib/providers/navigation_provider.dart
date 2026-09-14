@@ -1,18 +1,37 @@
-﻿import 'package:material_ui/material_ui.dart';
+import 'package:material_ui/material_ui.dart';
+import '../components/settings/settings_category.dart';
 
 /// Page identifiers mirroring Sharva's PageId type.
 enum PageId { home, tasks, revision, pomodoro, bin, settings }
 
-/// Mirrors Sharva's useNavigationStore — manages active page, rail state, drawer state.
+/// Mirrors Sharva's useNavigationStore — manages active page, rail state, drawer state, and settings navigation.
 class NavigationProvider extends ChangeNotifier {
   PageId _activePage = PageId.home;
   PageId get activePage => _activePage;
+
+  SettingsCategory? _selectedSettingsCategory;
+  SettingsCategory? get selectedSettingsCategory => _selectedSettingsCategory;
 
   bool _isRailExpanded = true;
   bool get isRailExpanded => _isRailExpanded;
 
   void setActivePage(PageId page) {
-    _activePage = page;
+    if (_activePage != page) {
+      _activePage = page;
+      if (page != PageId.settings) {
+        _selectedSettingsCategory = null;
+      }
+      notifyListeners();
+    }
+  }
+
+  void setSettingsCategory(SettingsCategory? category) {
+    _selectedSettingsCategory = category;
+    notifyListeners();
+  }
+
+  void clearSettingsCategory() {
+    _selectedSettingsCategory = null;
     notifyListeners();
   }
 
