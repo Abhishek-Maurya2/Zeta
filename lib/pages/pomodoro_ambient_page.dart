@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -196,21 +197,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  // Subtle ambient circular progress track
-                                  SizedBox(
-                                    width: 300,
-                                    height: 300,
-                                    child: CircularProgressIndicator(
-                                      value: provider.progress,
-                                      strokeWidth: 4,
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.08),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        modeColor.withValues(alpha: 0.8),
-                                      ),
-                                    ),
-                                  ),
-
                                   // Digital Countdown
                                   Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -219,51 +205,17 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                                         fit: BoxFit.scaleDown,
                                         child: Text(
                                           provider.formattedTime,
-                                          style: const TextStyle(
-                                            color: Colors.white,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.5,
+                                            ),
                                             fontSize: 104,
-                                            fontWeight: FontWeight.w200,
-                                            letterSpacing: -3.0,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: -1.0,
                                             fontFeatures: [
-                                              FontFeature.tabularFigures()
+                                              FontFeature.tabularFigures(),
                                             ],
                                           ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      // Status Badge
-                                      AnimatedOpacity(
-                                        opacity: provider.isRunning ? 0.7 : 1.0,
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: provider.isRunning
-                                                    ? modeColor
-                                                    : Colors.white38,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              provider.isRunning
-                                                  ? 'RUNNING'
-                                                  : 'PAUSED',
-                                              style: TextStyle(
-                                                color: provider.isRunning
-                                                    ? Colors.white70
-                                                    : Colors.white38,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                letterSpacing: 3.5,
-                                              ),
-                                            ),
-                                          ],
                                         ),
                                       ),
                                     ],
@@ -276,181 +228,46 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                       ),
                     ),
 
-                      // ─── Top Bar: Mode Title & Fullscreen Exit ───────────
-                      Positioned(
-                        top: 16,
-                        left: 24,
-                        right: 24,
-                        child: AnimatedOpacity(
-                          opacity: _controlsVisible ? 1.0 : 0.15,
-                          duration: const Duration(milliseconds: 300),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Mode Pill
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 6,
+                    // ─── Top Bar: Mode Title & Fullscreen Exit ───────────
+                    Positioned(
+                      top: 16,
+                      left: 24,
+                      right: 24,
+                      child: AnimatedOpacity(
+                        opacity: _controlsVisible ? 1.0 : 0.15,
+                        duration: const Duration(milliseconds: 300),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Exit Fullscreen Button
+                            IconButton.filledTonal(
+                              icon: const Icon(
+                                Icons.fullscreen_exit_rounded,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                              tooltip: 'Exit full screen (Esc)',
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.15,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: modeColor.withValues(alpha: 0.3),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      provider.mode == PomodoroMode.focus
-                                          ? Icons.psychology_rounded
-                                          : Icons.coffee_rounded,
-                                      size: 16,
-                                      color: modeColor,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      provider.mode.label.toUpperCase(),
-                                      style: TextStyle(
-                                        color: modeColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
-                                    if (sessionNum != null) ...[
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '• $sessionNum / $totalInterval',
-                                        style: const TextStyle(
-                                          color: Colors.white54,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
+                                hoverColor: Colors.white.withValues(
+                                  alpha: 0.25,
                                 ),
                               ),
-
-                              // Exit Fullscreen Button
-                              IconButton.filledTonal(
-                                icon: const Icon(
-                                  Icons.fullscreen_exit_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                                tooltip: 'Exit full screen (Esc)',
-                                style: IconButton.styleFrom(
-                                  backgroundColor:
-                                      Colors.white.withValues(alpha: 0.15),
-                                  hoverColor:
-                                      Colors.white.withValues(alpha: 0.25),
-                                ),
-                                onPressed: _exitFullscreen,
-                              ),
-                            ],
-                          ),
+                              onPressed: _exitFullscreen,
+                            ),
+                          ],
                         ),
                       ),
-
-                      // ─── Bottom Ambient Controls ─────────────────────────
-                      Positioned(
-                        left: 24,
-                        right: 24,
-                        bottom: 24,
-                        child: AnimatedOpacity(
-                          opacity: _controlsVisible ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 300),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Play / Pause, Skip, Reset Action Buttons
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  // Reset Button
-                                  IconButton.filledTonal(
-                                    icon: const Icon(Icons.replay_rounded),
-                                    tooltip: 'Reset timer (R)',
-                                    style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.15),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () {
-                                      ZetaHaptics.light();
-                                      provider.resetTimer();
-                                      _resetInactivityTimer();
-                                    },
-                                  ),
-                                  const SizedBox(width: 20),
-
-                                  // Play / Pause Button
-                                  IconButton.filled(
-                                    icon: Icon(
-                                      provider.isRunning
-                                          ? Icons.pause_rounded
-                                          : Icons.play_arrow_rounded,
-                                      size: 32,
-                                    ),
-                                    tooltip: provider.isRunning
-                                        ? 'Pause (Space)'
-                                        : 'Resume (Space)',
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: modeColor,
-                                      foregroundColor: Colors.black,
-                                      minimumSize: const Size(60, 60),
-                                    ),
-                                    onPressed: () {
-                                      ZetaHaptics.medium();
-                                      provider.toggleTimer();
-                                      _resetInactivityTimer();
-                                    },
-                                  ),
-                                  const SizedBox(width: 20),
-
-                                  // Skip Button
-                                  IconButton.filledTonal(
-                                    icon: const Icon(Icons.skip_next_rounded),
-                                    tooltip: 'Skip session (S)',
-                                    style: IconButton.styleFrom(
-                                      backgroundColor:
-                                          Colors.white.withValues(alpha: 0.15),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                    onPressed: () {
-                                      ZetaHaptics.medium();
-                                      provider.skipSession();
-                                      _resetInactivityTimer();
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Subtle Keyboard Shortcut hints
-                              const Text(
-                                'Space: Play/Pause • Esc: Exit • S: Skip • R: Reset',
-                                style: TextStyle(
-                                  color: Colors.white30,
-                                  fontSize: 11,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 }

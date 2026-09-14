@@ -220,11 +220,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
 
     final cardContent = Container(
       width: widget.width,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(28),
-      ),
+      padding: const EdgeInsets.all(0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -423,14 +419,24 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 children: [
                   M3EIconButton(
                     size: M3EIconButtonSize.xs,
-                    variant: M3EIconButtonVariant.standard,
-                    icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                    width: M3EIconButtonWidth.narrow,
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.onSurface.withValues(alpha: 0.07),
+                      ),
+                    ),
+                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
                     onPressed: _prevMonth,
                   ),
                   M3EIconButton(
                     size: M3EIconButtonSize.xs,
-                    variant: M3EIconButtonVariant.standard,
-                    icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                    width: M3EIconButtonWidth.narrow,
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.onSurface.withValues(alpha: 0.07),
+                      ),
+                    ),
+                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
                     onPressed: _nextMonth,
                   ),
                 ],
@@ -851,11 +857,13 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 !cellDate.isBefore(rangeStart) &&
                 !cellDate.isAfter(rangeEnd);
 
-            final isStreakStart = inStreakRange &&
+            final isStreakStart =
+                inStreakRange &&
                 (_isSameDay(cellDate, rangeStart) ||
                     colIdx == 0 ||
                     dayNum == 1);
-            final isStreakEnd = inStreakRange &&
+            final isStreakEnd =
+                inStreakRange &&
                 (_isSameDay(cellDate, rangeEnd) ||
                     colIdx == 6 ||
                     dayNum == daysInMonth);
@@ -897,7 +905,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   return InkWell(
-                    borderRadius: BorderRadius.circular(isToday || isSelected ? 18 : 8),
+                    borderRadius: BorderRadius.circular(
+                      isToday || isSelected ? 18 : 8,
+                    ),
                     onTap: () {
                       ZetaHaptics.selection();
                       widget.onSelectDate(cellDate);
@@ -931,12 +941,12 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                 color: isSelected
                                     ? colorScheme.primary
                                     : (isToday && !inStreakRange
-                                        ? colorScheme.surfaceContainerHigh
-                                        : Colors.transparent),
+                                          ? colorScheme.surfaceContainerHigh
+                                          : Colors.transparent),
                                 border: isToday && !isSelected && !inStreakRange
                                     ? Border.all(
                                         color: colorScheme.primary,
-                                        width: 1.8,
+                                        width: 1.18,
                                       )
                                     : null,
                                 borderRadius: BorderRadius.circular(18),
@@ -948,16 +958,18 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                     '$dayNum',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      fontWeight: isSelected || isToday || inStreakRange
+                                      fontWeight:
+                                          isSelected || isToday || inStreakRange
                                           ? FontWeight.w700
                                           : FontWeight.w400,
                                       color: isSelected
                                           ? colorScheme.onPrimary
                                           : (isToday
-                                              ? colorScheme.primary
-                                              : (inStreakRange
-                                                  ? colorScheme.onPrimaryContainer
-                                                  : colorScheme.onSurface)),
+                                                ? colorScheme.primary
+                                                : (inStreakRange
+                                                      ? colorScheme
+                                                            .onPrimaryContainer
+                                                      : colorScheme.onSurface)),
                                     ),
                                   ),
                                   if (dotColor != null)
@@ -967,7 +979,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                         width: 3.5,
                                         height: 3.5,
                                         decoration: BoxDecoration(
-                                          color: isSelected ? Colors.white : dotColor,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : dotColor,
                                           shape: BoxShape.circle,
                                         ),
                                       ),

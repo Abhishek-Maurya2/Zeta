@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/widgets/zeta_button.dart';
 
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
@@ -275,7 +276,12 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     size: M3EIconButtonSize.md,
                     width: M3EIconButtonWidth.narrow,
                     variant: M3EIconButtonVariant.standard,
-                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.onSurface.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    icon: const Icon(Icons.chevron_left_rounded, size: 30),
                     onPressed: () {
                       ZetaHaptics.light();
                       onShiftWeek(-1);
@@ -433,9 +439,13 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   message: 'Next week',
                   child: M3EIconButton(
                     size: M3EIconButtonSize.md,
-                    variant: M3EIconButtonVariant.standard,
                     width: M3EIconButtonWidth.narrow,
-                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                    icon: const Icon(Icons.chevron_right_rounded, size: 30),
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.onSurface.withValues(alpha: 0.1),
+                      ),
+                    ),
                     onPressed: () {
                       ZetaHaptics.light();
                       onShiftWeek(1);

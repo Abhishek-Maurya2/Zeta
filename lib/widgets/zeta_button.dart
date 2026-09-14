@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../utils/haptics.dart';
 
 /// Proportional measurements and styling presets for Zeta buttons.
@@ -361,7 +362,8 @@ class ZetaButton extends StatelessWidget {
     final effectiveIconGap = iconGap ?? scale.iconGap;
     final effectiveHPadding = padding != null ? null : scale.hPadding;
 
-    final baseLabelStyle = Theme.of(context).textTheme.labelLarge ??
+    final baseLabelStyle =
+        Theme.of(context).textTheme.labelLarge ??
         const TextStyle(fontSize: 14, fontWeight: FontWeight.w500);
 
     final styledTextTheme = baseLabelStyle.copyWith(
@@ -788,7 +790,8 @@ class ZetaExtendedFab extends StatelessWidget {
     final m3eTheme = M3EThemeData.fromMaterial(baseTheme);
 
     // Get current label typography from textTheme
-    final baseLabelStyle = baseTheme.textTheme.labelLarge ??
+    final baseLabelStyle =
+        baseTheme.textTheme.labelLarge ??
         const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
     final customLabelStyle = baseLabelStyle.copyWith(
       fontSize: effectiveFontSize,
@@ -797,9 +800,7 @@ class ZetaExtendedFab extends StatelessWidget {
 
     // Inject custom type scale and fabTheme into M3ETheme
     final customTypeScale = M3ETypeScale.fromTextTheme(
-      baseTheme.textTheme.copyWith(
-        labelLarge: customLabelStyle,
-      ),
+      baseTheme.textTheme.copyWith(labelLarge: customLabelStyle),
     );
 
     final customFabTheme = m3eTheme.fabTheme.copyWith(
