@@ -208,8 +208,28 @@ class UpdateService {
     UpdateAsset? exeAsset;
 
     for (final a in assets) {
-      if (a.isApk) apkAsset = a;
-      if (a.isExe) exeAsset = a;
+      if (a.isApk) {
+        apkAsset = a;
+        break;
+      }
+    }
+
+    // Prioritize Windows setup/installer executable (.exe)
+    // 1. Look for .exe containing 'setup' or 'install' (e.g. zeta-setup-1.0.1.exe)
+    // 2. Fall back to any other .exe asset
+    // 3. Fall back to .msix asset if no .exe exists
+    // Note: .zip files are explicitly excluded so that the installer setup file is always selected.
+    final exeAssets = assets.where((a) => a.isExe).toList();
+    if (exeAssets.isNotEmpty) {
+      exeAsset = exeAssets.firstWhere(
+        (a) => a.isWindowsSetup,
+        orElse: () => exeAssets.first,
+      );
+    } else {
+      final msixAssets = assets.where((a) => a.isMsix).toList();
+      if (msixAssets.isNotEmpty) {
+        exeAsset = msixAssets.first;
+      }
     }
 
     return AppUpdateInfo(
@@ -223,6 +243,10 @@ class UpdateService {
       exeAsset: exeAsset,
     );
   }
+
+  @visibleForTesting
+  AppUpdateInfo parseReleaseData(Map<String, dynamic> data, String currentVersion) =>
+      _parseReleaseData(data, currentVersion);
 
   /// Downloads the specified asset binary and reports progress.
   ///
@@ -241,9 +265,29 @@ class UpdateService {
         ? (await getDownloadsDirectory() ?? await getTemporaryDirectory())
         : await getTemporaryDirectory();
 
-    final ext = asset.extension.isNotEmpty ? asset.extension : (isWindows ? 'exe' : 'apk');
-    final fileName = 'zeta-v$latestVersion.$ext';
-    final filePath = '${dir.path}${Platform.pathSeparator}$fileName';
+    // Use the asset's actual filename if available to preserve setup name (e.g. zeta-setup-1.0.1.exe)
+    final String fileName;
+    if (asset.name.isNotEmpty) {
+      fileName = asset.name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    } else {
+      final ext = asset.extension.isNotEmpty ? asset.extension : (isWindows ? 'exe' : 'apk');
+      fileName = isWindows ? 'zeta-setup-v$latestVersion.$ext' : 'zeta-v$latestVersion.$ext';
+    }
+    String filePath = '${dir.path}${Platform.pathSeparator}$fileName';
+
+    // Remove existing file if present; if locked, generate unique timestamped filename
+    final existingFile = File(filePath);
+    if (await existingFile.exists()) {
+      try {
+        await existingFile.delete();
+      } catch (e) {
+        debugPrint('UpdateService: Target file locked ($e), using unique filename');
+        final dotIndex = fileName.lastIndexOf('.');
+        final base = dotIndex != -1 ? fileName.substring(0, dotIndex) : fileName;
+        final ext = dotIndex != -1 ? fileName.substring(dotIndex) : '';
+        filePath = '${dir.path}${Platform.pathSeparator}${base}_${DateTime.now().millisecondsSinceEpoch}$ext';
+      }
+    }
 
     final dio = Dio();
     String downloadUrl = asset.browserDownloadUrl;
@@ -311,6 +355,27 @@ class UpdateService {
     final file = File(filePath);
     if (!await file.exists()) {
       throw Exception('Downloaded installer file does not exist at $filePath');
+    }
+
+    // On Windows, launch .exe setup files using detached cmd start so that:
+    // 1. Windows UAC elevation is prompted if required.
+    // 2. The setup wizard runs in an independent process group and remains running
+    //    even if Zeta is closed or restarted during installation.
+    if (Platform.isWindows && filePath.toLowerCase().endsWith('.exe')) {
+      try {
+        await Process.start(
+          'cmd',
+          ['/c', 'start', '', filePath],
+          runInShell: false,
+          mode: ProcessStartMode.detached,
+        );
+        return OpenResult(
+          type: ResultType.done,
+          message: 'Installer launched successfully',
+        );
+      } catch (e) {
+        debugPrint('Windows detached start failed: $e, falling back to OpenFilex');
+      }
     }
 
     return OpenFilex.open(filePath);

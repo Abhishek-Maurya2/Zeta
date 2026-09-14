@@ -123,7 +123,8 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
     final taskProvider = context.watch<TaskProvider>();
 
     final isConnected = _google.isConnected || _supabase.isAuthenticated;
-    final accountEmail = _google.accountEmail ??
+    final accountEmail =
+        _google.accountEmail ??
         _supabase.currentUser?.email ??
         '208akmaurya@gmail.com';
 
@@ -202,7 +203,8 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                             ),
                             decoration: BoxDecoration(
                               color: isConnected
-                                  ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                  ? const Color(0xFF10B981)
+                                        .withValues(alpha: 0.15)
                                   : colorScheme.errorContainer,
                               borderRadius: BorderRadius.circular(6),
                             ),
@@ -258,24 +260,30 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                     actions: [
                       if (isConnected) ...[
                         M3EButtonGroupAction(
-                          icon: isSyncBusy
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.sync_rounded, size: 16),
+                          icon: const Icon(Icons.sync_rounded, size: 16),
                           label: const Text('Sync'),
                           tooltip: isSyncBusy ? 'Syncing...' : 'Sync now',
+                          decoration: M3EToggleButtonDecoration.styleFrom(
+                            backgroundColor: colorScheme.primaryContainer,
+                            foregroundColor: colorScheme.onPrimaryContainer,
+                          ),
                         ),
-                        const M3EButtonGroupAction(
+                        M3EButtonGroupAction(
                           icon: Icon(Icons.close_rounded, size: 16),
                           tooltip: 'Disconnect',
+                          decoration: M3EToggleButtonDecoration.styleFrom(
+                            backgroundColor: colorScheme.primaryContainer,
+                            foregroundColor: colorScheme.onPrimaryContainer,
+                          ),
                         ),
                       ] else ...[
-                        const M3EButtonGroupAction(
+                        M3EButtonGroupAction(
                           icon: Icon(Icons.login_rounded, size: 16),
                           label: Text('Connect'),
+                          decoration: M3EToggleButtonDecoration.styleFrom(
+                            backgroundColor: colorScheme.primaryContainer,
+                            foregroundColor: colorScheme.onPrimaryContainer,
+                          ),
                         ),
                       ],
                     ],

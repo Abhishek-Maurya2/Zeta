@@ -171,9 +171,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     // Sync native Windows window title bar with theme colors safely via MethodChannel
     WindowsTitleBar.update(
       isDark: isDark,
-      captionColor: isDark
-          ? colorScheme.surfaceContainer
-          : colorScheme.surface,
+      captionColor: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
       textColor: colorScheme.onSurface,
     );
 

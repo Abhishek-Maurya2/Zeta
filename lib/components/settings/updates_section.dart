@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -213,7 +214,9 @@ class UpdatesSection extends StatelessWidget {
                                     : isDownloading && updateProvider.downloadProgress != null
                                         ? '${updateProvider.downloadProgress!.transferredText} • ${updateProvider.downloadProgress!.speedText}'
                                         : isDownloaded
-                                            ? 'Installer downloaded. Tap install to finish updating.'
+                                            ? (defaultTargetPlatform == TargetPlatform.windows
+                                                ? 'Installer opened automatically. Run setup to finish updating, or tap Install to relaunch.'
+                                                : 'Installer downloaded. Tap install to finish updating.')
                                             : isAvailable && info != null
                                                 ? 'Version ${info.latestVersion} available${info.platformAsset?.formattedSize.isNotEmpty == true ? ' • ${info.platformAsset!.formattedSize}' : ''}'
                                                 : 'Current version v${info?.currentVersion ?? '1.0.0+1'} is the newest build',

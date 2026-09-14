@@ -375,11 +375,19 @@ class _ProfileSectionState extends State<ProfileSection> {
                           size: 16,
                         ),
                         label: Text(hasPhoto ? 'Change' : 'Photo'),
+                        decoration: M3EToggleButtonDecoration.styleFrom(
+                          backgroundColor: colorScheme.secondaryContainer,
+                          foregroundColor: colorScheme.onSecondaryContainer,
+                        ),
                       ),
                       if (hasPhoto)
-                        const M3EButtonGroupAction(
+                        M3EButtonGroupAction(
                           icon: Icon(Icons.close_rounded, size: 16),
                           tooltip: 'Remove photo',
+                          decoration: M3EToggleButtonDecoration.styleFrom(
+                            backgroundColor: colorScheme.secondaryContainer,
+                            foregroundColor: colorScheme.onSecondaryContainer,
+                          ),
                         ),
                     ],
                   );

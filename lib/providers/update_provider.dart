@@ -162,7 +162,12 @@ class UpdateProvider extends ChangeNotifier {
     if (path == null) return null;
 
     try {
-      return await _service.installUpdate(path);
+      final res = await _service.installUpdate(path);
+      if (res.type == ResultType.error) {
+        _errorMessage = 'Failed to launch installer: ${res.message}';
+        notifyListeners();
+      }
+      return res;
     } catch (e) {
       _errorMessage = 'Failed to launch installer: $e';
       notifyListeners();

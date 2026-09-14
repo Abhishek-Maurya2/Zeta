@@ -1,7 +1,7 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <!--
+  <head>
+    <!--
     If you are serving your web app in a path other than the root, change the
     href value below to reflect the base path you are serving from.
 
@@ -14,137 +14,145 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="$FLUTTER_BASE_HREF">
+    <base href="$FLUTTER_BASE_HREF" />
 
-  <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+    <meta charset="UTF-8" />
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <meta name="description" content="A new Flutter project." />
 
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="zeta">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+    <!-- iOS meta tags & icons -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="zeta" />
+    <link rel="apple-touch-icon" href="icons/Icon-192.png" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
 
-  <title>zeta</title>
-  <link rel="manifest" href="manifest.json">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #FAFAFA;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      user-select: none;
-    }
-    @media (prefers-color-scheme: dark) {
+    <title>zeta</title>
+    <link rel="manifest" href="manifest.json" />
+    <style>
       body {
-        background-color: #1E1E2E;
+        margin: 0;
+        padding: 0;
+        background-color: #fafafa;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        user-select: none;
+      }
+      @media (prefers-color-scheme: dark) {
+        body,
+        #web-splash {
+          background-color: #1e1e2e;
+        }
+        .web-splash-title {
+          color: #e2e8f0 !important;
+        }
+        .web-splash-subtitle {
+          color: #94a3b8 !important;
+        }
+      }
+      #web-splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        pointer-events: none;
+      }
+      .web-splash-logo-container {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 96px;
+        height: 96px;
+        margin-bottom: 20px;
+      }
+      .web-splash-aura {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+      }
+      .web-splash-logo {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        position: relative;
+        z-index: 2;
       }
       .web-splash-title {
-        color: #E2E8F0 !important;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        color: #1c1b1f;
+        margin: 0 0 6px 0;
       }
       .web-splash-subtitle {
-        color: #94A3B8 !important;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.8px;
+        color: #49454f;
+        margin: 0 0 24px 0;
       }
-    }
-    #web-splash {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      pointer-events: none;
-      transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .web-splash-logo-container {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 96px;
-      height: 96px;
-      margin-bottom: 20px;
-    }
-    .web-splash-aura {
-      position: absolute;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(103, 80, 164, 0.25) 0%, rgba(103, 80, 164, 0) 70%);
-      animation: webSplashAura 1.8s ease-in-out infinite alternate;
-    }
-    .web-splash-logo {
-      width: 88px;
-      height: 88px;
-      border-radius: 22px;
-      position: relative;
-      z-index: 2;
-      animation: webSplashPulse 1.8s ease-in-out infinite alternate;
-    }
-    .web-splash-title {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      color: #1C1B1F;
-      margin: 0 0 6px 0;
-    }
-    .web-splash-subtitle {
-      font-size: 13px;
-      font-weight: 500;
-      letter-spacing: 0.8px;
-      color: #49454F;
-      margin: 0 0 24px 0;
-    }
-    .web-splash-progress {
-      width: 64px;
-      height: 4px;
-      background: rgba(103, 80, 164, 0.15);
-      border-radius: 999px;
-      overflow: hidden;
-      position: relative;
-    }
-    .web-splash-bar {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      left: -100%;
-      width: 60%;
-      background: #6750A4;
-      border-radius: 999px;
-      animation: webSplashShimmer 1.5s infinite ease-in-out;
-    }
-    @keyframes webSplashPulse {
-      0% { transform: scale(0.98); }
-      100% { transform: scale(1.03); }
-    }
-    @keyframes webSplashAura {
-      0% { transform: scale(0.9); opacity: 0.6; }
-      100% { transform: scale(1.15); opacity: 1; }
-    }
-    @keyframes webSplashShimmer {
-      0% { left: -60%; }
-      100% { left: 100%; }
-    }
-  </style>
-</head>
-<body>
-  <div id="web-splash">
-    <div class="web-splash-logo-container">
-      <div class="web-splash-aura"></div>
-      <img class="web-splash-logo" src="icons/Icon-192.png" alt="Zeta Logo" />
+      .web-splash-progress {
+        width: 64px;
+        height: 4px;
+        background: rgba(103, 80, 164, 0.15);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .web-splash-bar {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -100%;
+        width: 60%;
+        background: #6750a4;
+        border-radius: 999px;
+        animation: webSplashShimmer 1.5s infinite ease-in-out;
+      }
+      @keyframes webSplashPulse {
+        0% {
+          transform: scale(0.98);
+        }
+        100% {
+          transform: scale(1.03);
+        }
+      }
+      @keyframes webSplashAura {
+        0% {
+          transform: scale(0.9);
+          opacity: 0.6;
+        }
+        100% {
+          transform: scale(1.25);
+          opacity: 1;
+        }
+      }
+      @keyframes webSplashShimmer {
+        0% {
+          left: -60%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="web-splash">
+      <div class="web-splash-logo-container">
+        <div class="web-splash-aura"></div>
+        <img class="web-splash-logo" src="icons/Icon-192.png" alt="Zeta Logo" />
+      </div>
+      <h1 class="web-splash-title">Zeta</h1>
     </div>
-    <h1 class="web-splash-title">Zeta</h1>
-    <p class="web-splash-subtitle">Personal Workspace</p>
-    <div class="web-splash-progress">
-      <div class="web-splash-bar"></div>
-    </div>
-  </div>
-  <!--
+    <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
     or to give the user feedback during the initialization process.
@@ -152,6 +160,35 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
-</body>
+    <script src="flutter_bootstrap.js" async></script>
+    <script>
+      function hideWebSplash() {
+        const splash = document.getElementById("web-splash");
+        if (splash && splash.dataset.dismissed !== "true") {
+          splash.dataset.dismissed = "true";
+          splash.style.opacity = "0";
+          setTimeout(function () {
+            if (splash.parentNode) {
+              splash.parentNode.removeChild(splash);
+            }
+          }, 700);
+        }
+      }
+
+      // 1. Dismiss when Flutter renders the first frame
+      window.addEventListener("flutter-first-frame", hideWebSplash);
+
+      // 2. Fallback: Dismiss when Flutter DOM elements mount
+      const splashObserver = new MutationObserver(function (_, obs) {
+        if (document.querySelector("flutter-view, flt-glass-pane")) {
+          setTimeout(hideWebSplash, 150);
+          obs.disconnect();
+        }
+      });
+      splashObserver.observe(document.body, { childList: true, subtree: true });
+
+      // 3. Fallback safety timer
+      setTimeout(hideWebSplash, 4000);
+    </script>
+  </body>
 </html>

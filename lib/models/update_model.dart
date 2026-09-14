@@ -32,7 +32,11 @@ class UpdateAsset {
   }
 
   bool get isApk => extension == 'apk';
-  bool get isExe => extension == 'exe' || extension == 'msix' || extension == 'zip';
+  bool get isExe => extension == 'exe';
+  bool get isMsix => extension == 'msix';
+  bool get isZip => extension == 'zip';
+  bool get isWindowsSetup =>
+      isExe && (name.toLowerCase().contains('setup') || name.toLowerCase().contains('install'));
 
   String get formattedSize {
     if (sizeBytes <= 0) return '';
