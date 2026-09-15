@@ -1,7 +1,8 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 export 'package:material_3_expressive/material_3_expressive.dart';
+
 export 'zeta_empty_state.dart';
 
 /// Segmented list decoration matching M3 Expressive card style.
@@ -43,7 +44,7 @@ class M3ESegmentedColumn extends StatelessWidget {
   final void Function(int index)? onTap;
   final Color? Function(int index)? colorBuilder;
   final BorderRadius? Function(int index, M3ECardPosition position)?
-      borderRadiusBuilder;
+  borderRadiusBuilder;
 
   const M3ESegmentedColumn({
     super.key,
@@ -80,7 +81,7 @@ class M3ESegmentedColumn extends StatelessWidget {
     final effectiveBorder = decoration?.border;
 
     BorderRadius? Function(int index, M3ECardPosition position)?
-        effectiveRadiusBuilder = borderRadiusBuilder;
+    effectiveRadiusBuilder = borderRadiusBuilder;
     if (effectiveRadiusBuilder == null &&
         (selectedIndex != null || selectionController != null)) {
       effectiveRadiusBuilder = (index, position) {

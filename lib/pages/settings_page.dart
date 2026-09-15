@@ -368,10 +368,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       backgroundColor: colorScheme.surfaceContainer,
                       scrolledUnderElevation: 2,
                       shape: _appBarShape,
-                      leading: Icon(
-                        activeCategoryMeta?.icon ?? Icons.settings_rounded,
-                        color: colorScheme.primary,
-                      ),
                       title: Text(activeCategoryMeta?.label ?? 'Settings'),
                     ),
                     SliverPadding(

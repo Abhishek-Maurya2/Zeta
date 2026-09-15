@@ -84,13 +84,6 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Receive proactive alerts when scheduled tasks reach their due time across Web, Windows, and Android.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
         const SizedBox(height: 12),
 
         // ─── Alerts & Sound Switches ──────────────────────────────────────
@@ -175,26 +168,6 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                 themeProvider.setSoundEffects(val);
                 widget.onToast?.call(
                   val ? 'Sound feedback enabled' : 'Sound feedback muted',
-                );
-              },
-            ),
-
-            // Auto-save changes
-            _buildSwitchTile(
-              context,
-              icon: Icons.save_rounded,
-              title: 'Auto-Save Workspace Changes',
-              subtitle: 'Automatically persist tasks and settings to local storage immediately',
-              value: themeProvider.autoSave,
-              selectedIcon: const Icon(Icons.check_rounded),
-              unselectedIcon: const Icon(Icons.close_rounded),
-              onChanged: (val) {
-                themeProvider.setAutoSave(val);
-                if (val) {
-                  taskProvider.saveTasks();
-                }
-                widget.onToast?.call(
-                  val ? 'Auto-save enabled' : 'Auto-save disabled',
                 );
               },
             ),

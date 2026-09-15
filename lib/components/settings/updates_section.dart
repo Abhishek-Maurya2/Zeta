@@ -61,7 +61,7 @@ class UpdatesSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ─── App Logo ──────────────────────────────────────────────
-              ZetaLogo(size: 88, borderRadius: BorderRadius.circular(44)),
+              ZetaLogo(size: 118, borderRadius: BorderRadius.circular(20  )),
               const SizedBox(height: 18),
 
               // ─── App Name ──────────────────────────────────────────────
@@ -76,11 +76,19 @@ class UpdatesSection extends StatelessWidget {
               const SizedBox(height: 6),
 
               // ─── Version ───────────────────────────────────────────────
-              Text(
-                displayVersion,
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  displayVersion,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: colorScheme.onSecondaryContainer,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),

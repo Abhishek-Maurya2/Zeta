@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
+import 'package:geolocator/geolocator.dart';
 
 class WeatherData {
   final double temperature; // In Celsius
@@ -24,15 +26,15 @@ class WeatherData {
   });
 
   Map<String, dynamic> toJson() => {
-        'temperature': temperature,
-        'condition': condition,
-        'humidity': humidity,
-        'windSpeed': windSpeed,
-        'weatherCode': weatherCode,
-        'cityName': cityName,
-        'isDay': isDay,
-        'fetchedAt': fetchedAt.toIso8601String(),
-      };
+    'temperature': temperature,
+    'condition': condition,
+    'humidity': humidity,
+    'windSpeed': windSpeed,
+    'weatherCode': weatherCode,
+    'cityName': cityName,
+    'isDay': isDay,
+    'fetchedAt': fetchedAt.toIso8601String(),
+  };
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
     return WeatherData(
@@ -63,7 +65,9 @@ class WeatherData {
   /// Condition string adapted for day or night context
   String get displayCondition {
     if (!isEffectivelyDay) {
-      if (condition == 'Clear Sky' || condition == 'Fair' || condition == 'Sunny') {
+      if (condition == 'Clear Sky' ||
+          condition == 'Fair' ||
+          condition == 'Sunny') {
         return 'Clear Night';
       }
       if (condition == 'Partly Cloudy') {
@@ -289,7 +293,9 @@ class WeatherService {
         final geocodeUrl = Uri.parse(
           'https://geocoding-api.open-meteo.com/v1/search?name=${Uri.encodeComponent(queryCity)}&count=1&language=en&format=json',
         );
-        final geoRes = await http.get(geocodeUrl).timeout(const Duration(seconds: 4));
+        final geoRes = await http
+            .get(geocodeUrl)
+            .timeout(const Duration(seconds: 4));
         if (geoRes.statusCode == 200) {
           final geoJson = jsonDecode(geoRes.body) as Map<String, dynamic>;
           final results = geoJson['results'] as List<dynamic>?;
@@ -311,13 +317,16 @@ class WeatherService {
       final weatherUrl = Uri.parse(
         'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&timezone=auto',
       );
-      final res = await http.get(weatherUrl).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(weatherUrl)
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final current = data['current'] as Map<String, dynamic>;
 
         final temp = (current['temperature_2m'] as num).toDouble();
-        final humidity = (current['relative_humidity_2m'] as num?)?.toInt() ?? 50;
+        final humidity =
+            (current['relative_humidity_2m'] as num?)?.toInt() ?? 50;
         final wind = (current['wind_speed_10m'] as num?)?.toDouble() ?? 10.0;
         final weatherCode = (current['weather_code'] as num?)?.toInt() ?? 0;
         final isDay = (current['is_day'] as num?)?.toInt() == 1;
@@ -366,13 +375,16 @@ class WeatherService {
       final weatherUrl = Uri.parse(
         'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&timezone=auto',
       );
-      final res = await http.get(weatherUrl).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(weatherUrl)
+          .timeout(const Duration(seconds: 5));
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final current = data['current'] as Map<String, dynamic>;
 
         final temp = (current['temperature_2m'] as num).toDouble();
-        final humidity = (current['relative_humidity_2m'] as num?)?.toInt() ?? 50;
+        final humidity =
+            (current['relative_humidity_2m'] as num?)?.toInt() ?? 50;
         final wind = (current['wind_speed_10m'] as num?)?.toDouble() ?? 10.0;
         final weatherCode = (current['weather_code'] as num?)?.toInt() ?? 0;
         final isDay = (current['is_day'] as num?)?.toInt() == 1;
@@ -395,9 +407,77 @@ class WeatherService {
     return fetchWeather(cityName);
   }
 
-  /// Detects the device location using IP Geolocation
+  /// Detects the device location using hardware GPS permissions across Android, iOS, Web, Windows, macOS.
+  /// Prompts user for system location permission. Falls back to IP Geolocation if permissions are denied.
   static Future<Map<String, dynamic>?> detectLocation() async {
-    // 1. Try ipwho.is (HTTPS, fast, accurate city/country)
+    // 1. Hardware GPS Location with system permission prompt
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        LocationPermission permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 6),
+            ),
+          );
+
+          final lat = position.latitude;
+          final lon = position.longitude;
+
+          // Reverse geocode lat/lon to city name via BigDataCloud API
+          try {
+            final revUrl = Uri.parse(
+              'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lon&localityLanguage=en',
+            );
+            final revRes = await http
+                .get(revUrl)
+                .timeout(const Duration(seconds: 4));
+            if (revRes.statusCode == 200) {
+              final revData = jsonDecode(revRes.body) as Map<String, dynamic>;
+              final city =
+                  revData['city'] as String? ??
+                  revData['locality'] as String? ??
+                  revData['principalSubdivision'] as String? ??
+                  '';
+              final country =
+                  revData['countryCode'] as String? ??
+                  revData['countryName'] as String? ??
+                  '';
+              final displayName = country.isNotEmpty && city.isNotEmpty
+                  ? '$city, $country'
+                  : city;
+
+              return {
+                'city': displayName.isNotEmpty
+                    ? displayName
+                    : '${lat.toStringAsFixed(2)}, ${lon.toStringAsFixed(2)}',
+                'lat': lat,
+                'lon': lon,
+                'country': country,
+              };
+            }
+          } catch (_) {}
+
+          return {
+            'city': '${lat.toStringAsFixed(2)}, ${lon.toStringAsFixed(2)}',
+            'lat': lat,
+            'lon': lon,
+            'country': '',
+          };
+        }
+      }
+    } catch (_) {
+      // GPS permission denied or service unavailable fallback
+    }
+
+    // 2. IP Geolocation Fallback
     try {
       final res = await http
           .get(Uri.parse('https://ipwho.is/'))
@@ -406,36 +486,12 @@ class WeatherService {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         if (data['success'] == true) {
           final city = data['city'] as String? ?? '';
-          final country = data['country_code'] as String? ??
+          final country =
+              data['country_code'] as String? ??
               data['country'] as String? ??
               '';
           final lat = (data['latitude'] as num).toDouble();
           final lon = (data['longitude'] as num).toDouble();
-          final displayName = country.isNotEmpty ? '$city, $country' : city;
-          return {
-            'city': displayName,
-            'lat': lat,
-            'lon': lon,
-            'country': country,
-          };
-        }
-      }
-    } catch (_) {}
-
-    // 2. Fallback to ip-api.com
-    try {
-      final res = await http
-          .get(Uri.parse('http://ip-api.com/json/'))
-          .timeout(const Duration(seconds: 4));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body) as Map<String, dynamic>;
-        if (data['status'] == 'success') {
-          final city = data['city'] as String? ?? '';
-          final country = data['countryCode'] as String? ??
-              data['country'] as String? ??
-              '';
-          final lat = (data['lat'] as num).toDouble();
-          final lon = (data['lon'] as num).toDouble();
           final displayName = country.isNotEmpty ? '$city, $country' : city;
           return {
             'city': displayName,

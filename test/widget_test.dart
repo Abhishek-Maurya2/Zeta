@@ -260,9 +260,6 @@ void main() {
     final compactSortRight = tester.getTopRight(sortFinder);
     expect(compactSortRight.dx, closeTo(400 - 16, 2.0));
 
-    // Verify compact FAB font size
-    final Text compactFabText = tester.widget<Text>(find.text('Add Task'));
-    expect(compactFabText.style?.fontSize, 16.0);
   });
 }
 

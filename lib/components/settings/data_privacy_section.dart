@@ -19,39 +19,6 @@ class DataPrivacySection extends StatefulWidget {
 }
 
 class _DataPrivacySectionState extends State<DataPrivacySection> {
-  void _exportConfiguration(BuildContext context, ThemeProvider themeProvider) {
-    final configData = {
-      'app': 'Zeta',
-      'version': '1.0.0',
-      'exportedAt': DateTime.now().toIso8601String(),
-      'userName': themeProvider.userName,
-      'userEmail': themeProvider.userEmail,
-      'avatarPhoto': themeProvider.avatarPhoto,
-      'themeMode': themeProvider.themeMode.name,
-      'seedColor':
-          '#${themeProvider.seedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
-      'variant': themeProvider.variant.name,
-      'highContrast': themeProvider.highContrast,
-      'animations': themeProvider.animations,
-      'compactDensity': themeProvider.compactDensity,
-      'fontScale': themeProvider.fontScale,
-      'cornerStyle': themeProvider.cornerStyle,
-      'typography': {
-        'headings': themeProvider.headingsTypography.toJson(),
-        'titles': themeProvider.titlesTypography.toJson(),
-        'body': themeProvider.bodyTypography.toJson(),
-        'labels': themeProvider.labelsTypography.toJson(),
-      },
-      'notifications': themeProvider.notifications,
-      'soundEffects': themeProvider.soundEffects,
-      'autoSave': themeProvider.autoSave,
-      'telemetry': themeProvider.telemetry,
-    };
-
-    final jsonStr = const JsonEncoder.withIndent('  ').convert(configData);
-    Clipboard.setData(ClipboardData(text: jsonStr));
-    widget.onToast?.call('Configuration JSON copied to clipboard!');
-  }
 
   void _exportAllData(
     BuildContext context,
@@ -228,13 +195,6 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Export your preferences, inspect storage quotas, and maintain workspace data.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
         const SizedBox(height: 12),
 
         M3ESegmentedColumn(
@@ -243,13 +203,13 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
           ),
           color: colorScheme.surfaceContainerLowest,
           children: [
-            // Export Configuration
+            // Export Workspace Backup (.json)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
                   Icon(
-                    Icons.download_rounded,
+                    Icons.archive_outlined,
                     size: 22,
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -259,14 +219,14 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Export Preferences JSON',
+                          'Export Workspace Backup (.json)',
                           style: textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
                           ),
                         ),
                         Text(
-                          'Copy JSON backup of current theme and workspace preferences',
+                          'Copy JSON backup of tasks, subtasks, pomodoro logs, and preferences',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -277,11 +237,15 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                   const SizedBox(width: 8),
                   M3EButton.icon(
                     icon: const Icon(Icons.copy_rounded, size: 14),
-                    label: const Text('Export'),
+                    label: const Text('Export Backup'),
                     style: M3EButtonStyle.tonal,
                     size: M3EButtonSize.sm,
-                    onPressed: () =>
-                        _exportConfiguration(context, themeProvider),
+                    onPressed: () => _exportAllData(
+                      context,
+                      themeProvider,
+                      taskProvider,
+                      pomodoroProvider,
+                    ),
                   ),
                 ],
               ),
@@ -325,54 +289,6 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                     style: M3EButtonStyle.outlined,
                     size: M3EButtonSize.sm,
                     onPressed: () => _showImportDialog(context, themeProvider),
-                  ),
-                ],
-              ),
-            ),
-
-            // Export All Data
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 22,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Full Workspace Backup',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Export tasks, subtasks, pomodoro history, and preferences',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  M3EButton.icon(
-                    icon: const Icon(Icons.archive_outlined, size: 14),
-                    label: const Text('Full Backup'),
-                    style: M3EButtonStyle.tonal,
-                    size: M3EButtonSize.sm,
-                    onPressed: () => _exportAllData(
-                      context,
-                      themeProvider,
-                      taskProvider,
-                      pomodoroProvider,
-                    ),
                   ),
                 ],
               ),

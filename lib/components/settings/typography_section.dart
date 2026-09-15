@@ -38,13 +38,6 @@ class _TypographySectionState extends State<TypographySection> {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Customize flex fonts and optical variable axes across headings, titles, reading body, and UI controls.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
         const SizedBox(height: 16),
 
         // ─── Quick Presets Row ────────────────────────────────────────────

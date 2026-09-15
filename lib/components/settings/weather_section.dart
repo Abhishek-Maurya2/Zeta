@@ -59,7 +59,8 @@ class _WeatherSectionState extends State<WeatherSection> {
     final tempDisplay = weather != null
         ? '${weather.temperature.round()}°C'
         : '24°C';
-    final conditionDisplay = weather?.displayCondition ??
+    final conditionDisplay =
+        weather?.displayCondition ??
         (DateTime.now().hour < 6 || DateTime.now().hour >= 19
             ? 'Clear Night'
             : 'Partly Cloudy');
@@ -84,13 +85,6 @@ class _WeatherSectionState extends State<WeatherSection> {
                     style: textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.1,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Live open-source telemetry via Open-Meteo in Celsius (°C).',
-                    style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -147,7 +141,8 @@ class _WeatherSectionState extends State<WeatherSection> {
                               )
                             : Center(
                                 child: WeatherIcon(
-                                  name: weather?.iconName ??
+                                  name:
+                                      weather?.iconName ??
                                       (DateTime.now().hour < 6 ||
                                               DateTime.now().hour >= 19
                                           ? 'clear_night'
@@ -247,20 +242,18 @@ class _WeatherSectionState extends State<WeatherSection> {
                     runSpacing: 8,
                     children: [
                       M3EButton.icon(
-                        icon: const Icon(
-                          Icons.my_location_rounded,
-                          size: 16,
-                        ),
+                        icon: const Icon(Icons.my_location_rounded, size: 16),
                         label: const Text('Use my location'),
                         style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
                         onPressed: isLoading
                             ? null
                             : () async {
-                                widget.onToast
-                                    ?.call('Detecting device location...');
-                                final success =
-                                    await themeProvider.detectUserLocation();
+                                widget.onToast?.call(
+                                  'Detecting device location...',
+                                );
+                                final success = await themeProvider
+                                    .detectUserLocation();
                                 if (success) {
                                   _cityController.text = themeProvider.cityName;
                                   widget.onToast?.call(

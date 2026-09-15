@@ -38,13 +38,6 @@ class PomodoroSettingsSection extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Configure focus sessions, break lengths, automation, and audio chimes.',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ),
             ),

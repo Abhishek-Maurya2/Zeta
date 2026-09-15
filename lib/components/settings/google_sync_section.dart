@@ -139,13 +139,6 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
             color: colorScheme.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          'Two-way real-time synchronization between Zeta tasks, Supabase, and Google Tasks.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
         const SizedBox(height: 12),
 
         // ─── Connection Status Card ──────────────────────────────────────
