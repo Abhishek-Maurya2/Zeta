@@ -270,7 +270,7 @@ class TodaysFocusCard extends StatelessWidget {
         ] else ...[
           // Empty State
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(28),
@@ -278,58 +278,16 @@ class TodaysFocusCard extends StatelessWidget {
                 color: colorScheme.outlineVariant.withValues(alpha: 0.25),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    Icons.wb_sunny_rounded,
-                    size: 28,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  isToday ? 'Clear Focus for Today' : 'No Tasks Scheduled',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isToday
-                      ? 'All set! No pending tasks scheduled right now.'
-                      : 'No tasks scheduled for $formattedDate.',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                M3EButton.icon(
-                  icon: const Icon(Icons.add_rounded, size: 26),
-                  label: Text(
-                    'Create Task',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.lg,
-                  onPressed: () {
-                    if (onOpenCreate != null) {
-                      onOpenCreate!();
-                    } else {
-                      TaskEditPane.show(context);
-                    }
-                  },
-                ),
-              ],
+            child: ZetaEmptyState.focus(
+              isToday: isToday,
+              formattedDate: formattedDate,
+              onCreateTask: () {
+                if (onOpenCreate != null) {
+                  onOpenCreate!();
+                } else {
+                  TaskEditPane.show(context);
+                }
+              },
             ),
           ),
         ],

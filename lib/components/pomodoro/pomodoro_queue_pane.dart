@@ -106,16 +106,11 @@ class PomodoroQueuePane extends StatelessWidget {
 
           // ─── Queue List using M3ESegmentedColumn ─────────────────
           if (queue.isEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32),
-                child: Text(
-                  'No sessions in cycle',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
+            ZetaEmptyState.pomodoro(
+              title: 'No sessions in cycle',
+              subtitle:
+                  'Start a new pomodoro session to populate the focus cycle.',
+              size: ZetaEmptyStateSize.compact,
             )
           else
             M3ESegmentedColumn(

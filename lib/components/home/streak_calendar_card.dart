@@ -9,6 +9,7 @@ import '../../utils/task_date_formatter.dart';
 import '../../utils/date_time_utils.dart';
 import '../../utils/haptics.dart';
 import '../common/standard_chips.dart';
+import '../../widgets/zeta_empty_state.dart';
 
 /// Streak Calendar Card mirroring Sharva's StreakCalendarCard:
 /// - Fire icon badge with warm gradient, current streak counter, and active pill.
@@ -615,58 +616,28 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
-                      vertical: 10,
+                      vertical: 12,
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHigh.withValues(
-                        alpha: 0.4,
+                        alpha: 0.35,
                       ),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'No tasks scheduled',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontStyle: FontStyle.italic,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () => TaskEditPane.show(context),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.add_rounded,
-                                  size: 14,
-                                  color: colorScheme.primary,
-                                ),
-                                const SizedBox(width: 2),
-                                Text(
-                                  'Add Task',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: ZetaEmptyState(
+                      size: ZetaEmptyStateSize.compact,
+                      shapeKind: M3EShapeKind.pill,
+                      icon: Icons.event_available_rounded,
+                      title: 'No tasks scheduled',
+                      subtitle: 'Nothing planned for $selectedDayStr.',
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      primaryAction: M3EButton.icon(
+                        icon: const Icon(Icons.add_rounded, size: 16),
+                        label: const Text('Add Task'),
+                        style: M3EButtonStyle.tonal,
+                        size: M3EButtonSize.sm,
+                        onPressed: () => TaskEditPane.show(context),
+                      ),
                     ),
                   ),
                 ],

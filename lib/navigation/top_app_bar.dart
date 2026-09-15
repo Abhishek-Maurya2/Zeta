@@ -671,34 +671,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     if (matchingTasks.isEmpty && matchingBinTasks.isEmpty) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Center(
-            child: Column(
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 40,
-                  color: colorScheme.outlineVariant,
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'No tasks found for "$query"',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Tap "Create task" above to add it to your list.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ZetaEmptyState.search(
+            query: query,
+            subtitle: 'Tap "Create task" above to add it to your list.',
+            size: ZetaEmptyStateSize.compact,
           ),
         ),
       );

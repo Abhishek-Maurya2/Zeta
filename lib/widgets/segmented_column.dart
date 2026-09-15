@@ -2,6 +2,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 export 'package:material_3_expressive/material_3_expressive.dart';
+export 'zeta_empty_state.dart';
 
 /// Segmented list decoration matching M3 Expressive card style.
 class M3ESegmentedListDecoration {

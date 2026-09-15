@@ -236,29 +236,21 @@ class TasksPage extends StatelessWidget {
                   if (filter == TaskFilter.completed) ...[
                     // Completed only view
                     if (completed.isEmpty)
-                      _buildEmptyState(
-                        context,
-                        isSearching
-                            ? 'No completed tasks found'
-                            : 'No completed tasks yet',
-                        isSearching
-                            ? 'No completed tasks match "${taskProvider.searchQuery}".'
-                            : 'Tasks marked as completed will appear here.',
-                        icon: isSearching ? Icons.search_off_rounded : null,
-                        action: isSearching
-                            ? OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.clear_all_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Clear search filter'),
-                                onPressed: () {
-                                  ZetaHaptics.light();
-                                  taskProvider.clearSearchQuery();
-                                },
-                              )
-                            : null,
-                      )
+                      isSearching
+                          ? ZetaEmptyState.search(
+                              query: taskProvider.searchQuery,
+                              subtitle:
+                                  'No completed tasks match "${taskProvider.searchQuery}".',
+                              onClearSearch: () =>
+                                  taskProvider.clearSearchQuery(),
+                            )
+                          : ZetaEmptyState.tasks(
+                              shapeKind: M3EShapeKind.cookie9Sided,
+                              icon: Icons.check_circle_outline_rounded,
+                              title: 'No completed tasks yet',
+                              subtitle:
+                                  'Tasks marked as completed will appear here.',
+                            )
                     else
                       _buildDismissibleTaskList(
                         context,
@@ -269,29 +261,22 @@ class TasksPage extends StatelessWidget {
                   ] else if (filter == TaskFilter.pending) ...[
                     // Pending only view
                     if (pending.isEmpty)
-                      _buildEmptyState(
-                        context,
-                        isSearching
-                            ? 'No pending tasks found'
-                            : 'No pending tasks',
-                        isSearching
-                            ? 'No pending tasks match "${taskProvider.searchQuery}".'
-                            : 'You have completed all pending tasks!',
-                        icon: isSearching ? Icons.search_off_rounded : null,
-                        action: isSearching
-                            ? OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.clear_all_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Clear search filter'),
-                                onPressed: () {
-                                  ZetaHaptics.light();
-                                  taskProvider.clearSearchQuery();
-                                },
-                              )
-                            : null,
-                      )
+                      isSearching
+                          ? ZetaEmptyState.search(
+                              query: taskProvider.searchQuery,
+                              subtitle:
+                                  'No pending tasks match "${taskProvider.searchQuery}".',
+                              onClearSearch: () =>
+                                  taskProvider.clearSearchQuery(),
+                            )
+                          : ZetaEmptyState.tasks(
+                              shapeKind: M3EShapeKind.clover4Leaf,
+                              icon: Icons.celebration_rounded,
+                              title: 'No pending tasks',
+                              subtitle:
+                                  'You have completed all pending tasks!',
+                             
+                            )
                     else
                       _buildDismissibleTaskList(
                         context,
@@ -302,27 +287,22 @@ class TasksPage extends StatelessWidget {
                   ] else ...[
                     // All tasks view
                     if (pending.isEmpty && completed.isEmpty)
-                      _buildEmptyState(
-                        context,
-                        isSearching ? 'No tasks found' : 'No tasks yet',
-                        isSearching
-                            ? 'No tasks match "${taskProvider.searchQuery}". Try a different keyword.'
-                            : 'Click "+ Add Task" to create your first task.',
-                        icon: isSearching ? Icons.search_off_rounded : null,
-                        action: isSearching
-                            ? OutlinedButton.icon(
-                                icon: const Icon(
-                                  Icons.clear_all_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Clear search filter'),
-                                onPressed: () {
-                                  ZetaHaptics.light();
-                                  taskProvider.clearSearchQuery();
-                                },
-                              )
-                            : null,
-                      )
+                      isSearching
+                          ? ZetaEmptyState.search(
+                              query: taskProvider.searchQuery,
+                              subtitle:
+                                  'No tasks match "${taskProvider.searchQuery}". Try a different keyword.',
+                              onClearSearch: () =>
+                                  taskProvider.clearSearchQuery(),
+                            )
+                          : ZetaEmptyState.tasks(
+                              shapeKind: M3EShapeKind.cookie4Sided,
+                              icon: Icons.assignment_outlined,
+                              title: 'No tasks yet',
+                              subtitle:
+                                  'Get started by creating your first task or note.',
+                       
+                            )
                     else ...[
                       if (pending.isNotEmpty)
                         _buildDismissibleTaskList(
@@ -535,53 +515,6 @@ class TasksPage extends StatelessWidget {
           : () => TaskEditPane.show(context, task: task),
       onContextMenu: (pos) => _showContextMenu(context, pos, task, provider),
       onDelete: () => provider.deleteTask(task.id),
-    );
-  }
-
-  Widget _buildEmptyState(
-    BuildContext context,
-    String title,
-    String subtitle, {
-    IconData? icon,
-    Widget? action,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 48),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon ?? Icons.check_circle_outline_rounded,
-              size: 56,
-              color: colorScheme.outlineVariant,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            if (action != null) ...[const SizedBox(height: 16), action],
-          ],
-        ),
-      ),
     );
   }
 }
