@@ -25,6 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
   static const double _collapseThreshold = 180.0;
   static const String _prefKeyPaneWidth = 'settings_pane_width';
   static const String _prefKeyPaneCollapsed = 'settings_pane_collapsed';
+  static const ShapeBorder _appBarShape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+  );
 
   double _paneWidth = _defaultPaneWidth;
   bool _hasCustomWidth = false;
@@ -212,14 +215,21 @@ class _SettingsPageState extends State<SettingsPage> {
           slivers: [
             SliverAppBar.large(
               pinned: true,
-              backgroundColor: colorScheme.surface,
+              // backgroundColor: colorScheme.surface,
               scrolledUnderElevation: 2,
+              shape: _appBarShape,
               leading: M3EIconButton(
                 variant: M3EIconButtonVariant.standard,
                 size: M3EIconButtonSize.sm,
+                width: M3EIconButtonWidth.wide,
                 icon: Icon(
                   Icons.arrow_back_rounded,
                   color: colorScheme.onSurface,
+                ),
+                decoration: M3EIconButtonDecoration(
+                  backgroundColor: WidgetStateProperty.all(
+                    colorScheme.onSurface.withValues(alpha: 0.1),
+                  ),
                 ),
                 onPressed: () {
                   ZetaHaptics.light();
@@ -251,12 +261,19 @@ class _SettingsPageState extends State<SettingsPage> {
               pinned: true,
               backgroundColor: colorScheme.surface,
               scrolledUnderElevation: 2,
+              shape: _appBarShape,
               leading: M3EIconButton(
                 variant: M3EIconButtonVariant.standard,
                 size: M3EIconButtonSize.sm,
+                width: M3EIconButtonWidth.wide,
                 icon: Icon(
                   Icons.arrow_back_rounded,
                   color: colorScheme.onSurface,
+                ),
+                decoration: M3EIconButtonDecoration(
+                  backgroundColor: WidgetStateProperty.all(
+                    colorScheme.onSurface.withValues(alpha: 0.1),
+                  ),
                 ),
                 onPressed: () {
                   ZetaHaptics.light();
@@ -308,8 +325,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     SliverAppBar.large(
                       pinned: true,
                       automaticallyImplyLeading: false,
-                      backgroundColor: colorScheme.surface,
+                      // backgroundColor: colorScheme.surface,
                       scrolledUnderElevation: 2,
+                      shape: _appBarShape,
                       title: const Text('Settings'),
                     ),
                     SliverPadding(
@@ -350,6 +368,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       automaticallyImplyLeading: false,
                       backgroundColor: colorScheme.surfaceContainer,
                       scrolledUnderElevation: 2,
+                      shape: _appBarShape,
                       leading: Icon(
                         activeCategoryMeta?.icon ?? Icons.settings_rounded,
                         color: colorScheme.primary,
