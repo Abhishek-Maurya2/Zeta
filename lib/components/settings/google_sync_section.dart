@@ -353,6 +353,8 @@ class _GoogleSyncSectionState extends State<GoogleSyncSection> {
                   const SizedBox(width: 12),
                   M3ESwitch(
                     value: _syncTasks,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       setState(() => _syncTasks = val);
                       _google.updateSyncPreferences(tasks: val);

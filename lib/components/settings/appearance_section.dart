@@ -525,6 +525,8 @@ class AppearanceSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   M3ESwitch(
                     value: themeProvider.animations,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       themeProvider.setAnimations(val);
                       onToast?.call(
@@ -568,6 +570,8 @@ class AppearanceSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   M3ESwitch(
                     value: themeProvider.highContrast,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       themeProvider.setHighContrast(val);
                       onToast?.call(
@@ -613,6 +617,8 @@ class AppearanceSection extends StatelessWidget {
                   const SizedBox(width: 12),
                   M3ESwitch(
                     value: themeProvider.compactDensity,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       themeProvider.setCompactDensity(val);
                       onToast?.call(

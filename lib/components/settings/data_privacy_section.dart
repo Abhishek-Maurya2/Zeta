@@ -547,6 +547,8 @@ class _DataPrivacySectionState extends State<DataPrivacySection> {
                   const SizedBox(width: 12),
                   M3ESwitch(
                     value: themeProvider.telemetry,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       themeProvider.setTelemetry(val);
                       widget.onToast?.call(

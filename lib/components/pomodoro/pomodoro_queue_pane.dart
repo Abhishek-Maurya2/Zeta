@@ -91,6 +91,8 @@ class PomodoroQueuePane extends StatelessWidget {
                   const SizedBox(width: 8),
                   M3ESwitch(
                     value: settings.skipBreaks,
+                    selectedIcon: const Icon(Icons.check_rounded),
+                    unselectedIcon: const Icon(Icons.close_rounded),
                     onChanged: (val) {
                       provider.updateSettings(
                         settings.copyWith(skipBreaks: val),

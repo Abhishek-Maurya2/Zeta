@@ -236,6 +236,8 @@ class PomodoroSettingsSection extends StatelessWidget {
               title: 'Sound alerts',
               subtitle: 'Play audio chime when session finishes',
               value: settings.soundNotification,
+              selectedIcon: const Icon(Icons.volume_up_rounded),
+              unselectedIcon: const Icon(Icons.volume_off_rounded),
               onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(soundNotification: val),
@@ -328,6 +330,8 @@ class PomodoroSettingsSection extends StatelessWidget {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    Widget? selectedIcon,
+    Widget? unselectedIcon,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -359,7 +363,12 @@ class PomodoroSettingsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          M3ESwitch(value: value, onChanged: onChanged),
+          M3ESwitch(
+            value: value,
+            onChanged: onChanged,
+            selectedIcon: selectedIcon ?? const Icon(Icons.check_rounded),
+            unselectedIcon: unselectedIcon ?? const Icon(Icons.close_rounded),
+          ),
         ],
       ),
     );

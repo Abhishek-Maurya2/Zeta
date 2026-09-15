@@ -654,11 +654,12 @@ class _TypographySectionState extends State<TypographySection> {
             ],
           ),
           const SizedBox(height: 8),
-          Slider(
+          M3ESlider(
             value: value.clamp(min, max),
             min: min,
             max: max,
-            divisions: divisions,
+            // divisions: divisions,
+            label: badgeText,
             onChanged: isSupported ? onChanged : null,
           ),
         ],

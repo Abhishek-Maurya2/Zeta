@@ -107,6 +107,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               title: 'In-App Due Time Alerts',
               subtitle: 'Display high-priority notifications when tasks reach their scheduled deadline',
               value: themeProvider.notifications,
+              selectedIcon: const Icon(Icons.notifications_active_rounded),
+              unselectedIcon: const Icon(Icons.notifications_off_rounded),
               onChanged: (val) {
                 themeProvider.setNotifications(val);
                 widget.onToast?.call(
@@ -167,6 +169,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               title: 'Sound Feedback & Chimes',
               subtitle: 'Play audio clicks and chimes on task completion and timer events',
               value: themeProvider.soundEffects,
+              selectedIcon: const Icon(Icons.volume_up_rounded),
+              unselectedIcon: const Icon(Icons.volume_off_rounded),
               onChanged: (val) {
                 themeProvider.setSoundEffects(val);
                 widget.onToast?.call(
@@ -182,6 +186,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               title: 'Auto-Save Workspace Changes',
               subtitle: 'Automatically persist tasks and settings to local storage immediately',
               value: themeProvider.autoSave,
+              selectedIcon: const Icon(Icons.check_rounded),
+              unselectedIcon: const Icon(Icons.close_rounded),
               onChanged: (val) {
                 themeProvider.setAutoSave(val);
                 if (val) {
@@ -288,6 +294,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    Widget? selectedIcon,
+    Widget? unselectedIcon,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -319,7 +327,12 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
             ),
           ),
           const SizedBox(width: 12),
-          M3ESwitch(value: value, onChanged: onChanged),
+          M3ESwitch(
+            value: value,
+            onChanged: onChanged,
+            selectedIcon: selectedIcon ?? const Icon(Icons.check_rounded),
+            unselectedIcon: unselectedIcon ?? const Icon(Icons.close_rounded),
+          ),
         ],
       ),
     );
