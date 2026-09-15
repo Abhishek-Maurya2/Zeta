@@ -273,8 +273,8 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
+
     final provider = PomodoroProvider();
-    provider.seedSampleData();
 
     await tester.pumpWidget(
       createPomodoroTestWidget(pomodoroProvider: provider),
@@ -309,7 +309,6 @@ void main() {
     provider.clearSessionLog();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('No sessions recorded yet'), findsOneWidget);
-    expect(find.text('Load Sample Data'), findsOneWidget);
   });
 
   testWidgets(

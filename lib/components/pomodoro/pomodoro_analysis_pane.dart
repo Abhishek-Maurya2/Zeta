@@ -47,18 +47,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
   ChartRange _range = ChartRange.week;
   int _offset = 0; // 0 = current, -1 = previous, etc.
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final provider = context.read<PomodoroProvider>();
-        if (provider.sessionLog.isEmpty) {
-          provider.seedSampleData();
-        }
-      }
-    });
-  }
+
 
   String _formatDuration(int minutes) {
     if (minutes <= 0) return '0m';
@@ -253,32 +242,19 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   color: colorScheme.onSurface,
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => provider.seedSampleData(),
-                    icon: const Icon(Icons.auto_awesome_rounded, size: 15),
-                    label: const Text('Sample Data'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: colorScheme.primary,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                  if (sessionLog.isNotEmpty) ...[
-                    const SizedBox(width: 4),
-                    TextButton.icon(
-                      onPressed: () => _confirmClearLogs(context, provider),
-                      icon: const Icon(Icons.delete_outline_rounded, size: 15),
-                      label: const Text('Clear'),
+             if (sessionLog.isNotEmpty) ...[
+              const SizedBox(width: 4),
+              TextButton.icon(
+              onPressed: () => _confirmClearLogs(context, provider),
+                icon: const Icon(Icons.delete_outline_rounded, size: 15),
+                label: const Text('Clear'),
                       style: TextButton.styleFrom(
                         foregroundColor: colorScheme.error,
                         visualDensity: VisualDensity.compact,
                       ),
                     ),
                   ],
-                ],
-              ),
+
             ],
           ),
 
@@ -289,9 +265,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               title: 'No sessions recorded yet',
               subtitle:
                   'Complete focus sessions to start tracking your daily progress.',
-              actionLabel: 'Load Sample Data',
-              actionIcon: Icons.auto_awesome_rounded,
-              onAction: () => provider.seedSampleData(),
               size: ZetaEmptyStateSize.standard,
             )
           else
@@ -683,13 +656,13 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     );
   }
 
-  // ─── Number Formatter ───────────────────────────────────────────────────
-  String _formatAxisNumber(int number) {
-    if (number >= 1000) {
-      final k = number / 1000;
-      return '${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)}k';
-    }
-    return '$number';
+  // ─── Duration / Axis Formatter ─────────────────────────────────────────
+  String _formatAxisDuration(int minutes) {
+    if (minutes <= 0) return '0';
+    if (minutes < 60) return '${minutes}m';
+    final hours = minutes / 60;
+    if (minutes % 60 == 0) return '${hours.toInt()}h';
+    return '${hours.toStringAsFixed(1)}h';
   }
 
   // ─── Universal Vertical Bar Chart Canvas (M3 Expressive Pill Bars) ──────
@@ -713,12 +686,12 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       (maxItemFocus * 1.15).round(),
     );
     final effectiveMax = math.max(60, maxScale);
-    final goalFraction = (goalValue / effectiveMax).clamp(0.1, 0.9);
+    final goalFraction = (goalValue / effectiveMax).clamp(0.08, 0.92);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        const rightAxisWidth = 42.0;
+        const rightAxisWidth = 52.0;
         final availableWidth = math.max(120.0, totalWidth - rightAxisWidth);
 
         final count = items.length;
@@ -727,18 +700,44 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           maxBarWidth,
         );
         final barWidth = calculatedBarWidth.toDouble();
-        final badgeSize = (barWidth - 6).clamp(10.0, 26.0);
-        final iconSize = (badgeSize * 0.58).clamp(7.0, 15.0);
+        final badgeSize = (barWidth - 6).clamp(10.0, 24.0);
+        final iconSize = (badgeSize * 0.58).clamp(7.0, 14.0);
 
         const labelAreaHeight = 24.0;
         final barAreaHeight = chartHeight - labelAreaHeight - 16;
         final goalBottom = (goalFraction * barAreaHeight) + labelAreaHeight;
+
+        // Check if mid-tick label (50%) collides with goal line
+        final showMidTick = (goalFraction - 0.5).abs() > 0.15;
 
         return SizedBox(
           height: chartHeight,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
+              // ── Background Grid Lines (Subtle) ──
+              // Top 100% grid line
+              Positioned(
+                left: 0,
+                right: rightAxisWidth + 4,
+                top: 0,
+                child: Container(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                ),
+              ),
+
+              // Mid 50% grid line
+              Positioned(
+                left: 0,
+                right: rightAxisWidth + 4,
+                bottom: (0.5 * barAreaHeight) + labelAreaHeight,
+                child: Container(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+                ),
+              ),
+
               // ── Goal Reference Line Across Chart ──
               Positioned(
                 left: 0,
@@ -747,24 +746,41 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 child: Container(
                   height: 1.5,
                   decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.7),
+                    color: colorScheme.primary.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
               ),
 
               // ── Y-Axis Labels (Right Side) ──
+              // Top Max label
               Positioned(
-                top: 0,
+                top: -2,
                 right: 0,
                 child: Text(
-                  _formatAxisNumber(effectiveMax),
+                  _formatAxisDuration(effectiveMax),
                   style: textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     fontSize: 10,
                   ),
                 ),
               ),
+
+              // Mid 50% label (rendered if not colliding with goal)
+              if (showMidTick)
+                Positioned(
+                  bottom: (0.5 * barAreaHeight) + labelAreaHeight - 7,
+                  right: 0,
+                  child: Text(
+                    _formatAxisDuration((effectiveMax / 2).round()),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+
+              // Goal label
               Positioned(
                 bottom: goalBottom - 7,
                 right: 0,
@@ -773,12 +789,14 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   style: textTheme.labelSmall?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: FontWeight.w700,
-                    fontSize: 11,
+                    fontSize: 10,
                   ),
                 ),
               ),
+
+              // Bottom 0 label
               Positioned(
-                bottom: labelAreaHeight,
+                bottom: labelAreaHeight - 4,
                 right: 0,
                 child: Text(
                   '0',
@@ -818,7 +836,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                     } else {
                       final fraction = (focus / effectiveMax).clamp(0.0, 1.0);
                       final computedHeight = math.max(
-                        barWidth,
+                        6.0,
                         fraction * barAreaHeight,
                       );
 
@@ -833,9 +851,11 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                                         alpha: 0.65,
                                       )
                                     : colorScheme.secondaryContainer),
-                          borderRadius: BorderRadius.circular(barWidth / 2),
+                          borderRadius: BorderRadius.circular(
+                            math.min(barWidth / 2, computedHeight / 2),
+                          ),
                         ),
-                        child: hitGoal
+                        child: hitGoal && computedHeight >= badgeSize + 6
                             ? Align(
                                 alignment: Alignment.topCenter,
                                 child: Padding(
@@ -861,7 +881,10 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        barWidget,
+                        Tooltip(
+                          message: '$label: ${_formatDuration(focus)}',
+                          child: barWidget,
+                        ),
                         const SizedBox(height: 8),
                         SizedBox(
                           height: 16,
@@ -950,7 +973,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           textTheme: textTheme,
           items: blocks,
           goalValue: blockGoal,
-          goalLabel: '${blockGoal}m',
+          goalLabel: _formatDuration(blockGoal),
           chartHeight: 175,
         ),
       ],
@@ -1004,7 +1027,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           textTheme: textTheme,
           items: days,
           goalValue: dailyGoalMins,
-          goalLabel: '${dailyGoalMins}m',
+          goalLabel: _formatDuration(dailyGoalMins),
           chartHeight: 175,
         ),
       ],
@@ -1062,7 +1085,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           textTheme: textTheme,
           items: weekItems,
           goalValue: weeklyGoal,
-          goalLabel: '${weeklyGoal}m',
+          goalLabel: _formatDuration(weeklyGoal),
           chartHeight: 175,
           maxBarWidth: 44.0,
         ),
@@ -1106,7 +1129,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           textTheme: textTheme,
           items: monthsData,
           goalValue: monthlyGoal,
-          goalLabel: '2km',
+          goalLabel: _formatDuration(monthlyGoal),
           chartHeight: 175,
           maxBarWidth: 54.0,
         ),
@@ -1163,7 +1186,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           textTheme: textTheme,
           items: yearData,
           goalValue: monthlyGoal,
-          goalLabel: '2km',
+          goalLabel: _formatDuration(monthlyGoal),
           chartHeight: 175,
           minBarWidth: 10.0,
           maxBarWidth: 20.0,
