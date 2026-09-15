@@ -11,11 +11,6 @@ class PomodoroSettingsSection extends StatelessWidget {
 
   const PomodoroSettingsSection({super.key, this.onToast});
 
-  static const List<int> focusPresets = [15, 20, 25, 30, 45, 50];
-  static const List<int> shortBreakPresets = [3, 5, 8, 10];
-  static const List<int> longBreakPresets = [10, 15, 20, 30];
-  static const List<int> intervalPresets = [2, 3, 4, 5, 6];
-
   @override
   Widget build(BuildContext context) {
     final pomodoroProvider = context.watch<PomodoroProvider>();
@@ -75,15 +70,17 @@ class PomodoroSettingsSection extends StatelessWidget {
           color: colorScheme.surfaceContainerLowest,
           children: [
             // Focus Duration
-            _buildPresetRow(
+            _buildSliderRow(
               context,
               icon: Icons.psychology_rounded,
               title: 'Focus Duration',
               currentLabel: '${settings.focusDuration} minutes',
-              presets: focusPresets,
-              selectedVal: settings.focusDuration,
-              labelSuffix: 'm',
-              onSelected: (val) {
+              value: settings.focusDuration.toDouble(),
+              min: 5,
+              max: 90,
+              divisions: 17,
+              label: '${settings.focusDuration}m',
+              onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(focusDuration: val),
                 );
@@ -92,15 +89,17 @@ class PomodoroSettingsSection extends StatelessWidget {
             ),
 
             // Short Break Duration
-            _buildPresetRow(
+            _buildSliderRow(
               context,
               icon: Icons.coffee_rounded,
               title: 'Short Break Duration',
               currentLabel: '${settings.shortBreakDuration} minutes',
-              presets: shortBreakPresets,
-              selectedVal: settings.shortBreakDuration,
-              labelSuffix: 'm',
-              onSelected: (val) {
+              value: settings.shortBreakDuration.toDouble(),
+              min: 1,
+              max: 30,
+              divisions: 29,
+              label: '${settings.shortBreakDuration}m',
+              onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(shortBreakDuration: val),
                 );
@@ -109,15 +108,17 @@ class PomodoroSettingsSection extends StatelessWidget {
             ),
 
             // Long Break Duration
-            _buildPresetRow(
+            _buildSliderRow(
               context,
               icon: Icons.hotel_rounded,
               title: 'Long Break Duration',
               currentLabel: '${settings.longBreakDuration} minutes',
-              presets: longBreakPresets,
-              selectedVal: settings.longBreakDuration,
-              labelSuffix: 'm',
-              onSelected: (val) {
+              value: settings.longBreakDuration.toDouble(),
+              min: 5,
+              max: 60,
+              divisions: 11,
+              label: '${settings.longBreakDuration}m',
+              onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(longBreakDuration: val),
                 );
@@ -126,16 +127,18 @@ class PomodoroSettingsSection extends StatelessWidget {
             ),
 
             // Long Break Interval
-            _buildPresetRow(
+            _buildSliderRow(
               context,
               icon: Icons.repeat_rounded,
               title: 'Long Break Interval',
               currentLabel:
                   'Every ${settings.longBreakInterval} focus sessions',
-              presets: intervalPresets,
-              selectedVal: settings.longBreakInterval,
-              labelSuffix: ' cycles',
-              onSelected: (val) {
+              value: settings.longBreakInterval.toDouble(),
+              min: 1,
+              max: 10,
+              divisions: 9,
+              label: '${settings.longBreakInterval} cycles',
+              onChanged: (val) {
                 pomodoroProvider.updateSettings(
                   settings.copyWith(longBreakInterval: val),
                 );
@@ -262,15 +265,17 @@ class PomodoroSettingsSection extends StatelessWidget {
     );
   }
 
-  Widget _buildPresetRow(
+  Widget _buildSliderRow(
     BuildContext context, {
     required IconData icon,
     required String title,
     required String currentLabel,
-    required List<int> presets,
-    required int selectedVal,
-    required String labelSuffix,
-    required ValueChanged<int> onSelected,
+    required double value,
+    required double min,
+    required double max,
+    required int divisions,
+    required String label,
+    required ValueChanged<int> onChanged,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -302,22 +307,14 @@ class PomodoroSettingsSection extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: presets.map((mins) {
-                final isSelected = selectedVal == mins;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text('$mins$labelSuffix'),
-                    selected: isSelected,
-                    onSelected: (_) => onSelected(mins),
-                  ),
-                );
-              }).toList(),
-            ),
+          const SizedBox(height: 4),
+          M3ESlider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: divisions,
+            label: label,
+            onChanged: (newVal) => onChanged(newVal.round()),
           ),
         ],
       ),
