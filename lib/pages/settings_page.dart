@@ -383,16 +383,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (activeCategoryMeta?.description.isNotEmpty ??
-                                  false) ...[
-                                Text(
-                                  activeCategoryMeta!.description,
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                              ],
+                              // if (activeCategoryMeta?.description.isNotEmpty ??
+                              //     false) ...[
+                              //   Text(
+                              //     activeCategoryMeta!.description,
+                              //     style: textTheme.bodyMedium?.copyWith(
+                              //       color: colorScheme.onSurfaceVariant,
+                              //     ),
+                              //   ),
+                              // ],
+                              const SizedBox(height: 20),
                               _buildCategoryContent(activeCategory),
                             ],
                           ),
