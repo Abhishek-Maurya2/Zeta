@@ -206,7 +206,10 @@ class ZetaEmptyState extends StatelessWidget {
       primaryAction: onCreateTask != null
           ? M3EButton.icon(
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Create Task'),
+              label: const Text(
+                'Add new task',
+                style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600),
+              ),
               style: M3EButtonStyle.filled,
               size: M3EButtonSize.md,
               onPressed: () {
@@ -350,8 +353,8 @@ class ZetaEmptyState extends StatelessWidget {
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (primaryAction != null) primaryAction!,
-              if (secondaryAction != null) secondaryAction!,
+              ?primaryAction,
+              ?secondaryAction,
             ],
           ),
         ],

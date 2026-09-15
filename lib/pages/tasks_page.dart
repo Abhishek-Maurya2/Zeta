@@ -364,39 +364,39 @@ class TasksPage extends StatelessWidget {
 
         // ─── Floating Action Button: + Add Task (Desktop/Tablet only; compact uses M3EToolbar FAB) ──
         if (!isCompact)
-          Positioned(
+        Positioned(
             bottom: 28,
             right: 36,
-            child: AnimatedSlide(
-              offset: taskProvider.isSelectionMode
-                  ? const Offset(0, 2.0)
-                  : Offset.zero,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOutCubicEmphasized,
-              child: AnimatedScale(
-                scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOutCubic,
-                child: IgnorePointer(
-                  ignoring: taskProvider.isSelectionMode,
-                  child: ZetaExtendedFab(
-                    color: M3EFabColor.primary,
-                    extended: true,
-                    icon: const Icon(Icons.add_rounded),
-                    label: 'Add Task',
+          child: AnimatedSlide(
+            offset: taskProvider.isSelectionMode
+                ? const Offset(0, 2.0)
+                : Offset.zero,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeInOutCubicEmphasized,
+            child: AnimatedScale(
+              scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOutCubic,
+              child: IgnorePointer(
+                ignoring: taskProvider.isSelectionMode,
+                child: ZetaExtendedFab(
+                  color: M3EFabColor.primary,
+                  extended: true,
+                  icon: const Icon(Icons.add_rounded),
+                  label: 'Add Task',
                     height: 64,
                     iconSize: 28,
-                    cornerRadius: 15,
+                  cornerRadius: 15,
                     extendedHorizontalPadding: 30,
                     iconLabelGap: 15,
                     labelFontSize: 18,
-                    labelFontWeight: FontWeight.w600,
-                    onPressed: () => TaskEditPane.show(context),
-                  ),
+                  labelFontWeight: FontWeight.w600,
+                  onPressed: () => TaskEditPane.show(context),
                 ),
               ),
             ),
           ),
+        ),
       ],
     );
   }

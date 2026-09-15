@@ -24,6 +24,21 @@ class SupabaseSyncService {
 
   void Function(Task task, String eventType)? onRemoteChange;
 
+  final List<Task> _pendingQueue = [];
+
+  /// Processes any queued offline tasks that previously failed to push.
+  Future<void> processPendingQueue() async {
+    if (_pendingQueue.isEmpty || !_supabaseService.isInitialized) return;
+    final toProcess = List<Task>.from(_pendingQueue);
+    _pendingQueue.clear();
+    for (final task in toProcess) {
+      final success = await pushTask(task);
+      if (!success && !_pendingQueue.any((t) => t.id == task.id)) {
+        _pendingQueue.add(task);
+      }
+    }
+  }
+
   /// Pull tasks from Supabase `public.tasks` table.
   /// If [since] is provided, only retrieves tasks updated since that timestamp.
   Future<List<Task>> pullTasks({DateTime? since}) async {
@@ -58,6 +73,7 @@ class SupabaseSyncService {
 
       _lastSyncedAt = DateTime.now();
       debugPrint('SupabaseSyncService: Pulled ${tasks.length} tasks successfully.');
+      unawaited(processPendingQueue());
       return tasks;
     } catch (e) {
       _lastError = e.toString();
@@ -81,7 +97,12 @@ class SupabaseSyncService {
   Future<bool> pushTask(Task task) async {
     _debounceTimers[task.id]?.cancel();
     _debounceTimers.remove(task.id);
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized) {
+      if (!_pendingQueue.any((t) => t.id == task.id)) {
+        _pendingQueue.add(task);
+      }
+      return false;
+    }
 
     final userId = _supabaseService.effectiveUserId;
     final row = task.toSupabaseRow(defaultUserId: userId);
@@ -97,12 +118,16 @@ class SupabaseSyncService {
             .timeout(const Duration(seconds: 15));
         debugPrint('SupabaseSyncService: Upserted task "${task.title}" (${task.id})');
         _lastSyncedAt = DateTime.now();
+        _pendingQueue.removeWhere((t) => t.id == task.id);
         return true;
       } catch (e) {
         retryCount++;
         debugPrint('SupabaseSyncService: Push attempt $retryCount failed for ${task.id}: $e');
         if (retryCount >= maxRetries) {
           _lastError = e.toString();
+          if (!_pendingQueue.any((t) => t.id == task.id)) {
+            _pendingQueue.add(task);
+          }
           return false;
         }
         await Future.delayed(Duration(seconds: retryCount));

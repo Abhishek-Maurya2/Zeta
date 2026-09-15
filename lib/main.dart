@@ -58,17 +58,30 @@ class _ZetaAppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final double textScaleFactor = themeProvider.fontScale == 'compact'
+    final themeMode = context.select<ThemeProvider, ThemeMode>((p) => p.themeMode);
+    final seedColor = context.select<ThemeProvider, Color>((p) => p.seedColor);
+    final variant = context.select<ThemeProvider, M3EColorVariant>((p) => p.variant);
+    final cornerStyle = context.select<ThemeProvider, String>((p) => p.cornerStyle);
+    final highContrast = context.select<ThemeProvider, bool>((p) => p.highContrast);
+    final compactDensity = context.select<ThemeProvider, bool>((p) => p.compactDensity);
+    final animations = context.select<ThemeProvider, bool>((p) => p.animations);
+    final fontScale = context.select<ThemeProvider, String>((p) => p.fontScale);
+
+    final headings = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.headingsTypography);
+    final titles = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.titlesTypography);
+    final body = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.bodyTypography);
+    final labels = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.labelsTypography);
+
+    final double textScaleFactor = fontScale == 'compact'
         ? 0.92
-        : themeProvider.fontScale == 'large'
+        : fontScale == 'large'
         ? 1.08
         : 1.0;
 
     return MaterialApp(
       title: 'Zeta',
       debugShowCheckedModeBanner: false,
-      themeMode: themeProvider.themeMode,
+      themeMode: themeMode,
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context)
@@ -77,28 +90,28 @@ class _ZetaAppView extends StatelessWidget {
         );
       },
       theme: AppTheme.light(
-        themeProvider.seedColor,
-        themeProvider.variant,
-        themeProvider.cornerStyle,
-        themeProvider.highContrast,
-        themeProvider.compactDensity,
-        themeProvider.animations,
-        themeProvider.headingsTypography,
-        themeProvider.titlesTypography,
-        themeProvider.bodyTypography,
-        themeProvider.labelsTypography,
+        seedColor,
+        variant,
+        cornerStyle,
+        highContrast,
+        compactDensity,
+        animations,
+        headings,
+        titles,
+        body,
+        labels,
       ),
       darkTheme: AppTheme.dark(
-        themeProvider.seedColor,
-        themeProvider.variant,
-        themeProvider.cornerStyle,
-        themeProvider.highContrast,
-        themeProvider.compactDensity,
-        themeProvider.animations,
-        themeProvider.headingsTypography,
-        themeProvider.titlesTypography,
-        themeProvider.bodyTypography,
-        themeProvider.labelsTypography,
+        seedColor,
+        variant,
+        cornerStyle,
+        highContrast,
+        compactDensity,
+        animations,
+        headings,
+        titles,
+        body,
+        labels,
       ),
       home: ZetaAppRoot(showSplash: showSplash),
     );

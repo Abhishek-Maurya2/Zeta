@@ -193,7 +193,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final width = MediaQuery.sizeOf(context).width;
     final isTwoPane = width >= 640;
 

@@ -12,7 +12,7 @@ void main() {
       // 2026-09-15T00:00:00.000Z is midnight UTC on Sept 15
       final parsed = GoogleCalendarService.parseGoogleTaskDue('2026-09-15T00:00:00.000Z');
 
-      expect(parsed.dueDate, equals('15, Sep'));
+      expect(parsed.dueDate, equals(TaskDateFormatter.format(DateTime.parse('2026-09-15'))));
       expect(parsed.hasTime, isFalse);
       expect(parsed.dueTime, isNull);
     });
@@ -23,7 +23,7 @@ void main() {
       final parsed = GoogleCalendarService.parseGoogleTaskDue('2026-09-15T10:00:00.000Z');
 
       expect(parsed.dueDate, isNotNull);
-      expect(parsed.dueDate, equals('15, Sep'));
+      expect(parsed.dueDate, equals(TaskDateFormatter.format(DateTime.parse('2026-09-15'))));
       expect(parsed.hasTime, isFalse);   // Tasks API never carries time
       expect(parsed.dueTime, isNull);    // Rehydrated from Calendar instead
     });

@@ -272,12 +272,6 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
 
                       const SizedBox(height: 18),
-
-                      // M3 Expressive Shimmer Progress Capsule (YouTube style)
-                      FadeTransition(
-                        opacity: _introFade,
-                        child: _buildProgressCapsule(primarySeed, isDark),
-                      ),
                     ],
                   ),
                 );
@@ -376,52 +370,6 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ],
       ),
-    );
-  }
-
-  /// Modern M3E indeterminate shimmer capsule (YouTube accent style)
-  Widget _buildProgressCapsule(Color primarySeed, bool isDark) {
-    return AnimatedBuilder(
-      animation: _shimmerController,
-      builder: (context, _) {
-        const double capsuleWidth = 154.0;
-        const double capsuleHeight = 4.0;
-        final double shimmerProgress = _shimmerController.value;
-
-        return Container(
-          width: capsuleWidth,
-          height: capsuleHeight,
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.12)
-                : primarySeed.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(capsuleHeight / 2),
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: (shimmerProgress * (capsuleWidth + 30.0)) - 30.0,
-                top: 0,
-                bottom: 0,
-                width: 30.0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(capsuleHeight / 2),
-                    gradient: LinearGradient(
-                      colors: [
-                        primarySeed.withValues(alpha: 0.0),
-                        primarySeed,
-                        primarySeed.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -49,9 +49,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startGooglePollingTimer();
   }
 
-  final List<Task> _tasks = [];
+  final List<Task> _tasks = [
+    Task(id: 'sample-1', title: 'Answer writting', completed: false),
+    Task(id: 'sample-2', title: 'Society Indian Society', completed: false),
+    Task(id: 'sample-3', title: 'Society', completed: false),
+    Task(id: 'sample-4', title: 'Population', completed: false),
+    Task(id: 'sample-5', title: 'Women Organisation', completed: true),
+    Task(id: 'sample-6', title: 'Role of Women', completed: true),
+  ];
 
-  final List<Task> _binTasks = [];
+  final List<Task> _binTasks = [
+    Task(id: 'sample-7', title: 'Geography Map Practice', deletedAt: DateTime.now()),
+    Task(id: 'sample-8', title: 'Modern History Timeline', deletedAt: DateTime.now()),
+  ];
 
   TaskFilter _filter = TaskFilter.all;
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
@@ -72,16 +82,32 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   bool isTaskExpanded(String taskId) => _expandedTaskIds.contains(taskId);
 
+  List<Task>? _cachedFilteredAndSortedTasks;
+  Timer? _saveDebounceTimer;
+
+  void _invalidateCache() {
+    _cachedFilteredAndSortedTasks = null;
+  }
+
+  void _scheduleSave() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _autoSaveTasksIfEnabled();
+    });
+  }
+
   void setSearchQuery(String query) {
     final trimmed = query.trim();
     if (_searchQuery == trimmed) return;
     _searchQuery = trimmed;
+    _invalidateCache();
     notifyListeners();
   }
 
   void clearSearchQuery() {
     if (_searchQuery.isEmpty) return;
     _searchQuery = '';
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -132,12 +158,16 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void setFilter(TaskFilter filter) {
+    if (_filter == filter) return;
     _filter = filter;
+    _invalidateCache();
     notifyListeners();
   }
 
   void setSortBy(TaskSortOption sortBy) {
+    if (_sortBy == sortBy) return;
     _sortBy = sortBy;
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -145,6 +175,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     const values = TaskSortOption.values;
     final nextIndex = (values.indexOf(_sortBy) + 1) % values.length;
     _sortBy = values[nextIndex];
+    _invalidateCache();
     notifyListeners();
   }
 
@@ -211,6 +242,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   List<Task> get filteredAndSortedTasks {
+    if (_cachedFilteredAndSortedTasks != null) {
+      return _cachedFilteredAndSortedTasks!;
+    }
     final list = _tasks.where((task) {
       if (_filter == TaskFilter.pending && task.completed) return false;
       if (_filter == TaskFilter.completed && !task.completed) return false;
@@ -249,7 +283,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
     });
 
-    return list;
+    _cachedFilteredAndSortedTasks = List.unmodifiable(list);
+    return _cachedFilteredAndSortedTasks!;
   }
 
   List<Task> get pendingTasks =>
@@ -285,6 +320,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _tasks.removeWhere((t) => t.title.trim().isEmpty);
       _binTasks.removeWhere((t) => t.title.trim().isEmpty);
 
+      _invalidateCache();
       notifyListeners();
     } catch (_) {}
 
@@ -296,6 +332,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _handleRemoteTaskChange(Task remoteTask, String eventType) {
+    _invalidateCache();
     if (eventType == 'DELETE') {
       _tasks.removeWhere((t) => t.id == remoteTask.id);
       _binTasks.removeWhere((t) => t.id == remoteTask.id);
@@ -378,6 +415,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('TaskProvider: syncWithCloud error - $e');
     } finally {
       _isSyncing = false;
+      _invalidateCache();
       notifyListeners();
     }
   }
@@ -653,8 +691,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // User switched back to Zeta app/window: trigger immediate sync
+      // User switched back to Zeta app/window: restart polling & trigger immediate sync
+      _startGooglePollingTimer();
       syncGoogleTasks();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      // Pause background network requests while app is minimized
+      _googlePollingTimer?.cancel();
+      _googlePollingTimer = null;
     }
   }
 
@@ -664,7 +707,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!_googleService.syncTasksEnabled || !_googleService.isConnected) {
       return;
     }
-    _googlePollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    _googlePollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (_googleService.syncTasksEnabled && _googleService.isConnected) {
         syncGoogleTasks();
       }
@@ -711,8 +754,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (task.completed) {
         _playSoundIfEnabled();
       }
+      _invalidateCache();
       notifyListeners();
-      _autoSaveTasksIfEnabled();
+      _scheduleSave();
       _syncService.pushTask(task);
       _syncTaskPipeline(task);
     }
@@ -731,8 +775,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (isNowComplete) {
           _playSoundIfEnabled();
         }
+        _invalidateCache();
         notifyListeners();
-        _autoSaveTasksIfEnabled();
+        _scheduleSave();
         _syncService.pushTask(_tasks[taskIndex]);
         _syncTaskPipeline(_tasks[taskIndex]);
       }
@@ -759,8 +804,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       updatedAt: DateTime.now(),
     );
     _tasks.insert(0, newTask);
+    _invalidateCache();
     notifyListeners();
-    _autoSaveTasksIfEnabled();
+    _scheduleSave();
     _syncService.pushTask(newTask);
     _syncTaskPipeline(newTask);
   }
@@ -786,8 +832,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.updatedAt = DateTime.now();
       if (subtasks != null) task.subtasks = subtasks;
       if (completed != null) task.completed = completed;
+      _invalidateCache();
       notifyListeners();
-      _autoSaveTasksIfEnabled();
+      _scheduleSave();
       _syncService.pushTask(task);
       _syncTaskPipeline(task);
     }
@@ -802,8 +849,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.deletedAt = DateTime.now();
       task.updatedAt = DateTime.now();
       _binTasks.insert(0, task);
+      _invalidateCache();
       notifyListeners();
-      _autoSaveTasksIfEnabled();
+      _scheduleSave();
       _syncService.pushTask(task);
       _deleteFromGoogleServices(task);
     }
@@ -962,6 +1010,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
+    _saveDebounceTimer?.cancel();
     _googlePollingTimer?.cancel();
     _syncService.dispose();
     super.dispose();

@@ -131,14 +131,14 @@ void main() {
       await tester.pumpAndSettle();
 
       final taskProvider = context.read<TaskProvider>();
-      taskProvider.addTask(title: 'Answer writting');
-      taskProvider.addTask(title: 'Population');
+      taskProvider.addTask(title: 'MultiSelect Task 1');
+      taskProvider.addTask(title: 'MultiSelect Task 2');
       await tester.pumpAndSettle();
 
       expect(taskProvider.isSelectionMode, isFalse);
 
-      // Right click on "Answer writting"
-      final target = find.text('Answer writting');
+      // Right click on "MultiSelect Task 1"
+      final target = find.text('MultiSelect Task 1');
       expect(target, findsOneWidget);
 
       final center = tester.getCenter(target);
@@ -166,7 +166,7 @@ void main() {
       expect(find.text('1'), findsWidgets);
 
       // In selection mode, tapping another task toggles its selection
-      await tester.tap(find.text('Population'));
+      await tester.tap(find.text('MultiSelect Task 2'));
       await tester.pumpAndSettle();
 
       expect(taskProvider.selectedCount, 2);
@@ -200,7 +200,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final taskProvider = context.read<TaskProvider>();
-      taskProvider.addTask(title: 'Answer writting');
+      taskProvider.addTask(title: 'Compact Task 1');
       await tester.pumpAndSettle();
 
       expect(taskProvider.isSelectionMode, isFalse);

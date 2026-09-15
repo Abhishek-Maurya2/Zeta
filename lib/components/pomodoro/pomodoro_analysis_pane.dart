@@ -260,18 +260,22 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
           const SizedBox(height: 10),
 
-          if (sessionLog.isEmpty)
-            ZetaEmptyState.pomodoro(
-              title: 'No sessions recorded yet',
-              subtitle:
-                  'Complete focus sessions to start tracking your daily progress.',
-              size: ZetaEmptyStateSize.standard,
-            )
-          else
-            M3ESegmentedColumn(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              color: colorScheme.surfaceContainerLowest,
-              children: sessionLog.reversed.take(20).map((entry) {
+          M3ESegmentedColumn(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            color: colorScheme.surfaceContainerLowest,
+            children: sessionLog.isEmpty
+                ? [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: ZetaEmptyState.pomodoro(
+                        title: 'No sessions recorded yet',
+                        subtitle:
+                            'Complete focus sessions to start tracking your daily progress.',
+                        size: ZetaEmptyStateSize.standard,
+                      ),
+                    ),
+                  ]
+                : sessionLog.reversed.take(20).map((entry) {
                 final date = DateTime.fromMillisecondsSinceEpoch(
                   entry.completedAt,
                 );

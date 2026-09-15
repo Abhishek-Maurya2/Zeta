@@ -8,6 +8,7 @@ import '../utils/windows_title_bar.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
+import '../providers/pomodoro_provider.dart';
 import '../pages/home_page.dart';
 import '../pages/tasks_page.dart';
 import '../pages/revision_page.dart';
@@ -100,22 +101,25 @@ class _AppScaffoldState extends State<AppScaffold> {
     // For all other shortcuts: only fire when NO text field or form input is focused.
     if (_isTyping()) return false;
 
-    // ── /  : open search ─────────────────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.slash) {
+    final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+
+    // ── / or Ctrl+F : open search ───────────────────────────────────────────
+    if (logical == LogicalKeyboardKey.slash ||
+        (isCtrlOrCmd && logical == LogicalKeyboardKey.keyF)) {
       _topBarKey.currentState?.openSearch();
       return true;
     }
 
-    // ── N  : new task ─────────────────────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.keyN &&
-        !HardwareKeyboard.instance.isShiftPressed) {
+    // ── N or Ctrl+N : new task ───────────────────────────────────────────────
+    if ((logical == LogicalKeyboardKey.keyN && !HardwareKeyboard.instance.isShiftPressed) ||
+        (isCtrlOrCmd && logical == LogicalKeyboardKey.keyN)) {
       TaskEditPane.show(context);
       return true;
     }
 
-    // ── R  : refresh / sync ──────────────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.keyR &&
-        !HardwareKeyboard.instance.isShiftPressed) {
+    // ── R or Ctrl+R : refresh / sync ────────────────────────────────────────
+    if ((logical == LogicalKeyboardKey.keyR && !HardwareKeyboard.instance.isShiftPressed) ||
+        (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       context.read<TaskProvider>().syncWithCloud(force: true);
       M3ESnackbar.show(
         context,
@@ -123,6 +127,15 @@ class _AppScaffoldState extends State<AppScaffold> {
         duration: const Duration(seconds: 2),
       );
       return true;
+    }
+
+    // ── Space : toggle Pomodoro timer when on Pomodoro page ─────────────────
+    if (logical == LogicalKeyboardKey.space) {
+      final nav = context.read<NavigationProvider>();
+      if (nav.activePage == PageId.pomodoro) {
+        context.read<PomodoroProvider>().toggleTimer();
+        return true;
+      }
     }
 
     return false;

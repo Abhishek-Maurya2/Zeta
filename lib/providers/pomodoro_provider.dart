@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/pomodoro.dart';
 import '../utils/haptics.dart';
 
-class PomodoroProvider extends ChangeNotifier {
+class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _settingsKey = 'zeta_pomodoro_settings_v1';
   static const String _sessionLogKey = 'zeta_pomodoro_session_log_v1';
   static const int _maxLogEntries = 1000;
@@ -19,10 +19,14 @@ class PomodoroProvider extends ChangeNotifier {
   int _totalDuration = 25 * 60; // in seconds
   bool _isRunning = false;
   List<PomodoroSessionLog> _sessionLog = [];
+  DateTime? _targetEndTime;
 
   Timer? _timer;
 
   PomodoroProvider() {
+    try {
+      WidgetsBinding.instance.addObserver(this);
+    } catch (_) {}
     _init();
   }
 
@@ -129,6 +133,7 @@ class PomodoroProvider extends ChangeNotifier {
   void startTimer() {
     if (_isRunning) return;
     _isRunning = true;
+    _targetEndTime = DateTime.now().add(Duration(seconds: _timeLeft));
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     notifyListeners();
@@ -137,6 +142,7 @@ class PomodoroProvider extends ChangeNotifier {
   void pauseTimer() {
     if (!_isRunning) return;
     _isRunning = false;
+    _targetEndTime = null;
     _timer?.cancel();
     _timer = null;
     notifyListeners();
@@ -175,12 +181,24 @@ class PomodoroProvider extends ChangeNotifier {
   }
 
   void _tick() {
-    if (_timeLeft > 0) {
-      _timeLeft--;
+    if (!_isRunning || _targetEndTime == null) return;
+    final remaining = _targetEndTime!.difference(DateTime.now()).inSeconds;
+    if (remaining <= 0) {
+      _timeLeft = 0;
       notifyListeners();
-      if (_timeLeft == 0) {
-        _onSessionComplete();
+      _onSessionComplete();
+    } else {
+      if (_timeLeft != remaining) {
+        _timeLeft = remaining;
+        notifyListeners();
       }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isRunning && _targetEndTime != null) {
+      _tick();
     }
   }
 
@@ -304,6 +322,9 @@ class PomodoroProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
     _timer?.cancel();
     super.dispose();
   }
