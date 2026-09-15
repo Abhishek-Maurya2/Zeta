@@ -165,6 +165,18 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Determine Version Tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "TAG_NAME=v${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          else
+            VERSION_RAW="${GITHUB_REF#refs/tags/v}"
+            echo "VERSION=${VERSION_RAW}" >> $GITHUB_ENV
+            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          fi
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -180,7 +192,21 @@ jobs:
 
       - name: Install Vercel CLI
         if: ${{ env.VERCEL_TOKEN != '' }}
-        run: npm install -g vercel@latest
+        run: |
+          success=0
+          for i in 1 2 3; do
+            echo "Installing Vercel CLI (attempt $i)..."
+            if npm install -g vercel@latest; then
+              success=1
+              break
+            fi
+            echo "Install failed. Retrying in 15 seconds..."
+            sleep 15
+          done
+          if [ $success -ne 1 ]; then
+            echo "Installing pinned fallback version vercel@59.17.0..."
+            npm install -g vercel@59.17.0
+          fi
 
       - name: Deploy to Vercel
         if: ${{ env.VERCEL_TOKEN != '' }}
