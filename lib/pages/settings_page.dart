@@ -9,6 +9,8 @@ import '../providers/navigation_provider.dart';
 import '../providers/update_provider.dart';
 
 import '../components/settings/settings.dart';
+import '../widgets/m3e_page_transition.dart';
+import '../theme/motion_tokens.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -32,6 +34,8 @@ class _SettingsPageState extends State<SettingsPage> {
   double _paneWidth = _defaultPaneWidth;
   bool _hasCustomWidth = false;
   bool _isPaneCollapsed = false;
+  SettingsCategory? _lastCategory;
+  int _previousCategoryIndex = 0;
 
   @override
   void initState() {
@@ -207,89 +211,98 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (!isTwoPane) {
       // ─── Compact Single Pane Layout (<640px) ─────────────────────────────
-      if (selectedCategory == null) {
-        // Root Categories Navigation View
-        return CustomScrollView(
-          key: const PageStorageKey<String>('settings_compact_root'),
-          slivers: [
-            SliverAppBar.large(
-              pinned: true,
-              // backgroundColor: colorScheme.surface,
-              scrolledUnderElevation: 2,
-              shape: _appBarShape,
-              leading: M3EIconButton(
-                variant: M3EIconButtonVariant.standard,
-                size: M3EIconButtonSize.sm,
-                width: M3EIconButtonWidth.wide,
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: colorScheme.onSurface,
-                ),
-                decoration: M3EIconButtonDecoration(
-                  backgroundColor: WidgetStateProperty.all(
-                    colorScheme.onSurface.withValues(alpha: 0.1),
-                  ),
-                ),
-                onPressed: () {
-                  ZetaHaptics.light();
-                  navProvider.setActivePage(PageId.home);
-                },
-              ),
-              title: const Text('Settings'),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverToBoxAdapter(
-                child: _buildCategoryList(
-                  context,
-                  activeCategory: null,
-                  isTwoPane: false,
-                ),
-              ),
-            ),
-          ],
-        );
-      } else {
-        // Sub-Category Detail View
-        return CustomScrollView(
-          key: PageStorageKey<String>(
-            'settings_compact_${selectedCategory.name}',
-          ),
-          slivers: [
-            SliverAppBar.large(
-              pinned: true,
-              backgroundColor: colorScheme.surface,
-              scrolledUnderElevation: 2,
-              shape: _appBarShape,
-              leading: M3EIconButton(
-                variant: M3EIconButtonVariant.standard,
-                size: M3EIconButtonSize.sm,
-                width: M3EIconButtonWidth.wide,
-                icon: Icon(
-                  Icons.arrow_back_rounded,
-                  color: colorScheme.onSurface,
-                ),
-                decoration: M3EIconButtonDecoration(
-                  backgroundColor: WidgetStateProperty.all(
-                    colorScheme.onSurface.withValues(alpha: 0.1),
-                  ),
-                ),
-                onPressed: () {
-                  ZetaHaptics.light();
-                  navProvider.clearSettingsCategory();
-                },
-              ),
-              title: Text(activeCategoryMeta?.label ?? 'Settings'),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-              sliver: SliverToBoxAdapter(
-                child: _buildCategoryContent(selectedCategory),
-              ),
-            ),
-          ],
-        );
+      final int currentCategoryIndex = selectedCategory != null ? 1 : 0;
+      final int prevIdx = _previousCategoryIndex;
+      if (_lastCategory != selectedCategory) {
+        _previousCategoryIndex = currentCategoryIndex;
+        _lastCategory = selectedCategory;
       }
+
+      return M3EPageTransition(
+        currentIndex: currentCategoryIndex,
+        previousIndex: prevIdx,
+        transitionType: M3EPageTransitionType.sharedAxisX,
+        duration: M3MotionDuration.medium2,
+        child: selectedCategory == null
+            ? CustomScrollView(
+                key: const ValueKey<String>('settings_compact_root'),
+                slivers: [
+                  SliverAppBar.large(
+                    pinned: true,
+                    // backgroundColor: colorScheme.surface,
+                    scrolledUnderElevation: 2,
+                    shape: _appBarShape,
+                    leading: M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      size: M3EIconButtonSize.sm,
+                      width: M3EIconButtonWidth.wide,
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: colorScheme.onSurface,
+                      ),
+                      decoration: M3EIconButtonDecoration(
+                        backgroundColor: WidgetStateProperty.all(
+                          colorScheme.onSurface.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        navProvider.setActivePage(PageId.home);
+                      },
+                    ),
+                    title: const Text('Settings'),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildCategoryList(
+                        context,
+                        activeCategory: null,
+                        isTwoPane: false,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : CustomScrollView(
+                key: ValueKey<String>(
+                  'settings_compact_${selectedCategory.name}',
+                ),
+                slivers: [
+                  SliverAppBar.large(
+                    pinned: true,
+                    backgroundColor: colorScheme.surface,
+                    scrolledUnderElevation: 2,
+                    shape: _appBarShape,
+                    leading: M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      size: M3EIconButtonSize.sm,
+                      width: M3EIconButtonWidth.wide,
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: colorScheme.onSurface,
+                      ),
+                      decoration: M3EIconButtonDecoration(
+                        backgroundColor: WidgetStateProperty.all(
+                          colorScheme.onSurface.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        navProvider.clearSettingsCategory();
+                      },
+                    ),
+                    title: Text(activeCategoryMeta?.label ?? 'Settings'),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildCategoryContent(selectedCategory),
+                    ),
+                  ),
+                ],
+              ),
+      );
     }
 
     // ─── Wide Screen Two-Pane Layout with Elevated Supporting Pane (≥640px) ─
@@ -357,44 +370,50 @@ class _SettingsPageState extends State<SettingsPage> {
             Expanded(
               child: Container(
                 color: colorScheme.surfaceContainer,
-                child: CustomScrollView(
-                  key: PageStorageKey<String>(
-                    'settings_wide_detail_${activeCategory?.name ?? "default"}',
-                  ),
-                  slivers: [
-                    SliverAppBar.large(
-                      pinned: true,
-                      automaticallyImplyLeading: false,
-                      backgroundColor: colorScheme.surfaceContainer,
-                      scrolledUnderElevation: 2,
-                      shape: _appBarShape,
-                      title: Text(activeCategoryMeta?.label ?? 'Settings'),
+                child: M3EPageTransition(
+                  currentIndex: activeCategory?.index ?? 0,
+                  previousIndex: 0,
+                  transitionType: M3EPageTransitionType.fadeThrough,
+                  duration: M3MotionDuration.medium2,
+                  child: CustomScrollView(
+                    key: ValueKey<String>(
+                      'settings_wide_detail_${activeCategory?.name ?? "default"}',
                     ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
-                      sliver: SliverToBoxAdapter(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 820),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // if (activeCategoryMeta?.description.isNotEmpty ??
-                              //     false) ...[
-                              //   Text(
-                              //     activeCategoryMeta!.description,
-                              //     style: textTheme.bodyMedium?.copyWith(
-                              //       color: colorScheme.onSurfaceVariant,
-                              //     ),
-                              //   ),
-                              // ],
-                              const SizedBox(height: 20),
-                              _buildCategoryContent(activeCategory),
-                            ],
+                    slivers: [
+                      SliverAppBar.large(
+                        pinned: true,
+                        automaticallyImplyLeading: false,
+                        backgroundColor: colorScheme.surfaceContainer,
+                        scrolledUnderElevation: 2,
+                        shape: _appBarShape,
+                        title: Text(activeCategoryMeta?.label ?? 'Settings'),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
+                        sliver: SliverToBoxAdapter(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 820),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // if (activeCategoryMeta?.description.isNotEmpty ??
+                                //     false) ...[
+                                //   Text(
+                                //     activeCategoryMeta!.description,
+                                //     style: textTheme.bodyMedium?.copyWith(
+                                //       color: colorScheme.onSurfaceVariant,
+                                //     ),
+                                //   ),
+                                // ],
+                                const SizedBox(height: 20),
+                                _buildCategoryContent(activeCategory),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

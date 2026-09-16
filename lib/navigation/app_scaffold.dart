@@ -17,6 +17,7 @@ import '../pages/bin_page.dart';
 import '../pages/settings_page.dart';
 import '../components/tasks/task_edit_pane.dart';
 import '../components/tasks/task_selection_toolbar.dart';
+import '../widgets/m3e_page_transition.dart';
 import 'top_app_bar.dart';
 
 /// Adaptive scaffold mirroring Sharva's layout:
@@ -584,27 +585,49 @@ class _ToolbarNavItem extends StatelessWidget {
 
 // ─── Body Pane (Page Router) ────────────────────────────────────────────────
 
-class _BodyPane extends StatelessWidget {
+class _BodyPane extends StatefulWidget {
   final PageId activePage;
   const _BodyPane({required this.activePage});
 
   @override
+  State<_BodyPane> createState() => _BodyPaneState();
+}
+
+class _BodyPaneState extends State<_BodyPane> {
+  int _currentIndex = 0;
+  int _previousIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = _getPageIndex(widget.activePage);
+    _previousIndex = _currentIndex;
+  }
+
+  @override
+  void didUpdateWidget(covariant _BodyPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.activePage != widget.activePage) {
+      setState(() {
+        _previousIndex = _getPageIndex(oldWidget.activePage);
+        _currentIndex = _getPageIndex(widget.activePage);
+      });
+    }
+  }
+
+  int _getPageIndex(PageId page) {
+    final idx = kNavDestinations.indexWhere((d) => d.id == page);
+    return idx >= 0 ? idx : 0;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      layoutBuilder: (currentChild, previousChildren) {
-        return Stack(
-          alignment: Alignment.topCenter,
-          fit: StackFit.expand,
-          children: [...previousChildren, ?currentChild],
-        );
-      },
-      transitionBuilder: (child, animation) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      child: _buildPage(activePage),
+    return M3EPageTransition(
+      currentIndex: _currentIndex,
+      previousIndex: _previousIndex,
+      transitionType: M3EPageTransitionType.sharedAxisX,
+      duration: const Duration(milliseconds: 380),
+      child: _buildPage(widget.activePage),
     );
   }
 

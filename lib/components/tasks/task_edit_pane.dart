@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
+import '../../widgets/m3e_page_transition.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/task_date_formatter.dart';
@@ -42,7 +43,7 @@ class TaskEditPane {
         ),
       );
     } else {
-      return showDialog(
+      return showM3EDialog(
         context: context,
         builder: (ctx) => Dialog(
           shape: RoundedRectangleBorder(
