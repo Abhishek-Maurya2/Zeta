@@ -176,6 +176,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                               overlayColor: const WidgetStatePropertyAll(
                                 Colors.transparent,
                               ),
+                              backgroundColor: WidgetStatePropertyAll(
+                                colorScheme.surfaceContainerLowest,
+                              ),
                               onTap: () {
                                 if (!controller.isOpen) {
                                   controller.openView();
