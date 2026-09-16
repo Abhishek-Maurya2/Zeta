@@ -5,12 +5,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/pomodoro.dart';
+import '../services/pomodoro_sync_service.dart';
 import '../utils/haptics.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _settingsKey = 'zeta_pomodoro_settings_v1';
   static const String _sessionLogKey = 'zeta_pomodoro_session_log_v1';
   static const int _maxLogEntries = 1000;
+
+  final PomodoroSyncService _syncService = PomodoroSyncService();
 
   PomodoroSettings _settings = const PomodoroSettings();
   List<PomodoroSessionItem> _queue = [];
@@ -38,6 +41,9 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get totalDuration => _totalDuration;
   bool get isRunning => _isRunning;
   List<PomodoroSessionLog> get sessionLog => _sessionLog;
+  bool get isSyncing => _syncService.isSyncing;
+  DateTime? get lastSyncedAt => _syncService.lastSyncedAt;
+  String? get syncError => _syncService.lastError;
 
   PomodoroSessionItem? get currentSession =>
       _queue.isNotEmpty && _activeQueueIndex < _queue.length
@@ -64,6 +70,71 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _queue = generateQueue(_settings);
     _syncWithCurrentQueueItem();
     await _loadFromStorage();
+    _subscribeToRealtime();
+    unawaited(syncWithCloud());
+  }
+
+  void _subscribeToRealtime() {
+    _syncService.subscribeToRealtime(
+      onSessionChange: (session, eventType) {
+        if (eventType == 'DELETE') {
+          _sessionLog.removeWhere((s) => s.id == session.id);
+        } else {
+          final idx = _sessionLog.indexWhere((s) => s.id == session.id);
+          if (idx != -1) {
+            _sessionLog[idx] = session;
+          } else {
+            _sessionLog.add(session);
+            _sessionLog.sort((a, b) => a.completedAt.compareTo(b.completedAt));
+            if (_sessionLog.length > _maxLogEntries) {
+              _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
+            }
+          }
+        }
+        _saveSessionLog();
+        notifyListeners();
+      },
+    );
+  }
+
+  /// Synchronizes local sessions with Supabase database.
+  Future<void> syncWithCloud({bool force = false}) async {
+    try {
+      final remoteSessions = await _syncService.pullSessions();
+
+      final existingIds = _sessionLog.map((s) => s.id).toSet();
+      final remoteIds = remoteSessions.map((s) => s.id).toSet();
+
+      bool changed = false;
+      for (final remote in remoteSessions) {
+        if (!existingIds.contains(remote.id)) {
+          _sessionLog.add(remote);
+          existingIds.add(remote.id);
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        _sessionLog.sort((a, b) => a.completedAt.compareTo(b.completedAt));
+        if (_sessionLog.length > _maxLogEntries) {
+          _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
+        }
+        await _saveSessionLog();
+      }
+
+      // Batch push any local sessions not yet present in Supabase
+      if (_syncService.lastError == null) {
+        final unpushed =
+            _sessionLog.where((s) => !remoteIds.contains(s.id)).toList();
+        if (unpushed.isNotEmpty) {
+          await _syncService.batchPushSessions(unpushed);
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('PomodoroProvider: Cloud sync note: $e');
+    }
   }
 
   Future<void> _loadFromStorage() async {
@@ -225,6 +296,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
       }
       _saveSessionLog();
+      unawaited(_syncService.pushSession(logEntry));
     }
 
     // Determine auto-start for next session
@@ -278,6 +350,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
     }
     _saveSessionLog();
+    unawaited(_syncService.pushSession(logEntry));
   }
 
   // ─── Settings & Management ────────────────────────────────────────────────
@@ -315,6 +388,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> clearSessionLog() async {
     _sessionLog.clear();
     await _saveSessionLog();
+    unawaited(_syncService.clearSessions());
     notifyListeners();
   }
 
@@ -326,6 +400,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
     _timer?.cancel();
+    _syncService.dispose();
     super.dispose();
   }
 }

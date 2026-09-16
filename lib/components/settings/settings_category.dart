@@ -6,10 +6,8 @@ enum SettingsCategory {
   appearance,
   typography,
   weather,
-  pomodoro,
   notifications,
-  googleSync,
-  data,
+  syncAndData,
   updates,
 }
 
@@ -59,13 +57,6 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     selectedIcon: Icons.wb_sunny_rounded,
   ),
   SettingsCategoryItem(
-    id: SettingsCategory.pomodoro,
-    label: 'Pomodoro',
-    description: 'Durations, breaks, automation & sound',
-    icon: Icons.timer_outlined,
-    selectedIcon: Icons.timer_rounded,
-  ),
-  SettingsCategoryItem(
     id: SettingsCategory.notifications,
     label: 'Notifications',
     description: 'Reminders and sound feedback',
@@ -73,18 +64,11 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     selectedIcon: Icons.notifications_rounded,
   ),
   SettingsCategoryItem(
-    id: SettingsCategory.googleSync,
-    label: 'Google Sync',
-    description: 'Real-time Calendar & Tasks 2-way sync',
+    id: SettingsCategory.syncAndData,
+    label: 'Sync & Data',
+    description: 'Cloud sync, backups, and storage',
     icon: Icons.sync_alt_outlined,
     selectedIcon: Icons.sync_alt_rounded,
-  ),
-  SettingsCategoryItem(
-    id: SettingsCategory.data,
-    label: 'Data & Privacy',
-    description: 'Storage, backup, and diagnostics',
-    icon: Icons.security_outlined,
-    selectedIcon: Icons.security_rounded,
   ),
   SettingsCategoryItem(
     id: SettingsCategory.updates,

@@ -558,14 +558,10 @@ class _SettingsPageState extends State<SettingsPage> {
         return TypographySection(onToast: _showToast);
       case SettingsCategory.weather:
         return WeatherSection(onToast: _showToast);
-      case SettingsCategory.pomodoro:
-        return PomodoroSettingsSection(onToast: _showToast);
       case SettingsCategory.notifications:
         return NotificationsSyncSection(onToast: _showToast);
-      case SettingsCategory.googleSync:
-        return GoogleSyncSection(onToast: _showToast);
-      case SettingsCategory.data:
-        return DataPrivacySection(onToast: _showToast);
+      case SettingsCategory.syncAndData:
+        return SyncDataSection(onToast: _showToast);
       case SettingsCategory.updates:
         return UpdatesSection(onToast: _showToast);
       case null:

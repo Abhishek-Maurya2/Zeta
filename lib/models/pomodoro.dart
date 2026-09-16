@@ -165,6 +165,37 @@ class PomodoroSessionLog {
           DateTime.now().millisecondsSinceEpoch,
     );
   }
+
+  /// Converts the session log to a PostgreSQL row for the Supabase `public.pomodoro_sessions` table.
+  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+    final completedUtc =
+        DateTime.fromMillisecondsSinceEpoch(completedAt, isUtc: true);
+    return {
+      'id': id,
+      'user_id': defaultUserId ?? 'singleton',
+      'mode': mode.toJsonString(),
+      'minutes': minutes,
+      'completed_at': completedUtc.toIso8601String(),
+    };
+  }
+
+  /// Constructs a session log from a Supabase PostgreSQL row.
+  factory PomodoroSessionLog.fromSupabaseRow(Map<String, dynamic> row) {
+    final rawCompleted = row['completed_at'];
+    int completedMs = DateTime.now().millisecondsSinceEpoch;
+    if (rawCompleted is String) {
+      completedMs = DateTime.tryParse(rawCompleted)?.millisecondsSinceEpoch ??
+          completedMs;
+    } else if (rawCompleted is int) {
+      completedMs = rawCompleted;
+    }
+    return PomodoroSessionLog(
+      id: row['id'] as String? ?? '',
+      mode: PomodoroMode.fromString(row['mode'] as String? ?? 'focus'),
+      minutes: (row['minutes'] as num?)?.toInt() ?? 0,
+      completedAt: completedMs,
+    );
+  }
 }
 
 List<PomodoroSessionItem> generateQueue(PomodoroSettings settings) {
