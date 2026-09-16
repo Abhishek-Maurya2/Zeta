@@ -10,6 +10,7 @@ import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/segmented_column.dart';
 import '../components/tasks/task_edit_pane.dart';
+import '../theme/breakpoints.dart';
 
 /// Top App Bar mirroring Sharva's header:
 /// - Leading: Navigation menu toggle + Sharva logo brand + App name
@@ -65,11 +66,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final taskProvider = context.watch<TaskProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final width = MediaQuery.sizeOf(context).width;
+    final sizeClass = ZetaWindowSizeClass.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final isCompact = width < 600;
-    final showBrandText = width >= 640;
+    final isCompact = sizeClass.isCompact;
+    final showBrandText = !isCompact;
 
     final isSearchOpen =
         _searchController.isAttached && _searchController.isOpen;
@@ -361,64 +362,76 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 ),
                 color: colorScheme.surfaceBright,
                 children: [
-                  ListTile(
-                    leading: Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: colorScheme.primary,
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.add_circle_outline_rounded,
+                        color: colorScheme.primary,
+                      ),
+                      title: const Text('New Task'),
+                      subtitle: const Text('Create a new task or note  [N]'),
+                      dense: true,
+                      onTap: () {
+                        safeCloseView(null);
+                        TaskEditPane.show(context);
+                      },
                     ),
-                    title: const Text('New Task'),
-                    subtitle: const Text('Create a new task or note  [N]'),
-                    dense: true,
-                    onTap: () {
-                      safeCloseView(null);
-                      TaskEditPane.show(context);
-                    },
                   ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.delete_outline_rounded,
-                      color: colorScheme.onSurfaceVariant,
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.delete_outline_rounded,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Bin (Deleted Tasks)'),
+                      subtitle: const Text('Recycle bin and archived tasks'),
+                      dense: true,
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.bin);
+                      },
                     ),
-                    title: const Text('Bin (Deleted Tasks)'),
-                    subtitle: const Text('Recycle bin and archived tasks'),
-                    dense: true,
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.bin);
-                    },
                   ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.timer_outlined,
-                      color: colorScheme.onSurfaceVariant,
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.timer_outlined,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Pomodoro Timer'),
+                      subtitle: const Text('Focus intervals and session tracker'),
+                      dense: true,
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.pomodoro);
+                      },
                     ),
-                    title: const Text('Pomodoro Timer'),
-                    subtitle: const Text('Focus intervals and session tracker'),
-                    dense: true,
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.pomodoro);
-                    },
                   ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.settings_outlined,
-                      color: colorScheme.onSurfaceVariant,
+                  Material(
+                    color: Colors.transparent,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.settings_outlined,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      title: const Text('Settings & Preferences'),
+                      subtitle: const Text(
+                        'Customize theme, typography and sync',
+                      ),
+                      dense: true,
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.settings);
+                      },
                     ),
-                    title: const Text('Settings & Preferences'),
-                    subtitle: const Text(
-                      'Customize theme, typography and sync',
-                    ),
-                    dense: true,
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.settings);
-                    },
                   ),
                 ],
               ),
 
-              if (MediaQuery.sizeOf(context).width >= 600) ...[
+              if (!ZetaWindowSizeClass.of(context).isCompact) ...[
                 const SizedBox(height: 12),
                 const Divider(),
                 const SizedBox(height: 8),

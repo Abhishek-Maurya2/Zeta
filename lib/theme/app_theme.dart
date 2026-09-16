@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'color_variant.dart';
 import 'typography_config.dart';
 
+export 'breakpoints.dart';
 export 'color_variant.dart';
 export 'typography_config.dart';
 

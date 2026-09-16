@@ -10,6 +10,7 @@ import '../models/task.dart';
 import '../components/tasks/task_card_item.dart';
 import '../components/tasks/task_context_menu.dart';
 import '../components/tasks/task_edit_pane.dart';
+import '../theme/breakpoints.dart';
 
 class TasksPage extends StatelessWidget {
   const TasksPage({super.key});
@@ -36,8 +37,8 @@ class TasksPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     final pending = taskProvider.pendingTasks;
     final completed = taskProvider.completedTasks;
@@ -112,13 +113,17 @@ class TasksPage extends StatelessWidget {
         // ─── Main Scrollable Content ─────────────────────────────────────────
         SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: isCompact ? 16 : 36,
+            horizontal: isCompact
+                ? ZetaBreakpoints.marginCompact
+                : ZetaBreakpoints.marginExpanded,
             vertical: 28,
           ),
           child: Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 860),
+              constraints: BoxConstraints(
+                maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge ? 960 : 860,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

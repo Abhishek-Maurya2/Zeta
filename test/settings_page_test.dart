@@ -60,7 +60,7 @@ void main() {
         matching: find.byType(SizedBox),
       ).first,
     );
-    expect(initialSizedBox.width, equals(360.0)); // 1200 >= 1200 defaults to _largePaneWidth 360
+    expect(initialSizedBox.width, equals(412.0)); // 1200 >= 1200 defaults to _largePaneWidth 412
 
     // Drag M3PaneDivider to the right by +40px to widen navigation pane
     final dividerFinder = find.byType(M3PaneDivider);
@@ -73,7 +73,7 @@ void main() {
         matching: find.byType(SizedBox),
       ).first,
     );
-    expect(widenedSizedBox.width, greaterThan(360.0));
+    expect(widenedSizedBox.width, greaterThan(412.0));
 
     // Double tap M3PaneDivider to reset
     await tester.tap(dividerFinder);

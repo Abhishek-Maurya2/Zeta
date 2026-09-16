@@ -69,6 +69,30 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   final Set<String> _expandedTaskIds = {};
   final Set<String> _selectedTaskIds = {};
 
+  Task? _editingTask;
+  String? _editingInitialTitle;
+  bool _isEditPaneOpen = false;
+
+  Task? get editingTask => _editingTask;
+  String? get editingInitialTitle => _editingInitialTitle;
+  bool get isEditPaneOpen => _isEditPaneOpen;
+
+  void openEditPane({Task? task, String? initialTitle}) {
+    _editingTask = task;
+    _editingInitialTitle = initialTitle;
+    _isEditPaneOpen = true;
+    notifyListeners();
+  }
+
+  void closeEditPane() {
+    if (_isEditPaneOpen) {
+      _isEditPaneOpen = false;
+      _editingTask = null;
+      _editingInitialTitle = null;
+      notifyListeners();
+    }
+  }
+
   List<Task> get allTasks => List.unmodifiable(_tasks);
   List<Task> get binTasks => List.unmodifiable(_binTasks);
   TaskFilter get filter => _filter;

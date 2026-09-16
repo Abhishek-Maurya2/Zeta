@@ -2,11 +2,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
-import '../../widgets/m3e_page_transition.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/task_date_formatter.dart';
 import '../../utils/haptics.dart';
+import '../../theme/breakpoints.dart';
 
 /// Modal pane / dialog for creating or editing a task.
 ///
@@ -23,10 +23,11 @@ class TaskEditPane {
     Task? task,
     String? initialTitle,
   }) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     if (isCompact) {
+      // Docked Bottom Sheet on Compact (< 600dp)
       return showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -38,25 +39,22 @@ class TaskEditPane {
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            child: TaskEditFormContent(task: task, initialTitle: initialTitle),
+            child: TaskEditFormContent(
+              task: task,
+              initialTitle: initialTitle,
+              onClose: () => Navigator.of(ctx).pop(),
+            ),
           ),
         ),
       );
     } else {
-      return showM3EDialog(
-        context: context,
-        builder: (ctx) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          backgroundColor: Theme.of(ctx).colorScheme.surfaceContainerHigh,
-          elevation: 6,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 580, maxHeight: 720),
-            child: TaskEditFormContent(task: task, initialTitle: initialTitle),
-          ),
-        ),
+      // Co-planar 2-pane split mode on Medium & Expanded+ (>= 600dp):
+      // Opens temporary resizable split side pane in TaskProvider
+      context.read<TaskProvider>().openEditPane(
+        task: task,
+        initialTitle: initialTitle,
       );
+      return Future.value();
     }
   }
 }
@@ -64,7 +62,13 @@ class TaskEditPane {
 class TaskEditFormContent extends StatefulWidget {
   final Task? task;
   final String? initialTitle;
-  const TaskEditFormContent({super.key, this.task, this.initialTitle});
+  final VoidCallback? onClose;
+  const TaskEditFormContent({
+    super.key,
+    this.task,
+    this.initialTitle,
+    this.onClose,
+  });
 
   @override
   State<TaskEditFormContent> createState() => _TaskEditFormContentState();
@@ -201,6 +205,17 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     }
   }
 
+  void _closePane() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      context.read<TaskProvider>().closeEditPane();
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   void _handleSave() {
     ZetaHaptics.medium();
     final title = _titleController.text.trim();
@@ -233,14 +248,14 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
       );
     }
 
-    Navigator.of(context).pop();
+    _closePane();
   }
 
   void _handleDelete() {
     ZetaHaptics.medium();
     if (widget.task != null) {
       context.read<TaskProvider>().deleteTask(widget.task!.id);
-      Navigator.of(context).pop();
+      _closePane();
     }
   }
 
@@ -278,7 +293,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                 tooltip: 'Close',
                 onPressed: () {
                   ZetaHaptics.light();
-                  Navigator.of(context).pop();
+                  _closePane();
                 },
               ),
             ],

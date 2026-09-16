@@ -18,6 +18,8 @@ import '../pages/settings_page.dart';
 import '../components/tasks/task_edit_pane.dart';
 import '../components/tasks/task_selection_toolbar.dart';
 import '../widgets/m3e_page_transition.dart';
+import '../widgets/m3e_pane_divider.dart';
+import '../theme/breakpoints.dart';
 import 'top_app_bar.dart';
 
 /// Adaptive scaffold mirroring Sharva's layout:
@@ -56,6 +58,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     super.dispose();
   }
 
+  /// Dynamic resizable width for the co-planar task edit split pane on Medium/Expanded+
+  double _taskEditPaneWidth = 380.0;
+
   /// Global key handler — fires before any widget-level handlers.
   bool _globalKeyHandler(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
@@ -63,7 +68,7 @@ class _AppScaffoldState extends State<AppScaffold> {
 
     final logical = event.logicalKey;
 
-    // ── Esc: dismiss search ONLY when the search view is currently open ──────
+    // ── Esc: dismiss search or task edit split pane ──────
     if (logical == LogicalKeyboardKey.escape) {
       final topBar = _topBarKey.currentState;
       if (topBar != null && topBar.isSearchOpen) {
@@ -74,7 +79,12 @@ class _AppScaffoldState extends State<AppScaffold> {
         });
         return true; // consumed
       }
-      // When search is not open, let Esc propagate to dialogs, menus, sheets, etc.
+
+      final taskProvider = context.read<TaskProvider>();
+      if (taskProvider.isEditPaneOpen) {
+        taskProvider.closeEditPane();
+        return true;
+      }
       return false;
     }
 
@@ -164,21 +174,36 @@ class _AppScaffoldState extends State<AppScaffold> {
     return false;
   }
 
+  ZetaWindowSizeClass? _previousSizeClass;
+
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final taskProvider = context.watch<TaskProvider>();
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
-    final isExpanded = width >= 840;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+
+    if (_previousSizeClass != sizeClass) {
+      final shouldExpand =
+          sizeClass == ZetaWindowSizeClass.large ||
+          sizeClass == ZetaWindowSizeClass.extraLarge;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<NavigationProvider>().setRailExpanded(shouldExpand);
+        }
+      });
+      _previousSizeClass = sizeClass;
+    }
+
+    final isCompact = sizeClass.isCompact;
     final isSelectionMode =
         taskProvider.isSelectionMode && navProvider.activePage == PageId.tasks;
 
     // Top app bar visibility
-    // Visible across both desktop and mobile. On compact screens, Settings
-    // has its own dedicated top header with back navigation.
+    // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
+    // On compact screens (< 600dp), Settings provides its own dedicated top header with back navigation.
     final showTopAppBar =
-        isExpanded || navProvider.activePage != PageId.settings;
+        !isCompact || navProvider.activePage != PageId.settings;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
@@ -201,6 +226,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
 
     final canPop = !isSelectionMode &&
+        !taskProvider.isEditPaneOpen &&
         navProvider.activePage == PageId.home &&
         (_topBarKey.currentState == null || !_topBarKey.currentState!.isSearchOpen);
 
@@ -208,6 +234,13 @@ class _AppScaffoldState extends State<AppScaffold> {
       canPop: canPop,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+
+        // 0. If task edit split side pane is open, close it first
+        if (taskProvider.isEditPaneOpen) {
+          ZetaHaptics.light();
+          taskProvider.closeEditPane();
+          return;
+        }
 
         // 1. If multi-selection mode is active, dismiss it first
         if (isSelectionMode) {
@@ -321,13 +354,71 @@ class _AppScaffoldState extends State<AppScaffold> {
                               navProvider: navProvider,
                             ),
 
-                            // Body content pane + floating selection toolbar
+                            // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
                             Expanded(
                               child: Stack(
                                 children: [
                                   Positioned.fill(
-                                    child: _BodyPane(
-                                      activePage: navProvider.activePage,
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Expanded(
+                                          child: _BodyPane(
+                                            activePage: navProvider.activePage,
+                                          ),
+                                        ),
+                                        if (taskProvider.isEditPaneOpen) ...[
+                                          M3EPaneDivider(
+                                            onDragUpdate: (delta) {
+                                              setState(() {
+                                                _taskEditPaneWidth =
+                                                    (_taskEditPaneWidth - delta)
+                                                        .clamp(300.0, 600.0);
+                                              });
+                                            },
+                                            onDoubleTap: () {
+                                              setState(() {
+                                                _taskEditPaneWidth = 380.0;
+                                              });
+                                              ZetaHaptics.medium();
+                                            },
+                                            tooltip:
+                                                'Drag to resize task pane · Double-tap to reset (380dp)',
+                                          ),
+                                          SizedBox(
+                                            width: _taskEditPaneWidth,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: colorScheme
+                                                    .surfaceContainer,
+                                                border: Border(
+                                                  left: BorderSide(
+                                                    color: colorScheme
+                                                        .outlineVariant
+                                                        .withValues(alpha: 0.3),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                              ),
+                                              child: SafeArea(
+                                                child: TaskEditFormContent(
+                                                  key: ValueKey(
+                                                    taskProvider
+                                                            .editingTask?.id ??
+                                                        'new_task',
+                                                  ),
+                                                  task: taskProvider.editingTask,
+                                                  initialTitle: taskProvider
+                                                      .editingInitialTitle,
+                                                  onClose: () => taskProvider
+                                                      .closeEditPane(),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
                                   Positioned(

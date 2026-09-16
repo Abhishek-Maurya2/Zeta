@@ -11,6 +11,7 @@ import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
+import '../theme/breakpoints.dart';
 
 /// Production-ready HomePage mirroring Sharva's architecture:
 /// - 1. Interactive Material 3 Expressive Weekly Calendar Strip with date navigation & weather.
@@ -81,9 +82,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
-    final isWide = width >= 960;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
+    final isWide = sizeClass.isMultiPane;
 
     final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
@@ -158,13 +159,17 @@ class _HomePageState extends State<HomePage> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 16 : (isWide ? 40 : 24),
+        horizontal: isCompact
+            ? ZetaBreakpoints.marginCompact
+            : ZetaBreakpoints.marginExpanded,
         vertical: 24,
       ),
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1120),
+          constraints: BoxConstraints(
+            maxWidth: sizeClass.isExtraLarge ? 1280 : 1120,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

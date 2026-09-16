@@ -39,6 +39,13 @@ class NavigationProvider extends ChangeNotifier {
     _isRailExpanded = !_isRailExpanded;
     notifyListeners();
   }
+
+  void setRailExpanded(bool expanded) {
+    if (_isRailExpanded != expanded) {
+      _isRailExpanded = expanded;
+      notifyListeners();
+    }
+  }
 }
 
 /// Navigation destination data used by both NavigationRail and BottomNavBar.

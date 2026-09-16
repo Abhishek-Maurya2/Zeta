@@ -10,6 +10,7 @@ import '../components/tasks/task_card_item.dart';
 import '../components/bin/empty_bin_dialog.dart';
 import '../components/bin/bin_empty_state.dart';
 import '../components/tasks/task_context_menu.dart';
+import '../theme/breakpoints.dart';
 
 class BinPage extends StatelessWidget {
   const BinPage({super.key});
@@ -35,15 +36,17 @@ class BinPage extends StatelessWidget {
     final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     final binTasks = taskProvider.binTasks;
     final totalCount = binTasks.length;
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 16 : 36,
+        horizontal: isCompact
+            ? ZetaBreakpoints.marginCompact
+            : ZetaBreakpoints.marginExpanded,
         vertical: 28,
       ),
       child: Align(

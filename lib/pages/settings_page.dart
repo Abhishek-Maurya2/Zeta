@@ -11,6 +11,7 @@ import '../providers/update_provider.dart';
 import '../components/settings/settings.dart';
 import '../widgets/m3e_page_transition.dart';
 import '../theme/motion_tokens.dart';
+import '../theme/breakpoints.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,10 +21,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  static const double _defaultPaneWidth = 310.0;
-  static const double _largePaneWidth = 360.0;
-  static const double _minPaneWidth = 240.0;
-  static const double _minContentPaneWidth = 380.0;
+  static const double _defaultPaneWidth = ZetaBreakpoints.paneFixedExpanded;
+  static const double _largePaneWidth = ZetaBreakpoints.paneFixedLarge;
+  static const double _minPaneWidth = ZetaBreakpoints.paneMinList;
+  static const double _minContentPaneWidth = ZetaBreakpoints.paneMinContent;
   static const double _collapseThreshold = 180.0;
   static const String _prefKeyPaneWidth = 'settings_pane_width';
   static const String _prefKeyPaneCollapsed = 'settings_pane_collapsed';
@@ -197,8 +198,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final isTwoPane = width >= 640;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isTwoPane = sizeClass.isMultiPane;
+
+    final isCompact = sizeClass.isCompact;
 
     final selectedCategory = navProvider.selectedSettingsCategory;
     final activeCategory = isTwoPane
@@ -210,7 +213,7 @@ class _SettingsPageState extends State<SettingsPage> {
         : null;
 
     if (!isTwoPane) {
-      // ─── Compact Single Pane Layout (<640px) ─────────────────────────────
+      // ─── Compact/Medium Single Pane Hierarchical Layout (<840px) ───────────
       final int currentCategoryIndex = selectedCategory != null ? 1 : 0;
       final int prevIdx = _previousCategoryIndex;
       if (_lastCategory != selectedCategory) {
@@ -232,28 +235,35 @@ class _SettingsPageState extends State<SettingsPage> {
                     // backgroundColor: colorScheme.surface,
                     scrolledUnderElevation: 2,
                     shape: _appBarShape,
-                    leading: M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      size: M3EIconButtonSize.sm,
-                      width: M3EIconButtonWidth.wide,
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: colorScheme.onSurface,
-                      ),
-                      decoration: M3EIconButtonDecoration(
-                        backgroundColor: WidgetStateProperty.all(
-                          colorScheme.onSurface.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        navProvider.setActivePage(PageId.home);
-                      },
-                    ),
+                    leading: isCompact
+                        ? M3EIconButton(
+                            variant: M3EIconButtonVariant.standard,
+                            size: M3EIconButtonSize.sm,
+                            width: M3EIconButtonWidth.wide,
+                            icon: Icon(
+                              Icons.arrow_back_rounded,
+                              color: colorScheme.onSurface,
+                            ),
+                            decoration: M3EIconButtonDecoration(
+                              backgroundColor: WidgetStateProperty.all(
+                                colorScheme.onSurface.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              navProvider.setActivePage(PageId.home);
+                            },
+                          )
+                        : null,
                     title: const Text('Settings'),
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isCompact
+                          ? ZetaBreakpoints.marginCompact
+                          : ZetaBreakpoints.marginExpanded,
+                      vertical: 8,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: _buildCategoryList(
                         context,
@@ -295,7 +305,12 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: Text(activeCategoryMeta?.label ?? 'Settings'),
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+                    padding: EdgeInsets.fromLTRB(
+                      isCompact ? 12 : 24,
+                      12,
+                      isCompact ? 12 : 24,
+                      isCompact ? 90 : 24,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: _buildCategoryContent(selectedCategory),
                     ),
@@ -362,7 +377,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 onDragEnd: _persistPaneSettings,
                 onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
                 tooltip:
-                    'Drag to resize navigation · Double-tap to reset (310dp)',
+                    'Drag to resize navigation · Double-tap to reset (${(totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth).toInt()}dp)',
               ),
             ],
 

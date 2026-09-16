@@ -11,6 +11,7 @@ import '../components/pomodoro/pomodoro_analysis_pane.dart';
 import '../components/pomodoro/m3_pane_divider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'pomodoro_ambient_page.dart';
+import '../theme/breakpoints.dart';
 
 enum PomodoroTab {
   timer,
@@ -51,10 +52,10 @@ class PomodoroPage extends StatefulWidget {
 }
 
 class _PomodoroPageState extends State<PomodoroPage> {
-  static const double _defaultSupportingPaneWidth = 360.0;
-  static const double _largeSupportingPaneWidth = 412.0;
-  static const double _minSupportingPaneWidth = 300.0;
-  static const double _minFocusPaneWidth = 400.0;
+  static const double _defaultSupportingPaneWidth = ZetaBreakpoints.paneFixedExpanded;
+  static const double _largeSupportingPaneWidth = ZetaBreakpoints.paneFixedLarge;
+  static const double _minSupportingPaneWidth = ZetaBreakpoints.paneMinSupporting;
+  static const double _minFocusPaneWidth = ZetaBreakpoints.paneMinContent;
   static const double _collapseThreshold = 180.0;
   static const String _prefKeyPaneWidth = 'pomodoro_supporting_pane_width';
   static const String _prefKeyPaneCollapsed = 'pomodoro_supporting_pane_collapsed';
@@ -172,8 +173,8 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isTwoPane = width >= 840;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isTwoPane = sizeClass.isMultiPane;
     final provider = context.watch<PomodoroProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

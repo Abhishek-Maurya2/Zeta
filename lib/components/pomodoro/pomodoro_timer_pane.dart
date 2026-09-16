@@ -6,6 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../utils/haptics.dart';
 
 import '../../providers/pomodoro_provider.dart';
+import '../../theme/breakpoints.dart';
 
 class PomodoroTimerPane extends StatelessWidget {
   final VoidCallback? onToggleAod;
@@ -21,8 +22,8 @@ class PomodoroTimerPane extends StatelessWidget {
     final modeTitle = provider.mode.label;
     final isRunning = provider.isRunning;
     final progress = provider.progress;
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 840;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
     final bottomPadding = isCompact ? 96.0 : 24.0;
 
     return CallbackShortcuts(

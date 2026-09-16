@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../utils/haptics.dart';
+import '../../theme/breakpoints.dart';
 
 class BinHeader extends StatelessWidget {
   final int totalCount;
@@ -17,8 +18,8 @@ class BinHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

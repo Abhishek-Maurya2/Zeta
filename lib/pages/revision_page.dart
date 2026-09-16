@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../theme/breakpoints.dart';
 
 class RevisionPage extends StatelessWidget {
   const RevisionPage({super.key});
@@ -7,12 +8,14 @@ class RevisionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final isCompact = width < 600;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 16 : 36,
+        horizontal: isCompact
+            ? ZetaBreakpoints.marginCompact
+            : ZetaBreakpoints.marginExpanded,
         vertical: 28,
       ),
       child: Align(
