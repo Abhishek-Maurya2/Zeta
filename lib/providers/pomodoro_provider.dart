@@ -118,6 +118,10 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Synchronizes local sessions with Supabase database.
   Future<void> syncWithCloud({bool force = false}) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final masterSync = prefs.getBool('zeta_master_sync_enabled') ?? true;
+      if (!masterSync && !force) return;
+
       final remoteSessions = await _syncService.pullSessions();
 
       final existingIds = _sessionLog.map((s) => s.id).toSet();

@@ -399,6 +399,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Synchronize all tasks with Supabase backend and Google Tasks.
   Future<void> syncWithCloud({bool force = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final masterSync = prefs.getBool('zeta_master_sync_enabled') ?? true;
+    if (!masterSync && !force) return;
+
     if (_isSyncing) return;
     _isSyncing = true;
     notifyListeners();
