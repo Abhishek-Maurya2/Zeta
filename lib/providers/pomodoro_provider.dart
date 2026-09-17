@@ -209,6 +209,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     notifyListeners();
+    _updateLiveNotification(force: true);
   }
 
   void pauseTimer() {
@@ -218,6 +219,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = null;
     notifyListeners();
+    _updateLiveNotification(force: true);
   }
 
   void toggleTimer() {
@@ -232,12 +234,14 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _recordPartialSessionIfEligible();
     pauseTimer();
     _syncWithCurrentQueueItem();
+    NotificationService.instance.cancelPomodoroProgress();
     notifyListeners();
   }
 
   void skipSession() {
     _recordPartialSessionIfEligible();
     pauseTimer();
+    NotificationService.instance.cancelPomodoroProgress();
     _advanceQueue(userInitiated: true);
   }
 
@@ -247,6 +251,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     _recordPartialSessionIfEligible();
     pauseTimer();
+    NotificationService.instance.cancelPomodoroProgress();
     _activeQueueIndex = index;
     _syncWithCurrentQueueItem();
     notifyListeners();
@@ -263,8 +268,20 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_timeLeft != remaining) {
         _timeLeft = remaining;
         notifyListeners();
+        _updateLiveNotification();
       }
     }
+  }
+
+  void _updateLiveNotification({bool force = false}) {
+    NotificationService.instance.updatePomodoroProgress(
+      mode: mode,
+      sessionLabel: currentSession?.label,
+      timeLeft: _timeLeft,
+      totalDuration: _totalDuration,
+      isRunning: _isRunning,
+      forceWindowsUpdate: force,
+    );
   }
 
   @override
@@ -285,6 +302,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     // Fire system notification.
     final completedMode = currentSession?.mode ?? PomodoroMode.focus;
+    NotificationService.instance.cancelPomodoroProgress();
     NotificationService.instance.showPomodoroComplete(completedMode);
 
     // Log the completed session
@@ -405,6 +423,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
     _timer?.cancel();
+    NotificationService.instance.cancelPomodoroProgress();
     _syncService.dispose();
     super.dispose();
   }

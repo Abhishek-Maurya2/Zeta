@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zeta/models/task.dart';
+import 'package:zeta/models/pomodoro.dart';
 import 'package:zeta/providers/notification_provider.dart';
 import 'package:zeta/services/notification_service.dart';
 
@@ -35,7 +36,10 @@ void main() {
       expect(provider.pomodoroAlertsEnabled, isTrue);
       provider.setPomodoroAlertsEnabled(false);
       expect(provider.pomodoroAlertsEnabled, isFalse);
-      expect(NotificationService.instance.pomodoroAlertsEnabled, isFalse);
+      expect(provider.pomodoroLiveEnabled, isTrue);
+      provider.setPomodoroLiveEnabled(false);
+      expect(provider.pomodoroLiveEnabled, isFalse);
+      expect(NotificationService.instance.pomodoroLiveEnabled, isFalse);
 
       provider.dispose();
     });
@@ -71,6 +75,19 @@ void main() {
 
     test('NotificationService handles cancelAll gracefully', () async {
       await NotificationService.instance.cancelAll();
+      // Should not throw
+    });
+
+    test('NotificationService handles live pomodoro progress and cancel gracefully', () async {
+      await NotificationService.instance.updatePomodoroProgress(
+        mode: PomodoroMode.focus,
+        sessionLabel: 'Unit Test Task',
+        timeLeft: 1200,
+        totalDuration: 1500,
+        isRunning: true,
+      );
+
+      await NotificationService.instance.cancelPomodoroProgress();
       // Should not throw
     });
   });

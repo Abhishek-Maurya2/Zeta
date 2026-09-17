@@ -198,21 +198,26 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                           );
                           break;
                         case 3:
+                          notifProvider.setPomodoroLiveEnabled(
+                            !notifProvider.pomodoroLiveEnabled,
+                          );
+                          break;
+                        case 4:
                           themeProvider.setSoundEffects(
                             !themeProvider.soundEffects,
                           );
                           break;
-                        case 4:
+                        case 5:
                           themeProvider.setNotifications(
                             !themeProvider.notifications,
                           );
                           break;
-                        case 5:
+                        case 6:
                           if (!_permissionGranted) {
                             _handleRequestPermission();
                           }
                           break;
-                        case 6:
+                        case 7:
                           _handleTestNotification(themeProvider);
                           break;
                       }
@@ -264,6 +269,22 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   onChanged: (val) {
                     ZetaHaptics.light();
                     notifProvider.setPomodoroAlertsEnabled(val);
+                  },
+                ),
+
+                // Live timer progress (ongoing progress in notification shade & Action Center)
+                _buildSwitchTile(
+                  context,
+                  title: 'Live timer progress',
+                  subtitle:
+                      'Ongoing progress in notification shade & Action Center',
+                  value: notifProvider.pomodoroLiveEnabled,
+                  enabled: isMasterOn,
+                  selectedIcon: const Icon(Icons.timelapse_rounded, size: 16),
+                  unselectedIcon: const Icon(Icons.timer_outlined, size: 16),
+                  onChanged: (val) {
+                    ZetaHaptics.light();
+                    notifProvider.setPomodoroLiveEnabled(val);
                   },
                 ),
 

@@ -39,6 +39,7 @@ void main() {
     expect(find.text('Task due time reminders'), findsOneWidget);
     expect(find.text('Overdue task alerts'), findsOneWidget);
     expect(find.text('Focus timer alerts'), findsOneWidget);
+    expect(find.text('Live timer progress'), findsOneWidget);
     expect(find.text('Sound effects & chimes'), findsOneWidget);
     expect(find.text('In-app notifications'), findsOneWidget);
     expect(find.text('System permission'), findsOneWidget);

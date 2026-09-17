@@ -177,6 +177,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.15"
+  desktop_notifications:
+    dependency: transitive
+    description:
+      name: desktop_notifications
+      sha256: "6d92694ad6e9297a862c5ff7dd6b8ff64c819972557754769f819d2209612927"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.6.3"
   dio:
     dependency: "direct main"
     description:
@@ -294,6 +302,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_desktop_notifications:
+    dependency: "direct main"
+    description:
+      name: flutter_desktop_notifications
+      sha256: "5a087018da5b644526ea44bded4a5b9119c31704b2667a9e23ebd1ce5a38e17d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.2"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:

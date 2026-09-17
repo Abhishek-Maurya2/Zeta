@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_desktop_notifications/flutter_desktop_notifications.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:local_notifier/local_notifier.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -18,10 +19,13 @@ class _NotifIds {
   static const String taskChannelName = 'Task Reminders';
   static const String pomodoroChannelId = 'zeta_pomodoro';
   static const String pomodoroChannelName = 'Focus Timer';
+  static const String pomodoroLiveChannelId = 'zeta_pomodoro_live';
+  static const String pomodoroLiveChannelName = 'Active Timer Progress';
 
   static const int overdueId = 99000;
   static const int pomodoroFocusId = 99001;
   static const int pomodoroBreakId = 99002;
+  static const int pomodoroLiveId = 99003;
 
   /// Stable integer ID derived from a task UUID string.
   static int forTask(String taskId) => taskId.hashCode.abs() % 99000;
@@ -47,6 +51,15 @@ class NotificationService {
   bool taskRemindersEnabled = true;
   bool overdueAlertsEnabled = true;
   bool pomodoroAlertsEnabled = true;
+  bool pomodoroLiveEnabled = true;
+
+  /// Windows native notifications
+  WindowsNotification? _winNotifier;
+
+  /// Windows live notification instance and update throttling
+  LocalNotification? _windowsLiveNotification;
+  DateTime? _lastWindowsLiveUpdate;
+  bool? _lastWindowsRunningState;
 
   /// Map of task IDs to scheduled due DateTime, used for Web/Windows polling.
   final Map<String, DateTime> _pendingWebWindows = {};
@@ -59,25 +72,26 @@ class NotificationService {
     if (!kIsWeb) {
       if (Platform.isWindows) {
         try {
+          await WindowsNotification.registerAumid(
+            aumid: 'com.abhishek.zeta',
+            displayName: 'Zeta',
+          );
+          _winNotifier = WindowsNotification(applicationId: 'com.abhishek.zeta');
+          await _winNotifier!.init();
+        } catch (e) {
+          debugPrint('[NotificationService] WindowsNotification setup error: $e');
+        }
+
+        try {
           await localNotifier.setup(
             appName: 'Zeta',
-            shortcutPolicy: ShortcutPolicy.requireCreate,
+            shortcutPolicy: ShortcutPolicy.ignore,
           );
-          _initialized = true;
-          return;
-        } catch (e) {
-          debugPrint('[NotificationService] Windows setup requireCreate error: $e');
-          try {
-            await localNotifier.setup(
-              appName: 'Zeta',
-              shortcutPolicy: ShortcutPolicy.ignore,
-            );
-            _initialized = true;
-            return;
-          } catch (e2) {
-            debugPrint('[NotificationService] Windows setup fallback error: $e2');
-          }
+        } catch (e2) {
+          debugPrint('[NotificationService] Windows local_notifier fallback error: $e2');
         }
+        _initialized = true;
+        return;
       }
 
       // Android / iOS / Linux initialization
@@ -171,6 +185,20 @@ class NotificationService {
     }
 
     if (Platform.isWindows) {
+      if (_winNotifier != null) {
+        try {
+          await _winNotifier!.showNotificationPluginTemplate(
+            NotificationMessage.fromPluginTemplate(
+              id.toString(),
+              title,
+              body,
+            ),
+          );
+          return true;
+        } catch (e) {
+          debugPrint('[NotificationService] WindowsNotification showNow error: $e');
+        }
+      }
       try {
         final notification = LocalNotification(
           identifier: id.toString(),
@@ -180,7 +208,7 @@ class NotificationService {
         await notification.show();
         return true;
       } catch (e) {
-        debugPrint('[NotificationService] Windows showNow error: $e');
+        debugPrint('[NotificationService] Windows showNow fallback error: $e');
         return false;
       }
     }
@@ -310,7 +338,166 @@ class NotificationService {
     );
   }
 
-  // --- Overdue Summary ---
+  /// Updates live ongoing progress notification for the active Pomodoro session.
+  ///
+  /// - Android: uses native ongoing notification with real progress bar and live countdown.
+  /// - Windows: updates Action Center toast with clean ASCII progress bar, throttled to prevent spam.
+  Future<void> updatePomodoroProgress({
+    required PomodoroMode mode,
+    required String? sessionLabel,
+    required int timeLeft,
+    required int totalDuration,
+    required bool isRunning,
+    bool forceWindowsUpdate = false,
+  }) async {
+    if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled) return;
+    if (!_initialized) await init();
+
+    final progress = totalDuration > 0
+        ? ((totalDuration - timeLeft) / totalDuration).clamp(0.0, 1.0)
+        : 0.0;
+    final progressPercent = (progress * 100).round();
+
+    final mins = timeLeft ~/ 60;
+    final secs = timeLeft % 60;
+    final formattedTime =
+        '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+
+    final modeLabel = sessionLabel != null && sessionLabel.isNotEmpty
+        ? sessionLabel
+        : (mode == PomodoroMode.focus
+            ? 'Focus Session'
+            : (mode == PomodoroMode.shortBreak
+                ? 'Short Break'
+                : 'Long Break'));
+
+    // --- 1. Android: Native ongoing notification with system progress bar ---
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        final details = NotificationDetails(
+          android: AndroidNotificationDetails(
+            _NotifIds.pomodoroLiveChannelId,
+            _NotifIds.pomodoroLiveChannelName,
+            channelDescription:
+                'Live ongoing progress for active Pomodoro session',
+            importance: Importance.low,
+            priority: Priority.low,
+            showProgress: true,
+            maxProgress: 100,
+            progress: progressPercent,
+            indeterminate: false,
+            ongoing: isRunning,
+            autoCancel: false,
+            onlyAlertOnce: true,
+            playSound: false,
+            enableVibration: false,
+            icon: '@mipmap/ic_launcher',
+            subText: formattedTime,
+            category: AndroidNotificationCategory.progress,
+          ),
+        );
+
+        await _plugin.show(
+          _NotifIds.pomodoroLiveId,
+          modeLabel,
+          isRunning
+              ? '$formattedTime remaining ($progressPercent%)'
+              : 'Paused at $formattedTime ($progressPercent%)',
+          details,
+        );
+      } catch (e) {
+        debugPrint('[NotificationService] Android live pomodoro error: $e');
+      }
+    }
+
+    // --- 2. Windows: Desktop toast with native OS progress bar ---
+    if (!kIsWeb && Platform.isWindows) {
+      final now = DateTime.now();
+      final runningStateChanged = _lastWindowsRunningState != isRunning;
+      _lastWindowsRunningState = isRunning;
+
+      final shouldUpdateWindows = forceWindowsUpdate ||
+          runningStateChanged ||
+          _lastWindowsLiveUpdate == null ||
+          now.difference(_lastWindowsLiveUpdate!).inSeconds >= 10 ||
+          timeLeft == 300 || // 5m milestone
+          timeLeft == 60; // 1m milestone
+
+      if (shouldUpdateWindows) {
+        _lastWindowsLiveUpdate = now;
+        if (_winNotifier != null) {
+          try {
+            await _winNotifier!.showNotificationPluginTemplate(
+              NotificationMessage.fromPluginTemplate(
+                'zeta_pomodoro_live',
+                '$modeLabel — $formattedTime',
+                sessionLabel != null && sessionLabel.trim().isNotEmpty
+                    ? sessionLabel
+                    : (isRunning ? 'Pomodoro session active' : 'Session paused'),
+                group: 'pomodoro',
+                audio: const NotificationAudio.silent(),
+                progress: NotificationProgress(
+                  title: '$modeLabel Progress',
+                  value: progress.clamp(0.0, 1.0),
+                  valueStringOverride: '$formattedTime left ($progressPercent%)',
+                  status: isRunning ? 'In Progress' : 'Paused',
+                ),
+              ),
+            );
+          } catch (e) {
+            debugPrint('[NotificationService] Windows native progress error: $e');
+          }
+        } else {
+          try {
+            final bar = _buildAsciiProgressBar(progress);
+            final title = isRunning
+                ? '$modeLabel — $formattedTime'
+                : '$modeLabel (Paused)';
+            final body = isRunning
+                ? '$bar $progressPercent%\n$formattedTime remaining'
+                : '$bar $progressPercent%\nPaused at $formattedTime';
+
+            _windowsLiveNotification = LocalNotification(
+              identifier: 'zeta_pomodoro_live',
+              title: title,
+              body: body,
+            );
+            await _windowsLiveNotification?.show();
+          } catch (e) {
+            debugPrint('[NotificationService] Windows live pomodoro fallback error: $e');
+          }
+        }
+      }
+    }
+  }
+
+  /// Cancels live Pomodoro progress notification on all platforms.
+  Future<void> cancelPomodoroProgress() async {
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        try {
+          await _plugin.cancel(_NotifIds.pomodoroLiveId);
+        } catch (_) {}
+      }
+      if (Platform.isWindows) {
+        try {
+          await _winNotifier?.removeNotificationId('zeta_pomodoro_live', 'pomodoro');
+        } catch (_) {}
+        try {
+          await _windowsLiveNotification?.close();
+          _windowsLiveNotification = null;
+          _lastWindowsLiveUpdate = null;
+          _lastWindowsRunningState = null;
+        } catch (_) {}
+      }
+    }
+  }
+
+  static String _buildAsciiProgressBar(double progress, {int length = 10}) {
+    final filled = (progress * length).round().clamp(0, length);
+    final empty = length - filled;
+    return '[${'█' * filled}${'░' * empty}]';
+  }
 
   Future<void> showOverdueSummary(int count) async {
     if (!masterEnabled || !overdueAlertsEnabled) return;
@@ -361,10 +548,17 @@ class NotificationService {
   Future<void> cancelAll() async {
     _pendingWebWindows.clear();
     if (!_initialized) return;
-    if (!kIsWeb && Platform.isAndroid) {
-      try {
-        await _plugin.cancelAll();
-      } catch (_) {}
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        try {
+          await _plugin.cancelAll();
+        } catch (_) {}
+      }
+      if (Platform.isWindows) {
+        try {
+          await _winNotifier?.clearNotificationHistory();
+        } catch (_) {}
+      }
     }
   }
 

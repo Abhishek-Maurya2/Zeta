@@ -8,6 +8,7 @@
 
 #include <app_links/app_links_plugin_c_api.h>
 #include <dynamic_color/dynamic_color_plugin_c_api.h>
+#include <flutter_desktop_notifications/windows_notification_plugin_c_api.h>
 #include <geolocator_windows/geolocator_windows.h>
 #include <local_notifier/local_notifier_plugin.h>
 #include <url_launcher_windows/url_launcher_windows.h>
@@ -17,6 +18,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("AppLinksPluginCApi"));
   DynamicColorPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("DynamicColorPluginCApi"));
+  WindowsNotificationPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("WindowsNotificationPluginCApi"));
   GeolocatorWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("GeolocatorWindows"));
   LocalNotifierPluginRegisterWithRegistrar(

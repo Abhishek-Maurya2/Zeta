@@ -15,6 +15,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _prefKeyTaskReminders = 'zeta_notif_task_reminders';
   static const String _prefKeyOverdue = 'zeta_notif_overdue';
   static const String _prefKeyPomodoro = 'zeta_notif_pomodoro';
+  static const String _prefKeyPomodoroLive = 'zeta_notif_pomodoro_live';
 
   Timer? _pollingTimer;
 
@@ -28,11 +29,13 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _taskRemindersEnabled = true;
   bool _overdueAlertsEnabled = true;
   bool _pomodoroAlertsEnabled = true;
+  bool _pomodoroLiveEnabled = true;
 
   bool get notificationsEnabled => _notificationsEnabled;
   bool get taskRemindersEnabled => _taskRemindersEnabled;
   bool get overdueAlertsEnabled => _overdueAlertsEnabled;
   bool get pomodoroAlertsEnabled => _pomodoroAlertsEnabled;
+  bool get pomodoroLiveEnabled => _pomodoroLiveEnabled;
 
   NotificationProvider() {
     try {
@@ -49,6 +52,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       _taskRemindersEnabled = prefs.getBool(_prefKeyTaskReminders) ?? true;
       _overdueAlertsEnabled = prefs.getBool(_prefKeyOverdue) ?? true;
       _pomodoroAlertsEnabled = prefs.getBool(_prefKeyPomodoro) ?? true;
+      _pomodoroLiveEnabled = prefs.getBool(_prefKeyPomodoroLive) ?? true;
       _syncService();
       notifyListeners();
     } catch (_) {}
@@ -59,6 +63,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     NotificationService.instance.taskRemindersEnabled = _taskRemindersEnabled;
     NotificationService.instance.overdueAlertsEnabled = _overdueAlertsEnabled;
     NotificationService.instance.pomodoroAlertsEnabled = _pomodoroAlertsEnabled;
+    NotificationService.instance.pomodoroLiveEnabled = _pomodoroLiveEnabled;
   }
 
   // --- Public API ------------------------------------------------------------
@@ -121,6 +126,20 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyPomodoro, value);
+    } catch (_) {}
+  }
+
+  void setPomodoroLiveEnabled(bool value) async {
+    if (_pomodoroLiveEnabled == value) return;
+    _pomodoroLiveEnabled = value;
+    _syncService();
+    if (!value) {
+      NotificationService.instance.cancelPomodoroProgress();
+    }
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyPomodoroLive, value);
     } catch (_) {}
   }
 
