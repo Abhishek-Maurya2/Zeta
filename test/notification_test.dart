@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zeta/models/task.dart';
 import 'package:zeta/models/pomodoro.dart';
 import 'package:zeta/providers/notification_provider.dart';
+import 'package:zeta/providers/pomodoro_provider.dart';
 import 'package:zeta/services/notification_service.dart';
 
 void main() {
@@ -89,6 +90,34 @@ void main() {
 
       await NotificationService.instance.cancelPomodoroProgress();
       // Should not throw
+    });
+
+    test('PomodoroProvider registers onPomodoroAction and handles toggle/skip', () {
+      final pomodoro = PomodoroProvider();
+      expect(NotificationService.instance.onPomodoroAction, isNotNull);
+
+      // Verify timer is initially paused
+      expect(pomodoro.isRunning, isFalse);
+
+      // Trigger toggle via notification action
+      NotificationService.instance.onPomodoroAction!('toggle');
+      expect(pomodoro.isRunning, isTrue);
+
+      // Trigger pause via notification action
+      NotificationService.instance.onPomodoroAction!('pause');
+      expect(pomodoro.isRunning, isFalse);
+
+      // Trigger resume via notification action
+      NotificationService.instance.onPomodoroAction!('resume');
+      expect(pomodoro.isRunning, isTrue);
+
+      // Trigger skip via notification action
+      final initialQueueIndex = pomodoro.activeQueueIndex;
+      NotificationService.instance.onPomodoroAction!('skip');
+      expect(pomodoro.activeQueueIndex, isNot(initialQueueIndex));
+
+      pomodoro.dispose();
+      expect(NotificationService.instance.onPomodoroAction, isNull);
     });
   });
 }

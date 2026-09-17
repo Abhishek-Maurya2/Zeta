@@ -53,8 +53,15 @@ class NotificationService {
   bool pomodoroAlertsEnabled = true;
   bool pomodoroLiveEnabled = true;
 
+  /// Callback for interactive notification actions (e.g. 'toggle', 'pause', 'resume', 'skip')
+  void Function(String action)? onPomodoroAction;
+
   /// Windows native notifications
   WindowsNotification? _winNotifier;
+
+  /// Tracks if user explicitly closed/dismissed the Windows live progress toast
+  bool _windowsUserDismissedLive = false;
+  PomodoroMode? _lastWindowsMode;
 
   /// Windows live notification instance and update throttling
   LocalNotification? _windowsLiveNotification;
@@ -78,6 +85,7 @@ class NotificationService {
           );
           _winNotifier = WindowsNotification(applicationId: 'com.abhishek.zeta');
           await _winNotifier!.init();
+          await _winNotifier!.setCallback(_onWindowsNotificationEvent);
         } catch (e) {
           debugPrint('[NotificationService] WindowsNotification setup error: $e');
         }
@@ -122,7 +130,46 @@ class NotificationService {
   }
 
   void _onNotificationTap(NotificationResponse response) {
-    debugPrint('[NotificationService] tapped: ${response.payload}');
+    debugPrint(
+        '[NotificationService] tapped: payload=${response.payload}, actionId=${response.actionId}');
+    if (response.actionId == 'action_toggle') {
+      onPomodoroAction?.call('toggle');
+    } else if (response.actionId == 'action_pause') {
+      onPomodoroAction?.call('pause');
+    } else if (response.actionId == 'action_resume') {
+      onPomodoroAction?.call('resume');
+    } else if (response.actionId == 'action_skip' ||
+        response.actionId == 'action_next') {
+      onPomodoroAction?.call('skip');
+    }
+  }
+
+  Future<void> _onWindowsNotificationEvent(
+      NotificationCallbackDetails details) async {
+    debugPrint(
+        '[NotificationService] Windows callback: event=${details.event}, args=${details.arguments}');
+    if (details.event == NotificationEvent.dismissedByUser) {
+      if (details.message.id == 'zeta_pomodoro_live') {
+        _windowsUserDismissedLive = true;
+      }
+    } else if (details.event == NotificationEvent.activated) {
+      try {
+        await WindowsNotification.bringAppToForeground();
+      } catch (_) {}
+
+      final arg = details.arguments ?? '';
+      if (arg == 'action:toggle' || arg == 'action_toggle') {
+        onPomodoroAction?.call('toggle');
+      } else if (arg == 'action:pause') {
+        onPomodoroAction?.call('pause');
+      } else if (arg == 'action:resume') {
+        onPomodoroAction?.call('resume');
+      } else if (arg == 'action:skip' ||
+          arg == 'action_skip' ||
+          arg == 'action:next') {
+        onPomodoroAction?.call('skip');
+      }
+    }
   }
 
   // --- Permission ---
@@ -371,7 +418,7 @@ class NotificationService {
                 ? 'Short Break'
                 : 'Long Break'));
 
-    // --- 1. Android: Native ongoing notification with system progress bar ---
+    // --- 1. Android: Native ongoing notification with system progress bar & action buttons ---
     if (!kIsWeb && Platform.isAndroid) {
       try {
         final details = NotificationDetails(
@@ -394,6 +441,18 @@ class NotificationService {
             icon: '@mipmap/ic_launcher',
             subText: formattedTime,
             category: AndroidNotificationCategory.progress,
+            actions: <AndroidNotificationAction>[
+              AndroidNotificationAction(
+                'action_toggle',
+                isRunning ? 'Pause' : 'Resume',
+                showsUserInterface: true,
+              ),
+              AndroidNotificationAction(
+                'action_skip',
+                'Next',
+                showsUserInterface: true,
+              ),
+            ],
           ),
         );
 
@@ -410,16 +469,31 @@ class NotificationService {
       }
     }
 
-    // --- 2. Windows: Desktop toast with native OS progress bar ---
+    // --- 2. Windows: Persistent reminder toast with native OS progress bar & action buttons ---
     if (!kIsWeb && Platform.isWindows) {
       final now = DateTime.now();
       final runningStateChanged = _lastWindowsRunningState != isRunning;
+      final modeChanged = _lastWindowsMode != mode;
       _lastWindowsRunningState = isRunning;
+      _lastWindowsMode = mode;
+
+      // If user toggled pause/resume, moved to next session, or forced an update,
+      // clear any previous dismissal so the toast appears for the new state!
+      if (runningStateChanged || modeChanged || forceWindowsUpdate) {
+        _windowsUserDismissedLive = false;
+      }
+
+      // If user explicitly dismissed the toast for this state, do not resurrect it
+      // until something changes (e.g. pause/resume, next session, reset).
+      if (_windowsUserDismissedLive) {
+        return;
+      }
 
       final shouldUpdateWindows = forceWindowsUpdate ||
           runningStateChanged ||
+          modeChanged ||
           _lastWindowsLiveUpdate == null ||
-          now.difference(_lastWindowsLiveUpdate!).inSeconds >= 10 ||
+          now.difference(_lastWindowsLiveUpdate!).inSeconds >= 5 ||
           timeLeft == 300 || // 5m milestone
           timeLeft == 60; // 1m milestone
 
@@ -435,6 +509,7 @@ class NotificationService {
                     ? sessionLabel
                     : (isRunning ? 'Pomodoro session active' : 'Session paused'),
                 group: 'pomodoro',
+                scenario: NotificationScenario.reminder,
                 audio: const NotificationAudio.silent(),
                 progress: NotificationProgress(
                   title: '$modeLabel Progress',
@@ -442,6 +517,18 @@ class NotificationService {
                   valueStringOverride: '$formattedTime left ($progressPercent%)',
                   status: isRunning ? 'In Progress' : 'Paused',
                 ),
+                actions: [
+                  NotificationAction(
+                    content: isRunning ? 'Pause' : 'Resume',
+                    arguments: 'action:toggle',
+                    activationType: NotificationActivationType.foreground,
+                  ),
+                  NotificationAction(
+                    content: 'Next',
+                    arguments: 'action:skip',
+                    activationType: NotificationActivationType.foreground,
+                  ),
+                ],
               ),
             );
           } catch (e) {
@@ -473,6 +560,11 @@ class NotificationService {
 
   /// Cancels live Pomodoro progress notification on all platforms.
   Future<void> cancelPomodoroProgress() async {
+    _windowsUserDismissedLive = false;
+    _lastWindowsLiveUpdate = null;
+    _lastWindowsRunningState = null;
+    _lastWindowsMode = null;
+
     if (!kIsWeb) {
       if (Platform.isAndroid) {
         try {
@@ -486,8 +578,6 @@ class NotificationService {
         try {
           await _windowsLiveNotification?.close();
           _windowsLiveNotification = null;
-          _lastWindowsLiveUpdate = null;
-          _lastWindowsRunningState = null;
         } catch (_) {}
       }
     }

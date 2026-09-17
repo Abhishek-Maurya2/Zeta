@@ -32,6 +32,23 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
     _init();
+    NotificationService.instance.onPomodoroAction = (action) {
+      switch (action) {
+        case 'toggle':
+          toggleTimer();
+          break;
+        case 'pause':
+          pauseTimer();
+          break;
+        case 'resume':
+          startTimer();
+          break;
+        case 'skip':
+        case 'next':
+          skipSession();
+          break;
+      }
+    };
   }
 
   // ─── Getters ───────────────────────────────────────────────────────────────
@@ -423,6 +440,9 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
     _timer?.cancel();
+    if (NotificationService.instance.onPomodoroAction != null) {
+      NotificationService.instance.onPomodoroAction = null;
+    }
     NotificationService.instance.cancelPomodoroProgress();
     _syncService.dispose();
     super.dispose();
