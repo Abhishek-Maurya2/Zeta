@@ -183,43 +183,46 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 4),
+                if (themeProvider.weatherEnabled &&
+                    themeProvider.showWeatherInHeader) ...[
+                  const SizedBox(height: 4),
 
-                // Weather Telemetry Below Date
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      tempStr,
-                      style: TextStyle(
-                        fontFamily: 'GoogleSansFlex',
-                        fontSize: 26,
-                        color: colorScheme.onSurfaceVariant,
-                        fontVariations: const [
-                          FontVariation('wght', 700), // Weight
-                          FontVariation('wdth', 180),
-                          FontVariation('GRAD', 180), // Grade stroke density
-                          FontVariation('opsz', 220), // Optical size
-                          FontVariation('slnt', -10),
-                        ],
+                  // Weather Telemetry Below Date
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        tempStr,
+                        style: TextStyle(
+                          fontFamily: 'GoogleSansFlex',
+                          fontSize: 26,
+                          color: colorScheme.onSurfaceVariant,
+                          fontVariations: const [
+                            FontVariation('wght', 700), // Weight
+                            FontVariation('wdth', 180),
+                            FontVariation('GRAD', 180), // Grade stroke density
+                            FontVariation('opsz', 220), // Optical size
+                            FontVariation('slnt', -10),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 15),
-                    Tooltip(
-                      message:
-                          '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
-                      child: WeatherIcon(
-                        name:
-                            weather?.iconName ??
-                            (DateTime.now().hour < 6 ||
-                                    DateTime.now().hour >= 19
-                                ? 'partly_cloudy_night'
-                                : 'partly_cloudy_day'),
-                        size: 28,
+                      const SizedBox(width: 15),
+                      Tooltip(
+                        message:
+                            '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
+                        child: WeatherIcon(
+                          name:
+                              weather?.iconName ??
+                              (DateTime.now().hour < 6 ||
+                                      DateTime.now().hour >= 19
+                                  ? 'partly_cloudy_night'
+                                  : 'partly_cloudy_day'),
+                          size: 28,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ],
             );
 

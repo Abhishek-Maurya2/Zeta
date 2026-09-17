@@ -112,7 +112,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     // For all other shortcuts: only fire when NO text field or form input is focused.
     if (_isTyping()) return false;
 
-    final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    final isCtrlOrCmd =
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
 
     // ── / or Ctrl+F : open search ───────────────────────────────────────────
     if (logical == LogicalKeyboardKey.slash ||
@@ -122,14 +124,16 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
 
     // ── N or Ctrl+N : new task ───────────────────────────────────────────────
-    if ((logical == LogicalKeyboardKey.keyN && !HardwareKeyboard.instance.isShiftPressed) ||
+    if ((logical == LogicalKeyboardKey.keyN &&
+            !HardwareKeyboard.instance.isShiftPressed) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyN)) {
       TaskEditPane.show(context);
       return true;
     }
 
     // ── R or Ctrl+R : refresh / sync ────────────────────────────────────────
-    if ((logical == LogicalKeyboardKey.keyR && !HardwareKeyboard.instance.isShiftPressed) ||
+    if ((logical == LogicalKeyboardKey.keyR &&
+            !HardwareKeyboard.instance.isShiftPressed) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       context.read<TaskProvider>().syncWithCloud(force: true);
       M3ESnackbar.show(
@@ -225,10 +229,12 @@ class _AppScaffoldState extends State<AppScaffold> {
           : Brightness.dark,
     );
 
-    final canPop = !isSelectionMode &&
+    final canPop =
+        !isSelectionMode &&
         !taskProvider.isEditPaneOpen &&
         navProvider.activePage == PageId.home &&
-        (_topBarKey.currentState == null || !_topBarKey.currentState!.isSearchOpen);
+        (_topBarKey.currentState == null ||
+            !_topBarKey.currentState!.isSearchOpen);
 
     return PopScope(
       canPop: canPop,
@@ -277,182 +283,185 @@ class _AppScaffoldState extends State<AppScaffold> {
           focusNode: _rootFocus,
           autofocus: true,
           child: Scaffold(
-          body: SafeArea(
-            top: true,
-            bottom: false,
-            child: Column(
-              children: [
-                // 1. Top App Bar (contains rail toggle button, hidden on mobile)
-                if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
+            body: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
+                children: [
+                  // 1. Top App Bar (contains rail toggle button, hidden on mobile)
+                  if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
-                // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
-                Expanded(
-                  child: isCompact
-                      ? Stack(
-                          children: [
-                            Positioned.fill(
-                              child: _BodyPane(
-                                activePage: navProvider.activePage,
+                  // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
+                  Expanded(
+                    child: isCompact
+                        ? Stack(
+                            children: [
+                              Positioned.fill(
+                                child: _BodyPane(
+                                  activePage: navProvider.activePage,
+                                ),
                               ),
-                            ),
-                            // Floating Bottom Navigation: moves down out of view when selecting
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 16,
-                              child: AnimatedSlide(
-                                offset: isSelectionMode
-                                    ? const Offset(0, 2.0)
-                                    : Offset.zero,
-                                duration: const Duration(milliseconds: 320),
-                                curve: Curves.easeInOutCubicEmphasized,
-                                child: AnimatedOpacity(
-                                  opacity: isSelectionMode ? 0.0 : 1.0,
-                                  duration: const Duration(milliseconds: 220),
-                                  child: IgnorePointer(
-                                    ignoring: isSelectionMode,
-                                    child: Center(
-                                      child: _FloatingBottomNav(
-                                        navProvider: navProvider,
+                              // Floating Bottom Navigation: moves down out of view when selecting
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 16,
+                                child: AnimatedSlide(
+                                  offset: isSelectionMode
+                                      ? const Offset(0, 2.0)
+                                      : Offset.zero,
+                                  duration: const Duration(milliseconds: 320),
+                                  curve: Curves.easeInOutCubicEmphasized,
+                                  child: AnimatedOpacity(
+                                    opacity: isSelectionMode ? 0.0 : 1.0,
+                                    duration: const Duration(milliseconds: 220),
+                                    child: IgnorePointer(
+                                      ignoring: isSelectionMode,
+                                      child: Center(
+                                        child: _FloatingBottomNav(
+                                          navProvider: navProvider,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            // Floating Selection Toolbar: moves up from bottom into position
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 16,
-                              child: AnimatedSlide(
-                                offset: isSelectionMode
-                                    ? Offset.zero
-                                    : const Offset(0, 2.0),
-                                duration: const Duration(milliseconds: 320),
-                                curve: Curves.easeInOutCubicEmphasized,
-                                child: AnimatedOpacity(
-                                  opacity: isSelectionMode ? 1.0 : 0.0,
-                                  duration: const Duration(milliseconds: 250),
-                                  child: IgnorePointer(
-                                    ignoring: !isSelectionMode,
-                                    child: TaskSelectionToolbar(
-                                      taskProvider: taskProvider,
+                              // Floating Selection Toolbar: moves up from bottom into position
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                bottom: 16,
+                                child: AnimatedSlide(
+                                  offset: isSelectionMode
+                                      ? Offset.zero
+                                      : const Offset(0, 2.0),
+                                  duration: const Duration(milliseconds: 320),
+                                  curve: Curves.easeInOutCubicEmphasized,
+                                  child: AnimatedOpacity(
+                                    opacity: isSelectionMode ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 250),
+                                    child: IgnorePointer(
+                                      ignoring: !isSelectionMode,
+                                      child: TaskSelectionToolbar(
+                                        taskProvider: taskProvider,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // M3E Navigation Rail from material_3_expressive (no internal toggle button)
-                            _NavigationRailWidget(
-                              isExpanded: navProvider.isRailExpanded,
-                              navProvider: navProvider,
-                            ),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // M3E Navigation Rail from material_3_expressive (no internal toggle button)
+                              _NavigationRailWidget(
+                                isExpanded: navProvider.isRailExpanded,
+                                navProvider: navProvider,
+                              ),
 
-                            // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
-                            Expanded(
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Expanded(
-                                          child: _BodyPane(
-                                            activePage: navProvider.activePage,
+                              // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
+                              Expanded(
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Expanded(
+                                            child: _BodyPane(
+                                              activePage:
+                                                  navProvider.activePage,
+                                            ),
                                           ),
-                                        ),
-                                        if (taskProvider.isEditPaneOpen) ...[
-                                          M3EPaneDivider(
-                                            onDragUpdate: (delta) {
-                                              setState(() {
-                                                _taskEditPaneWidth =
-                                                    (_taskEditPaneWidth - delta)
-                                                        .clamp(300.0, 600.0);
-                                              });
-                                            },
-                                            onDoubleTap: () {
-                                              setState(() {
-                                                _taskEditPaneWidth = 380.0;
-                                              });
-                                              ZetaHaptics.medium();
-                                            },
-                                            tooltip:
-                                                'Drag to resize task pane · Double-tap to reset (380dp)',
-                                          ),
-                                          SizedBox(
-                                            width: _taskEditPaneWidth,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: colorScheme
-                                                    .surfaceContainer,
-                                              ),
-                                              child: SafeArea(
-                                                child: TaskEditFormContent(
-                                                  key: ValueKey(
-                                                    taskProvider
-                                                            .editingTask?.id ??
-                                                        'new_task',
+                                          if (taskProvider.isEditPaneOpen) ...[
+                                            M3EPaneDivider(
+                                              onDragUpdate: (delta) {
+                                                setState(() {
+                                                  _taskEditPaneWidth =
+                                                      (_taskEditPaneWidth -
+                                                              delta)
+                                                          .clamp(300.0, 600.0);
+                                                });
+                                              },
+                                              onDoubleTap: () {
+                                                setState(() {
+                                                  _taskEditPaneWidth = 380.0;
+                                                });
+                                                ZetaHaptics.medium();
+                                              },
+                                              tooltip: 'Drag to resize task pane · Double-tap to reset (380dp)',
+                                            ),
+                                            SizedBox(
+                                              width: _taskEditPaneWidth,
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: colorScheme
+                                                      .surfaceContainer,
+                                                ),
+                                                child: SafeArea(
+                                                  child: TaskEditFormContent(
+                                                    key: ValueKey(
+                                                      taskProvider
+                                                              .editingTask
+                                                              ?.id ??
+                                                          'new_task',
+                                                    ),
+                                                    task: taskProvider
+                                                        .editingTask,
+                                                    initialTitle: taskProvider
+                                                        .editingInitialTitle,
+                                                    onClose: () => taskProvider
+                                                        .closeEditPane(),
                                                   ),
-                                                  task: taskProvider.editingTask,
-                                                  initialTitle: taskProvider
-                                                      .editingInitialTitle,
-                                                  onClose: () => taskProvider
-                                                      .closeEditPane(),
                                                 ),
                                               ),
                                             ),
-                                          ),
+                                          ],
                                         ],
-                                      ],
-                                    ),
-                                  ),
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 24,
-                                    child: AnimatedSlide(
-                                      offset: isSelectionMode
-                                          ? Offset.zero
-                                          : const Offset(0, 2.0),
-                                      duration: const Duration(
-                                        milliseconds: 320,
                                       ),
-                                      curve: Curves.easeInOutCubicEmphasized,
-                                      child: AnimatedOpacity(
-                                        opacity: isSelectionMode ? 1.0 : 0.0,
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 24,
+                                      child: AnimatedSlide(
+                                        offset: isSelectionMode
+                                            ? Offset.zero
+                                            : const Offset(0, 2.0),
                                         duration: const Duration(
-                                          milliseconds: 250,
+                                          milliseconds: 320,
                                         ),
-                                        child: IgnorePointer(
-                                          ignoring: !isSelectionMode,
-                                          child: TaskSelectionToolbar(
-                                            taskProvider: taskProvider,
+                                        curve: Curves.easeInOutCubicEmphasized,
+                                        child: AnimatedOpacity(
+                                          opacity: isSelectionMode ? 1.0 : 0.0,
+                                          duration: const Duration(
+                                            milliseconds: 250,
+                                          ),
+                                          child: IgnorePointer(
+                                            ignoring: !isSelectionMode,
+                                            child: TaskSelectionToolbar(
+                                              taskProvider: taskProvider,
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                ),
-              ],
+                            ],
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 // ─── Navigation Rail (from material_3_expressive) ───────────────────────────
@@ -626,14 +635,14 @@ class _ToolbarNavItem extends StatelessWidget {
               minWidth: isSelected ? 40 : 35,
             ),
             padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 10 : 6,
+              horizontal: isSelected ? 15 : 4,
               vertical: 12,
             ),
             decoration: BoxDecoration(
               color: isSelected
                   ? colorScheme.surfaceBright
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(88),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,

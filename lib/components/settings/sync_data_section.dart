@@ -266,7 +266,9 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final accountEmail =
         _google.accountEmail ??
         _supabase.currentUser?.email ??
-        '208akmaurya@gmail.com';
+        (themeProvider.userEmail.isNotEmpty
+            ? themeProvider.userEmail
+            : 'Local Account');
     final isSyncBusy =
         _isSyncing || taskProvider.isSyncing || pomodoroProvider.isSyncing;
 

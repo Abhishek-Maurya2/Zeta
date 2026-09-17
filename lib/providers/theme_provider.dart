@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/color_variant.dart';
 import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
+import '../services/profile_service.dart';
 import '../utils/haptics.dart';
 
 /// Seed color preset matching Sharva's design system.
@@ -97,6 +98,8 @@ class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyAvatarColorIndex = 'zeta_avatar_color_index';
   static const String _prefKeyCityName = 'zeta_city_name';
   static const String _prefKeyWeatherCache = 'zeta_weather_cache';
+  static const String _prefKeyWeatherEnabled = 'zeta_weather_enabled';
+  static const String _prefKeyShowWeatherInHeader = 'zeta_show_weather_in_header';
   static const String _prefKeyNotifications = 'zeta_notifications';
   static const String _prefKeySoundEffects = 'zeta_sound_effects';
   static const String _prefKeyAutoSave = 'zeta_auto_save';
@@ -316,6 +319,11 @@ class ThemeProvider extends ChangeNotifier {
     _avatarPhoto = (cleaned != null && cleaned.isNotEmpty) ? cleaned : null;
     notifyListeners();
     _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
+    ProfileService().saveProfile(
+      displayName: _userName,
+      email: _userEmail,
+      avatarImage: _avatarPhoto,
+    );
   }
 
   void clearAvatarPhoto() {
@@ -343,15 +351,20 @@ class ThemeProvider extends ChangeNotifier {
     _saveSetting(_prefKeyAvatarColorIndex, index);
   }
 
-  String _userEmail = 'abhishek@example.com';
+  String _userEmail = '';
   String get userEmail => _userEmail;
 
   void setUserEmail(String email) {
     final trimmed = email.trim();
-    if (trimmed.isEmpty || _userEmail == trimmed) return;
+    if (_userEmail == trimmed) return;
     _userEmail = trimmed;
     notifyListeners();
     _saveSetting(_prefKeyUserEmail, trimmed);
+    ProfileService().saveProfile(
+      displayName: _userName,
+      email: _userEmail,
+      avatarImage: _avatarPhoto,
+    );
   }
 
   void setUserName(String name) {
@@ -360,9 +373,68 @@ class ThemeProvider extends ChangeNotifier {
     _userName = trimmed;
     notifyListeners();
     _saveSetting(_prefKeyUserName, trimmed);
+    ProfileService().saveProfile(
+      displayName: _userName,
+      email: _userEmail,
+      avatarImage: _avatarPhoto,
+    );
+  }
+
+  /// Synchronizes profile details (display_name, email, avatar_image) from Supabase profiles table.
+  Future<void> syncProfileWithDb() async {
+    try {
+      final data = await ProfileService().fetchProfile();
+      if (data != null) {
+        final name = data['display_name'] as String?;
+        final email = data['email'] as String?;
+        final photo = data['avatar_image'] as String?;
+        bool changed = false;
+        if (name != null && name.trim().isNotEmpty && name != _userName) {
+          _userName = name.trim();
+          _saveSetting(_prefKeyUserName, _userName);
+          changed = true;
+        }
+        if (email != null && email != _userEmail) {
+          _userEmail = email.trim();
+          _saveSetting(_prefKeyUserEmail, _userEmail);
+          changed = true;
+        }
+        if (photo != null && photo != _avatarPhoto) {
+          _avatarPhoto = photo.isEmpty ? null : photo;
+          _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
+          changed = true;
+        }
+        if (changed) {
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
   }
 
   // ─── Weather Location (Celsius Only) ────────────────────────────────────
+  bool _weatherEnabled = true;
+  bool get weatherEnabled => _weatherEnabled;
+
+  void setWeatherEnabled(bool val) {
+    if (_weatherEnabled == val) return;
+    _weatherEnabled = val;
+    notifyListeners();
+    _saveSetting(_prefKeyWeatherEnabled, val);
+    if (val) {
+      refreshWeather();
+    }
+  }
+
+  bool _showWeatherInHeader = true;
+  bool get showWeatherInHeader => _showWeatherInHeader;
+
+  void setShowWeatherInHeader(bool val) {
+    if (_showWeatherInHeader == val) return;
+    _showWeatherInHeader = val;
+    notifyListeners();
+    _saveSetting(_prefKeyShowWeatherInHeader, val);
+  }
+
   String _cityName = 'San Francisco, US';
   String get cityName => _cityName;
 
@@ -378,10 +450,13 @@ class ThemeProvider extends ChangeNotifier {
     _cityName = trimmed;
     notifyListeners();
     _saveSetting(_prefKeyCityName, trimmed);
-    refreshWeather();
+    if (_weatherEnabled) {
+      refreshWeather();
+    }
   }
 
   Future<void> refreshWeather() async {
+    if (!_weatherEnabled) return;
     _isWeatherLoading = true;
     notifyListeners();
     try {
@@ -654,7 +729,7 @@ class ThemeProvider extends ChangeNotifier {
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
     _userName = 'Abhishek';
-    _userEmail = 'abhishek@example.com';
+    _userEmail = '';
     _avatarPhoto = null;
     _avatarColorIndex = 0;
     _cityName = 'San Francisco, US';
@@ -744,6 +819,8 @@ class ThemeProvider extends ChangeNotifier {
       _avatarPhoto = (savedPhoto != null && savedPhoto.isNotEmpty) ? savedPhoto : null;
       _avatarColorIndex = prefs.getInt(_prefKeyAvatarColorIndex) ?? _avatarColorIndex;
       _cityName = prefs.getString(_prefKeyCityName) ?? _cityName;
+      _weatherEnabled = prefs.getBool(_prefKeyWeatherEnabled) ?? _weatherEnabled;
+      _showWeatherInHeader = prefs.getBool(_prefKeyShowWeatherInHeader) ?? _showWeatherInHeader;
       _notifications = prefs.getBool(_prefKeyNotifications) ?? _notifications;
       _soundEffects = prefs.getBool(_prefKeySoundEffects) ?? _soundEffects;
       _autoSave = prefs.getBool(_prefKeyAutoSave) ?? _autoSave;
@@ -766,8 +843,9 @@ class ThemeProvider extends ChangeNotifier {
 
       notifyListeners();
 
-      // Refresh live weather telemetry in the background
+      // Refresh live weather telemetry and sync DB profile in the background
       refreshWeather();
+      syncProfileWithDb();
     } catch (_) {}
   }
 

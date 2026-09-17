@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import '../../widgets/segmented_column.dart';
 import '../../widgets/user_avatar.dart';
 import '../../providers/theme_provider.dart';
+import '../../services/supabase_service.dart';
+import '../../services/google_calendar_service.dart';
 import '../../utils/haptics.dart';
 
 class ProfileSection extends StatefulWidget {
@@ -19,8 +21,12 @@ class ProfileSection extends StatefulWidget {
 }
 
 class _ProfileSectionState extends State<ProfileSection> {
+  final SupabaseService _supabase = SupabaseService();
+  final GoogleCalendarService _google = GoogleCalendarService();
+
   bool _isEditingName = false;
   bool _isEditingEmail = false;
+  bool _isSyncing = false;
 
   late TextEditingController _nameController;
   late TextEditingController _emailController;
@@ -46,23 +52,48 @@ class _ProfileSectionState extends State<ProfileSection> {
       widget.onToast?.call('Display name cannot be empty');
       return;
     }
+    ZetaHaptics.light();
     themeProvider.setUserName(trimmed);
     setState(() => _isEditingName = false);
-    widget.onToast?.call('Name updated to "$trimmed"');
+    widget.onToast?.call('Name updated and saved to database');
   }
 
   void _saveEmail(ThemeProvider themeProvider) {
     final trimmed = _emailController.text.trim();
-    if (trimmed.isEmpty || !trimmed.contains('@')) {
+    if (trimmed.isNotEmpty && !trimmed.contains('@')) {
       widget.onToast?.call('Please enter a valid email address');
       return;
     }
+    ZetaHaptics.light();
     themeProvider.setUserEmail(trimmed);
     setState(() => _isEditingEmail = false);
-    widget.onToast?.call('Email address saved');
+    widget.onToast?.call(
+      trimmed.isEmpty
+          ? 'Email removed from database'
+          : 'Email saved to database',
+    );
+  }
+
+  Future<void> _handleDbSync(ThemeProvider themeProvider) async {
+    ZetaHaptics.light();
+    setState(() => _isSyncing = true);
+    widget.onToast?.call('Syncing profile with database...');
+    try {
+      await themeProvider.syncProfileWithDb();
+      if (!mounted) return;
+      _nameController.text = themeProvider.userName;
+      _emailController.text = themeProvider.userEmail;
+      widget.onToast?.call('Profile synchronized with database successfully');
+    } catch (e) {
+      if (!mounted) return;
+      widget.onToast?.call('Could not sync with database: $e');
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
   Future<void> _pickImageFile(ThemeProvider themeProvider) async {
+    ZetaHaptics.light();
     try {
       final picked = await FilePicker.pickFile(type: FileType.image);
       if (picked != null) {
@@ -74,7 +105,7 @@ class _ProfileSectionState extends State<ProfileSection> {
               : 'image/png';
           final encoded = 'data:$mime;base64,${base64Encode(bytes)}';
           themeProvider.setAvatarPhoto(encoded);
-          widget.onToast?.call('Profile photo updated successfully.');
+          widget.onToast?.call('Profile photo updated and saved to database.');
         }
       }
     } catch (e) {
@@ -83,6 +114,7 @@ class _ProfileSectionState extends State<ProfileSection> {
   }
 
   void _showImageUrlDialog(BuildContext context, ThemeProvider themeProvider) {
+    ZetaHaptics.light();
     final urlController = TextEditingController(
       text:
           (themeProvider.avatarPhoto != null &&
@@ -99,7 +131,7 @@ class _ProfileSectionState extends State<ProfileSection> {
 
         return AlertDialog(
           title: Text(
-            'Enter Photo URL',
+            'Photo Web URL',
             style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           content: Column(
@@ -107,7 +139,7 @@ class _ProfileSectionState extends State<ProfileSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Paste any web image URL (e.g. Unsplash, GitHub, Gravatar):',
+                'Enter link to your avatar image:',
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
@@ -117,7 +149,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                 controller: urlController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'https://example.com/photo.jpg',
+                  hintText: 'https://...',
                   prefixIcon: const Icon(Icons.link_rounded),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -136,152 +168,13 @@ class _ProfileSectionState extends State<ProfileSection> {
                 final trimmed = urlController.text.trim();
                 if (trimmed.isNotEmpty) {
                   themeProvider.setAvatarPhoto(trimmed);
-                  widget.onToast?.call('Profile photo updated from URL.');
+                  widget.onToast?.call('Profile photo saved to database.');
                 }
                 Navigator.of(dialogContext).pop();
               },
               child: const Text('Save Photo'),
             ),
           ],
-        );
-      },
-    );
-  }
-
-  void _showPhotoOptionsSheet(
-    BuildContext context,
-    ThemeProvider themeProvider,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        final colorScheme = Theme.of(sheetContext).colorScheme;
-        final textTheme = Theme.of(sheetContext).textTheme;
-
-        return Container(
-          constraints: const BoxConstraints(maxWidth: 480),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLow,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 32,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: colorScheme.outlineVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                'Profile Photo',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Upload a photo or remove to use letter "${themeProvider.avatarInitial}"',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.file_upload_outlined,
-                    color: colorScheme.onPrimaryContainer,
-                    size: 20,
-                  ),
-                ),
-                title: const Text('Choose image file'),
-                subtitle: const Text(
-                  'Select a JPG or PNG file from your device',
-                ),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  _pickImageFile(themeProvider);
-                },
-              ),
-              ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.link_rounded,
-                    color: colorScheme.onSecondaryContainer,
-                    size: 20,
-                  ),
-                ),
-                title: const Text('Enter image URL'),
-                subtitle: const Text('Paste a link to any web image'),
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  _showImageUrlDialog(context, themeProvider);
-                },
-              ),
-              if (themeProvider.hasAvatarPhoto) ...[
-                const Divider(height: 20),
-                ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.delete_outline_rounded,
-                      color: colorScheme.onErrorContainer,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    'Remove photo',
-                    style: TextStyle(
-                      color: colorScheme.error,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Switch back to alphabet "${themeProvider.avatarInitial}" as avatar',
-                  ),
-                  onTap: () {
-                    themeProvider.clearAvatarPhoto();
-                    Navigator.of(sheetContext).pop();
-                    widget.onToast?.call(
-                      'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
-                    );
-                  },
-                ),
-              ],
-            ],
-          ),
         );
       },
     );
@@ -294,6 +187,12 @@ class _ProfileSectionState extends State<ProfileSection> {
     final textTheme = Theme.of(context).textTheme;
 
     final hasPhoto = themeProvider.hasAvatarPhoto;
+    final isConnected = _google.isConnected || _supabase.isAuthenticated;
+    final connectedEmail = _google.accountEmail ?? _supabase.currentUser?.email;
+
+    final displayEmail = themeProvider.userEmail.isNotEmpty
+        ? themeProvider.userEmail
+        : (connectedEmail ?? '');
 
     return Align(
       alignment: Alignment.topCenter,
@@ -302,8 +201,187 @@ class _ProfileSectionState extends State<ProfileSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ─── 1. Hero Profile Card (M3 Expressive) ─────────────────────────
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+                outerRadius: 28.0,
+                innerRadius: 6.0,
+                gap: 3.0,
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 18,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const UserAvatar(
+                            radius: 36,
+                            showRing: true,
+                            ringWidth: 3.0,
+                          ),
+                          const SizedBox(width: 18),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        themeProvider.userName,
+                                        style: textTheme.headlineSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isConnected
+                                            ? const Color(0xFF10B981)
+                                                  .withValues(alpha: 0.15)
+                                            : colorScheme.surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            isConnected
+                                                ? Icons.cloud_done_rounded
+                                                : Icons.shield_outlined,
+                                            size: 11,
+                                            color: isConnected
+                                                ? const Color(0xFF10B981)
+                                                : colorScheme.onSurfaceVariant,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isConnected ? 'SYNCED' : 'LOCAL',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.3,
+                                              color: isConnected
+                                                  ? const Color(0xFF10B981)
+                                                  : colorScheme
+                                                        .onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  displayEmail.isNotEmpty
+                                      ? displayEmail
+                                      : 'No email address configured',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Photo Action Button Group (M3 Expressive Connected)
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: M3EButtonGroup(
+                          type: M3EButtonGroupType.standard,
+                          style: M3EButtonStyle.tonal,
+                          // size: M3EButtonSize.custom(
+                          //   height: 96,
+                          //   hPadding: 48,
+                          //   iconSize: 32,
+                          //   iconGap: 10,
+                          // ),
+                          shape: M3EButtonShape.round,
+                          selectedIndex: null,
+                          onSelectedIndexChanged: (index) {
+                            if (index == 0) {
+                              _pickImageFile(themeProvider);
+                            } else if (index == 1) {
+                              _showImageUrlDialog(context, themeProvider);
+                            } else if (index == 2 && hasPhoto) {
+                              ZetaHaptics.light();
+                              themeProvider.clearAvatarPhoto();
+                              widget.onToast?.call(
+                                'Photo removed from database. Using initial "${themeProvider.avatarInitial}".',
+                              );
+                            }
+                          },
+                          actions: [
+                            M3EButtonGroupAction(
+                              icon: Icon(Icons.file_upload_outlined, size: 16),
+                              label: Text('Upload image'),
+                              tooltip: 'Upload image from local storage',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: colorScheme.secondaryContainer,
+                                foregroundColor:
+                                    colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                            M3EButtonGroupAction(
+                              icon: Icon(Icons.link_rounded, size: 16),
+                              label: Text('Image URL'),
+                              tooltip: 'Set avatar image from URL',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: colorScheme.secondaryContainer,
+                                foregroundColor:
+                                    colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                            if (hasPhoto)
+                              M3EButtonGroupAction(
+                                icon: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 16,
+                                ),
+                                label: Text('Remove'),
+                                tooltip: 'Remove custom photo',
+                                decoration: M3EToggleButtonDecoration.styleFrom(
+                                  backgroundColor: colorScheme.errorContainer,
+                                  foregroundColor: colorScheme.onErrorContainer,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // ─── 2. PERSONAL DETAILS ──────────────────────────────────────────
             Text(
-              'Profile',
+              'Personal Details',
               style: textTheme.labelMedium?.copyWith(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -316,122 +394,13 @@ class _ProfileSectionState extends State<ProfileSection> {
             M3ESegmentedColumn(
               decoration: const M3ESegmentedListDecoration(
                 padding: EdgeInsets.all(1.0),
+                outerRadius: 28.0,
+                innerRadius: 6.0,
+                gap: 3.0,
               ),
               color: colorScheme.surfaceContainerLowest,
               children: [
-                // ─── Item 1: Profile Photo & Alphabet Avatar ──────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isCompact = constraints.maxWidth < 420;
-
-                      const avatarWidget = UserAvatar(
-                        radius: 24,
-                        showRing: true,
-                        ringWidth: 2.5,
-                      );
-
-                      final infoWidget = Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            hasPhoto ? 'Profile Photo' : 'Profile Avatar',
-                            style: textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            hasPhoto
-                                ? 'Custom photo active'
-                                : 'Alphabet "${themeProvider.avatarInitial}" derived from ${themeProvider.userName}',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      );
-
-                      final buttonsWidget = M3EButtonGroup(
-                        type: M3EButtonGroupType.standard,
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        selectedIndex: null,
-                        onSelectedIndexChanged: (index) {
-                          if (index == 0) {
-                            ZetaHaptics.light();
-                            _showPhotoOptionsSheet(context, themeProvider);
-                          } else if (index == 1 && hasPhoto) {
-                            ZetaHaptics.light();
-                            themeProvider.clearAvatarPhoto();
-                            widget.onToast?.call(
-                              'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
-                            );
-                          }
-                        },
-                        actions: [
-                          M3EButtonGroupAction(
-                            icon: Icon(
-                              hasPhoto
-                                  ? Icons.photo_camera_rounded
-                                  : Icons.add_a_photo_outlined,
-                              size: 16,
-                            ),
-                            label: Text(hasPhoto ? 'Change' : 'Photo'),
-                            decoration: M3EToggleButtonDecoration.styleFrom(
-                              backgroundColor: colorScheme.secondaryContainer,
-                              foregroundColor: colorScheme.onSecondaryContainer,
-                            ),
-                          ),
-                          if (hasPhoto)
-                            M3EButtonGroupAction(
-                              icon: Icon(Icons.close_rounded, size: 16),
-                              tooltip: 'Remove photo',
-                              decoration: M3EToggleButtonDecoration.styleFrom(
-                                backgroundColor: colorScheme.secondaryContainer,
-                                foregroundColor:
-                                    colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                        ],
-                      );
-
-                      if (isCompact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                avatarWidget,
-                                const SizedBox(width: 14),
-                                Expanded(child: infoWidget),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            buttonsWidget,
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        children: [
-                          avatarWidget,
-                          const SizedBox(width: 16),
-                          Expanded(child: infoWidget),
-                          const SizedBox(width: 8),
-                          buttonsWidget,
-                        ],
-                      );
-                    },
-                  ),
-                ),
-
-                // ─── Item 2: Display Name ─────────────────────────────────────
+                // Item 1: Display Name
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -443,18 +412,18 @@ class _ProfileSectionState extends State<ProfileSection> {
                       Row(
                         children: [
                           Icon(
-                            Icons.badge_outlined,
-                            size: 24,
+                            Icons.badge_rounded,
+                            size: 22,
                             color: colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Display Name',
-                                  style: textTheme.bodyLarge?.copyWith(
+                                  style: textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: colorScheme.onSurface,
                                   ),
@@ -463,76 +432,76 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   const SizedBox(height: 2),
                                   Text(
                                     themeProvider.userName,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                                    style: textTheme.bodySmall?.copyWith(
                                       color: colorScheme.primary,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
                               ],
                             ),
                           ),
-                          if (!_isEditingName)
-                            M3EButton.icon(
-                              icon: const Icon(Icons.edit_rounded, size: 16),
-                              label: const Text('Edit'),
-                              style: M3EButtonStyle.tonal,
-                              size: M3EButtonSize.sm,
-                              onPressed: () {
-                                _nameController.text = themeProvider.userName;
-                                setState(() => _isEditingName = true);
-                              },
+                          M3EButton.icon(
+                            icon: Icon(
+                              _isEditingName
+                                  ? Icons.close_rounded
+                                  : Icons.edit_rounded,
+                              size: 15,
                             ),
+                            label: Text(_isEditingName ? 'Cancel' : 'Edit'),
+                            style: _isEditingName
+                                ? M3EButtonStyle.outlined
+                                : M3EButtonStyle.tonal,
+                            size: M3EButtonSize.sm,
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              _nameController.text = themeProvider.userName;
+                              setState(() => _isEditingName = !_isEditingName);
+                            },
+                          ),
                         ],
                       ),
                       if (_isEditingName) ...[
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _nameController,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  hintText: 'Enter display name',
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                        Material(
+                          color: Colors.transparent,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _nameController,
+                                  autofocus: true,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter display name',
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                  onSubmitted: (_) => _saveName(themeProvider),
                                 ),
-                                onSubmitted: (_) => _saveName(themeProvider),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            M3EButton.icon(
-                              icon: const Icon(Icons.check_rounded, size: 16),
-                              label: const Text('Save'),
-                              style: M3EButtonStyle.filled,
-                              size: M3EButtonSize.sm,
-                              onPressed: () => _saveName(themeProvider),
-                            ),
-                            const SizedBox(width: 6),
-                            M3EButton(
-                              style: M3EButtonStyle.outlined,
-                              size: M3EButtonSize.sm,
-                              onPressed: () {
-                                _nameController.text = themeProvider.userName;
-                                setState(() => _isEditingName = false);
-                              },
-                              child: const Text('Cancel'),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              M3EButton.icon(
+                                icon: const Icon(Icons.check_rounded, size: 16),
+                                label: const Text('Save'),
+                                style: M3EButtonStyle.filled,
+                                size: M3EButtonSize.sm,
+                                onPressed: () => _saveName(themeProvider),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
 
-                // ─── Item 3: Email Address ────────────────────────────────────
+                // Item 2: Email Address
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -544,18 +513,18 @@ class _ProfileSectionState extends State<ProfileSection> {
                       Row(
                         children: [
                           Icon(
-                            Icons.mail_outline_rounded,
-                            size: 24,
+                            Icons.alternate_email_rounded,
+                            size: 22,
                             color: colorScheme.onSurfaceVariant,
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Email Address',
-                                  style: textTheme.bodyLarge?.copyWith(
+                                  style: textTheme.bodyMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: colorScheme.onSurface,
                                   ),
@@ -563,8 +532,10 @@ class _ProfileSectionState extends State<ProfileSection> {
                                 if (!_isEditingEmail) ...[
                                   const SizedBox(height: 2),
                                   Text(
-                                    themeProvider.userEmail,
-                                    style: textTheme.bodyMedium?.copyWith(
+                                    themeProvider.userEmail.isNotEmpty
+                                        ? themeProvider.userEmail
+                                        : 'Not configured (tap to add)',
+                                    style: textTheme.bodySmall?.copyWith(
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -572,61 +543,83 @@ class _ProfileSectionState extends State<ProfileSection> {
                               ],
                             ),
                           ),
-                          if (!_isEditingEmail)
-                            M3EButton.icon(
-                              icon: const Icon(Icons.edit_rounded, size: 16),
-                              label: const Text('Edit'),
-                              style: M3EButtonStyle.tonal,
-                              size: M3EButtonSize.sm,
-                              onPressed: () {
-                                _emailController.text = themeProvider.userEmail;
-                                setState(() => _isEditingEmail = true);
-                              },
+                          M3EButton.icon(
+                            icon: Icon(
+                              _isEditingEmail
+                                  ? Icons.close_rounded
+                                  : (themeProvider.userEmail.isNotEmpty
+                                        ? Icons.edit_rounded
+                                        : Icons.add_rounded),
+                              size: 15,
                             ),
+                            label: Text(
+                              _isEditingEmail
+                                  ? 'Cancel'
+                                  : (themeProvider.userEmail.isNotEmpty
+                                        ? 'Edit'
+                                        : 'Add'),
+                            ),
+                            style: _isEditingEmail
+                                ? M3EButtonStyle.outlined
+                                : M3EButtonStyle.tonal,
+                            size: M3EButtonSize.sm,
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              _emailController.text = themeProvider.userEmail;
+                              setState(
+                                () => _isEditingEmail = !_isEditingEmail,
+                              );
+                            },
+                          ),
                         ],
                       ),
                       if (_isEditingEmail) ...[
                         const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _emailController,
-                                autofocus: true,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  hintText: 'Enter your email address',
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                        Material(
+                          color: Colors.transparent,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _emailController,
+                                  autofocus: true,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter your email address',
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                                  onSubmitted: (_) => _saveEmail(themeProvider),
                                 ),
-                                onSubmitted: (_) => _saveEmail(themeProvider),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            M3EButton.icon(
-                              icon: const Icon(Icons.check_rounded, size: 16),
-                              label: const Text('Save'),
-                              style: M3EButtonStyle.filled,
-                              size: M3EButtonSize.sm,
-                              onPressed: () => _saveEmail(themeProvider),
-                            ),
-                            const SizedBox(width: 6),
-                            M3EButton(
-                              style: M3EButtonStyle.outlined,
-                              size: M3EButtonSize.sm,
-                              onPressed: () {
-                                _emailController.text = themeProvider.userEmail;
-                                setState(() => _isEditingEmail = false);
-                              },
-                              child: const Text('Cancel'),
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              M3EButton.icon(
+                                icon: const Icon(Icons.check_rounded, size: 16),
+                                label: const Text('Save'),
+                                style: M3EButtonStyle.filled,
+                                size: M3EButtonSize.sm,
+                                onPressed: () => _saveEmail(themeProvider),
+                              ),
+                              if (themeProvider.userEmail.isNotEmpty) ...[
+                                const SizedBox(width: 6),
+                                M3EButton(
+                                  style: M3EButtonStyle.outlined,
+                                  size: M3EButtonSize.sm,
+                                  onPressed: () {
+                                    _emailController.clear();
+                                    _saveEmail(themeProvider);
+                                  },
+                                  child: const Text('Clear'),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ],
                     ],
@@ -634,6 +627,123 @@ class _ProfileSectionState extends State<ProfileSection> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 24),
+
+            // ─── 3. DATABASE & CLOUD SYNC ─────────────────────────────────────
+            Text(
+              'Database & Cloud Sync',
+              style: textTheme.labelMedium?.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+                outerRadius: 28.0,
+                innerRadius: 6.0,
+                gap: 3.0,
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4285F4)
+                              .withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.cloud_sync_rounded,
+                          color: Color(0xFF4285F4),
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Supabase Profiles Storage',
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Profile name, email, and avatar photo are saved in the database',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      M3EButton.icon(
+                        icon: _isSyncing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.sync_rounded, size: 16),
+                        label: const Text('Sync'),
+                        style: M3EButtonStyle.tonal,
+                        size: M3EButtonSize.sm,
+                        onPressed: _isSyncing
+                            ? null
+                            : () => _handleDbSync(themeProvider),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            // ─── 4. Explanatory Footer with Info Icon ─────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 22,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Your profile details are stored in the database and synchronized across your sessions. Personal information is only accessible by you.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
           ],
         ),
       ),
