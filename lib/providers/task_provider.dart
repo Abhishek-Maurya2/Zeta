@@ -265,19 +265,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _binTasks.where((t) => matchesSearch(t, q)).toList();
   }
 
-  List<Task> get filteredAndSortedTasks {
-    if (_cachedFilteredAndSortedTasks != null) {
-      return _cachedFilteredAndSortedTasks!;
-    }
-    final list = _tasks.where((task) {
-      if (_filter == TaskFilter.pending && task.completed) return false;
-      if (_filter == TaskFilter.completed && !task.completed) return false;
-      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
-        return false;
-      }
-      return true;
-    }).toList();
-
+  void _sortTaskList(List<Task> list) {
     list.sort((a, b) {
       if (a.completed != b.completed) {
         return a.completed ? 1 : -1;
@@ -306,16 +294,50 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
           return b.title.toLowerCase().compareTo(a.title.toLowerCase());
       }
     });
+  }
+
+  List<Task> get filteredAndSortedTasks {
+    if (_cachedFilteredAndSortedTasks != null) {
+      return _cachedFilteredAndSortedTasks!;
+    }
+    final list = _tasks.where((task) {
+      if (_filter == TaskFilter.pending && task.completed) return false;
+      if (_filter == TaskFilter.completed && !task.completed) return false;
+      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    _sortTaskList(list);
 
     _cachedFilteredAndSortedTasks = List.unmodifiable(list);
     return _cachedFilteredAndSortedTasks!;
   }
 
-  List<Task> get pendingTasks =>
-      filteredAndSortedTasks.where((t) => !t.completed).toList();
+  List<Task> get pendingTasks {
+    final list = _tasks.where((task) {
+      if (task.completed) return false;
+      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
+        return false;
+      }
+      return true;
+    }).toList();
+    _sortTaskList(list);
+    return list;
+  }
 
-  List<Task> get completedTasks =>
-      filteredAndSortedTasks.where((t) => t.completed).toList();
+  List<Task> get completedTasks {
+    final list = _tasks.where((task) {
+      if (!task.completed) return false;
+      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
+        return false;
+      }
+      return true;
+    }).toList();
+    _sortTaskList(list);
+    return list;
+  }
 
   Future<void> _loadFromStorage() async {
     try {

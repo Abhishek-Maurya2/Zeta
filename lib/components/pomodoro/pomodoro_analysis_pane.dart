@@ -16,7 +16,7 @@ enum ChartRange {
   month,
   year;
 
-  String get label {
+  String get fullLabel {
     switch (this) {
       case ChartRange.day:
         return 'Day';
@@ -28,6 +28,8 @@ enum ChartRange {
         return 'Year';
     }
   }
+
+  String get shortLabel => fullLabel[0];
 }
 
 class PomodoroAnalysisPane extends StatefulWidget {
@@ -126,7 +128,10 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 }
               },
               actions: ChartRange.values.map((r) {
-                return M3EButtonGroupAction(label: Text(r.label), width: 70);
+                final isSelected = _range == r;
+                return M3EButtonGroupAction(
+                  label: Text(isSelected ? r.fullLabel : r.shortLabel)
+                );
               }).toList(),
             ),
           ),
@@ -1126,8 +1131,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       ],
     );
   }
-
-
 
   // ─── Year 12-Month Vertical Pill Bars ────────────────────────────────────
   Widget _buildYearMonthsChart(
