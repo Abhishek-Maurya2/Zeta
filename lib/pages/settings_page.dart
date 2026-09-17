@@ -281,7 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 slivers: [
                   SliverAppBar.large(
                     pinned: true,
-                    backgroundColor: colorScheme.surface,
+                    // backgroundColor: colorScheme.surface,
                     scrolledUnderElevation: 2,
                     shape: _appBarShape,
                     leading: M3EIconButton(
@@ -465,11 +465,12 @@ class _SettingsPageState extends State<SettingsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 15),
           child: Text(
-            'PREFERENCES',
-            style: textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-              color: colorScheme.onSurfaceVariant,
+            'Preferences',
+            style: textTheme.labelMedium?.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+              color: colorScheme.primary,
             ),
           ),
         ),

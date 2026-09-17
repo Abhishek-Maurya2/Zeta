@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   dynamic_color
   geolocator_windows
+  local_notifier
   url_launcher_windows
 )
 

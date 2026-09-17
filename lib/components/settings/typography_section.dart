@@ -31,11 +31,12 @@ class _TypographySectionState extends State<TypographySection> {
       children: [
         // ─── Section Header ───────────────────────────────────────────────
         Text(
-          'TYPOGRAPHY & FLEX VARIABLE FONTS',
+          'Typography',
           style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
-            color: colorScheme.onSurfaceVariant,
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+            color: colorScheme.primary,
           ),
         ),
         const SizedBox(height: 16),

@@ -8,10 +8,12 @@ import 'providers/navigation_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/pomodoro_provider.dart';
 import 'providers/update_provider.dart';
+import 'providers/notification_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
 import 'services/supabase_service.dart';
+import 'services/notification_service.dart';
 
 bool get _isTestMode =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
@@ -23,6 +25,7 @@ void main() async {
   );
   // Asynchronously initialize Supabase without blocking the initial frame
   unawaited(SupabaseService().init());
+  unawaited(NotificationService.instance.init());
   runApp(const ZetaApp());
 }
 
@@ -45,6 +48,7 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: _ZetaAppView(showSplash: effectiveShowSplash),
     );

@@ -709,7 +709,7 @@ class _BodyPaneState extends State<_BodyPane> {
       currentIndex: _currentIndex,
       previousIndex: _previousIndex,
       transitionType: M3EPageTransitionType.sharedAxisX,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 580),
       child: _buildPage(widget.activePage),
     );
   }

@@ -303,11 +303,12 @@ class _ProfileSectionState extends State<ProfileSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'PROFILE',
+              'Profile',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),

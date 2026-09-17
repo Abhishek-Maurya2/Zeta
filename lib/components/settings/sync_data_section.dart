@@ -265,11 +265,12 @@ class _SyncDataSectionState extends State<SyncDataSection> {
           children: [
             // ─── CLOUD & GOOGLE SYNC ─────────────────────────────────────────
             Text(
-              'CLOUD & GOOGLE SYNC',
+              'Cloud Sync',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -483,7 +484,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                               ),
                             ),
                             Text(
-                              'Bidirectional synchronization for tasks and subtasks',
+                              'Two-way sync for tasks and subtasks',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -516,11 +517,12 @@ class _SyncDataSectionState extends State<SyncDataSection> {
 
             // ─── BACKUP & STORAGE MANAGEMENT ─────────────────────────────────
             Text(
-              'BACKUP & STORAGE MANAGEMENT',
+              'Backup & Storage',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -557,7 +559,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                               ),
                             ),
                             Text(
-                              'Copy complete snapshot of tasks, pomodoro logs, and settings',
+                              'Tasks, sessions & settings copied to clipboard',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -608,7 +610,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                               ),
                             ),
                             Text(
-                              'Paste configuration JSON to restore preferences and colors',
+                              'Restore preferences from a JSON backup',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -666,7 +668,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                                   ),
                                 ),
                                 Text(
-                                  '${taskProvider.totalCount} tasks • ${pomodoroProvider.sessionLog.length} pomodoro logs • $keysCount preferences active',
+                                  '${taskProvider.totalCount} tasks · ${pomodoroProvider.sessionLog.length} sessions · $keysCount prefs',
                                   style: textTheme.bodySmall?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                   ),
@@ -726,7 +728,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                                 ),
                               ),
                               Text(
-                                'Restore colors, appearance, and styling to initial defaults',
+                                'Resets all appearance & settings to defaults',
                                 style: textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),

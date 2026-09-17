@@ -55,7 +55,7 @@ void main() {
       final sampleRow = {
         'id': 'b249b552-b407-4e8d-aa8a-ba32c61a0311',
         'user_id': 'singleton',
-        'title': 'Population Study',
+        'title': 'Demographics Study',
         'description': 'Chapter 4 demographics notes',
         'completed': true,
         'due_date': '2026-09-12T04:30:00.000Z',
@@ -77,7 +77,7 @@ void main() {
 
       expect(task.id, equals('b249b552-b407-4e8d-aa8a-ba32c61a0311'));
       expect(task.userId, equals('singleton'));
-      expect(task.title, equals('Population Study'));
+      expect(task.title, equals('Demographics Study'));
       expect(task.description, equals('Chapter 4 demographics notes'));
       expect(task.completed, isTrue);
       expect(task.hasTime, isTrue);

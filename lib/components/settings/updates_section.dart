@@ -256,10 +256,11 @@ class UpdatesSection extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     "What's New in v${info.latestVersion}",
-                    style: textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    style: textTheme.labelMedium?.copyWith(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                       color: colorScheme.primary,
-                      letterSpacing: 0.1,
                     ),
                   ),
                 ),
@@ -337,10 +338,11 @@ class UpdatesSection extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Developer',
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
+                  style: textTheme.labelMedium?.copyWith(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                     color: colorScheme.primary,
-                    letterSpacing: 0.1,
                   ),
                 ),
               ),

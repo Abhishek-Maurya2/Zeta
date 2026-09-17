@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../widgets/segmented_column.dart';
 import '../../providers/theme_provider.dart';
-import '../../providers/task_provider.dart';
-import '../../providers/pomodoro_provider.dart';
+import '../../providers/notification_provider.dart';
+import '../../services/notification_service.dart';
 
 class NotificationsSyncSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -17,61 +17,65 @@ class NotificationsSyncSection extends StatefulWidget {
 }
 
 class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
-  bool _isSyncing = false;
+  bool _permissionGranted = false;
+  bool _permissionChecked = false;
+  bool _systemNotificationsEnabled = true;
 
-  Future<void> _handleManualSync(
-    ThemeProvider themeProvider,
-    TaskProvider taskProvider,
-    PomodoroProvider pomodoroProvider,
-  ) async {
-    setState(() => _isSyncing = true);
-    await taskProvider.syncWithCloud(force: true);
-    if (!mounted) return;
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
 
-    await themeProvider.performCloudSync(
-      taskProvider.totalCount,
-      pomodoroProvider.sessionLog.length,
-    );
+  Future<void> _checkPermission() async {
+    final granted = await NotificationService.instance.hasPermission();
+    if (mounted) {
+      setState(() {
+        _permissionGranted = granted;
+        _permissionChecked = true;
+      });
+    }
+  }
 
-    setState(() => _isSyncing = false);
-    widget.onToast?.call(
-      'Cloud synced: ${taskProvider.totalCount} tasks synchronized with Supabase.',
-    );
+  Future<void> _handleRequestPermission() async {
+    final granted = await NotificationService.instance.requestPermission();
+    if (mounted) {
+      setState(() => _permissionGranted = granted);
+      widget.onToast?.call(
+        granted
+            ? 'System notifications enabled'
+            : 'Permission denied — enable in system settings',
+      );
+    }
   }
 
   void _handleTestNotification(ThemeProvider themeProvider) {
-    // Cross-platform sound and haptic alert (Web, Android, Windows)
+    // In-app sound & haptics
     themeProvider.playAlert();
 
-    // Expressive Material 3 SnackBar
+    // Real system notification
+    NotificationService.instance.showNow(
+      id: 88888,
+      title: 'Zeta — Test Notification',
+      body: 'Sound, haptics & system banner working correctly.',
+    );
+
     M3ESnackbar.show(
       context,
-      message: 'Zeta Reminder: Notification test sent with chime & haptics.',
+      message: 'System notification sent — check your notification tray.',
       actionLabel: 'Dismiss',
       onAction: () {},
       duration: const Duration(seconds: 4),
     );
   }
 
-  String _formatLastSyncTime(DateTime? time) {
-    if (time == null) return 'Never synced';
-    final diff = DateTime.now().difference(time);
-    if (diff.inSeconds < 45) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${time.day}/${time.month} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
-    final taskProvider = context.watch<TaskProvider>();
-    final pomodoroProvider = context.watch<PomodoroProvider>();
+    final notifProvider = context.watch<NotificationProvider>();
 
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    final syncTimeStr = _formatLastSyncTime(themeProvider.lastCloudSyncTime);
 
     return Align(
       alignment: Alignment.topCenter,
@@ -80,12 +84,150 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ─── System Notifications ────────────────────────────────────────
             Text(
-              'SMART REMINDERS & DEADLINES',
+              'System Notifications',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                // Enable system notifications toggle
+                _buildSwitchTile(
+                  context,
+                  icon: Icons.notifications_rounded,
+                  title: 'System Notifications',
+                  subtitle: 'Task due times, overdue alerts & Pomodoro',
+                  value: _systemNotificationsEnabled,
+                  selectedIcon: const Icon(Icons.notifications_rounded),
+                  unselectedIcon: const Icon(Icons.notifications_off_rounded),
+                  onChanged: (val) {
+                    setState(() => _systemNotificationsEnabled = val);
+                    notifProvider.setEnabled(val);
+                    widget.onToast?.call(
+                      val
+                          ? 'System notifications enabled'
+                          : 'System notifications disabled',
+                    );
+                  },
+                ),
+
+                // Permission request
+                if (_permissionChecked && !_permissionGranted)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 22,
+                          color: colorScheme.error,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Permission Required',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.error,
+                                ),
+                              ),
+                              Text(
+                                'Grant permission to receive system alerts',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        M3EButton.icon(
+                          icon: const Icon(Icons.lock_open_rounded, size: 14),
+                          label: const Text('Allow'),
+                          style: M3EButtonStyle.filled,
+                          size: M3EButtonSize.sm,
+                          onPressed: _handleRequestPermission,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Test notification
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.science_rounded,
+                        size: 22,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Test System Notification',
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Sends a real system banner to verify setup',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      M3EButton.icon(
+                        icon: const Icon(Icons.send_rounded, size: 14),
+                        label: const Text('Send'),
+                        style: M3EButtonStyle.tonal,
+                        size: M3EButtonSize.sm,
+                        onPressed: () =>
+                            _handleTestNotification(themeProvider),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // ─── In-App Reminders ────────────────────────────────────────────
+            Text(
+              'Reminders',
+              style: textTheme.labelMedium?.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -102,7 +244,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   context,
                   icon: Icons.notifications_active_rounded,
                   title: 'In-App Due Time Alerts',
-                  subtitle: 'Display high-priority notifications when tasks reach their scheduled deadline',
+                  subtitle: 'Show alerts when tasks hit their deadline',
                   value: themeProvider.notifications,
                   selectedIcon: const Icon(Icons.notifications_active_rounded),
                   unselectedIcon: const Icon(Icons.notifications_off_rounded),
@@ -116,65 +258,21 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   },
                 ),
 
-                // Cross-Platform OS Notifications Test
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.desktop_windows_rounded,
-                        size: 22,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Test Notification & Sound',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Play system alert tone, trigger haptic impact, and show reminder banner',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3EButton.icon(
-                        icon: const Icon(Icons.volume_up_rounded, size: 14),
-                        label: const Text('Test'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: () => _handleTestNotification(themeProvider),
-                      ),
-                    ],
-                  ),
-                ),
-
                 // Sound feedback
                 _buildSwitchTile(
                   context,
                   icon: Icons.volume_up_rounded,
                   title: 'Sound Feedback & Chimes',
-                  subtitle: 'Play audio clicks and chimes on task completion and timer events',
+                  subtitle: 'Audio feedback on task & timer events',
                   value: themeProvider.soundEffects,
                   selectedIcon: const Icon(Icons.volume_up_rounded),
                   unselectedIcon: const Icon(Icons.volume_off_rounded),
                   onChanged: (val) {
                     themeProvider.setSoundEffects(val);
                     widget.onToast?.call(
-                      val ? 'Sound feedback enabled' : 'Sound feedback muted',
+                      val
+                          ? 'Sound feedback enabled'
+                          : 'Sound feedback muted',
                     );
                   },
                 ),
@@ -182,93 +280,6 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
             ),
 
             const SizedBox(height: 20),
-
-            // ─── Cloud Sync Status Card ──────────────────────────────────────
-            Text(
-              'CLOUD & STORAGE BACKUP',
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981)
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.cloud_done_rounded,
-                          color: Color(0xFF10B981),
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Workspace Database Snapshot',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Status: Up to date • Last synced: $syncTimeStr (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} sessions)',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      M3EButton.icon(
-                        icon: _isSyncing
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.sync_rounded, size: 16),
-                        label: const Text('Sync Now'),
-                        style: M3EButtonStyle.filled,
-                        size: M3EButtonSize.sm,
-                        onPressed: _isSyncing
-                            ? null
-                            : () => _handleManualSync(
-                                themeProvider,
-                                taskProvider,
-                                pomodoroProvider,
-                              ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),

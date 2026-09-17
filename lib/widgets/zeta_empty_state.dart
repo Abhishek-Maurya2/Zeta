@@ -256,11 +256,10 @@ class ZetaEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     final isCompact = size == ZetaEmptyStateSize.compact;
-    final double coreShapeSize = isCompact ? 56.0 : 80.0;
-    final double haloSize = isCompact ? 72.0 : 104.0;
+    final double coreShapeSize = isCompact ? 65.0 : 95.0;
+    final double haloSize = isCompact ? 80.0 : 120.0;
     final double iconSize = isCompact ? 26.0 : 38.0;
 
     final effectiveShapeColor = shapeColor ?? colorScheme.primaryContainer;
@@ -314,34 +313,16 @@ class ZetaEmptyState extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: isCompact
-              ? textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                )
-              : textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 17,
-                  color: colorScheme.onSurface,
-                ),
+          style: TextStyle(fontSize: isCompact ? 17 : 19),
         ),
         if (subtitle != null && subtitle!.isNotEmpty) ...[
-          SizedBox(height: isCompact ? 4 : 8),
+          SizedBox(height: isCompact ? 6 : 10),
           ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxContentWidth),
             child: Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: isCompact
-                  ? textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      height: 1.35,
-                    )
-                  : textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                      height: 1.45,
-                    ),
+              style: TextStyle(fontSize: isCompact ? 13 : 15),
             ),
           ),
         ],
@@ -352,10 +333,7 @@ class ZetaEmptyState extends StatelessWidget {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              ?primaryAction,
-              ?secondaryAction,
-            ],
+            children: [?primaryAction, ?secondaryAction],
           ),
         ],
       ],

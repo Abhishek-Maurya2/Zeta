@@ -9,6 +9,7 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../services/supabase_sync_service.dart';
 import '../services/google_calendar_service.dart';
+import '../services/notification_service.dart';
 
 enum TaskFilter { all, completed, pending }
 
@@ -49,19 +50,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startGooglePollingTimer();
   }
 
-  final List<Task> _tasks = [
-    Task(id: 'sample-1', title: 'Answer writting', completed: false),
-    Task(id: 'sample-2', title: 'Society Indian Society', completed: false),
-    Task(id: 'sample-3', title: 'Society', completed: false),
-    Task(id: 'sample-4', title: 'Population', completed: false),
-    Task(id: 'sample-5', title: 'Women Organisation', completed: true),
-    Task(id: 'sample-6', title: 'Role of Women', completed: true),
-  ];
-
-  final List<Task> _binTasks = [
-    Task(id: 'sample-7', title: 'Geography Map Practice', deletedAt: DateTime.now()),
-    Task(id: 'sample-8', title: 'Modern History Timeline', deletedAt: DateTime.now()),
-  ];
+  final List<Task> _tasks = [];
+  final List<Task> _binTasks = [];
 
   TaskFilter _filter = TaskFilter.all;
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
@@ -420,13 +410,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       remoteTasks.removeWhere((t) => t.title.trim().isEmpty);
 
       if (remoteTasks.isNotEmpty) {
-        // If local tasks are only initial placeholder mocks, replace with remote
-        final hasOnlyLegacyMocks = _tasks.isNotEmpty && _tasks.every((t) => t.id.length < 5);
-        if (hasOnlyLegacyMocks) {
-          _tasks.clear();
-          _binTasks.clear();
-        }
-
         for (final remote in remoteTasks) {
           if (remote.deletedAt != null) {
             final idx = _binTasks.indexWhere((t) => t.id == remote.id);
@@ -799,6 +782,11 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.updatedAt = DateTime.now();
       if (task.completed) {
         _playSoundIfEnabled();
+        // Cancel any pending reminder when task is completed.
+        NotificationService.instance.cancelTaskReminder(task.id);
+      } else {
+        // Re-schedule if un-completing a task that has a due time.
+        NotificationService.instance.scheduleTaskReminder(task);
       }
       _invalidateCache();
       notifyListeners();
@@ -855,6 +843,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _scheduleSave();
     _syncService.pushTask(newTask);
     _syncTaskPipeline(newTask);
+    // Schedule a system notification if the task has a due time.
+    NotificationService.instance.scheduleTaskReminder(newTask);
   }
 
   void updateTask(
@@ -883,6 +873,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _scheduleSave();
       _syncService.pushTask(task);
       _syncTaskPipeline(task);
+      // Re-schedule (or cancel) reminder based on updated due time.
+      NotificationService.instance.scheduleTaskReminder(task);
     }
   }
 
@@ -900,6 +892,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _scheduleSave();
       _syncService.pushTask(task);
       _deleteFromGoogleServices(task);
+      // Cancel scheduled reminder when task is deleted.
+      NotificationService.instance.cancelTaskReminder(task.id);
     }
   }
 

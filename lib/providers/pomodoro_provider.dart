@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/pomodoro.dart';
 import '../services/pomodoro_sync_service.dart';
+import '../services/notification_service.dart';
 import '../utils/haptics.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
@@ -281,6 +282,10 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       SystemSound.play(SystemSoundType.alert);
     }
     ZetaHaptics.heavy();
+
+    // Fire system notification.
+    final completedMode = currentSession?.mode ?? PomodoroMode.focus;
+    NotificationService.instance.showPomodoroComplete(completedMode);
 
     // Log the completed session
     final currentItem = currentSession;

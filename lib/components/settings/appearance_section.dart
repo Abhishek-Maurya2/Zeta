@@ -5,7 +5,6 @@ import '../../theme/color_variant.dart';
 import '../../widgets/segmented_column.dart';
 import '../../utils/haptics.dart';
 import '../../providers/theme_provider.dart';
-import '../../pages/splash_screen.dart';
 
 class AppearanceSection extends StatelessWidget {
   final void Function(String message)? onToast;
@@ -242,11 +241,12 @@ class AppearanceSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'APPEARANCE & DYNAMIC THEME',
+              'Theme',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -284,12 +284,6 @@ class AppearanceSection extends StatelessWidget {
                                   style: textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                Text(
-                                  'Light, dark, or system preference',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -371,12 +365,6 @@ class AppearanceSection extends StatelessWidget {
                                   style: textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                Text(
-                                  'Select tonal palettes derived from seed color',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -461,23 +449,11 @@ class AppearanceSection extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          width: 32,
-                          height: 32,
+                          width: 35,
+                          height: 35,
                           decoration: BoxDecoration(
                             color: themeProvider.seedColor,
                             shape: BoxShape.circle,
-                            border: Border.all(
-                              color: colorScheme.surface,
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: themeProvider.seedColor.withValues(
-                                  alpha: 0.35,
-                                ),
-                                blurRadius: 6,
-                              ),
-                            ],
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -496,11 +472,12 @@ class AppearanceSection extends StatelessWidget {
 
             // ─── Display & Visual Effects Switches ───────────────────────────
             Text(
-              'DISPLAY & MOTION',
+              'Display & Motion',
               style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -657,87 +634,6 @@ class AppearanceSection extends StatelessWidget {
                         },
                       ),
                     ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'LAUNCH & SPLASH SCREEN',
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 12),
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    ZetaHaptics.light();
-                    Navigator.of(context).push(
-                      PageRouteBuilder(
-                        opaque: false,
-                        pageBuilder: (_, _, _) =>
-                            const SplashScreen(isPreview: true),
-                        transitionsBuilder: (_, animation, _, child) =>
-                            FadeTransition(opacity: animation, child: child),
-                      ),
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            Icons.play_circle_filled_rounded,
-                            color: colorScheme.onPrimaryContainer,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Preview Splash Screen',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              Text(
-                                'Replay the Gmail & YouTube style launch animation',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],

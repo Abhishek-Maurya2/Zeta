@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zeta/models/task.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/navigation/top_app_bar.dart';
@@ -33,6 +34,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
+
     context.read<NavigationProvider>().setActivePage(PageId.tasks);
     await tester.pumpAndSettle();
 
@@ -47,15 +49,13 @@ void main() {
     );
 
     // Verify tasks
-    expect(find.text('Answer writting'), findsOneWidget);
-    expect(find.text('Society Indian Society'), findsOneWidget);
-    expect(find.text('Society'), findsOneWidget);
-    expect(find.text('Population'), findsOneWidget);
+    expect(find.text('Task Alpha'), findsOneWidget);
+    expect(find.text('Task Beta'), findsOneWidget);
 
     // Verify Completed section
     expect(find.text('COMPLETED (2)'), findsOneWidget);
-    expect(find.text('Women Organisation'), findsOneWidget);
-    expect(find.text('Role of Women'), findsOneWidget);
+    expect(find.text('Task Gamma'), findsOneWidget);
+    expect(find.text('Task Delta'), findsOneWidget);
 
     // Verify Add Task FAB
     expect(find.text('Add Task'), findsOneWidget);
@@ -73,11 +73,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
+
     context.read<NavigationProvider>().setActivePage(PageId.tasks);
     await tester.pumpAndSettle();
 
-    // 1. Right-click on a pending task ('Answer writting')
-    final pendingTaskFinder = find.text('Answer writting');
+    // 1. Right-click on a pending task ('Task Alpha')
+    final pendingTaskFinder = find.text('Task Alpha');
     expect(pendingTaskFinder, findsOneWidget);
     await tester.tap(pendingTaskFinder, buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
@@ -91,11 +92,11 @@ void main() {
     await tester.tap(find.text('Move to Bin'));
     await tester.pumpAndSettle();
 
-    // 'Answer writting' should now be moved to bin
-    expect(find.text('Answer writting'), findsNothing);
+    // 'Task Alpha' should now be moved to bin
+    expect(find.text('Task Alpha'), findsNothing);
 
-    // 2. Right-click on a completed task ('Role of Women')
-    final completedTaskFinder = find.text('Role of Women');
+    // 2. Right-click on a completed task ('Task Gamma')
+    final completedTaskFinder = find.text('Task Gamma');
     expect(completedTaskFinder, findsOneWidget);
     await tester.tap(completedTaskFinder, buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
@@ -160,8 +161,14 @@ void main() {
     await tester.pumpWidget(const ZetaApp());
     await tester.pumpAndSettle();
 
-    // Navigate to Bin Page
     final BuildContext context = tester.element(find.byType(AppScaffold));
+    final taskProvider = context.read<TaskProvider>();
+    taskProvider.addTask(Task(id: 'tb1', title: 'Bin Task Alpha'));
+    taskProvider.addTask(Task(id: 'tb2', title: 'Bin Task Beta'));
+    taskProvider.deleteTask('tb1');
+    taskProvider.deleteTask('tb2');
+
+    // Navigate to Bin Page
     context.read<NavigationProvider>().setActivePage(PageId.bin);
     await tester.pumpAndSettle();
 
@@ -175,16 +182,16 @@ void main() {
       findsOneWidget,
     );
 
-    // Verify initial sample bin items
-    expect(find.text('Geography Map Practice'), findsOneWidget);
-    expect(find.text('Modern History Timeline'), findsOneWidget);
+    // Verify bin items
+    expect(find.text('Bin Task Alpha'), findsOneWidget);
+    expect(find.text('Bin Task Beta'), findsOneWidget);
 
     // Verify bin header buttons
     expect(find.text('Restore All'), findsWidgets);
     expect(find.text('Empty Bin'), findsWidgets);
 
-    // Right-click on a bin item ('Geography Map Practice')
-    await tester.tap(find.text('Geography Map Practice'), buttons: kSecondaryMouseButton);
+    // Right-click on a bin item ('Bin Task Alpha')
+    await tester.tap(find.text('Bin Task Alpha'), buttons: kSecondaryMouseButton);
     await tester.pumpAndSettle();
 
     // Context menu options for bin items
@@ -195,9 +202,9 @@ void main() {
     await tester.tap(find.text('Restore Task'));
     await tester.pumpAndSettle();
 
-    // 'Geography Map Practice' restored, 'Modern History Timeline' remains
-    expect(find.text('Geography Map Practice'), findsNothing);
-    expect(find.text('Modern History Timeline'), findsOneWidget);
+    // 'Bin Task Alpha' restored, 'Bin Task Beta' remains
+    expect(find.text('Bin Task Alpha'), findsNothing);
+    expect(find.text('Bin Task Beta'), findsOneWidget);
 
     // Test Empty Bin
     await tester.tap(find.text('Empty Bin').first);

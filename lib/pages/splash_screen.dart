@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Standardized background color across all platforms
-    final backgroundColor = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final backgroundColor = isDark ? Colors.black : Colors.white;
 
     return Material(
       color: backgroundColor,
