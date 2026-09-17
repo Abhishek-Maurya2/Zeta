@@ -234,36 +234,292 @@ class AppearanceSection extends StatelessWidget {
       ),
     );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'APPEARANCE & DYNAMIC THEME',
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // ─── Theme & Scheme Selection ─────────────────────────────────────
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Theme Mode
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            Text(
+              'APPEARANCE & DYNAMIC THEME',
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // ─── Theme & Scheme Selection ─────────────────────────────────────
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                // Theme Mode
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.brightness_6_rounded,
+                            size: 24,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Theme Mode',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  'Light, dark, or system preference',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: M3EButtonGroup(
+                            type: M3EButtonGroupType.connected,
+                            size: M3EButtonSize.sm,
+                            style: M3EButtonStyle.tonal,
+                            selectedIndex: themeModeIndex,
+                            onSelectedIndexChanged: (index) {
+                              if (index != null) ZetaHaptics.selection();
+                              if (index == 0) {
+                                themeProvider.setThemeMode(ThemeMode.light);
+                                onToast?.call('Theme set to Light');
+                              } else if (index == 1) {
+                                themeProvider.setThemeMode(ThemeMode.dark);
+                                onToast?.call('Theme set to Dark');
+                              } else if (index == 2) {
+                                themeProvider.setThemeMode(ThemeMode.system);
+                                onToast?.call(
+                                  'Theme set to Auto (System preference)',
+                                );
+                              }
+                            },
+                            actions: const [
+                              M3EButtonGroupAction(
+                                icon: Icon(Icons.light_mode_outlined, size: 16),
+                                label: Text('Light'),
+                              ),
+                              M3EButtonGroupAction(
+                                icon: Icon(Icons.dark_mode_outlined, size: 16),
+                                label: Text('Dark'),
+                              ),
+                              M3EButtonGroupAction(
+                                icon: Icon(
+                                  Icons.brightness_auto_outlined,
+                                  size: 16,
+                                ),
+                                label: Text('Auto'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Color Scheme Algorithm
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 24,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Color Scheme Algorithm',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  'Select tonal palettes derived from seed color',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: M3EButtonGroup(
+                            type: M3EButtonGroupType.connected,
+                            size: M3EButtonSize.sm,
+                            style: M3EButtonStyle.tonal,
+                            selectedIndex: variantIndex,
+                            onSelectedIndexChanged: (index) {
+                              if (index != null) ZetaHaptics.selection();
+                              if (index == 0) {
+                                themeProvider.setVariant(
+                                  M3EColorVariant.expressive,
+                                );
+                                onToast?.call('Applied Expressive algorithm');
+                              } else if (index == 1) {
+                                themeProvider.setVariant(
+                                  M3EColorVariant.tonalSpot,
+                                );
+                                onToast?.call('Applied Tonal Spot algorithm');
+                              } else if (index == 2) {
+                                themeProvider.setVariant(
+                                  M3EColorVariant.vibrant,
+                                );
+                                onToast?.call('Applied Vibrant algorithm');
+                              }
+                            },
+                            actions: const [
+                              M3EButtonGroupAction(label: Text('Expressive')),
+                              M3EButtonGroupAction(label: Text('Tonal Spot')),
+                              M3EButtonGroupAction(label: Text('Vibrant')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Palette Seed Preset
+                InkWell(
+                  onTap: () => _showColorSheet(context, themeProvider),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.color_lens_rounded,
+                          size: 24,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Palette Seed Preset',
+                                style: textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                '${currentPreset.name} • ${currentPreset.desc}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: themeProvider.seedColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colorScheme.surface,
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: themeProvider.seedColor.withValues(
+                                  alpha: 0.35,
+                                ),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // ─── Display & Visual Effects Switches ───────────────────────────
+            Text(
+              'DISPLAY & MOTION',
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
                     children: [
                       Icon(
-                        Icons.brightness_6_rounded,
+                        Icons.motion_photos_on_rounded,
                         size: 24,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -273,14 +529,14 @@ class AppearanceSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Theme Mode',
-                              style: textTheme.bodyLarge?.copyWith(
+                              'Motion & Fluid Animations',
+                              style: textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: colorScheme.onSurface,
                               ),
                             ),
                             Text(
-                              'Light, dark, or system preference',
+                              'Enable Material 3 spring curves and transitions',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -288,63 +544,30 @@ class AppearanceSection extends StatelessWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      M3ESwitch(
+                        value: themeProvider.animations,
+                        selectedIcon: const Icon(Icons.check_rounded),
+                        unselectedIcon: const Icon(Icons.close_rounded),
+                        onChanged: (val) {
+                          themeProvider.setAnimations(val);
+                          onToast?.call(
+                            val ? 'Animations enabled' : 'Animations disabled',
+                          );
+                        },
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: M3EButtonGroup(
-                        type: M3EButtonGroupType.connected,
-                        size: M3EButtonSize.sm,
-                        style: M3EButtonStyle.tonal,
-                        selectedIndex: themeModeIndex,
-                        onSelectedIndexChanged: (index) {
-                          if (index != null) ZetaHaptics.selection();
-                          if (index == 0) {
-                            themeProvider.setThemeMode(ThemeMode.light);
-                            onToast?.call('Theme set to Light');
-                          } else if (index == 1) {
-                            themeProvider.setThemeMode(ThemeMode.dark);
-                            onToast?.call('Theme set to Dark');
-                          } else if (index == 2) {
-                            themeProvider.setThemeMode(ThemeMode.system);
-                            onToast?.call(
-                              'Theme set to Auto (System preference)',
-                            );
-                          }
-                        },
-                        actions: const [
-                          M3EButtonGroupAction(
-                            icon: Icon(Icons.light_mode_outlined, size: 16),
-                            label: Text('Light'),
-                          ),
-                          M3EButtonGroupAction(
-                            icon: Icon(Icons.dark_mode_outlined, size: 16),
-                            label: Text('Dark'),
-                          ),
-                          M3EButtonGroupAction(
-                            icon: Icon(Icons.brightness_auto_outlined, size: 16),
-                            label: Text('Auto'),
-                          ),
-                        ],
-                      ),
-                    ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                ],
-              ),
-            ),
-
-            // Color Scheme Algorithm
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                  child: Row(
                     children: [
                       Icon(
-                        Icons.auto_awesome_rounded,
+                        Icons.contrast_rounded,
                         size: 24,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -354,14 +577,14 @@ class AppearanceSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Color Scheme Algorithm',
-                              style: textTheme.bodyLarge?.copyWith(
+                              'High Contrast Mode',
+                              style: textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 color: colorScheme.onSurface,
                               ),
                             ),
                             Text(
-                              'Select tonal palettes derived from seed color',
+                              'Increase contrast distinction for borders and indicators',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -369,350 +592,159 @@ class AppearanceSection extends StatelessWidget {
                           ],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      M3ESwitch(
+                        value: themeProvider.highContrast,
+                        selectedIcon: const Icon(Icons.check_rounded),
+                        unselectedIcon: const Icon(Icons.close_rounded),
+                        onChanged: (val) {
+                          themeProvider.setHighContrast(val);
+                          onToast?.call(
+                            val
+                                ? 'High contrast enabled'
+                                : 'High contrast disabled',
+                          );
+                        },
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: M3EButtonGroup(
-                        type: M3EButtonGroupType.connected,
-                        size: M3EButtonSize.sm,
-                        style: M3EButtonStyle.tonal,
-                        selectedIndex: variantIndex,
-                        onSelectedIndexChanged: (index) {
-                          if (index != null) ZetaHaptics.selection();
-                          if (index == 0) {
-                            themeProvider.setVariant(M3EColorVariant.expressive);
-                            onToast?.call('Applied Expressive algorithm');
-                          } else if (index == 1) {
-                            themeProvider.setVariant(M3EColorVariant.tonalSpot);
-                            onToast?.call('Applied Tonal Spot algorithm');
-                          } else if (index == 2) {
-                            themeProvider.setVariant(M3EColorVariant.vibrant);
-                            onToast?.call('Applied Vibrant algorithm');
-                          }
-                        },
-                        actions: const [
-                          M3EButtonGroupAction(label: Text('Expressive')),
-                          M3EButtonGroupAction(label: Text('Tonal Spot')),
-                          M3EButtonGroupAction(label: Text('Vibrant')),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Palette Seed Preset
-            InkWell(
-              onTap: () => _showColorSheet(context, themeProvider),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.color_lens_rounded,
-                      size: 24,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Palette Seed Preset',
-                            style: textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
-                          Text(
-                            '${currentPreset.name} • ${currentPreset.desc}',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: themeProvider.seedColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colorScheme.surface,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: themeProvider.seedColor.withValues(
-                              alpha: 0.35,
-                            ),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 20),
-
-        // ─── Display & Visual Effects Switches ───────────────────────────
-        Text(
-          'DISPLAY & MOTION',
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.motion_photos_on_rounded,
-                    size: 24,
-                    color: colorScheme.onSurfaceVariant,
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Motion & Fluid Animations',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Enable Material 3 spring curves and transitions',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  M3ESwitch(
-                    value: themeProvider.animations,
-                    selectedIcon: const Icon(Icons.check_rounded),
-                    unselectedIcon: const Icon(Icons.close_rounded),
-                    onChanged: (val) {
-                      themeProvider.setAnimations(val);
-                      onToast?.call(
-                        val ? 'Animations enabled' : 'Animations disabled',
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.contrast_rounded,
-                    size: 24,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'High Contrast Mode',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Increase contrast distinction for borders and indicators',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  M3ESwitch(
-                    value: themeProvider.highContrast,
-                    selectedIcon: const Icon(Icons.check_rounded),
-                    unselectedIcon: const Icon(Icons.close_rounded),
-                    onChanged: (val) {
-                      themeProvider.setHighContrast(val);
-                      onToast?.call(
-                        val
-                            ? 'High contrast enabled'
-                            : 'High contrast disabled',
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.density_medium_rounded,
-                    size: 24,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Compact Density Layout',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          'Decrease row heights for high-density information',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  M3ESwitch(
-                    value: themeProvider.compactDensity,
-                    selectedIcon: const Icon(Icons.check_rounded),
-                    unselectedIcon: const Icon(Icons.close_rounded),
-                    onChanged: (val) {
-                      themeProvider.setCompactDensity(val);
-                      onToast?.call(
-                        val
-                            ? 'Compact density enabled'
-                            : 'Compact density disabled',
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'LAUNCH & SPLASH SCREEN',
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 12),
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () {
-                ZetaHaptics.light();
-                Navigator.of(context).push(
-                  PageRouteBuilder(
-                    opaque: false,
-                    pageBuilder: (_, _, _) =>
-                        const SplashScreen(isPreview: true),
-                    transitionsBuilder: (_, animation, _, child) =>
-                        FadeTransition(opacity: animation, child: child),
-                  ),
-                );
-              },
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.play_circle_filled_rounded,
-                        color: colorScheme.onPrimaryContainer,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.density_medium_rounded,
                         size: 24,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Preview Splash Screen',
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Compact Density Layout',
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
                             ),
-                          ),
-                          Text(
-                            'Replay the Gmail & YouTube style launch animation',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                            Text(
+                              'Decrease row heights for high-density information',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      M3ESwitch(
+                        value: themeProvider.compactDensity,
+                        selectedIcon: const Icon(Icons.check_rounded),
+                        unselectedIcon: const Icon(Icons.close_rounded),
+                        onChanged: (val) {
+                          themeProvider.setCompactDensity(val);
+                          onToast?.call(
+                            val
+                                ? 'Compact density enabled'
+                                : 'Compact density disabled',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'LAUNCH & SPLASH SCREEN',
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+                color: colorScheme.onSurfaceVariant,
               ),
+            ),
+            const SizedBox(height: 12),
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    ZetaHaptics.light();
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        opaque: false,
+                        pageBuilder: (_, _, _) =>
+                            const SplashScreen(isPreview: true),
+                        transitionsBuilder: (_, animation, _, child) =>
+                            FadeTransition(opacity: animation, child: child),
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.play_circle_filled_rounded,
+                            color: colorScheme.onPrimaryContainer,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Preview Splash Screen',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Replay the Gmail & YouTube style launch animation',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

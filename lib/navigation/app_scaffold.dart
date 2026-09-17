@@ -392,14 +392,6 @@ class _AppScaffoldState extends State<AppScaffold> {
                                               decoration: BoxDecoration(
                                                 color: colorScheme
                                                     .surfaceContainer,
-                                                border: Border(
-                                                  left: BorderSide(
-                                                    color: colorScheme
-                                                        .outlineVariant
-                                                        .withValues(alpha: 0.3),
-                                                    width: 1,
-                                                  ),
-                                                ),
                                               ),
                                               child: SafeArea(
                                                 child: TaskEditFormContent(

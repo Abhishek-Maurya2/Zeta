@@ -61,7 +61,7 @@ class UpdatesSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ─── App Logo ──────────────────────────────────────────────
-              ZetaLogo(size: 118, borderRadius: BorderRadius.circular(20  )),
+              ZetaLogo(size: 118, borderRadius: BorderRadius.circular(20)),
               const SizedBox(height: 18),
 
               // ─── App Name ──────────────────────────────────────────────
@@ -176,33 +176,11 @@ class UpdatesSection extends StatelessWidget {
                 ),
               ] else if (isChecking) ...[
                 // Checking indicator
-                Material(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Checking for updates',
-                          style: textTheme.labelLarge?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                M3EProgressIndicator.circular(
+                  value: null,
+                  size: 45,
+                  strokeWidth: 5,
+                  trackStrokeWidth: 5,
                 ),
               ] else if (hasError) ...[
                 // Error state
@@ -371,7 +349,7 @@ class UpdatesSection extends StatelessWidget {
                 decoration: const M3ESegmentedListDecoration(
                   padding: EdgeInsets.zero,
                 ),
-                color: colorScheme.surfaceContainerLow,
+                color: colorScheme.surfaceContainerLowest,
                 children: [
                   // Developer profile tile
                   InkWell(

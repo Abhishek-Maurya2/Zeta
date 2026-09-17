@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../utils/haptics.dart';
 
 import '../providers/pomodoro_provider.dart';
@@ -9,7 +10,9 @@ import '../components/pomodoro/pomodoro_timer_pane.dart';
 import '../components/pomodoro/pomodoro_queue_pane.dart';
 import '../components/pomodoro/pomodoro_analysis_pane.dart';
 import '../components/pomodoro/m3_pane_divider.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'pomodoro_ambient_page.dart';
 import '../theme/breakpoints.dart';
 
@@ -52,13 +55,17 @@ class PomodoroPage extends StatefulWidget {
 }
 
 class _PomodoroPageState extends State<PomodoroPage> {
-  static const double _defaultSupportingPaneWidth = ZetaBreakpoints.paneFixedExpanded;
-  static const double _largeSupportingPaneWidth = ZetaBreakpoints.paneFixedLarge;
-  static const double _minSupportingPaneWidth = ZetaBreakpoints.paneMinSupporting;
+  static const double _defaultSupportingPaneWidth =
+      ZetaBreakpoints.paneFixedExpanded;
+  static const double _largeSupportingPaneWidth =
+      ZetaBreakpoints.paneFixedLarge;
+  static const double _minSupportingPaneWidth =
+      ZetaBreakpoints.paneMinSupporting;
   static const double _minFocusPaneWidth = ZetaBreakpoints.paneMinContent;
   static const double _collapseThreshold = 180.0;
   static const String _prefKeyPaneWidth = 'pomodoro_supporting_pane_width';
-  static const String _prefKeyPaneCollapsed = 'pomodoro_supporting_pane_collapsed';
+  static const String _prefKeyPaneCollapsed =
+      'pomodoro_supporting_pane_collapsed';
 
   PomodoroTab _activeTab = PomodoroTab.timer;
   SecondaryPaneTab _secondaryTab = SecondaryPaneTab.queue;
@@ -100,13 +107,18 @@ class _PomodoroPageState extends State<PomodoroPage> {
   }
 
   void _handlePaneDrag(double delta, double totalWidth) {
-    final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0)
-        .clamp(_minSupportingPaneWidth, totalWidth * 0.75);
+    final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0).clamp(
+      _minSupportingPaneWidth,
+      totalWidth * 0.75,
+    );
 
     // Dragging left (delta < 0) widens right pane; dragging right (delta > 0) narrows it.
-    var targetWidth = (_hasCustomWidth
+    var targetWidth =
+        (_hasCustomWidth
             ? _supportingPaneWidth
-            : (totalWidth >= 1200 ? _largeSupportingPaneWidth : _defaultSupportingPaneWidth)) -
+            : (totalWidth >= 1200
+                  ? _largeSupportingPaneWidth
+                  : _defaultSupportingPaneWidth)) -
         delta;
 
     // Check canonical snap points: 360, 412, and 50% split
@@ -134,7 +146,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
       return;
     }
 
-    final clampedWidth = targetWidth.clamp(_minSupportingPaneWidth, maxAllowedWidth);
+    final clampedWidth = targetWidth.clamp(
+      _minSupportingPaneWidth,
+      maxAllowedWidth,
+    );
     if (clampedWidth != _supportingPaneWidth || !_hasCustomWidth) {
       setState(() {
         _supportingPaneWidth = clampedWidth;
@@ -145,19 +160,27 @@ class _PomodoroPageState extends State<PomodoroPage> {
   }
 
   void _handlePaneDoubleTap(double totalWidth) {
-    final maxAllowed = (totalWidth - _minFocusPaneWidth - 16.0)
-        .clamp(_minSupportingPaneWidth, totalWidth * 0.75);
+    final maxAllowed = (totalWidth - _minFocusPaneWidth - 16.0).clamp(
+      _minSupportingPaneWidth,
+      totalWidth * 0.75,
+    );
     final currentWidth = _hasCustomWidth
         ? _supportingPaneWidth
-        : (totalWidth >= 1200 ? _largeSupportingPaneWidth : _defaultSupportingPaneWidth);
-    final isNearStandard = (currentWidth - _defaultSupportingPaneWidth).abs() < 10.0;
+        : (totalWidth >= 1200
+              ? _largeSupportingPaneWidth
+              : _defaultSupportingPaneWidth);
+    final isNearStandard =
+        (currentWidth - _defaultSupportingPaneWidth).abs() < 10.0;
 
     setState(() {
       _isSupportingPaneCollapsed = false;
       _hasCustomWidth = true;
       if (isNearStandard) {
         // Toggle to 50% split if already at canonical 360
-        _supportingPaneWidth = (totalWidth * 0.5).clamp(_minSupportingPaneWidth, maxAllowed);
+        _supportingPaneWidth = (totalWidth * 0.5).clamp(
+          _minSupportingPaneWidth,
+          maxAllowed,
+        );
       } else {
         // Reset to canonical standard 360
         _supportingPaneWidth = _defaultSupportingPaneWidth;
@@ -183,12 +206,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
       backgroundColor: Colors.transparent,
       body: isTwoPane
           ? _buildTwoPaneLayout(context, provider, colorScheme, textTheme)
-          : _buildSinglePaneLayout(
-              context,
-              provider,
-              colorScheme,
-              textTheme,
-            ),
+          : _buildSinglePaneLayout(context, provider, colorScheme, textTheme),
     );
   }
 
@@ -208,28 +226,30 @@ class _PomodoroPageState extends State<PomodoroPage> {
         if (_isSupportingPaneCollapsed) {
           return Row(
             children: [
-              Expanded(
-                child: PomodoroTimerPane(onToggleAod: _enterAodMode),
-              ),
+              Expanded(child: PomodoroTimerPane(onToggleAod: _enterAodMode)),
               _buildCollapsedExpandAffordance(colorScheme),
             ],
           );
         }
 
-        final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0)
-            .clamp(_minSupportingPaneWidth, totalWidth * 0.75);
+        final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0).clamp(
+          _minSupportingPaneWidth,
+          totalWidth * 0.75,
+        );
         final currentWidth = _hasCustomWidth
             ? _supportingPaneWidth
-            : (totalWidth >= 1200 ? _largeSupportingPaneWidth : _defaultSupportingPaneWidth);
-        final effectiveWidth =
-            currentWidth.clamp(_minSupportingPaneWidth, maxAllowedWidth);
+            : (totalWidth >= 1200
+                  ? _largeSupportingPaneWidth
+                  : _defaultSupportingPaneWidth);
+        final effectiveWidth = currentWidth.clamp(
+          _minSupportingPaneWidth,
+          maxAllowedWidth,
+        );
 
         return Row(
           children: [
             // Left Pane: Primary Focus Pane (Timer)
-            Expanded(
-              child: PomodoroTimerPane(onToggleAod: _enterAodMode),
-            ),
+            Expanded(child: PomodoroTimerPane(onToggleAod: _enterAodMode)),
 
             // Material 3 Draggable Pane Divider
             M3PaneDivider(
@@ -295,11 +315,17 @@ class _PomodoroPageState extends State<PomodoroPage> {
                           const SizedBox(width: 4),
                           // Collapse Button
                           IconButton(
-                            icon: const Icon(Icons.view_sidebar_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.view_sidebar_outlined,
+                              size: 18,
+                            ),
                             tooltip: 'Collapse supporting pane',
                             visualDensity: VisualDensity.compact,
                             padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
                             onPressed: () {
                               setState(() => _isSupportingPaneCollapsed = true);
                               _persistPaneSettings();

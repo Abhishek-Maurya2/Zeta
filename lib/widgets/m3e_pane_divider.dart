@@ -26,6 +26,9 @@ class M3EPaneDivider extends StatefulWidget {
   /// Custom tooltip message.
   final String tooltip;
 
+  /// Whether to render a 1dp vertical hairline along the divider center (default false).
+  final bool showLine;
+
   const M3EPaneDivider({
     super.key,
     required this.onDragUpdate,
@@ -33,6 +36,7 @@ class M3EPaneDivider extends StatefulWidget {
     this.onDragEnd,
     this.onDoubleTap,
     this.tooltip = 'Drag to resize · Double-tap to reset',
+    this.showLine = false,
   });
 
   @override
@@ -93,16 +97,17 @@ class _M3EPaneDividerState extends State<M3EPaneDivider> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // 1. Subtle vertical 1dp hairline divider
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 1.0,
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                if (widget.showLine)
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 1.0,
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      ),
                     ),
                   ),
-                ),
 
                 // 2. Interactive Drag Handle Pill
                 AnimatedContainer(

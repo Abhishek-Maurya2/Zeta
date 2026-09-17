@@ -232,7 +232,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   child: M3EIconButton(
                     size: M3EIconButtonSize.md,
                     width: M3EIconButtonWidth.narrow,
-                    variant: M3EIconButtonVariant.standard,
                     decoration: M3EIconButtonDecoration(
                       backgroundColor: WidgetStateProperty.all(
                         colorScheme.onSurface.withValues(alpha: 0.1),
@@ -255,10 +254,14 @@ class WeeklyCalendarStrip extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: weekDays.map((dayDate) {
-                          final isSelected =
-                              DateTimeUtils.isSameDay(dayDate, selectedDate);
-                          final isDayToday =
-                              DateTimeUtils.isSameDay(dayDate, today);
+                          final isSelected = DateTimeUtils.isSameDay(
+                            dayDate,
+                            selectedDate,
+                          );
+                          final isDayToday = DateTimeUtils.isSameDay(
+                            dayDate,
+                            today,
+                          );
                           final isPast = dayDate.isBefore(today);
 
                           // Task indicators
@@ -280,8 +283,8 @@ class WeeklyCalendarStrip extends StatelessWidget {
                             dotLabel = '$pendingCount pending';
                           }
 
-                          final dayNameShort =
-                              DateTimeUtils.weekdaysShortUpper[dayDate.weekday - 1];
+                          final dayNameShort = DateTimeUtils
+                              .weekdaysShortUpper[dayDate.weekday - 1];
                           final dayNumStr = dayDate.day.toString();
 
                           return Padding(
@@ -299,8 +302,8 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: isCompact ? 43 : 48,
-                                  height: 75,
+                                  width: 48,
+                                  height: isCompact ? 85 : 80,
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? colorScheme.primaryContainer
@@ -318,15 +321,21 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                       Text(
                                         dayNameShort,
                                         style: TextStyle(
-                                          fontSize: isCompact ? 10 : 13,
+                                          fontSize: isSelected ? 16 : 13,
                                           fontFamily:
                                               (!isSelected && !isDayToday)
                                               ? 'GoogleSansFlex'
                                               : 'RobotoMono',
+                                          fontVariations: [
+                                            FontVariation('wdth', 100),
+                                            FontVariation('ROND', 100),
+                                          ],
                                           fontWeight: isSelected
-                                              ? FontWeight.w900
-                                              : FontWeight.w500,
-                                          letterSpacing: 0.5,
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          letterSpacing: isSelected
+                                              ? 0.5
+                                              : null,
                                           color: isSelected
                                               ? colorScheme.onPrimaryContainer
                                               : (isDayToday
@@ -334,18 +343,22 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                                     : colorScheme.onSurface),
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 6),
                                       Text(
                                         dayNumStr,
                                         style: TextStyle(
-                                          fontSize: isCompact ? 15 : 17,
+                                          fontSize: isSelected ? 16 : 14,
                                           fontFamily:
                                               (!isSelected && !isDayToday)
                                               ? 'GoogleSansFlex'
                                               : 'RobotoMono',
+                                          fontVariations: [
+                                            FontVariation('wdth', 100),
+                                            FontVariation('ROND', 100),
+                                          ],
                                           fontWeight: isSelected || isDayToday
-                                              ? FontWeight.w800
-                                              : FontWeight.w300,
+                                              ? FontWeight.w900
+                                              : FontWeight.w600,
                                           color: isSelected
                                               ? colorScheme.onPrimaryContainer
                                               : colorScheme.onSurface,

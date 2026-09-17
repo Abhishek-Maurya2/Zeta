@@ -154,119 +154,112 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           Expanded(
             child: ClipRect(
               child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: M3ESearchAnchor(
-                      searchController: _searchController,
-                      builder:
-                          (
-                            BuildContext context,
-                            M3ESearchController controller,
-                          ) {
-                            return M3ESearchBar(
-                              controller: controller,
-                              leading: isCompact
-                                  ? null
-                                  : const Icon(M3EIcons.search),
-                              readOnly: true,
-                              hintText: isCompact
-                                  ? 'Search'
-                                  : 'Search tasks, notes, subtasks',
-                              overlayColor: const WidgetStatePropertyAll(
-                                Colors.transparent,
-                              ),
-                              backgroundColor: WidgetStatePropertyAll(
-                                colorScheme.surfaceContainerLowest,
-                              ),
-                              onTap: () {
-                                if (!controller.isOpen) {
-                                  controller.openView();
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: M3ESearchAnchor(
+                    searchController: _searchController,
+                    builder:
+                        (BuildContext context, M3ESearchController controller) {
+                          return M3ESearchBar(
+                            controller: controller,
+                            leading: isCompact
+                                ? null
+                                : const Icon(M3EIcons.search),
+                            readOnly: true,
+                            hintText: isCompact
+                                ? 'Search'
+                                : 'Search tasks, notes, subtasks',
+                            overlayColor: const WidgetStatePropertyAll(
+                              Colors.transparent,
+                            ),
+                            backgroundColor: WidgetStatePropertyAll(
+                              colorScheme.surfaceContainerLowest,
+                            ),
+                            onTap: () {
+                              if (!controller.isOpen) {
+                                controller.openView();
+                              }
+                            },
+                            onSubmitted: (query) {
+                              final trimmed = query.trim();
+                              if (trimmed.isNotEmpty) {
+                                taskProvider.setSearchQuery(trimmed);
+                                navProvider.setActivePage(PageId.tasks);
+                                if (controller.isAttached &&
+                                    controller.isOpen) {
+                                  controller.closeView(trimmed);
                                 }
-                              },
-                              onSubmitted: (query) {
-                                final trimmed = query.trim();
-                                if (trimmed.isNotEmpty) {
-                                  taskProvider.setSearchQuery(trimmed);
-                                  navProvider.setActivePage(PageId.tasks);
-                                  if (controller.isAttached &&
-                                      controller.isOpen) {
-                                    controller.closeView(trimmed);
-                                  }
-                                }
-                              },
-                              trailing: [
-                                if (taskProvider.searchQuery.isNotEmpty ||
-                                    _searchController.text.isNotEmpty)
-                                  Tooltip(
-                                    message: 'Clear search',
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.close_rounded,
-                                        size: 18,
-                                      ),
-                                      color: colorScheme.onSurfaceVariant,
-                                      onPressed: () {
-                                        ZetaHaptics.light();
-                                        _searchController.clear();
-                                        taskProvider.clearSearchQuery();
-                                      },
+                              }
+                            },
+                            trailing: [
+                              if (taskProvider.searchQuery.isNotEmpty ||
+                                  _searchController.text.isNotEmpty)
+                                Tooltip(
+                                  message: 'Clear search',
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 18,
                                     ),
-                                  )
-                                else if (!isCompact)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          colorScheme.surfaceContainerHighest,
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: colorScheme.outline.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '/',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontFamily: 'monospace',
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                // Theme Switch Icon Button Standard inside SearchBar
-                                M3EIconButton(
-                                  variant: M3EIconButtonVariant.standard,
-                                  tooltip: isDark
-                                      ? 'Switch to light theme'
-                                      : 'Switch to dark theme',
-                                  icon: Icon(
-                                    isDark
-                                        ? Icons.light_mode_outlined
-                                        : Icons.dark_mode_outlined,
                                     color: colorScheme.onSurfaceVariant,
+                                    onPressed: () {
+                                      ZetaHaptics.light();
+                                      _searchController.clear();
+                                      taskProvider.clearSearchQuery();
+                                    },
                                   ),
-                                  onPressed: () {
-                                    ZetaHaptics.light();
-                                    themeProvider.toggleTheme(isDark);
-                                  },
+                                )
+                              else if (!isCompact)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: colorScheme.outline.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '/',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontFamily: 'monospace',
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            );
-                          },
-                      suggestionsBuilder: (context, controller) {
-                        return _buildSearchSuggestions(
-                          context,
-                          controller,
-                          navProvider,
-                        );
-                      },
-                    ),
+                              // Theme Switch Icon Button Standard inside SearchBar
+                              M3EIconButton(
+                                variant: M3EIconButtonVariant.standard,
+                                tooltip: isDark
+                                    ? 'Switch to light theme'
+                                    : 'Switch to dark theme',
+                                icon: Icon(
+                                  isDark
+                                      ? Icons.light_mode_outlined
+                                      : Icons.dark_mode_outlined,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                onPressed: () {
+                                  ZetaHaptics.light();
+                                  themeProvider.toggleTheme(isDark);
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                    suggestionsBuilder: (context, controller) {
+                      return _buildSearchSuggestions(
+                        context,
+                        controller,
+                        navProvider,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -362,71 +355,61 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 ),
                 color: colorScheme.surfaceBright,
                 children: [
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.add_circle_outline_rounded,
-                        color: colorScheme.primary,
-                      ),
-                      title: const Text('New Task'),
-                      subtitle: const Text('Create a new task or note  [N]'),
-                      dense: true,
-                      onTap: () {
-                        safeCloseView(null);
-                        TaskEditPane.show(context);
-                      },
+                  ListTile(
+                    leading: Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: colorScheme.primary,
                     ),
+                    title: const Text('New Task'),
+                    subtitle: const Text('Create a new task or note  [N]'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      TaskEditPane.show(context);
+                    },
                   ),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.delete_outline_rounded,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: const Text('Bin (Deleted Tasks)'),
-                      subtitle: const Text('Recycle bin and archived tasks'),
-                      dense: true,
-                      onTap: () {
-                        safeCloseView(null);
-                        navProvider.setActivePage(PageId.bin);
-                      },
+
+                  ListTile(
+                    leading: Icon(
+                      Icons.delete_outline_rounded,
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                    title: const Text('Bin (Deleted Tasks)'),
+                    subtitle: const Text('Recycle bin and archived tasks'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.bin);
+                    },
                   ),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.timer_outlined,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: const Text('Pomodoro Timer'),
-                      subtitle: const Text('Focus intervals and session tracker'),
-                      dense: true,
-                      onTap: () {
-                        safeCloseView(null);
-                        navProvider.setActivePage(PageId.pomodoro);
-                      },
+                  ListTile(
+                    leading: Icon(
+                      Icons.timer_outlined,
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                    title: const Text('Pomodoro Timer'),
+                    subtitle: const Text('Focus intervals and session tracker'),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.pomodoro);
+                    },
                   ),
-                  Material(
-                    color: Colors.transparent,
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.settings_outlined,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      title: const Text('Settings & Preferences'),
-                      subtitle: const Text(
-                        'Customize theme, typography and sync',
-                      ),
-                      dense: true,
-                      onTap: () {
-                        safeCloseView(null);
-                        navProvider.setActivePage(PageId.settings);
-                      },
+
+                  ListTile(
+                    leading: Icon(
+                      Icons.settings_outlined,
+                      color: colorScheme.onSurfaceVariant,
                     ),
+                    title: const Text('Settings & Preferences'),
+                    subtitle: const Text(
+                      'Customize theme, typography and sync',
+                    ),
+                    dense: true,
+                    onTap: () {
+                      safeCloseView(null);
+                      navProvider.setActivePage(PageId.settings);
+                    },
                   ),
                 ],
               ),

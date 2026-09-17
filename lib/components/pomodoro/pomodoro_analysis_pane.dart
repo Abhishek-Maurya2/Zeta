@@ -8,26 +8,24 @@ import '../../utils/haptics.dart';
 
 import '../../providers/pomodoro_provider.dart';
 import '../../models/pomodoro.dart';
+import '../../theme/app_theme.dart';
 
 enum ChartRange {
   day,
   week,
   month,
-  threeMonths,
   year;
 
   String get label {
     switch (this) {
       case ChartRange.day:
-        return 'D';
+        return 'Day';
       case ChartRange.week:
-        return 'W';
+        return 'Week';
       case ChartRange.month:
-        return 'M';
-      case ChartRange.threeMonths:
-        return '3M';
+        return 'Month';
       case ChartRange.year:
-        return 'Y';
+        return 'Year';
     }
   }
 }
@@ -42,12 +40,8 @@ class PomodoroAnalysisPane extends StatefulWidget {
 }
 
 class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
-  static const int dailyGoalMins = 100;
-
   ChartRange _range = ChartRange.week;
   int _offset = 0; // 0 = current, -1 = previous, etc.
-
-
 
   String _formatDuration(int minutes) {
     if (minutes <= 0) return '0m';
@@ -242,19 +236,18 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   color: colorScheme.onSurface,
                 ),
               ),
-             if (sessionLog.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              TextButton.icon(
-              onPressed: () => _confirmClearLogs(context, provider),
-                icon: const Icon(Icons.delete_outline_rounded, size: 15),
-                label: const Text('Clear'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.error,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                  ],
-
+              if (sessionLog.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: () => _confirmClearLogs(context, provider),
+                  icon: const Icon(Icons.delete_outline_rounded, size: 15),
+                  label: const Text('Clear'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ],
           ),
 
@@ -269,93 +262,92 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       child: ZetaEmptyState.pomodoro(
                         title: 'No sessions recorded yet',
-                        subtitle:
-                            'Complete focus sessions to start tracking your daily progress.',
+                        subtitle: 'Complete focus sessions to start tracking your daily progress.',
                         size: ZetaEmptyStateSize.standard,
                       ),
                     ),
                   ]
                 : sessionLog.reversed.take(20).map((entry) {
-                final date = DateTime.fromMillisecondsSinceEpoch(
-                  entry.completedAt,
-                );
-                final timeStr =
-                    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-                final dateStr = '${date.day} ${_monthName(date.month)}';
-                final isFocus = entry.mode == PomodoroMode.focus;
+                    final date = DateTime.fromMillisecondsSinceEpoch(
+                      entry.completedAt,
+                    );
+                    final timeStr =
+                        '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                    final dateStr = '${date.day} ${_monthName(date.month)}';
+                    final isFocus = entry.mode == PomodoroMode.focus;
 
-                return Row(
-                  children: [
-                    // Leading Icon Badge
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: isFocus
-                            ? colorScheme.surfaceContainerHigh
-                            : colorScheme.surfaceContainerHighest,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isFocus
-                            ? Icons.psychology_rounded
-                            : (entry.mode == PomodoroMode.shortBreak
-                                  ? Icons.coffee_rounded
-                                  : Icons.hotel_rounded),
-                        size: 18,
-                        color: isFocus
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-
-                    const SizedBox(width: 14),
-
-                    // Main Title & Duration/Timestamp
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entry.mode.label,
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: colorScheme.onSurface,
-                            ),
+                    return Row(
+                      children: [
+                        // Leading Icon Badge
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: isFocus
+                                ? colorScheme.surfaceContainerHigh
+                                : colorScheme.surfaceContainerHighest,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '$dateStr at $timeStr',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
+                          child: Icon(
+                            isFocus
+                                ? Icons.psychology_rounded
+                                : (entry.mode == PomodoroMode.shortBreak
+                                      ? Icons.coffee_rounded
+                                      : Icons.hotel_rounded),
+                            size: 18,
+                            color: isFocus
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant,
                           ),
-                        ],
-                      ),
-                    ),
-
-                    // Trailing Indicator
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${entry.minutes}m',
-                        style: textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: colorScheme.onSecondaryContainer,
                         ),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
-            ),
+
+                        const SizedBox(width: 14),
+
+                        // Main Title & Duration/Timestamp
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                entry.mode.label,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '$dateStr at $timeStr',
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Trailing Indicator
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${entry.minutes}m',
+                            style: textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+          ),
         ],
       ),
     );
@@ -401,15 +393,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       } else {
         title = '${_monthName(target.month)} ${target.year}';
       }
-    } else if (_range == ChartRange.threeMonths) {
-      final endMonth = DateTime(now.year, now.month + (_offset * 3), 1);
-      final startMonth = DateTime(endMonth.year, endMonth.month - 2, 1);
-      if (_offset == 0) {
-        title = 'Past 3 months';
-      } else {
-        title =
-            '${_monthName(startMonth.month)} - ${_monthName(endMonth.month)} ${endMonth.year}';
-      }
     } else if (_range == ChartRange.year) {
       final targetYear = now.year + _offset;
       if (_offset == 0) {
@@ -453,12 +436,11 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       );
       minutesToDisplay = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       subtitle = ds == todayStr ? 'focus today' : 'focus recorded';
-      if (minutesToDisplay >= dailyGoalMins) {
+      if (minutesToDisplay > 0) {
         detailText =
-            'You hit your daily goal of ${dailyGoalMins}m! Great work.';
+            'Total ${_formatDuration(minutesToDisplay)} focus recorded on this day';
       } else {
-        detailText =
-            'Daily goal: ${dailyGoalMins}m (${dailyGoalMins - minutesToDisplay}m remaining)';
+        detailText = 'No focus sessions recorded on this day';
       }
     } else if (_range == ChartRange.week) {
       final startOfWeek = now
@@ -485,9 +467,9 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       final daysCount = _offset == 0 ? ((now.weekday % 7) + 1) : 7;
       minutesToDisplay = (total / math.max(1, daysCount)).round();
-      subtitle = 'per day (avg)';
+      subtitle = '/ day (avg)';
 
-      int daysHitGoal = 0;
+      int maxDayFocus = 0;
       for (int i = 0; i < 7; i++) {
         final d = DateTime(
           startOfWeek.year,
@@ -505,10 +487,11 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   e.mode == PomodoroMode.focus,
             )
             .fold<int>(0, (s, e) => s + e.minutes);
-        if (dayMins >= dailyGoalMins) daysHitGoal++;
+        maxDayFocus = math.max(maxDayFocus, dayMins);
       }
+
       detailText =
-          'You hit your goal on $daysHitGoal days so far, and focused a total of ${_formatDuration(total)}';
+          'Focused a total of ${_formatDuration(total)} this week (Peak day: ${_formatDuration(maxDayFocus)})';
     } else if (_range == ChartRange.month) {
       final target = DateTime(now.year, now.month + _offset, 1);
       final lastDay = DateTime(target.year, target.month + 1, 0).day;
@@ -524,28 +507,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       subtitle = 'per day (avg)';
       detailText =
           'Total ${_formatDuration(total)} focus recorded in ${_monthName(target.month)}';
-    } else if (_range == ChartRange.threeMonths) {
-      final endMonth = DateTime(
-        now.year,
-        now.month + (_offset * 3) + 1,
-        0,
-        23,
-        59,
-        59,
-      );
-      final startMonth = DateTime(now.year, now.month + (_offset * 3) - 2, 1);
-      final entries = sessionLog.where((e) {
-        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-        return !d.isBefore(startMonth) &&
-            !d.isAfter(endMonth) &&
-            e.mode == PomodoroMode.focus;
-      });
-      final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      final daysCount = endMonth.difference(startMonth).inDays + 1;
-      minutesToDisplay = (total / math.max(1, daysCount)).round();
-      subtitle = 'per day (avg)';
-      detailText =
-          'Total ${_formatDuration(total)} focus recorded across 3 months';
     } else if (_range == ChartRange.year) {
       final targetYear = now.year + _offset;
       final entries = sessionLog.where((e) {
@@ -618,10 +579,10 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
+        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.05),
         ),
       ),
       child: switch (_range) {
@@ -639,12 +600,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           todayStr,
         ),
         ChartRange.month => _buildMonthWeeksChart(
-          colorScheme,
-          textTheme,
-          sessionLog,
-          now,
-        ),
-        ChartRange.threeMonths => _buildThreeMonthsChart(
           colorScheme,
           textTheme,
           sessionLog,
@@ -676,9 +631,9 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     required List<Map<String, dynamic>> items,
     required int goalValue,
     required String goalLabel,
-    double chartHeight = 175.0,
-    double minBarWidth = 12.0,
-    double maxBarWidth = 38.0,
+    double chartHeight = 250.0,
+    double minBarWidth = 40.0,
+    double maxBarWidth = 50.0,
   }) {
     final maxItemFocus = items.fold<int>(
       0,
@@ -692,20 +647,18 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     final effectiveMax = math.max(60, maxScale);
     final goalFraction = (goalValue / effectiveMax).clamp(0.08, 0.92);
 
+    final count = items.length;
+    final totalFocusSum = items.fold<int>(
+      0,
+      (sum, item) => sum + (item['focus'] as int),
+    );
+    final averageFocus = count > 0 ? (totalFocusSum / count) : 0.0;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
         const rightAxisWidth = 52.0;
         final availableWidth = math.max(120.0, totalWidth - rightAxisWidth);
-
-        final count = items.length;
-        final calculatedBarWidth = ((availableWidth / count) - 8).clamp(
-          minBarWidth,
-          maxBarWidth,
-        );
-        final barWidth = calculatedBarWidth.toDouble();
-        final badgeSize = (barWidth - 6).clamp(10.0, 24.0);
-        final iconSize = (badgeSize * 0.58).clamp(7.0, 14.0);
 
         const labelAreaHeight = 24.0;
         final barAreaHeight = chartHeight - labelAreaHeight - 16;
@@ -714,31 +667,153 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
         // Check if mid-tick label (50%) collides with goal line
         final showMidTick = (goalFraction - 0.5).abs() > 0.15;
 
+        const columnGap = 10.0;
+        final requiredTotalWidth =
+            (count * minBarWidth) + ((count - 1) * columnGap);
+        final isScrollable = requiredTotalWidth > availableWidth;
+
+        final barWidth = isScrollable
+            ? minBarWidth
+            : ((availableWidth / count) - columnGap).clamp(
+                minBarWidth,
+                maxBarWidth,
+              );
+
+        final badgeSize = (barWidth * 0.72).clamp(12.0, 44.0);
+        final iconSize = (badgeSize * 0.58).clamp(7.0, 26.0);
+        final topPadding = ((barWidth - badgeSize) / 2).clamp(3.0, 8.0);
+
+        Widget buildBarsRow() {
+          return Row(
+            mainAxisAlignment: isScrollable
+                ? MainAxisAlignment.start
+                : MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: items.map((item) {
+              final focus = item['focus'] as int;
+              final hitGoal = item['hitGoal'] as bool? ?? false;
+              final isHighlighted = item['isHighlighted'] as bool? ?? false;
+              final label = item['label'] as String;
+              final tooltipLabel = item['tooltipLabel'] as String? ?? label;
+              final isBelowAverage =
+                  focus > 0 && averageFocus > 0 && focus < averageFocus;
+
+              Widget barWidget;
+              if (focus <= 0) {
+                barWidget = Container(
+                  width: barWidth,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                );
+              } else {
+                final fraction = (focus / effectiveMax).clamp(0.0, 1.0);
+                final computedHeight = math.max(6.0, fraction * barAreaHeight);
+
+                final barColor = hitGoal
+                    ? colorScheme.successContainer
+                    : (isBelowAverage
+                          ? (isHighlighted
+                                ? colorScheme.error
+                                : colorScheme.errorContainer)
+                          : (isHighlighted
+                                ? colorScheme.tertiaryContainer
+                                : colorScheme.secondaryContainer));
+
+                barWidget = Container(
+                  width: barWidth,
+                  height: computedHeight,
+                  decoration: BoxDecoration(
+                    color: barColor,
+                    borderRadius: BorderRadius.circular(
+                      math.min(barWidth / 2, computedHeight / 2),
+                    ),
+                  ),
+                  child: hitGoal && computedHeight >= badgeSize + 6
+                      ? Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: EdgeInsets.only(top: topPadding),
+                            child: M3EShapeContainer.softBoom(
+                              width: badgeSize,
+                              height: badgeSize,
+                              color: colorScheme.success,
+                              child: Center(
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  size: iconSize,
+                                  color: colorScheme.successContainer,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                );
+              }
+
+              final columnItem = Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Tooltip(
+                    message:
+                        '$tooltipLabel: ${_formatDuration(focus)}${isBelowAverage ? ' (Below avg)' : ''}',
+                    child: barWidget,
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 16,
+                    child: Text(
+                      label,
+                      style: textTheme.labelSmall?.copyWith(
+                        fontWeight: isHighlighted
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isHighlighted
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant,
+                        fontSize: count > 8 ? 10 : 11,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              return isScrollable
+                  ? Padding(
+                      padding: const EdgeInsets.only(right: columnGap),
+                      child: columnItem,
+                    )
+                  : columnItem;
+            }).toList(),
+          );
+        }
+
         return SizedBox(
           height: chartHeight,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               // ── Background Grid Lines (Subtle) ──
-              // Top 100% grid line
               Positioned(
                 left: 0,
                 right: rightAxisWidth + 4,
                 top: 0,
                 child: Container(
                   height: 1,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
               ),
 
-              // Mid 50% grid line
               Positioned(
                 left: 0,
                 right: rightAxisWidth + 4,
                 bottom: (0.5 * barAreaHeight) + labelAreaHeight,
                 child: Container(
                   height: 1,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
               ),
 
@@ -756,8 +831,26 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 ),
               ),
 
-              // ── Y-Axis Labels (Right Side) ──
-              // Top Max label
+              // ── Vertical Bars Row (Scrollable if needed, auto-scrolled to end/latest) ──
+              Positioned(
+                left: 0,
+                right: rightAxisWidth + 4,
+                top: 0,
+                bottom: 0,
+                child: isScrollable
+                    ? _HorizontalEndScrollView(
+                        key: ValueKey(
+                          '${items.length}_${_range.name}_$_offset',
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: buildBarsRow(),
+                        ),
+                      )
+                    : buildBarsRow(),
+              ),
+
+              // ── Y-Axis Labels (Fixed on Right Side) ──
               Positioned(
                 top: -2,
                 right: 0,
@@ -770,7 +863,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 ),
               ),
 
-              // Mid 50% label (rendered if not colliding with goal)
               if (showMidTick)
                 Positioned(
                   bottom: (0.5 * barAreaHeight) + labelAreaHeight - 7,
@@ -778,13 +870,14 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   child: Text(
                     _formatAxisDuration((effectiveMax / 2).round()),
                     style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.5,
+                      ),
                       fontSize: 10,
                     ),
                   ),
                 ),
 
-              // Goal label
               Positioned(
                 bottom: goalBottom - 7,
                 right: 0,
@@ -798,7 +891,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 ),
               ),
 
-              // Bottom 0 label
               Positioned(
                 bottom: labelAreaHeight - 4,
                 right: 0,
@@ -808,106 +900,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                     color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                     fontSize: 10,
                   ),
-                ),
-              ),
-
-              // ── Vertical Bars Row ──
-              Positioned(
-                left: 0,
-                right: rightAxisWidth,
-                top: 0,
-                bottom: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: items.map((item) {
-                    final focus = item['focus'] as int;
-                    final hitGoal = item['hitGoal'] as bool? ?? false;
-                    final isHighlighted =
-                        item['isHighlighted'] as bool? ?? false;
-                    final label = item['label'] as String;
-
-                    Widget barWidget;
-                    if (focus <= 0) {
-                      barWidget = Container(
-                        width: barWidth,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      );
-                    } else {
-                      final fraction = (focus / effectiveMax).clamp(0.0, 1.0);
-                      final computedHeight = math.max(
-                        6.0,
-                        fraction * barAreaHeight,
-                      );
-
-                      barWidget = Container(
-                        width: barWidth,
-                        height: computedHeight,
-                        decoration: BoxDecoration(
-                          color: hitGoal
-                              ? colorScheme.primary
-                              : (isHighlighted
-                                    ? colorScheme.primary.withValues(
-                                        alpha: 0.65,
-                                      )
-                                    : colorScheme.secondaryContainer),
-                          borderRadius: BorderRadius.circular(
-                            math.min(barWidth / 2, computedHeight / 2),
-                          ),
-                        ),
-                        child: hitGoal && computedHeight >= badgeSize + 6
-                            ? Align(
-                                alignment: Alignment.topCenter,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 3.5),
-                                  child: M3EShapeContainer.softBoom(
-                                    width: badgeSize,
-                                    height: badgeSize,
-                                    color: colorScheme.primaryContainer,
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.check_rounded,
-                                        size: iconSize,
-                                        color: colorScheme.onPrimaryContainer,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : null,
-                      );
-                    }
-
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Tooltip(
-                          message: '$label: ${_formatDuration(focus)}',
-                          child: barWidget,
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 16,
-                          child: Text(
-                            label,
-                            style: textTheme.labelSmall?.copyWith(
-                              fontWeight: isHighlighted
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: isHighlighted
-                                  ? colorScheme.primary
-                                  : colorScheme.onSurfaceVariant,
-                              fontSize: count > 8 ? 10 : 11,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  }).toList(),
                 ),
               ),
             ],
@@ -935,39 +927,58 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       }
     }
 
-    const blockGoal = 45; // 45m block goal
-    final blocks =
-        [
-          {
-            'label': '12a',
-            'focus': hours.sublist(0, 4).reduce((a, b) => a + b),
-          },
-          {'label': '4a', 'focus': hours.sublist(4, 8).reduce((a, b) => a + b)},
-          {
-            'label': '8a',
-            'focus': hours.sublist(8, 12).reduce((a, b) => a + b),
-          },
-          {
-            'label': '12p',
-            'focus': hours.sublist(12, 16).reduce((a, b) => a + b),
-          },
-          {
-            'label': '4p',
-            'focus': hours.sublist(16, 20).reduce((a, b) => a + b),
-          },
-          {
-            'label': '8p',
-            'focus': hours.sublist(20, 24).reduce((a, b) => a + b),
-          },
-        ].map((b) {
-          final focus = b['focus'] as int;
-          return {
-            'label': b['label'] as String,
-            'focus': focus,
-            'hitGoal': focus >= blockGoal,
-            'isHighlighted': false,
-          };
-        }).toList();
+    const blockTooltips = [
+      '12:00 AM – 4:00 AM',
+      '4:00 AM – 8:00 AM',
+      '8:00 AM – 12:00 PM',
+      '12:00 PM – 4:00 PM',
+      '4:00 PM – 8:00 PM',
+      '8:00 PM – 12:00 AM',
+    ];
+
+    final rawBlocks = [
+      {
+        'label': '12a',
+        'tooltipLabel': blockTooltips[0],
+        'focus': hours.sublist(0, 4).reduce((a, b) => a + b),
+      },
+      {
+        'label': '4a',
+        'tooltipLabel': blockTooltips[1],
+        'focus': hours.sublist(4, 8).reduce((a, b) => a + b),
+      },
+      {
+        'label': '8a',
+        'tooltipLabel': blockTooltips[2],
+        'focus': hours.sublist(8, 12).reduce((a, b) => a + b),
+      },
+      {
+        'label': '12p',
+        'tooltipLabel': blockTooltips[3],
+        'focus': hours.sublist(12, 16).reduce((a, b) => a + b),
+      },
+      {
+        'label': '4p',
+        'tooltipLabel': blockTooltips[4],
+        'focus': hours.sublist(16, 20).reduce((a, b) => a + b),
+      },
+      {
+        'label': '8p',
+        'tooltipLabel': blockTooltips[5],
+        'focus': hours.sublist(20, 24).reduce((a, b) => a + b),
+      },
+    ];
+
+    final maxBlockFocus = rawBlocks.fold<int>(
+      0,
+      (m, b) => math.max(m, b['focus'] as int),
+    );
+    final blockGoal = maxBlockFocus > 0 ? maxBlockFocus : 45;
+
+    final blocks = rawBlocks.map((b) {
+      final focus = b['focus'] as int;
+      return {...b, 'hitGoal': focus >= blockGoal, 'isHighlighted': false};
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,7 +989,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           items: blocks,
           goalValue: blockGoal,
           goalLabel: _formatDuration(blockGoal),
-          chartHeight: 175,
+          chartHeight: 250,
         ),
       ],
     );
@@ -996,8 +1007,19 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
         .subtract(Duration(days: now.weekday % 7))
         .add(Duration(days: _offset * 7));
     const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const fullDayNames = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
 
-    final days = <Map<String, dynamic>>[];
+    final rawDays = <Map<String, dynamic>>[];
+    int maxDayFocus = 0;
+
     for (int i = 0; i < 7; i++) {
       final d = DateTime(
         startOfWeek.year,
@@ -1014,14 +1036,21 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             e.mode == PomodoroMode.focus,
       );
       final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      days.add({
+      maxDayFocus = math.max(maxDayFocus, focus);
+      rawDays.add({
         'label': dayLetters[i],
+        'tooltipLabel': fullDayNames[i],
         'dateStr': ds,
         'isHighlighted': ds == todayStr,
         'focus': focus,
-        'hitGoal': focus >= dailyGoalMins,
       });
     }
+
+    final weekDailyGoal = maxDayFocus > 0 ? maxDayFocus : 60;
+    final days = rawDays.map((d) {
+      final focus = d['focus'] as int;
+      return {...d, 'hitGoal': focus >= weekDailyGoal};
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1030,9 +1059,9 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           colorScheme: colorScheme,
           textTheme: textTheme,
           items: days,
-          goalValue: dailyGoalMins,
-          goalLabel: _formatDuration(dailyGoalMins),
-          chartHeight: 175,
+          goalValue: weekDailyGoal,
+          goalLabel: _formatDuration(weekDailyGoal),
+          chartHeight: 250,
         ),
       ],
     );
@@ -1066,7 +1095,8 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       weekTotals[wIdx] += dayFocus;
     }
 
-    const weeklyGoal = dailyGoalMins * 5; // 500m
+    final maxWeekFocus = weekTotals.reduce(math.max);
+    final weeklyGoal = maxWeekFocus > 0 ? maxWeekFocus : 300;
     final currentWeekIdx = _offset == 0
         ? math.min(totalWeeks - 1, (now.day - 1) ~/ 7)
         : -1;
@@ -1075,6 +1105,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       final focus = weekTotals[i];
       return {
         'label': 'W${i + 1}',
+        'tooltipLabel': 'Week ${i + 1}',
         'focus': focus,
         'hitGoal': focus >= weeklyGoal,
         'isHighlighted': i == currentWeekIdx,
@@ -1090,56 +1121,13 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           items: weekItems,
           goalValue: weeklyGoal,
           goalLabel: _formatDuration(weeklyGoal),
-          chartHeight: 175,
-          maxBarWidth: 44.0,
+          chartHeight: 250,
         ),
       ],
     );
   }
 
-  // ─── 3-Month Vertical Pill Bars ──────────────────────────────────────────
-  Widget _buildThreeMonthsChart(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    List<PomodoroSessionLog> sessionLog,
-    DateTime now,
-  ) {
-    final monthsData = <Map<String, dynamic>>[];
-    const monthlyGoal = dailyGoalMins * 20; // 2000m
 
-    for (int i = 2; i >= 0; i--) {
-      final targetMonth = DateTime(now.year, now.month + (_offset * 3) - i, 1);
-      final entries = sessionLog.where((e) {
-        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-        return d.year == targetMonth.year &&
-            d.month == targetMonth.month &&
-            e.mode == PomodoroMode.focus;
-      });
-      final totalMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      monthsData.add({
-        'label': _monthName(targetMonth.month),
-        'focus': totalMinutes,
-        'hitGoal': totalMinutes >= monthlyGoal,
-        'isHighlighted':
-            targetMonth.year == now.year && targetMonth.month == now.month,
-      });
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildVerticalBarChartCanvas(
-          colorScheme: colorScheme,
-          textTheme: textTheme,
-          items: monthsData,
-          goalValue: monthlyGoal,
-          goalLabel: _formatDuration(monthlyGoal),
-          chartHeight: 175,
-          maxBarWidth: 54.0,
-        ),
-      ],
-    );
-  }
 
   // ─── Year 12-Month Vertical Pill Bars ────────────────────────────────────
   Widget _buildYearMonthsChart(
@@ -1150,21 +1138,36 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
   ) {
     final targetYear = now.year + _offset;
     const monthLetters = [
-      'J',
-      'F',
-      'M',
-      'A',
-      'M',
-      'J',
-      'J',
-      'A',
-      'S',
-      'O',
-      'N',
-      'D',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
-    const monthlyGoal = dailyGoalMins * 20; // 2000m
-    final yearData = <Map<String, dynamic>>[];
+    const fullMonthNames = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    final rawYearData = <Map<String, dynamic>>[];
+    int maxMonthFocus = 0;
 
     for (int m = 1; m <= 12; m++) {
       final entries = sessionLog.where((e) {
@@ -1174,13 +1177,20 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             e.mode == PomodoroMode.focus;
       });
       final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      yearData.add({
+      maxMonthFocus = math.max(maxMonthFocus, total);
+      rawYearData.add({
         'label': monthLetters[m - 1],
+        'tooltipLabel': fullMonthNames[m - 1],
         'focus': total,
-        'hitGoal': total >= monthlyGoal,
         'isHighlighted': targetYear == now.year && m == now.month,
       });
     }
+
+    final monthlyGoal = maxMonthFocus > 0 ? maxMonthFocus : 1200;
+    final yearData = rawYearData.map((m) {
+      final focus = m['focus'] as int;
+      return {...m, 'hitGoal': focus >= monthlyGoal};
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1191,9 +1201,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           items: yearData,
           goalValue: monthlyGoal,
           goalLabel: _formatDuration(monthlyGoal),
-          chartHeight: 175,
-          minBarWidth: 10.0,
-          maxBarWidth: 20.0,
+          chartHeight: 250,
         ),
       ],
     );
@@ -1216,7 +1224,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     );
     final totalSessionsCount = focusSessions.length;
 
-    // Days goal hit count
+    // Active days count
     final daysMap = <String, int>{};
     for (final e in focusSessions) {
       final ds = _toLocalDateStr(
@@ -1224,9 +1232,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       );
       daysMap[ds] = (daysMap[ds] ?? 0) + e.minutes;
     }
-    final daysGoalHit = daysMap.values
-        .where((mins) => mins >= dailyGoalMins)
-        .length;
+    final daysActive = daysMap.length;
 
     return Row(
       children: [
@@ -1300,7 +1306,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
         const SizedBox(width: 10),
 
-        // Goal Achieved Card
+        // Active Days Card
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(14),
@@ -1318,14 +1324,14 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '$daysGoalHit days',
+                  '$daysActive days',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colorScheme.onSurface,
                   ),
                 ),
                 Text(
-                  'Goal Hit',
+                  'Active Days',
                   style: textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -1355,5 +1361,56 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       'Dec',
     ];
     return month >= 1 && month <= 12 ? months[month] : '';
+  }
+}
+
+/// Helper widget that automatically scrolls horizontal charts to the far right (end/latest data) on initial render and range updates.
+class _HorizontalEndScrollView extends StatefulWidget {
+  final Widget child;
+
+  const _HorizontalEndScrollView({super.key, required this.child});
+
+  @override
+  State<_HorizontalEndScrollView> createState() =>
+      _HorizontalEndScrollViewState();
+}
+
+class _HorizontalEndScrollViewState extends State<_HorizontalEndScrollView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollToEnd();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HorizontalEndScrollView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _scrollToEnd();
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: widget.child,
+    );
   }
 }

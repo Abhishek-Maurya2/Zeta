@@ -246,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                             decoration: M3EIconButtonDecoration(
                               backgroundColor: WidgetStateProperty.all(
-                                colorScheme.onSurface.withValues(alpha: 0.1),
+                                colorScheme.surfaceContainerLowest,
                               ),
                             ),
                             onPressed: () {
@@ -294,7 +294,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       decoration: M3EIconButtonDecoration(
                         backgroundColor: WidgetStateProperty.all(
-                          colorScheme.onSurface.withValues(alpha: 0.1),
+                          colorScheme.surfaceContainerLowest,
                         ),
                       ),
                       onPressed: () {

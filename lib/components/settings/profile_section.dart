@@ -295,331 +295,347 @@ class _ProfileSectionState extends State<ProfileSection> {
 
     final hasPhoto = themeProvider.hasAvatarPhoto;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'PROFILE',
-          style: textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.1,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── Item 1: Profile Photo & Alphabet Avatar ──────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isCompact = constraints.maxWidth < 420;
+            Text(
+              'PROFILE',
+              style: textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.1,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
 
-                  const avatarWidget = UserAvatar(
-                    radius: 24,
-                    showRing: true,
-                    ringWidth: 2.5,
-                  );
+            M3ESegmentedColumn(
+              decoration: const M3ESegmentedListDecoration(
+                padding: EdgeInsets.all(1.0),
+              ),
+              color: colorScheme.surfaceContainerLowest,
+              children: [
+                // ─── Item 1: Profile Photo & Alphabet Avatar ──────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 420;
 
-                  final infoWidget = Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasPhoto ? 'Profile Photo' : 'Profile Avatar',
-                        style: textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        hasPhoto
-                            ? 'Custom photo active'
-                            : 'Alphabet "${themeProvider.avatarInitial}" derived from ${themeProvider.userName}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  );
+                      const avatarWidget = UserAvatar(
+                        radius: 24,
+                        showRing: true,
+                        ringWidth: 2.5,
+                      );
 
-                  final buttonsWidget = M3EButtonGroup(
-                    type: M3EButtonGroupType.standard,
-                    style: M3EButtonStyle.tonal,
-                    size: M3EButtonSize.sm,
-                    selectedIndex: null,
-                    onSelectedIndexChanged: (index) {
-                      if (index == 0) {
-                        ZetaHaptics.light();
-                        _showPhotoOptionsSheet(context, themeProvider);
-                      } else if (index == 1 && hasPhoto) {
-                        ZetaHaptics.light();
-                        themeProvider.clearAvatarPhoto();
-                        widget.onToast?.call(
-                          'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
+                      final infoWidget = Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasPhoto ? 'Profile Photo' : 'Profile Avatar',
+                            style: textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            hasPhoto
+                                ? 'Custom photo active'
+                                : 'Alphabet "${themeProvider.avatarInitial}" derived from ${themeProvider.userName}',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      );
+
+                      final buttonsWidget = M3EButtonGroup(
+                        type: M3EButtonGroupType.standard,
+                        style: M3EButtonStyle.tonal,
+                        size: M3EButtonSize.sm,
+                        selectedIndex: null,
+                        onSelectedIndexChanged: (index) {
+                          if (index == 0) {
+                            ZetaHaptics.light();
+                            _showPhotoOptionsSheet(context, themeProvider);
+                          } else if (index == 1 && hasPhoto) {
+                            ZetaHaptics.light();
+                            themeProvider.clearAvatarPhoto();
+                            widget.onToast?.call(
+                              'Photo removed. Using letter "${themeProvider.avatarInitial}" as avatar.',
+                            );
+                          }
+                        },
+                        actions: [
+                          M3EButtonGroupAction(
+                            icon: Icon(
+                              hasPhoto
+                                  ? Icons.photo_camera_rounded
+                                  : Icons.add_a_photo_outlined,
+                              size: 16,
+                            ),
+                            label: Text(hasPhoto ? 'Change' : 'Photo'),
+                            decoration: M3EToggleButtonDecoration.styleFrom(
+                              backgroundColor: colorScheme.secondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                          if (hasPhoto)
+                            M3EButtonGroupAction(
+                              icon: Icon(Icons.close_rounded, size: 16),
+                              tooltip: 'Remove photo',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: colorScheme.secondaryContainer,
+                                foregroundColor:
+                                    colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                        ],
+                      );
+
+                      if (isCompact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                avatarWidget,
+                                const SizedBox(width: 14),
+                                Expanded(child: infoWidget),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            buttonsWidget,
+                          ],
                         );
                       }
-                    },
-                    actions: [
-                      M3EButtonGroupAction(
-                        icon: Icon(
-                          hasPhoto
-                              ? Icons.photo_camera_rounded
-                              : Icons.add_a_photo_outlined,
-                          size: 16,
-                        ),
-                        label: Text(hasPhoto ? 'Change' : 'Photo'),
-                        decoration: M3EToggleButtonDecoration.styleFrom(
-                          backgroundColor: colorScheme.secondaryContainer,
-                          foregroundColor: colorScheme.onSecondaryContainer,
-                        ),
-                      ),
-                      if (hasPhoto)
-                        M3EButtonGroupAction(
-                          icon: Icon(Icons.close_rounded, size: 16),
-                          tooltip: 'Remove photo',
-                          decoration: M3EToggleButtonDecoration.styleFrom(
-                            backgroundColor: colorScheme.secondaryContainer,
-                            foregroundColor: colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                    ],
-                  );
 
-                  if (isCompact) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      return Row(
+                        children: [
+                          avatarWidget,
+                          const SizedBox(width: 16),
+                          Expanded(child: infoWidget),
+                          const SizedBox(width: 8),
+                          buttonsWidget,
+                        ],
+                      );
+                    },
+                  ),
+                ),
+
+                // ─── Item 2: Display Name ─────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.badge_outlined,
+                            size: 24,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Display Name',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                if (!_isEditingName) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    themeProvider.userName,
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (!_isEditingName)
+                            M3EButton.icon(
+                              icon: const Icon(Icons.edit_rounded, size: 16),
+                              label: const Text('Edit'),
+                              style: M3EButtonStyle.tonal,
+                              size: M3EButtonSize.sm,
+                              onPressed: () {
+                                _nameController.text = themeProvider.userName;
+                                setState(() => _isEditingName = true);
+                              },
+                            ),
+                        ],
+                      ),
+                      if (_isEditingName) ...[
+                        const SizedBox(height: 12),
                         Row(
                           children: [
-                            avatarWidget,
-                            const SizedBox(width: 14),
-                            Expanded(child: infoWidget),
+                            Expanded(
+                              child: TextField(
+                                controller: _nameController,
+                                autofocus: true,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter display name',
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onSubmitted: (_) => _saveName(themeProvider),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            M3EButton.icon(
+                              icon: const Icon(Icons.check_rounded, size: 16),
+                              label: const Text('Save'),
+                              style: M3EButtonStyle.filled,
+                              size: M3EButtonSize.sm,
+                              onPressed: () => _saveName(themeProvider),
+                            ),
+                            const SizedBox(width: 6),
+                            M3EButton(
+                              style: M3EButtonStyle.outlined,
+                              size: M3EButtonSize.sm,
+                              onPressed: () {
+                                _nameController.text = themeProvider.userName;
+                                setState(() => _isEditingName = false);
+                              },
+                              child: const Text('Cancel'),
+                            ),
                           ],
                         ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // ─── Item 3: Email Address ────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.mail_outline_rounded,
+                            size: 24,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Email Address',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                if (!_isEditingEmail) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    themeProvider.userEmail,
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          if (!_isEditingEmail)
+                            M3EButton.icon(
+                              icon: const Icon(Icons.edit_rounded, size: 16),
+                              label: const Text('Edit'),
+                              style: M3EButtonStyle.tonal,
+                              size: M3EButtonSize.sm,
+                              onPressed: () {
+                                _emailController.text = themeProvider.userEmail;
+                                setState(() => _isEditingEmail = true);
+                              },
+                            ),
+                        ],
+                      ),
+                      if (_isEditingEmail) ...[
                         const SizedBox(height: 12),
-                        buttonsWidget,
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    children: [
-                      avatarWidget,
-                      const SizedBox(width: 16),
-                      Expanded(child: infoWidget),
-                      const SizedBox(width: 8),
-                      buttonsWidget,
-                    ],
-                  );
-                },
-              ),
-            ),
-
-            // ─── Item 2: Display Name ─────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.badge_outlined,
-                        size: 24,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Text(
-                              'Display Name',
-                              style: textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
+                            Expanded(
+                              child: TextField(
+                                controller: _emailController,
+                                autofocus: true,
+                                keyboardType: TextInputType.emailAddress,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter your email address',
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onSubmitted: (_) => _saveEmail(themeProvider),
                               ),
                             ),
-                            if (!_isEditingName) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                themeProvider.userName,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ],
+                            const SizedBox(width: 8),
+                            M3EButton.icon(
+                              icon: const Icon(Icons.check_rounded, size: 16),
+                              label: const Text('Save'),
+                              style: M3EButtonStyle.filled,
+                              size: M3EButtonSize.sm,
+                              onPressed: () => _saveEmail(themeProvider),
+                            ),
+                            const SizedBox(width: 6),
+                            M3EButton(
+                              style: M3EButtonStyle.outlined,
+                              size: M3EButtonSize.sm,
+                              onPressed: () {
+                                _emailController.text = themeProvider.userEmail;
+                                setState(() => _isEditingEmail = false);
+                              },
+                              child: const Text('Cancel'),
+                            ),
                           ],
                         ),
-                      ),
-                      if (!_isEditingName)
-                        M3EButton.icon(
-                          icon: const Icon(Icons.edit_rounded, size: 16),
-                          label: const Text('Edit'),
-                          style: M3EButtonStyle.tonal,
-                          size: M3EButtonSize.sm,
-                          onPressed: () {
-                            _nameController.text = themeProvider.userName;
-                            setState(() => _isEditingName = true);
-                          },
-                        ),
+                      ],
                     ],
                   ),
-                  if (_isEditingName) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _nameController,
-                            autofocus: true,
-                            decoration: InputDecoration(
-                              hintText: 'Enter display name',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onSubmitted: (_) => _saveName(themeProvider),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        M3EButton.icon(
-                          icon: const Icon(Icons.check_rounded, size: 16),
-                          label: const Text('Save'),
-                          style: M3EButtonStyle.filled,
-                          size: M3EButtonSize.sm,
-                          onPressed: () => _saveName(themeProvider),
-                        ),
-                        const SizedBox(width: 6),
-                        M3EButton(
-                          style: M3EButtonStyle.outlined,
-                          size: M3EButtonSize.sm,
-                          onPressed: () {
-                            _nameController.text = themeProvider.userName;
-                            setState(() => _isEditingName = false);
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // ─── Item 3: Email Address ────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.mail_outline_rounded,
-                        size: 24,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Email Address',
-                              style: textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            if (!_isEditingEmail) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                themeProvider.userEmail,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      if (!_isEditingEmail)
-                        M3EButton.icon(
-                          icon: const Icon(Icons.edit_rounded, size: 16),
-                          label: const Text('Edit'),
-                          style: M3EButtonStyle.tonal,
-                          size: M3EButtonSize.sm,
-                          onPressed: () {
-                            _emailController.text = themeProvider.userEmail;
-                            setState(() => _isEditingEmail = true);
-                          },
-                        ),
-                    ],
-                  ),
-                  if (_isEditingEmail) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _emailController,
-                            autofocus: true,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              hintText: 'Enter your email address',
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onSubmitted: (_) => _saveEmail(themeProvider),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        M3EButton.icon(
-                          icon: const Icon(Icons.check_rounded, size: 16),
-                          label: const Text('Save'),
-                          style: M3EButtonStyle.filled,
-                          size: M3EButtonSize.sm,
-                          onPressed: () => _saveEmail(themeProvider),
-                        ),
-                        const SizedBox(width: 6),
-                        M3EButton(
-                          style: M3EButtonStyle.outlined,
-                          size: M3EButtonSize.sm,
-                          onPressed: () {
-                            _emailController.text = themeProvider.userEmail;
-                            setState(() => _isEditingEmail = false);
-                          },
-                          child: const Text('Cancel'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

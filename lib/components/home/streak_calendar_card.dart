@@ -128,7 +128,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
       rangeEnd = isCompletedToday ? today : yesterday;
 
       var cursor = startCheck;
-      while (completedDateStrings.contains(DateTimeUtils.formatDateYMD(cursor))) {
+      while (completedDateStrings.contains(
+        DateTimeUtils.formatDateYMD(cursor),
+      )) {
         currentStreak++;
         rangeStart = cursor;
         cursor = cursor.subtract(const Duration(days: 1));
@@ -173,8 +175,10 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
         .toList();
 
     // Formatted selected date
-    final selectedDayStr =
-        DateTimeUtils.formatSelectedDay(widget.selectedDate, today);
+    final selectedDayStr = DateTimeUtils.formatSelectedDay(
+      widget.selectedDate,
+      today,
+    );
 
     final cardContent = Container(
       width: widget.width,
@@ -698,8 +702,10 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               _displayedMonth.month,
               dayNum,
             );
-            final isSelected =
-                DateTimeUtils.isSameDay(cellDate, widget.selectedDate);
+            final isSelected = DateTimeUtils.isSameDay(
+              cellDate,
+              widget.selectedDate,
+            );
             final isToday = DateTimeUtils.isSameDay(cellDate, today);
 
             // Streak range calculation
@@ -741,7 +747,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 .where((t) => _isTaskOnDate(t, cellDate))
                 .toList();
             final hasPending = dayTasks.any((t) => !t.completed);
-            final hasCompleted = dayTasks.any((t) => t.completed);
             final isPast = cellDate.isBefore(today);
             final hasOverdue = isPast && hasPending;
 
@@ -750,8 +755,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               dotColor = const Color(0xFFEF4444); // Red
             } else if (hasPending) {
               dotColor = const Color(0xFF3B82F6); // Blue
-            } else if (hasCompleted) {
-              dotColor = const Color(0xFF10B981); // Green
             }
 
             return Expanded(

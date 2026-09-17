@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'color_variant.dart';
+import 'success_colors.dart';
 import 'typography_config.dart';
 
 export 'breakpoints.dart';
 export 'color_variant.dart';
+export 'success_colors.dart';
 export 'typography_config.dart';
 
 class _NoAnimationPageTransitionsBuilder extends PageTransitionsBuilder {
@@ -57,6 +59,7 @@ class AppTheme {
     );
     return _buildTheme(
       colorScheme,
+      seedColor: seedColor,
       cornerStyle: cornerStyle,
       highContrast: highContrast,
       compactDensity: compactDensity,
@@ -87,6 +90,7 @@ class AppTheme {
     );
     return _buildTheme(
       colorScheme,
+      seedColor: seedColor,
       cornerStyle: cornerStyle,
       highContrast: highContrast,
       compactDensity: compactDensity,
@@ -100,6 +104,7 @@ class AppTheme {
 
   static ThemeData _buildTheme(
     ColorScheme colorScheme, {
+    required Color seedColor,
     required String cornerStyle,
     required bool highContrast,
     required bool compactDensity,
@@ -118,10 +123,15 @@ class AppTheme {
           )
         : colorScheme;
 
+    final successColors = effectiveColorScheme.brightness == Brightness.light
+        ? SuccessColors.light(harmonizeWith: seedColor)
+        : SuccessColors.dark(harmonizeWith: seedColor);
+
     final baseTheme = ThemeData(
       useMaterial3: true,
       colorScheme: effectiveColorScheme,
       brightness: effectiveColorScheme.brightness,
+      extensions: [successColors],
       visualDensity: compactDensity ? VisualDensity.compact : VisualDensity.standard,
       pageTransitionsTheme: animations
           ? const PageTransitionsTheme()
