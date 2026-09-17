@@ -48,7 +48,14 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProxyProvider<TaskProvider, NotificationProvider>(
+          create: (_) => NotificationProvider(),
+          update: (_, taskProvider, notifProvider) {
+            final provider = notifProvider ?? NotificationProvider();
+            provider.updateTasks(taskProvider.allTasks);
+            return provider;
+          },
+        ),
       ],
       child: _ZetaAppView(showSplash: effectiveShowSplash),
     );

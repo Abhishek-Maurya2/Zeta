@@ -42,6 +42,12 @@ class NotificationService {
 
   bool _initialized = false;
 
+  /// User preference flags synced from NotificationProvider
+  bool masterEnabled = true;
+  bool taskRemindersEnabled = true;
+  bool overdueAlertsEnabled = true;
+  bool pomodoroAlertsEnabled = true;
+
   /// Map of task IDs to scheduled due DateTime, used for Web/Windows polling.
   final Map<String, DateTime> _pendingWebWindows = {};
 
@@ -60,7 +66,17 @@ class NotificationService {
           _initialized = true;
           return;
         } catch (e) {
-          debugPrint('[NotificationService] Windows setup error: $e');
+          debugPrint('[NotificationService] Windows setup requireCreate error: $e');
+          try {
+            await localNotifier.setup(
+              appName: 'Zeta',
+              shortcutPolicy: ShortcutPolicy.ignore,
+            );
+            _initialized = true;
+            return;
+          } catch (e2) {
+            debugPrint('[NotificationService] Windows setup fallback error: $e2');
+          }
         }
       }
 
@@ -140,7 +156,7 @@ class NotificationService {
 
   // --- Core Show ---
 
-  Future<void> showNow({
+  Future<bool> showNow({
     required int id,
     required String title,
     required String body,
@@ -151,7 +167,7 @@ class NotificationService {
 
     if (kIsWeb) {
       showWebNotification(title, body);
-      return;
+      return true;
     }
 
     if (Platform.isWindows) {
@@ -162,10 +178,11 @@ class NotificationService {
           body: body,
         );
         await notification.show();
+        return true;
       } catch (e) {
         debugPrint('[NotificationService] Windows showNow error: $e');
+        return false;
       }
-      return;
     }
 
     try {
@@ -188,8 +205,10 @@ class NotificationService {
       );
 
       await _plugin.show(id, title, body, details, payload: payload);
+      return true;
     } catch (e) {
       debugPrint('[NotificationService] showNow error: $e');
+      return false;
     }
   }
 
@@ -198,6 +217,7 @@ class NotificationService {
   /// Schedules a reminder for [task] at its due date + time.
   /// No-op if the task has no dueDate, hasTime is false, or dueTime is null.
   Future<void> scheduleTaskReminder(Task task) async {
+    if (!masterEnabled || !taskRemindersEnabled) return;
     if (!_initialized) await init();
 
     if (task.completed) {
@@ -278,6 +298,7 @@ class NotificationService {
   // --- Pomodoro ---
 
   Future<void> showPomodoroComplete(PomodoroMode mode) async {
+    if (!masterEnabled || !pomodoroAlertsEnabled) return;
     final isFocus = mode == PomodoroMode.focus;
     await showNow(
       id: isFocus ? _NotifIds.pomodoroFocusId : _NotifIds.pomodoroBreakId,
@@ -292,6 +313,7 @@ class NotificationService {
   // --- Overdue Summary ---
 
   Future<void> showOverdueSummary(int count) async {
+    if (!masterEnabled || !overdueAlertsEnabled) return;
     if (count <= 0) return;
     await showNow(
       id: _NotifIds.overdueId,
@@ -307,6 +329,7 @@ class NotificationService {
   /// Call this periodically (~60 seconds) from NotificationProvider.
   /// Fires any pending reminders whose due time has arrived.
   Future<void> tickWebWindowsReminders(List<Task> allTasks) async {
+    if (!masterEnabled) return;
     if (!_initialized) await init();
     final now = DateTime.now();
     final fired = <String>[];

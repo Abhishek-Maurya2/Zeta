@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zeta/models/task.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/navigation/top_app_bar.dart';
@@ -163,10 +162,14 @@ void main() {
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
     final taskProvider = context.read<TaskProvider>();
-    taskProvider.addTask(Task(id: 'tb1', title: 'Bin Task Alpha'));
-    taskProvider.addTask(Task(id: 'tb2', title: 'Bin Task Beta'));
-    taskProvider.deleteTask('tb1');
-    taskProvider.deleteTask('tb2');
+    taskProvider.addTask(title: 'Bin Task Alpha');
+    taskProvider.addTask(title: 'Bin Task Beta');
+    final alphaId =
+        taskProvider.allTasks.firstWhere((t) => t.title == 'Bin Task Alpha').id;
+    final betaId =
+        taskProvider.allTasks.firstWhere((t) => t.title == 'Bin Task Beta').id;
+    taskProvider.deleteTask(alphaId);
+    taskProvider.deleteTask(betaId);
 
     // Navigate to Bin Page
     context.read<NavigationProvider>().setActivePage(PageId.bin);

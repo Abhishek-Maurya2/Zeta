@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/task.dart';
 import '../services/notification_service.dart';
 
@@ -9,6 +11,11 @@ import '../services/notification_service.dart';
 ///
 /// Depends on [NotificationService.instance] being initialized before use.
 class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
+  static const String _prefKeyMaster = 'zeta_notif_master';
+  static const String _prefKeyTaskReminders = 'zeta_notif_task_reminders';
+  static const String _prefKeyOverdue = 'zeta_notif_overdue';
+  static const String _prefKeyPomodoro = 'zeta_notif_pomodoro';
+
   Timer? _pollingTimer;
 
   /// Snapshot of all tasks - updated by callers via [updateTasks].
@@ -18,14 +25,40 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool _overdueShownThisSession = false;
 
   bool _notificationsEnabled = true;
+  bool _taskRemindersEnabled = true;
+  bool _overdueAlertsEnabled = true;
+  bool _pomodoroAlertsEnabled = true;
 
   bool get notificationsEnabled => _notificationsEnabled;
+  bool get taskRemindersEnabled => _taskRemindersEnabled;
+  bool get overdueAlertsEnabled => _overdueAlertsEnabled;
+  bool get pomodoroAlertsEnabled => _pomodoroAlertsEnabled;
 
   NotificationProvider() {
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
+    _loadPreferences();
     _startPolling();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _notificationsEnabled = prefs.getBool(_prefKeyMaster) ?? true;
+      _taskRemindersEnabled = prefs.getBool(_prefKeyTaskReminders) ?? true;
+      _overdueAlertsEnabled = prefs.getBool(_prefKeyOverdue) ?? true;
+      _pomodoroAlertsEnabled = prefs.getBool(_prefKeyPomodoro) ?? true;
+      _syncService();
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  void _syncService() {
+    NotificationService.instance.masterEnabled = _notificationsEnabled;
+    NotificationService.instance.taskRemindersEnabled = _taskRemindersEnabled;
+    NotificationService.instance.overdueAlertsEnabled = _overdueAlertsEnabled;
+    NotificationService.instance.pomodoroAlertsEnabled = _pomodoroAlertsEnabled;
   }
 
   // --- Public API ------------------------------------------------------------
@@ -35,12 +68,69 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _tasks = tasks;
   }
 
-  void setEnabled(bool value) {
+  void setEnabled(bool value) async {
+    if (_notificationsEnabled == value) return;
     _notificationsEnabled = value;
+    _syncService();
     if (!value) {
       NotificationService.instance.cancelAll();
+    } else {
+      _rescheduleAllTasks();
     }
     notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyMaster, value);
+    } catch (_) {}
+  }
+
+  void setTaskRemindersEnabled(bool value) async {
+    if (_taskRemindersEnabled == value) return;
+    _taskRemindersEnabled = value;
+    _syncService();
+    if (!value) {
+      for (final task in _tasks) {
+        NotificationService.instance.cancelTaskReminder(task.id);
+      }
+    } else if (_notificationsEnabled) {
+      _rescheduleAllTasks();
+    }
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyTaskReminders, value);
+    } catch (_) {}
+  }
+
+  void setOverdueAlertsEnabled(bool value) async {
+    if (_overdueAlertsEnabled == value) return;
+    _overdueAlertsEnabled = value;
+    _syncService();
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyOverdue, value);
+    } catch (_) {}
+  }
+
+  void setPomodoroAlertsEnabled(bool value) async {
+    if (_pomodoroAlertsEnabled == value) return;
+    _pomodoroAlertsEnabled = value;
+    _syncService();
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefKeyPomodoro, value);
+    } catch (_) {}
+  }
+
+  void _rescheduleAllTasks() {
+    if (!_notificationsEnabled || !_taskRemindersEnabled) return;
+    for (final task in _tasks) {
+      if (!task.completed) {
+        NotificationService.instance.scheduleTaskReminder(task);
+      }
+    }
   }
 
   /// Request system notification permission.
@@ -64,7 +154,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _startPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (_notificationsEnabled) {
+      if (_notificationsEnabled && _taskRemindersEnabled) {
         NotificationService.instance.tickWebWindowsReminders(_tasks);
       }
     });
@@ -73,7 +163,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   // --- Overdue Scan ----------------------------------------------------------
 
   void _runOverdueScan() {
-    if (!_notificationsEnabled) return;
+    if (!_notificationsEnabled || !_overdueAlertsEnabled) return;
     if (_overdueShownThisSession) return;
 
     final now = DateTime.now();
