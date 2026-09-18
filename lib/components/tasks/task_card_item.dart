@@ -52,6 +52,10 @@ class TaskCardItem extends StatelessWidget {
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
     final isCompletedOrDeleted = isDeleted || task.completed;
+    final revisionInfo = RevisionTagInfo.parse(task.description, taskTitle: task.title);
+    final displayDescription = revisionInfo.isRevision
+        ? revisionInfo.cleanedDescription
+        : task.description;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -100,11 +104,11 @@ class TaskCardItem extends StatelessWidget {
                                 : null,
                           ),
                         ),
-                        if (task.description != null &&
-                            task.description!.isNotEmpty) ...[
+                        if (displayDescription != null &&
+                            displayDescription.isNotEmpty) ...[
                           const SizedBox(height: 3),
                           Text(
-                            task.description!,
+                            displayDescription,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -137,6 +141,7 @@ class TaskCardItem extends StatelessWidget {
               if ((isDeleted && task.deletedAt != null) ||
                   task.dueDate != null ||
                   hasSubtasks ||
+                  revisionInfo.isRevision ||
                   (extraChips != null && extraChips!.isNotEmpty)) ...[
                 const SizedBox(height: 15),
                 Padding(
@@ -155,6 +160,8 @@ class TaskCardItem extends StatelessWidget {
                             task: task,
                             isCompleted: isCompletedOrDeleted,
                           ),
+                        if (revisionInfo.isRevision)
+                          TaskRevisionChip(label: revisionInfo.label),
                         if (hasSubtasks)
                           TaskSubtasksBadge(
                             subtasks: subtasks,

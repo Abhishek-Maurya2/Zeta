@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'supabase_service.dart';
 
@@ -39,7 +38,7 @@ class ProfileService {
 
       if (response != null) {
         debugPrint('ProfileService: Fetched profile for $userId');
-        return response as Map<String, dynamic>;
+        return response;
       }
       return null;
     } catch (e) {

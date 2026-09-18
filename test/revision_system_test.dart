@@ -79,7 +79,6 @@ void main() {
       // Wait for async load
       await Future.delayed(const Duration(milliseconds: 100));
 
-      final subjectId = 'sub-test';
       await revProvider.addSubject('Test Subject');
       final createdSubId = revProvider.selectedSubjectId!;
 

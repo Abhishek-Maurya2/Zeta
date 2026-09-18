@@ -20,6 +20,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _binTasksKey = 'zeta_bin_tasks_v1';
   static const String _autoSaveKey = 'zeta_auto_save';
   static const String _soundEffectsKey = 'zeta_sound_effects';
+  static const String _sortByPrefKey = 'zeta_task_sort_by_v1';
 
   final SupabaseSyncService _syncService = SupabaseSyncService();
   final GoogleCalendarService _googleService = GoogleCalendarService();
@@ -183,6 +184,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _sortBy = sortBy;
     _invalidateCache();
     notifyListeners();
+    _persistSortOption();
   }
 
   void cycleSortOption() {
@@ -191,6 +193,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _sortBy = values[nextIndex];
     _invalidateCache();
     notifyListeners();
+    _persistSortOption();
+  }
+
+  Future<void> _persistSortOption() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_sortByPrefKey, _sortBy.name);
+    } catch (_) {}
   }
 
   String getSortLabel(TaskSortOption sort) {
@@ -372,6 +382,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
             .toList();
         _binTasks.clear();
         _binTasks.addAll(loaded);
+      }
+
+      final savedSort = prefs.getString(_sortByPrefKey);
+      if (savedSort != null) {
+        _sortBy = TaskSortOption.values.firstWhere(
+          (e) => e.name == savedSort,
+          orElse: () => TaskSortOption.creationDesc,
+        );
       }
 
       // Purge any corrupted or empty tasks from local cache

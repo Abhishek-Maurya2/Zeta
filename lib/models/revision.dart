@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 
 enum RevisionStatus {
@@ -41,6 +42,52 @@ class Subject {
             ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
             : DateTime.now(),
       );
+
+  factory Subject.fromSupabaseRow(Map<String, dynamic> row) {
+    int parsedColor = 0xFF6750A4;
+    final colorStr = row['color'] as String?;
+    if (colorStr != null) {
+      if (colorStr.startsWith('#')) {
+        final hex = colorStr.replaceFirst('#', '');
+        final val = int.tryParse(hex, radix: 16);
+        if (val != null) {
+          parsedColor = hex.length == 6 ? 0xFF000000 | val : val;
+        }
+      } else {
+        parsedColor = int.tryParse(colorStr) ?? 0xFF6750A4;
+      }
+    }
+
+    String icon = row['icon'] as String? ?? 'menu_book_rounded';
+    if (!icon.endsWith('_rounded') && !icon.endsWith('_sharp') && !icon.endsWith('_outlined')) {
+      icon = '${icon}_rounded';
+    }
+
+    DateTime created = DateTime.now();
+    if (row['created_at'] != null) {
+      created = DateTime.tryParse(row['created_at'].toString())?.toLocal() ?? DateTime.now();
+    }
+
+    return Subject(
+      id: row['id'] as String? ?? '',
+      name: row['name'] as String? ?? '',
+      iconName: icon,
+      colorValue: parsedColor,
+      createdAt: created,
+    );
+  }
+
+  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+    final hex = colorValue.toRadixString(16).padLeft(8, '0').substring(2);
+    return {
+      'id': id,
+      'user_id': defaultUserId ?? 'singleton',
+      'name': name,
+      'color': '#$hex',
+      'icon': iconName.replaceAll('_rounded', ''),
+      'created_at': createdAt.toUtc().toIso8601String(),
+    };
+  }
 
   Subject copyWith({
     String? id,
@@ -134,6 +181,65 @@ class ChapterTopic {
             : null,
         associatedTaskId: json['associatedTaskId'] as String?,
       );
+
+  factory ChapterTopic.fromSupabaseRow(Map<String, dynamic> row) {
+    final stagesRaw = row['stages'];
+    List<dynamic> stagesList = [];
+    if (stagesRaw is List) {
+      stagesList = stagesRaw;
+    } else if (stagesRaw is String) {
+      try {
+        stagesList = jsonDecode(stagesRaw) as List<dynamic>;
+      } catch (_) {}
+    }
+
+    int completedStages = 0;
+    DateTime? lastRevised;
+    DateTime? nextRevision;
+
+    for (final s in stagesList) {
+      if (s is Map<String, dynamic>) {
+        final isStageDone = s['completed'] == true;
+        if (isStageDone) {
+          completedStages++;
+          if (s['completedAt'] != null) {
+            final parsed = DateTime.tryParse(s['completedAt'].toString())?.toLocal();
+            if (parsed != null && (lastRevised == null || parsed.isAfter(lastRevised))) {
+              lastRevised = parsed;
+            }
+          }
+        } else if (nextRevision == null && s['dueDate'] != null) {
+          nextRevision = DateTime.tryParse(s['dueDate'].toString())?.toLocal();
+        }
+      }
+    }
+
+    final isMastered = row['status'] == 'mastered' || completedStages >= 4;
+    final isCompleted = completedStages > 0 || row['status'] == 'completed';
+
+    return ChapterTopic(
+      id: row['id'] as String? ?? '',
+      subjectId: row['subject_id'] as String? ?? '',
+      title: row['title'] as String? ?? '',
+      description: row['notes'] as String?,
+      isCompleted: isCompleted,
+      revisionStage: isMastered ? 4 : completedStages,
+      lastRevisedAt: lastRevised,
+      nextRevisionDate: nextRevision,
+    );
+  }
+
+  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+    return {
+      'id': id,
+      'user_id': defaultUserId ?? 'singleton',
+      'subject_id': subjectId,
+      'title': title,
+      'notes': description,
+      'status': isMastered ? 'mastered' : 'active',
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+  }
 
   ChapterTopic copyWith({
     String? id,

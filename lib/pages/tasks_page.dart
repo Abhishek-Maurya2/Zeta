@@ -52,9 +52,9 @@ class TasksPage extends StatelessWidget {
 
     final selectedFilterIndex = filter == TaskFilter.all
         ? 0
-        : (filter == TaskFilter.completed
+        : (filter == TaskFilter.pending
             ? 1
-            : (filter == TaskFilter.pending ? 2 : 3));
+            : (filter == TaskFilter.revision ? 2 : null));
 
     final filterButtonGroup = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -69,16 +69,13 @@ class TasksPage extends StatelessWidget {
           if (index == 0) {
             taskProvider.setFilter(TaskFilter.all);
           } else if (index == 1) {
-            taskProvider.setFilter(TaskFilter.completed);
-          } else if (index == 2) {
             taskProvider.setFilter(TaskFilter.pending);
-          } else if (index == 3) {
+          } else if (index == 2) {
             taskProvider.setFilter(TaskFilter.revision);
           }
         },
         actions: [
           M3EButtonGroupAction(label: Text('All ($totalCount)')),
-          M3EButtonGroupAction(label: Text('Completed (${completed.length})')),
           M3EButtonGroupAction(label: Text('Pending (${pending.length})')),
           M3EButtonGroupAction(label: Text('Revision ($revisionTasksCount)')),
         ],
@@ -129,7 +126,9 @@ class TasksPage extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge ? 960 : 860,
+                maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge
+                    ? 960
+                    : 860,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,8 +283,7 @@ class TasksPage extends StatelessWidget {
                               shapeKind: M3EShapeKind.clover4Leaf,
                               icon: Icons.celebration_rounded,
                               title: 'No pending tasks',
-                              subtitle:
-                                  'You have completed all pending tasks!',
+                              subtitle: 'You have completed all pending tasks!',
                             )
                     else
                       _buildDismissibleTaskList(
@@ -301,8 +299,7 @@ class TasksPage extends StatelessWidget {
                         shapeKind: M3EShapeKind.cookie9Sided,
                         icon: Icons.sync_rounded,
                         title: 'No revision tasks',
-                        subtitle:
-                            'Tasks scheduled from the Revision page will appear here.',
+                        subtitle: 'Tasks scheduled from the Revision page will appear here.',
                       )
                     else
                       _buildDismissibleTaskList(
@@ -326,9 +323,7 @@ class TasksPage extends StatelessWidget {
                               shapeKind: M3EShapeKind.cookie4Sided,
                               icon: Icons.assignment_outlined,
                               title: 'No tasks yet',
-                              subtitle:
-                                  'Get started by creating your first task or note.',
-                       
+                              subtitle: 'Get started by creating your first task or note.',
                             )
                     else ...[
                       if (pending.isNotEmpty)
@@ -391,39 +386,39 @@ class TasksPage extends StatelessWidget {
 
         // ─── Floating Action Button: + Add Task (Desktop/Tablet only; compact uses M3EToolbar FAB) ──
         if (!isCompact)
-        Positioned(
+          Positioned(
             bottom: 28,
             right: 36,
-          child: AnimatedSlide(
-            offset: taskProvider.isSelectionMode
-                ? const Offset(0, 2.0)
-                : Offset.zero,
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOutCubicEmphasized,
-            child: AnimatedScale(
-              scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOutCubic,
-              child: IgnorePointer(
-                ignoring: taskProvider.isSelectionMode,
-                child: ZetaExtendedFab(
-                  color: M3EFabColor.primary,
-                  extended: true,
-                  icon: const Icon(Icons.add_rounded),
-                  label: 'Add Task',
+            child: AnimatedSlide(
+              offset: taskProvider.isSelectionMode
+                  ? const Offset(0, 2.0)
+                  : Offset.zero,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOutCubicEmphasized,
+              child: AnimatedScale(
+                scale: taskProvider.isSelectionMode ? 0.0 : 1.0,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOutCubic,
+                child: IgnorePointer(
+                  ignoring: taskProvider.isSelectionMode,
+                  child: ZetaExtendedFab(
+                    color: M3EFabColor.primary,
+                    extended: true,
+                    icon: const Icon(Icons.add_rounded),
+                    label: 'Add Task',
                     height: 64,
                     iconSize: 28,
-                  cornerRadius: 15,
+                    cornerRadius: 15,
                     extendedHorizontalPadding: 30,
                     iconLabelGap: 15,
                     labelFontSize: 18,
-                  labelFontWeight: FontWeight.w600,
-                  onPressed: () => TaskEditPane.show(context),
+                    labelFontWeight: FontWeight.w600,
+                    onPressed: () => TaskEditPane.show(context),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

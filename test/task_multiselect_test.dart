@@ -10,11 +10,16 @@ import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/components/settings/settings_category.dart';
 import 'package:zeta/components/tasks/task_selection_toolbar.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('TaskProvider Multi-Selection Unit Tests', () {
     late TaskProvider provider;
 
     setUp(() {
+      SharedPreferences.setMockInitialValues({});
       provider = TaskProvider();
       provider.addTask(title: 'Task 1');
       provider.addTask(title: 'Task 2');

@@ -10,6 +10,7 @@ class RevisionSubjectCard extends StatelessWidget {
   final int completedTopics;
   final int dueCount;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
   const RevisionSubjectCard({
@@ -20,11 +21,15 @@ class RevisionSubjectCard extends StatelessWidget {
     required this.completedTopics,
     required this.dueCount,
     this.onTap,
+    this.onEdit,
     this.onDelete,
   });
 
   IconData _getSubjectIcon(String name) {
     return switch (name) {
+      'account_balance_rounded' => Icons.account_balance_rounded,
+      'history_edu_rounded' => Icons.history_edu_rounded,
+      'trending_up_rounded' => Icons.trending_up_rounded,
       'terminal_rounded' => Icons.terminal_rounded,
       'calculate_rounded' => Icons.calculate_rounded,
       'biotech_rounded' => Icons.biotech_rounded,
@@ -46,16 +51,16 @@ class RevisionSubjectCard extends StatelessWidget {
     final percent = (progress * 100).round();
 
     final body = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         children: [
           // Icon badge
           Container(
-            width: 44,
-            height: 44,
+            width: 45,
+            height: 45,
             decoration: BoxDecoration(
               color: subject.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(50),
             ),
             child: Icon(
               _getSubjectIcon(subject.iconName),
@@ -99,6 +104,16 @@ class RevisionSubjectCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Text(
+                      '$percent%',
+                      style: textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? colorScheme.onSecondaryContainer
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
                     Expanded(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
@@ -113,24 +128,13 @@ class RevisionSubjectCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '$percent%',
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? colorScheme.onSecondaryContainer
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                   ],
                 ),
               ],
             ),
           ),
 
-          if (onDelete != null) ...[
-            const SizedBox(width: 4),
+          if (onEdit != null || onDelete != null) ...[
             M3EMenu(
               position: M3EMenuAnchorPosition.bottomEnd,
               colorStyle: M3EMenuColorStyle.vibrant,
@@ -143,15 +147,20 @@ class RevisionSubjectCard extends StatelessWidget {
                 );
               },
               children: [
-                M3EMenuSelectable(
-                  value: 'delete',
-                  label: 'Delete Subject',
-                  leading: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Colors.red,
+                if (onEdit != null)
+                  M3EMenuSelectable(
+                    value: 'edit',
+                    label: 'Edit Subject',
+                    leading: const Icon(Icons.edit_outlined),
+                    onPressed: onEdit,
                   ),
-                  onPressed: onDelete,
-                ),
+                if (onDelete != null)
+                  M3EMenuSelectable(
+                    value: 'delete',
+                    label: 'Delete Subject',
+                    leading: const Icon(Icons.delete_outline_rounded),
+                    onPressed: onDelete,
+                  ),
               ],
             ),
           ],

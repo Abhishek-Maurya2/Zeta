@@ -112,5 +112,34 @@ void main() {
       expect(find.text('Today • 4:00 PM'), findsOneWidget);
       expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
     });
+
+    test('RevisionTagInfo strips tag and extracts stage info', () {
+      final info1 = RevisionTagInfo.parse('#Revision  •  Stage 2 Spaced Repetition');
+      expect(info1.isRevision, isTrue);
+      expect(info1.label, equals('Revision • Stage 2'));
+      expect(info1.cleanedDescription, isNull);
+
+      final info2 = RevisionTagInfo.parse('#Revision Revise emergency provisions');
+      expect(info2.isRevision, isTrue);
+      expect(info2.label, equals('Revision'));
+      expect(info2.cleanedDescription, equals('Revise emergency provisions'));
+
+      final info3 = RevisionTagInfo.parse('Regular notes without tag');
+      expect(info3.isRevision, isFalse);
+      expect(info3.cleanedDescription, equals('Regular notes without tag'));
+    });
+
+    testWidgets('TaskRevisionChip renders icon and label', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: TaskRevisionChip(label: 'Revision • Stage 3'),
+          ),
+        ),
+      );
+
+      expect(find.text('Revision • Stage 3'), findsOneWidget);
+      expect(find.byIcon(Icons.auto_stories_rounded), findsOneWidget);
+    });
   });
 }

@@ -158,7 +158,7 @@ const Map<String, String> _weatherSvgMap = {
         <path d="M47,16.5c0,8.358 -6.662,15.171 -15,15.488V32H11v-0.002h-0.143C5.413,31.999 1,27.617 1,22.21c0,-5.407 4.413,-9.79 9.857,-9.79 1.89,0 3.654,0.528 5.154,1.444C17.271,6.559 23.679,1 31.393,1 40.013,1 47,7.94 47,16.5Z" />
       </clipPath>
       <linearGradient id="light_rain_grad_2" x1="30" y1="15.5" x2="37" y2="30.5" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#80868B" stop-opacity={0} />
+        <stop offset="0" stop-color="#80868B" stop-opacity="0" />
         <stop offset="1" stop-color="#80868B" />
       </linearGradient>
       <clipPath id="light_rain_clip_2">
@@ -166,7 +166,7 @@ const Map<String, String> _weatherSvgMap = {
       </clipPath>
       <linearGradient id="light_rain_grad_3" x1="41.5" y1="1" x2="5" y2="15" gradientUnits="userSpaceOnUse">
         <stop offset="0" stop-color="#81878C" />
-        <stop offset="1" stop-color="#C3C5C6" stop-opacity={0} />
+        <stop offset="1" stop-color="#C3C5C6" stop-opacity="0" />
       </linearGradient>
     </defs>
     <path d="M47,16.5c0,8.358 -6.662,15.171 -15,15.488V32H11v-0.002h-0.143C5.413,31.999 1,27.617 1,22.21c0,-5.407 4.413,-9.79 9.857,-9.79 1.89,0 3.654,0.528 5.154,1.444C17.271,6.559 23.679,1 31.393,1 40.013,1 47,7.94 47,16.5Z" fill="url(#light_rain_grad_1)" fill-rule="evenodd" />
@@ -307,7 +307,7 @@ const Map<String, String> _weatherSvgMap = {
         <path d="M47,23.5c0,8.358 -6.662,15.171 -15,15.488V39H11v-0.002h-0.143C5.413,38.999 1,34.617 1,29.21s4.413,-9.79 9.857,-9.79c1.89,0 3.654,0.528 5.154,1.444C17.271,13.559 23.678,8 31.393,8 40.013,8 47,14.94 47,23.5Z" />
       </clipPath>
       <linearGradient id="overcast_grad_2" x1="30" y1="22.5" x2="37" y2="37.5" gradientUnits="userSpaceOnUse">
-        <stop offset="0" stop-color="#80868B" stop-opacity={0} />
+        <stop offset="0" stop-color="#80868B" stop-opacity="0" />
         <stop offset="1" stop-color="#80868B" />
       </linearGradient>
       <clipPath id="overcast_clip_2">
@@ -315,7 +315,7 @@ const Map<String, String> _weatherSvgMap = {
       </clipPath>
       <linearGradient id="overcast_grad_3" x1="41.5" y1="8" x2="5" y2="22" gradientUnits="userSpaceOnUse">
         <stop offset="0" stop-color="#81878C" />
-        <stop offset="1" stop-color="#C3C5C6" stop-opacity={0} />
+        <stop offset="1" stop-color="#C3C5C6" stop-opacity="0" />
       </linearGradient>
     </defs>
     <path d="M47,23.5c0,8.358 -6.662,15.171 -15,15.488V39H11v-0.002h-0.143C5.413,38.999 1,34.617 1,29.21s4.413,-9.79 9.857,-9.79c1.89,0 3.654,0.528 5.154,1.444C17.271,13.559 23.678,8 31.393,8 40.013,8 47,14.94 47,23.5Z" fill="url(#overcast_grad_1)" fill-rule="evenodd" />

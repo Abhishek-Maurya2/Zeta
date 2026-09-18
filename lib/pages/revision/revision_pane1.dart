@@ -1,0 +1,223 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
+
+import '../../models/revision.dart';
+import '../../providers/revision_provider.dart';
+import '../../components/revision/revision_subject_card.dart';
+import '../../components/revision/topic_edit_dialog.dart';
+import '../../utils/haptics.dart';
+import '../../widgets/segmented_column.dart';
+
+/// Pane 1 of Revision: Subjects overview, summary statistics, and subject selection.
+class RevisionPane1 extends StatelessWidget {
+  final bool isSplitPane;
+  final ValueChanged<Subject>? onSubjectSelected;
+
+  const RevisionPane1({
+    super.key,
+    required this.isSplitPane,
+    this.onSubjectSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final revProvider = context.watch<RevisionProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final subjects = revProvider.subjects;
+    final selectedSubject = revProvider.selectedSubject;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Subjects',
+                style: textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              M3EButton.icon(
+                onPressed: () {
+                  ZetaHaptics.light();
+                  AddSubjectDialog.show(context);
+                },
+                style: M3EButtonStyle.tonal,
+                size: M3EButtonSize.sm,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text( 'Add' ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildSummaryStrip(context, revProvider, colorScheme, textTheme),
+        const SizedBox(height: 20),
+
+        if (subjects.isEmpty)
+          ZetaEmptyState.revision(
+            icon: Icons.auto_stories_rounded,
+            shapeKind: M3EShapeKind.cookie4Sided,
+            title: 'No subjects yet',
+            subtitle: 'Tap "+ Add" to create your first subject and start your study schedule.',
+            size: isSplitPane
+                ? ZetaEmptyStateSize.compact
+                : ZetaEmptyStateSize.standard,
+            actionLabel: 'Add Subject',
+            actionIcon: Icons.add_rounded,
+            onAction: () => AddSubjectDialog.show(context),
+          )
+        else
+          M3ESegmentedColumn(
+            padding: EdgeInsets.zero,
+            color: colorScheme.surfaceContainerLowest,
+            selectedIndex: selectedSubject != null
+                ? subjects.indexWhere((s) => s.id == selectedSubject.id)
+                : null,
+            onTap: (index) {
+              if (index < 0 || index >= subjects.length) return;
+              final sub = subjects[index];
+              ZetaHaptics.selection();
+              revProvider.selectSubject(sub.id);
+              onSubjectSelected?.call(sub);
+            },
+            colorBuilder: (index) {
+              if (index < 0 || index >= subjects.length) return null;
+              final sub = subjects[index];
+              if (selectedSubject?.id == sub.id) {
+                return colorScheme.secondaryContainer;
+              }
+              return null;
+            },
+            borderRadiusBuilder: (index, position) {
+              if (index < 0 || index >= subjects.length) return null;
+              final sub = subjects[index];
+              if (selectedSubject?.id == sub.id) {
+                return BorderRadius.circular(52);
+              }
+              return null;
+            },
+            children: subjects.asMap().entries.map((entry) {
+              final sub = entry.value;
+              final isSelected = selectedSubject?.id == sub.id;
+              final subTopics = revProvider.topics
+                  .where((t) => t.subjectId == sub.id)
+                  .toList();
+              final completedCount = subTopics
+                  .where((t) => t.isCompleted || t.isMastered)
+                  .length;
+              final dueCount = subTopics
+                  .where((t) => t.status == RevisionStatus.overdue)
+                  .length;
+
+              return RevisionSubjectCard(
+                key: ValueKey(sub.id),
+                subject: sub,
+                isSelected: isSelected,
+                totalTopics: subTopics.length,
+                completedTopics: completedCount,
+                dueCount: dueCount,
+                onEdit: () {
+                  ZetaHaptics.light();
+                  SubjectEditDialog.show(context, subject: sub);
+                },
+                onDelete: () async {
+                  ZetaHaptics.light();
+                  final confirmed = await showDeleteConfirmationDialog(
+                    context: context,
+                    title: 'Delete Subject?',
+                    message:
+                        'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
+                  );
+                  if (confirmed == true) {
+                    revProvider.deleteSubject(sub.id);
+                  }
+                },
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryStrip(
+    BuildContext context,
+    RevisionProvider revProvider,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(
+            context,
+            label: 'Topics',
+            value: '${revProvider.totalTopicsCount}',
+            icon: Icons.topic_rounded,
+            color: colorScheme.primary,
+          ),
+          _buildStatItem(
+            context,
+            label: 'Due Today',
+            value: '${revProvider.dueRevisionsCount}',
+            icon: Icons.notifications_active_rounded,
+            color: revProvider.dueRevisionsCount > 0
+                ? colorScheme.error
+                : colorScheme.onPrimaryContainer,
+          ),
+          _buildStatItem(
+            context,
+            label: 'Mastered',
+            value: '${revProvider.masteredTopicsCount}',
+            icon: Icons.workspace_premium_rounded,
+            color: const Color(0xFF059669),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Convenience alias for [RevisionPane1].
+typedef RevisionSubjectsPane = RevisionPane1;

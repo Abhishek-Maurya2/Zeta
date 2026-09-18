@@ -6,13 +6,15 @@ import '../../models/revision.dart';
 class RevisionTopicTile extends StatelessWidget {
   final ChapterTopic topic;
   final VoidCallback onComplete;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const RevisionTopicTile({
     super.key,
     required this.topic,
     required this.onComplete,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
   });
 
   String _formatDate(DateTime date) {
@@ -62,72 +64,71 @@ class RevisionTopicTile extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(10, 5, 1, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── Title Row ────────────────────────────────────────────────
+          // ─── Title & Menu Row ─────────────────────────────────────────
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      topic.title,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                        decoration: topic.isMastered
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    if (topic.description != null &&
-                        topic.description!.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        topic.description!,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
+                child: Text(
+                  topic.title,
+                  style: textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                    decoration: topic.isMastered
+                        ? TextDecoration.lineThrough
+                        : null,
+                    fontSize: 20,
+                  ),
                 ),
               ),
-              M3EIconButton(
-                icon: const Icon(Icons.more_vert_rounded, size: 20),
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (ctx) => SafeArea(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            leading: const Icon(Icons.delete_outline_rounded,
-                                color: Colors.red),
-                            title: const Text('Delete Topic',
-                                style: TextStyle(color: Colors.red)),
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              onDelete();
-                            },
-                          ),
-                        ],
+              if (onEdit != null || onDelete != null)
+                M3EMenu(
+                  position: M3EMenuAnchorPosition.bottomEnd,
+                  colorStyle: M3EMenuColorStyle.vibrant,
+                  anchorBuilder: (BuildContext context, VoidCallback open) {
+                    return M3EIconButton(
+                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                      onPressed: open,
+                      variant: M3EIconButtonVariant.standard,
+                      size: M3EIconButtonSize.sm,
+                      width: M3EIconButtonWidth.narrow,
+                    );
+                  },
+                  children: [
+                    if (onEdit != null)
+                      M3EMenuSelectable(
+                        value: 'edit',
+                        label: 'Edit Topic',
+                        leading: const Icon(Icons.edit_outlined),
+                        onPressed: onEdit,
                       ),
-                    ),
-                  );
-                },
-                variant: M3EIconButtonVariant.standard,
-                size: M3EIconButtonSize.sm,
-              ),
+                    if (onDelete != null)
+                      M3EMenuSelectable(
+                        value: 'delete',
+                        label: 'Delete Topic',
+                        leading: const Icon(Icons.delete_outline_rounded),
+                        onPressed: onDelete,
+                      ),
+                  ],
+                ),
             ],
           ),
+
+          // ─── Description ──────────────────────────────────────────────
+          if (topic.description != null && topic.description!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              topic.description!,
+              style: textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
 
           const SizedBox(height: 12),
 
@@ -138,7 +139,8 @@ class RevisionTopicTile extends StatelessWidget {
               M3EChip(
                 type: chipType,
                 label: statusLabel,
-                selected: status == RevisionStatus.overdue ||
+                selected:
+                    status == RevisionStatus.overdue ||
                     status == RevisionStatus.mastered,
                 onPressed: () {},
               ),
@@ -159,7 +161,7 @@ class RevisionTopicTile extends StatelessWidget {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: active
-                              ? colorScheme.primary
+                              ? colorScheme.tertiary
                               : colorScheme.outlineVariant,
                         ),
                       ),
@@ -178,13 +180,13 @@ class RevisionTopicTile extends StatelessWidget {
                       : M3EButtonStyle.tonal,
                   size: M3EButtonSize.sm,
                   icon: Icon(
-                    stage == 0
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.sync_rounded,
+                    stage == 0 ? Icons.check_rounded : Icons.sync_rounded,
                     size: 16,
                   ),
                   label: Text(stage == 0 ? 'Complete' : 'Revise'),
                 ),
+
+              const SizedBox(width: 8),
             ],
           ),
         ],

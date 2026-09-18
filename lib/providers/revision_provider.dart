@@ -4,14 +4,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/revision.dart';
-import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
+import '../services/revision_sync_service.dart';
 
 class RevisionProvider with ChangeNotifier {
-  static const String _subjectsKey = 'zeta_revision_subjects_v1';
-  static const String _topicsKey = 'zeta_revision_topics_v1';
+  static const String _subjectsKey = 'zeta_revision_subjects_v2';
+  static const String _topicsKey = 'zeta_revision_topics_v2';
   final Uuid _uuid = const Uuid();
+  final RevisionSyncService _syncService = RevisionSyncService();
 
   List<Subject> _subjects = [];
   List<ChapterTopic> _topics = [];
@@ -28,11 +29,8 @@ class RevisionProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Subject? get selectedSubject {
-    if (_selectedSubjectId == null) return _subjects.isNotEmpty ? _subjects.first : null;
-    return _subjects.firstWhere(
-      (s) => s.id == _selectedSubjectId,
-      orElse: () => _subjects.isNotEmpty ? _subjects.first : Subject(id: '', name: ''),
-    );
+    if (_selectedSubjectId == null) return null;
+    return _subjects.where((s) => s.id == _selectedSubjectId).firstOrNull;
   }
 
   List<ChapterTopic> get topicsForSelectedSubject {
@@ -78,17 +76,23 @@ class RevisionProvider with ChangeNotifier {
         _topics = list.map((e) => ChapterTopic.fromJson(e as Map<String, dynamic>)).toList();
       }
 
-      if (_subjects.isEmpty) {
-        _populateSampleData();
-        await _saveData();
+      // If cached data was loaded, render immediately
+      if (_subjects.isNotEmpty) {
+        _isLoading = false;
+        notifyListeners();
       }
 
-      if (_subjects.isNotEmpty && _selectedSubjectId == null) {
-        _selectedSubjectId = _subjects.first.id;
+      // Fetch dynamic data from Supabase
+      final remoteSubjects = await _syncService.pullSubjects();
+      final remoteTopics = await _syncService.pullTopics();
+
+      if (remoteSubjects.isNotEmpty) {
+        _subjects = remoteSubjects;
+        _topics = remoteTopics;
+        await _saveData();
       }
     } catch (e) {
       debugPrint('Error loading Revision data: $e');
-      _populateSampleData();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -108,59 +112,6 @@ class RevisionProvider with ChangeNotifier {
     }
   }
 
-  void _populateSampleData() {
-    final csId = _uuid.v4();
-    final mathId = _uuid.v4();
-
-    _subjects = [
-      Subject(
-        id: csId,
-        name: 'Computer Science',
-        iconName: 'terminal_rounded',
-        colorValue: 0xFF3B82F6,
-      ),
-      Subject(
-        id: mathId,
-        name: 'Mathematics',
-        iconName: 'calculate_rounded',
-        colorValue: 0xFF10B981,
-      ),
-    ];
-
-    _topics = [
-      ChapterTopic(
-        id: _uuid.v4(),
-        subjectId: csId,
-        title: 'Data Structures: Hash Tables & Graphs',
-        description: 'Collision resolution strategies and Dijkstra shortest path',
-        isCompleted: true,
-        revisionStage: 1,
-        lastRevisedAt: DateTime.now().subtract(const Duration(days: 1)),
-        nextRevisionDate: DateTime.now().add(const Duration(days: 1)),
-      ),
-      ChapterTopic(
-        id: _uuid.v4(),
-        subjectId: csId,
-        title: 'Operating Systems: Virtual Memory',
-        description: 'Page tables, TLB cache, and page replacement policies',
-        isCompleted: false,
-        revisionStage: 0,
-      ),
-      ChapterTopic(
-        id: _uuid.v4(),
-        subjectId: mathId,
-        title: 'Linear Algebra: Eigenvalues & Eigenvectors',
-        description: 'Characteristic equation and matrix diagonalization',
-        isCompleted: true,
-        revisionStage: 2,
-        lastRevisedAt: DateTime.now().subtract(const Duration(days: 3)),
-        nextRevisionDate: DateTime.now().add(const Duration(days: 4)),
-      ),
-    ];
-
-    _selectedSubjectId = csId;
-  }
-
   // ─── CRUD Operations ────────────────────────────────────────────────────────
 
   Future<void> addSubject(String name, {String iconName = 'menu_book_rounded', int colorValue = 0xFF6750A4}) async {
@@ -174,6 +125,7 @@ class RevisionProvider with ChangeNotifier {
     _selectedSubjectId = newSubject.id;
     await _saveData();
     notifyListeners();
+    _syncService.pushSubject(newSubject);
   }
 
   Future<void> updateSubject(Subject subject) async {
@@ -182,6 +134,7 @@ class RevisionProvider with ChangeNotifier {
       _subjects[index] = subject;
       await _saveData();
       notifyListeners();
+      _syncService.pushSubject(subject);
     }
   }
 
@@ -189,10 +142,11 @@ class RevisionProvider with ChangeNotifier {
     _subjects.removeWhere((s) => s.id == subjectId);
     _topics.removeWhere((t) => t.subjectId == subjectId);
     if (_selectedSubjectId == subjectId) {
-      _selectedSubjectId = _subjects.isNotEmpty ? _subjects.first.id : null;
+      _selectedSubjectId = null;
     }
     await _saveData();
     notifyListeners();
+    _syncService.deleteSubject(subjectId);
   }
 
   Future<void> addTopic(String subjectId, String title, {String? description}) async {
@@ -205,6 +159,7 @@ class RevisionProvider with ChangeNotifier {
     _topics.add(newTopic);
     await _saveData();
     notifyListeners();
+    _syncService.pushTopic(newTopic);
   }
 
   Future<void> updateTopic(ChapterTopic topic) async {
@@ -213,6 +168,7 @@ class RevisionProvider with ChangeNotifier {
       _topics[index] = topic;
       await _saveData();
       notifyListeners();
+      _syncService.pushTopic(topic);
     }
   }
 
@@ -220,6 +176,7 @@ class RevisionProvider with ChangeNotifier {
     _topics.removeWhere((t) => t.id == topicId);
     await _saveData();
     notifyListeners();
+    _syncService.deleteTopic(topicId);
   }
 
   // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────
@@ -268,6 +225,7 @@ class RevisionProvider with ChangeNotifier {
 
     await _saveData();
     notifyListeners();
+    _syncService.pushTopic(_topics[index]);
   }
 
   /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].

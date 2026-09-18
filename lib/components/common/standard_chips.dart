@@ -340,3 +340,131 @@ class FocusTaskDueDateChip extends StatelessWidget {
     );
   }
 }
+
+/// Helper to parse and strip #Revision tags from task descriptions.
+class RevisionTagInfo {
+  final bool isRevision;
+  final String label;
+  final String? cleanedDescription;
+
+  const RevisionTagInfo({
+    required this.isRevision,
+    required this.label,
+    this.cleanedDescription,
+  });
+
+  static RevisionTagInfo parse(String? rawDescription, {String? taskTitle}) {
+    final hasTitleRevise = taskTitle != null &&
+        taskTitle.trim().toLowerCase().startsWith('revise:');
+
+    if (rawDescription == null || rawDescription.trim().isEmpty) {
+      if (hasTitleRevise) {
+        return const RevisionTagInfo(
+          isRevision: true,
+          label: 'Revision',
+          cleanedDescription: null,
+        );
+      }
+      return const RevisionTagInfo(
+        isRevision: false,
+        label: '',
+        cleanedDescription: null,
+      );
+    }
+
+    final hasTag = RegExp(r'#revision\b', caseSensitive: false)
+        .hasMatch(rawDescription);
+    if (!hasTag && !hasTitleRevise) {
+      return RevisionTagInfo(
+        isRevision: false,
+        label: '',
+        cleanedDescription: rawDescription,
+      );
+    }
+
+    // Extract stage if present (e.g., "#Revision • Stage 2 Spaced Repetition")
+    String label = 'Revision';
+    final stageMatch = RegExp(r'Stage\s*(\d+)', caseSensitive: false)
+        .firstMatch(rawDescription);
+    if (stageMatch != null) {
+      final stageNum = stageMatch.group(1);
+      label = 'Revision • Stage $stageNum';
+    }
+
+    // Strip the revision tag and stage repetition marker from the description
+    String cleaned = rawDescription
+        .replaceAll(
+          RegExp(
+            r'#revision\s*([•·\-\|]?\s*Stage\s*\d+\s*(Spaced\s*Repetition)?)?',
+            caseSensitive: false,
+          ),
+          '',
+        )
+        .trim();
+
+    // Clean up any dangling leading/trailing bullets, dashes, or separators
+    cleaned = cleaned
+        .replaceAll(RegExp(r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$'), '')
+        .trim();
+
+    return RevisionTagInfo(
+      isRevision: true,
+      label: label,
+      cleanedDescription: cleaned.isEmpty ? null : cleaned,
+    );
+  }
+}
+
+/// Reusable chip displaying Revision status and Spaced Repetition stage.
+class TaskRevisionChip extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+
+  const TaskRevisionChip({
+    super.key,
+    this.label = 'Revision',
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final content = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.auto_stories_rounded,
+            size: 15,
+            color: colorScheme.onTertiaryContainer,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: colorScheme.onTertiaryContainer,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (onTap != null) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: content,
+      );
+    }
+    return content;
+  }
+}
+

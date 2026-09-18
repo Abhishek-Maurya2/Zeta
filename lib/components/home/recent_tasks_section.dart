@@ -147,8 +147,7 @@ class RecentTasksSection extends StatelessWidget {
                 task: task,
                 isExpanded: taskProvider.isTaskExpanded(task.id),
                 onToggle: () => taskProvider.toggleTask(task.id),
-                onToggleExpand: () =>
-                    taskProvider.toggleTaskExpanded(task.id),
+                onToggleExpand: () => taskProvider.toggleTaskExpanded(task.id),
                 onToggleSubtask: (subtaskId) =>
                     taskProvider.toggleSubtask(task.id, subtaskId),
                 onTap: () => TaskEditPane.show(context, task: task),
