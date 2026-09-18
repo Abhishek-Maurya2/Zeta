@@ -9,6 +9,7 @@ import '../utils/windows_title_bar.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
+import '../providers/revision_provider.dart';
 import '../pages/home_page.dart';
 import '../pages/tasks_page.dart';
 import '../pages/revision_page.dart';
@@ -273,6 +274,9 @@ class _AppScaffoldState extends State<AppScaffold> {
         // 4. If on any other page (including Settings main page), return to Home page
         if (navProvider.activePage != PageId.home) {
           ZetaHaptics.light();
+          if (navProvider.activePage == PageId.revision) {
+            context.read<RevisionProvider>().selectSubject(null);
+          }
           navProvider.setActivePage(PageId.home);
           return;
         }
@@ -396,10 +400,23 @@ class _AppScaffoldState extends State<AppScaffold> {
                                             SizedBox(
                                               width: _taskEditPaneWidth,
                                               child: Container(
+                                                margin:
+                                                    const EdgeInsets.fromLTRB(
+                                                      0,
+                                                      16,
+                                                      16,
+                                                      6,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: colorScheme
-                                                      .surfaceContainer,
+                                                  color: isDark
+                                                      ? colorScheme
+                                                            .surfaceContainerHigh
+                                                      : colorScheme
+                                                            .surfaceContainer,
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
                                                 ),
+                                                clipBehavior: Clip.antiAlias,
                                                 child: SafeArea(
                                                   child: TaskEditFormContent(
                                                     key: ValueKey(
@@ -510,7 +527,12 @@ class _NavigationRailWidget extends StatelessWidget {
         onDestinationSelected: (index) {
           ZetaHaptics.selection();
           context.read<TaskProvider>().clearSelection();
-          navProvider.setActivePage(kNavDestinations[index].id);
+          final target = kNavDestinations[index].id;
+          if (navProvider.activePage == PageId.revision &&
+              target != PageId.revision) {
+            context.read<RevisionProvider>().selectSubject(null);
+          }
+          navProvider.setActivePage(target);
         },
         fab: M3ENavigationRailFabSlot(
           icon: const Icon(Icons.add_rounded),
@@ -592,6 +614,10 @@ class _FloatingBottomNav extends StatelessWidget {
                       onTap: () {
                         ZetaHaptics.selection();
                         context.read<TaskProvider>().clearSelection();
+                        if (navProvider.activePage == PageId.revision &&
+                            dest.id != PageId.revision) {
+                          context.read<RevisionProvider>().selectSubject(null);
+                        }
                         navProvider.setActivePage(dest.id);
                       },
                     );

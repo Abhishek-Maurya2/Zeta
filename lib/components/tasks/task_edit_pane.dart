@@ -99,8 +99,10 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     _dueDate = widget.task?.dueDate != null
         ? TaskDateFormatter.formatString(widget.task!.dueDate!)
         : null;
-    _hasTime = (widget.task?.hasTime ?? false) ||
-        (widget.task?.dueTime != null && widget.task!.dueTime!.trim().isNotEmpty);
+    _hasTime =
+        (widget.task?.hasTime ?? false) ||
+        (widget.task?.dueTime != null &&
+            widget.task!.dueTime!.trim().isNotEmpty);
     _dueTime = widget.task?.dueTime;
     if (_hasTime && (_dueTime == null || _dueTime!.isEmpty)) {
       _dueTime = '09:00 AM';
@@ -262,34 +264,28 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // ─── Header ───
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const SizedBox(width: 8),
-                  Text(
-                    isEditing ? 'Edit Task' : 'New Task',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(width: 5),
               M3EIconButton(
                 icon: const Icon(Icons.close_rounded),
                 size: M3EIconButtonSize.sm,
                 width: M3EIconButtonWidth.wide,
-                variant: M3EIconButtonVariant.standard,
+                decoration: M3EIconButtonDecoration(
+                  backgroundColor: WidgetStateProperty.all(
+                    colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
+                  ),
+                ),
                 tooltip: 'Close',
                 onPressed: () {
                   ZetaHaptics.light();
@@ -299,10 +295,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
             ],
           ),
 
-          const SizedBox(height: 12),
-
           // ─── Scrollable Fields ───
           Flexible(
+            fit: isCompact ? FlexFit.loose : FlexFit.tight,
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -311,16 +306,17 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   TextField(
                     controller: _titleController,
                     autofocus: true,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: colorScheme.onSurface,
+                      fontSize: 28,
                     ),
+
                     decoration: InputDecoration(
                       isDense: true,
                       hintText: 'Task Title',
                       hintStyle: TextStyle(
-                        fontSize: 23,
+                        fontSize: 25,
                         fontWeight: FontWeight.w600,
                         color: colorScheme.onSurfaceVariant.withValues(
                           alpha: 0.65,
@@ -340,7 +336,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     onSubmitted: (_) => _handleSave(),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 22),
 
                   // 2. Description (max 3 lines)
                   Row(
@@ -348,13 +344,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Icon(
-                          Icons.notes_rounded,
-                          size: 20,
-                          // color: colorScheme.onSurfaceVariant.withValues(
-                          //   alpha: 0.8,
-                          // ),
-                        ),
+                        child: Icon(Icons.notes_rounded, size: 20),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -369,12 +359,15 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                           decoration: InputDecoration(
                             isDense: true,
                             hintText: 'Add details',
-                            hintStyle: TextStyle(
-                              fontSize: 14,
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.7,
-                              ),
-                            ),
+
+                            hintStyle: Theme.of(context).textTheme.displayMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 17,
+                                  color: colorScheme.onSurfaceVariant.withAlpha(
+                                    150,
+                                  ),
+                                ),
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
@@ -392,18 +385,18 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     children: [
                       Icon(
                         Icons.event_outlined,
-                        size: 16,
-                        color: colorScheme.onSurfaceVariant,
+                        size: 20,
+                        color: colorScheme.primary,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 15),
                       Text(
-                        'DUE DATE & TIME',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        'Due Date & Time',
+                        style: Theme.of(context).textTheme.displayMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: colorScheme.primary,
+                            ),
                       ),
                       if (_dueDate != null) ...[
                         const Spacer(),
@@ -488,12 +481,11 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
                   // 4. Subtasks Section
                   Text(
-                    'SUBTASKS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                      color: colorScheme.onSurfaceVariant,
+                    'Subtasks',
+                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: colorScheme.primary,
                     ),
                   ),
 
@@ -602,9 +594,11 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
             ),
           ),
 
+          const SizedBox(height: 16),
+
           // ─── Footer Buttons ───
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (isEditing)
                 M3EButton.icon(
@@ -632,13 +626,20 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     ZetaHaptics.light();
                     Navigator.of(context).pop();
                   },
-                  style: M3EButtonStyle.text,
-                  size: M3EButtonSize.sm,
-                  child: const Text('Cancel'),
+                  size: M3EButtonSize.md,
+                  decoration: M3EButtonDecoration(
+                    backgroundColor: WidgetStatePropertyAll(
+                      colorScheme.errorContainer,
+                    ),
+                    foregroundColor: WidgetStatePropertyAll(
+                      colorScheme.onErrorContainer,
+                    ),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 16)),
                 ),
+              const SizedBox(width: 10),
               M3EButton.icon(
                 onPressed: _handleSave,
-                style: M3EButtonStyle.filled,
                 decoration: M3EButtonDecoration(
                   backgroundColor: WidgetStatePropertyAll(colorScheme.primary),
                   foregroundColor: WidgetStatePropertyAll(
@@ -651,7 +652,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   size: 20,
                 ),
                 label: Text(
-                  isEditing ? 'Save Changes' : 'Create Task',
+                  isEditing ? 'Save' : 'Add',
                   style: TextStyle(fontSize: 16),
                 ),
               ),

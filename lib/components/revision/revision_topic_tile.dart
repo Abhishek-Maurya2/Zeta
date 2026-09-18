@@ -85,7 +85,9 @@ class RevisionTopicTile extends StatelessWidget {
                       child: Icon(
                         Icons.drag_indicator_rounded,
                         size: 20,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                     ),
                   ),
@@ -138,14 +140,22 @@ class RevisionTopicTile extends StatelessWidget {
 
           // ─── Description ──────────────────────────────────────────────
           if (topic.description != null && topic.description!.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              topic.description!,
-              style: textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            // const SizedBox(height: 4),
+            Row(
+              children: [
+                const SizedBox(width: 25),
+                Expanded(
+                  child: Text(
+                    topic.description!,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 35),
+              ],
             ),
           ],
 
@@ -154,6 +164,7 @@ class RevisionTopicTile extends StatelessWidget {
           // ─── Bottom: Status chip + Stage dots + Action button ──────────
           Row(
             children: [
+              const SizedBox(width: 25),
               // Status chip
               M3EChip(
                 type: chipType,
@@ -205,7 +216,7 @@ class RevisionTopicTile extends StatelessWidget {
                   label: Text(stage == 0 ? 'Complete' : 'Revise'),
                 ),
 
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
             ],
           ),
         ],

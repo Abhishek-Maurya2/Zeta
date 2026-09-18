@@ -336,6 +336,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _minPaneWidth,
           maxAllowedWidth,
         );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -384,7 +385,14 @@ class _SettingsPageState extends State<SettingsPage> {
             // Right Pane: Secondary Elevated Supporting Pane (CustomScrollView with SliverAppBar.large)
             Expanded(
               child: Container(
-                color: colorScheme.surfaceContainer,
+                margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? colorScheme.surfaceContainerHigh
+                      : colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                clipBehavior: Clip.antiAlias,
                 child: M3EPageTransition(
                   currentIndex: activeCategory?.index ?? 0,
                   previousIndex: 0,
@@ -396,11 +404,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     slivers: [
                       SliverAppBar.large(
-                        pinned: true,
-                        automaticallyImplyLeading: false,
-                        backgroundColor: colorScheme.surfaceContainer,
+                        // pinned: true,
+                        // automaticallyImplyLeading: false,
+                        backgroundColor: isDark
+                            ? colorScheme.surfaceContainerHigh
+                            : colorScheme.surfaceContainer,
                         scrolledUnderElevation: 2,
-                        shape: _appBarShape,
+                        // shape: _appBarShape,
                         title: Text(activeCategoryMeta?.label ?? 'Settings'),
                       ),
                       SliverPadding(

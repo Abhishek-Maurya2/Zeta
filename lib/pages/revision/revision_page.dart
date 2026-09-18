@@ -40,11 +40,48 @@ class _RevisionPageState extends State<RevisionPage> {
   String? _selectedSubjectForMobile;
   String? _lastSubjectId;
   int _previousSubjectIndex = 0;
+  RevisionProvider? _revProvider;
 
   @override
   void initState() {
     super.initState();
+    _selectedSubjectForMobile = null;
     _loadSavedPaneSettings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<RevisionProvider>().selectSubject(null);
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _revProvider = Provider.of<RevisionProvider>(context, listen: false);
+  }
+
+  @override
+  void deactivate() {
+    _selectedSubjectForMobile = null;
+    final rev = _revProvider;
+    if (rev != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rev.selectSubject(null);
+      });
+    }
+    super.deactivate();
+  }
+
+  @override
+  void dispose() {
+    _selectedSubjectForMobile = null;
+    final rev = _revProvider;
+    if (rev != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rev.selectSubject(null);
+      });
+    }
+    super.dispose();
   }
 
   Future<void> _loadSavedPaneSettings() async {
@@ -351,6 +388,8 @@ class _RevisionPageState extends State<RevisionPage> {
           _minPaneWidth,
           maxAllowedWidth,
         );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -379,13 +418,23 @@ class _RevisionPageState extends State<RevisionPage> {
             // ─── Right Pane: Topics (Pane 2) ───────────────────────────
             Expanded(
               child: Container(
-                color: colorScheme.surfaceContainer,
+                margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? colorScheme.surfaceContainerHigh
+                      : colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                clipBehavior: Clip.antiAlias,
                 child: CustomScrollView(
                   key: ValueKey<String>(
                     'revision_topics_${revProvider.selectedSubject?.id ?? "none"}',
                   ),
                   slivers: [
                     SliverAppBar.large(
+                      backgroundColor: isDark
+                          ? colorScheme.surfaceContainerHigh
+                          : colorScheme.surfaceContainer,
                       pinned: true,
                       automaticallyImplyLeading: false,
                       scrolledUnderElevation: 2,

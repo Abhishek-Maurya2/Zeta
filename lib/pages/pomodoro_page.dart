@@ -245,6 +245,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
           _minSupportingPaneWidth,
           maxAllowedWidth,
         );
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Row(
           children: [
@@ -262,7 +263,14 @@ class _PomodoroPageState extends State<PomodoroPage> {
             SizedBox(
               width: effectiveWidth,
               child: Container(
-                color: colorScheme.surfaceContainerLow,
+                margin: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? colorScheme.surfaceContainerHigh
+                      : colorScheme.surfaceContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
