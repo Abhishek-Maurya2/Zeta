@@ -36,7 +36,9 @@ class RevisionProvider with ChangeNotifier {
   List<ChapterTopic> get topicsForSelectedSubject {
     final sub = selectedSubject;
     if (sub == null || sub.id.isEmpty) return [];
-    return _topics.where((t) => t.subjectId == sub.id).toList();
+    final list = _topics.where((t) => t.subjectId == sub.id).toList();
+    list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return list;
   }
 
   int get totalTopicsCount => _topics.length;
@@ -150,11 +152,20 @@ class RevisionProvider with ChangeNotifier {
   }
 
   Future<void> addTopic(String subjectId, String title, {String? description}) async {
+    final subjectTopics = _topics.where((t) => t.subjectId == subjectId).toList();
+    final nextSortOrder = subjectTopics.isEmpty
+        ? 0
+        : subjectTopics
+                .map((t) => t.sortOrder)
+                .fold<int>(0, (prev, curr) => curr > prev ? curr : prev) +
+            1;
+
     final newTopic = ChapterTopic(
       id: _uuid.v4(),
       subjectId: subjectId,
       title: title,
       description: description,
+      sortOrder: nextSortOrder,
     );
     _topics.add(newTopic);
     await _saveData();
@@ -177,6 +188,39 @@ class RevisionProvider with ChangeNotifier {
     await _saveData();
     notifyListeners();
     _syncService.deleteTopic(topicId);
+  }
+
+  /// Reorders a topic within a subject from [oldIndex] to [newIndex]
+  /// and updates sort orders locally and in Supabase.
+  Future<void> reorderTopic(String subjectId, int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) return;
+
+    final subjectTopics = topicsForSelectedSubject;
+    if (oldIndex < 0 ||
+        oldIndex >= subjectTopics.length ||
+        newIndex < 0 ||
+        newIndex >= subjectTopics.length) {
+      return;
+    }
+
+    final movedTopic = subjectTopics.removeAt(oldIndex);
+    subjectTopics.insert(newIndex, movedTopic);
+
+    final updatedTopics = <ChapterTopic>[];
+    for (int i = 0; i < subjectTopics.length; i++) {
+      final updated = subjectTopics[i].copyWith(sortOrder: i);
+      updatedTopics.add(updated);
+
+      final idx = _topics.indexWhere((t) => t.id == updated.id);
+      if (idx != -1) {
+        _topics[idx] = updated;
+      }
+    }
+
+    await _saveData();
+    notifyListeners();
+
+    _syncService.pushTopics(updatedTopics);
   }
 
   // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────

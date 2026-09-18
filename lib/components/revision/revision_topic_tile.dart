@@ -8,6 +8,8 @@ class RevisionTopicTile extends StatelessWidget {
   final VoidCallback onComplete;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final int? index;
+  final bool canReorder;
 
   const RevisionTopicTile({
     super.key,
@@ -15,6 +17,8 @@ class RevisionTopicTile extends StatelessWidget {
     required this.onComplete,
     this.onEdit,
     this.onDelete,
+    this.index,
+    this.canReorder = false,
   });
 
   String _formatDate(DateTime date) {
@@ -71,6 +75,21 @@ class RevisionTopicTile extends StatelessWidget {
           // ─── Title & Menu Row ─────────────────────────────────────────
           Row(
             children: [
+              if (index != null && canReorder)
+                ReorderableDragStartListener(
+                  index: index!,
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.grab,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Icon(
+                        Icons.drag_indicator_rounded,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
               Expanded(
                 child: Text(
                   topic.title,

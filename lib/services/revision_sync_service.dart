@@ -81,7 +81,8 @@ class RevisionSyncService {
           .from('revision_topics')
           .select()
           .or('user_id.eq.$userId,user_id.eq.singleton')
-          .order('sort_order', ascending: true);
+          .order('sort_order', ascending: true)
+          .order('created_at', ascending: true);
 
       final List<ChapterTopic> topics = [];
       for (final row in response as List<dynamic>) {
@@ -151,6 +152,23 @@ class RevisionSyncService {
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: pushTopic error - $e');
+      return false;
+    }
+  }
+
+  /// Pushes a batch of topics to Supabase (e.g. after reordering).
+  Future<bool> pushTopics(List<ChapterTopic> topics) async {
+    await _ensureInitialized();
+    if (!_supabaseService.isInitialized || topics.isEmpty) return false;
+
+    try {
+      final userId = _supabaseService.effectiveUserId;
+      final rows =
+          topics.map((t) => t.toSupabaseRow(defaultUserId: userId)).toList();
+      await _supabaseService.client.from('revision_topics').upsert(rows);
+      return true;
+    } catch (e) {
+      debugPrint('RevisionSyncService: pushTopics error - $e');
       return false;
     }
   }

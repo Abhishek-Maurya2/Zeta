@@ -122,6 +122,7 @@ class ChapterTopic {
   final DateTime? lastRevisedAt;
   final DateTime? nextRevisionDate;
   final String? associatedTaskId;
+  final int sortOrder;
 
   ChapterTopic({
     required this.id,
@@ -133,6 +134,7 @@ class ChapterTopic {
     this.lastRevisedAt,
     this.nextRevisionDate,
     this.associatedTaskId,
+    this.sortOrder = 0,
   });
 
   bool get isMastered => revisionStage >= 4;
@@ -164,6 +166,7 @@ class ChapterTopic {
         'lastRevisedAt': lastRevisedAt?.toIso8601String(),
         'nextRevisionDate': nextRevisionDate?.toIso8601String(),
         'associatedTaskId': associatedTaskId,
+        'sortOrder': sortOrder,
       };
 
   factory ChapterTopic.fromJson(Map<String, dynamic> json) => ChapterTopic(
@@ -180,6 +183,7 @@ class ChapterTopic {
             ? DateTime.tryParse(json['nextRevisionDate'] as String)
             : null,
         associatedTaskId: json['associatedTaskId'] as String?,
+        sortOrder: json['sortOrder'] as int? ?? (json['sort_order'] as int? ?? 0),
       );
 
   factory ChapterTopic.fromSupabaseRow(Map<String, dynamic> row) {
@@ -226,6 +230,7 @@ class ChapterTopic {
       revisionStage: isMastered ? 4 : completedStages,
       lastRevisedAt: lastRevised,
       nextRevisionDate: nextRevision,
+      sortOrder: row['sort_order'] as int? ?? 0,
     );
   }
 
@@ -237,6 +242,7 @@ class ChapterTopic {
       'title': title,
       'notes': description,
       'status': isMastered ? 'mastered' : 'active',
+      'sort_order': sortOrder,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
   }
@@ -251,6 +257,7 @@ class ChapterTopic {
     DateTime? lastRevisedAt,
     DateTime? nextRevisionDate,
     String? associatedTaskId,
+    int? sortOrder,
   }) {
     return ChapterTopic(
       id: id ?? this.id,
@@ -262,6 +269,7 @@ class ChapterTopic {
       lastRevisedAt: lastRevisedAt ?? this.lastRevisedAt,
       nextRevisionDate: nextRevisionDate ?? this.nextRevisionDate,
       associatedTaskId: associatedTaskId ?? this.associatedTaskId,
+      sortOrder: sortOrder ?? this.sortOrder,
     );
   }
 }

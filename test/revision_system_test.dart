@@ -125,5 +125,36 @@ void main() {
       final topicStage2 = revProvider.topicsForSelectedSubject.firstWhere((t) => t.id == topic.id);
       expect(topicStage2.revisionStage, equals(2));
     });
+
+    test('reorderTopic updates topic sort order correctly', () async {
+      final revProvider = RevisionProvider();
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      await revProvider.addSubject('History');
+      final subId = revProvider.selectedSubjectId!;
+      await revProvider.addTopic(subId, 'Topic A');
+      await revProvider.addTopic(subId, 'Topic B');
+      await revProvider.addTopic(subId, 'Topic C');
+
+      var topics = revProvider.topicsForSelectedSubject;
+      expect(topics.map((t) => t.title).toList(), ['Topic A', 'Topic B', 'Topic C']);
+      expect(topics.map((t) => t.sortOrder).toList(), [0, 1, 2]);
+
+      // Move Topic C (index 2) to top (index 0)
+      await revProvider.reorderTopic(subId, 2, 0);
+
+      topics = revProvider.topicsForSelectedSubject;
+      expect(topics.map((t) => t.title).toList(), ['Topic C', 'Topic A', 'Topic B']);
+      expect(topics.map((t) => t.sortOrder).toList(), [0, 1, 2]);
+
+      // Move Topic C (index 0) down after Topic A to target index 1
+      await revProvider.reorderTopic(subId, 0, 1);
+
+      topics = revProvider.topicsForSelectedSubject;
+      expect(topics.map((t) => t.title).toList(), ['Topic A', 'Topic C', 'Topic B']);
+      expect(topics.map((t) => t.sortOrder).toList(), [0, 1, 2]);
+    });
   });
 }
+

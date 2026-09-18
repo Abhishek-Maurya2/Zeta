@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -33,10 +34,7 @@ void main() async {
 class ZetaApp extends StatelessWidget {
   final bool? showSplash;
 
-  const ZetaApp({
-    super.key,
-    this.showSplash,
-  });
+  const ZetaApp({super.key, this.showSplash});
 
   @override
   Widget build(BuildContext context) {
@@ -80,19 +78,37 @@ class _ZetaAppView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = context.select<ThemeProvider, ThemeMode>((p) => p.themeMode);
+    final themeMode = context.select<ThemeProvider, ThemeMode>(
+      (p) => p.themeMode,
+    );
     final seedColor = context.select<ThemeProvider, Color>((p) => p.seedColor);
-    final variant = context.select<ThemeProvider, M3EColorVariant>((p) => p.variant);
-    final cornerStyle = context.select<ThemeProvider, String>((p) => p.cornerStyle);
-    final highContrast = context.select<ThemeProvider, bool>((p) => p.highContrast);
-    final compactDensity = context.select<ThemeProvider, bool>((p) => p.compactDensity);
+    final variant = context.select<ThemeProvider, M3EColorVariant>(
+      (p) => p.variant,
+    );
+    final cornerStyle = context.select<ThemeProvider, String>(
+      (p) => p.cornerStyle,
+    );
+    final highContrast = context.select<ThemeProvider, bool>(
+      (p) => p.highContrast,
+    );
+    final compactDensity = context.select<ThemeProvider, bool>(
+      (p) => p.compactDensity,
+    );
     final animations = context.select<ThemeProvider, bool>((p) => p.animations);
     final fontScale = context.select<ThemeProvider, String>((p) => p.fontScale);
 
-    final headings = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.headingsTypography);
-    final titles = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.titlesTypography);
-    final body = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.bodyTypography);
-    final labels = context.select<ThemeProvider, RoleTypographyConfig>((p) => p.labelsTypography);
+    final headings = context.select<ThemeProvider, RoleTypographyConfig>(
+      (p) => p.headingsTypography,
+    );
+    final titles = context.select<ThemeProvider, RoleTypographyConfig>(
+      (p) => p.titlesTypography,
+    );
+    final body = context.select<ThemeProvider, RoleTypographyConfig>(
+      (p) => p.bodyTypography,
+    );
+    final labels = context.select<ThemeProvider, RoleTypographyConfig>(
+      (p) => p.labelsTypography,
+    );
 
     final double textScaleFactor = fontScale == 'compact'
         ? 0.92
