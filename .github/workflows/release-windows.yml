@@ -1,0 +1,128 @@
+name: Release Windows App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.1)'
+        required: true
+        default: '1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  release-windows:
+    name: Build & Release Windows App
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Determine Version Tag
+        id: get_version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $ver = "${{ github.event.inputs.version }}"
+            echo "VERSION=$ver" >> $env:GITHUB_ENV
+            echo "TAG_NAME=v$ver" >> $env:GITHUB_ENV
+          } else {
+            $ref = "${{ github.ref }}"
+            $ver = $ref.Replace("refs/tags/v", "").Replace("refs/tags/", "")
+            echo "VERSION=$ver" >> $env:GITHUB_ENV
+            echo "TAG_NAME=v$ver" >> $env:GITHUB_ENV
+          }
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        shell: pwsh
+        env:
+          UPDATE_PAT: ${{ secrets.UPDATE_PAT }}
+        run: |
+          if ($env:UPDATE_PAT) {
+            flutter build windows --release --build-name="$env:VERSION" --build-number="$env:GITHUB_RUN_NUMBER" --dart-define=GITHUB_UPDATE_TOKEN="$env:UPDATE_PAT"
+          } else {
+            flutter build windows --release --build-name="$env:VERSION" --build-number="$env:GITHUB_RUN_NUMBER"
+          }
+
+      - name: Compile Windows Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.5
+        with:
+          path: packaging/windows/zeta_installer.iss
+          options: |
+            /DMyAppVersion=${{ env.VERSION }}
+
+      - name: Package Windows Bundle into ZIP & Installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          $releaseDir = "build\windows\x64\runner\Release"
+          $installerDir = "build\windows\installer"
+          
+          # Copy Inno Setup installer to release-assets
+          if (Test-Path "$installerDir") {
+            $installer = Get-ChildItem -Path "$installerDir\*.exe" | Select-Object -First 1
+            if ($installer) {
+              Copy-Item $installer.FullName -Destination "release-assets\zeta-setup-${{ env.VERSION }}.exe"
+            }
+          }
+          
+          # Create comprehensive distribution zip
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "release-assets\zeta-windows-${{ env.VERSION }}.zip" -Force
+
+      - name: Upload Windows Artifacts to Workflow Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets/*
+
+      - name: Publish to GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = "Continue"
+
+          # 1. Ensure release exists (create if not present, otherwise ensure published)
+          $viewOutput = gh release view "$env:TAG_NAME" 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Creating release $env:TAG_NAME..."
+            gh release create "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --generate-notes --target "$env:GITHUB_SHA"
+          } else {
+            Write-Host "Release $env:TAG_NAME already exists. Ensuring draft is false..."
+            gh release edit "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --draft=false
+          }
+
+          # 2. Upload assets sequentially with retries
+          Get-ChildItem -Path "release-assets\*" | ForEach-Object {
+            $file = $_.FullName
+            Write-Host "Uploading $file..."
+            $uploaded = $false
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              gh release upload "$env:TAG_NAME" "$file" --clobber
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "Successfully uploaded $($_.Name)"
+                $uploaded = $true
+                break
+              } else {
+                Write-Host "Upload attempt $attempt failed for $($_.Name). Retrying in 10s..."
+                Start-Sleep -Seconds 10
+              }
+            }
+            if (-not $uploaded) {
+              Write-Error "Failed to upload $($_.Name) after 3 attempts."
+              exit 1
+            }
+          }
