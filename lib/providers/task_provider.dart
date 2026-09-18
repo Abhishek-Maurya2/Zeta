@@ -11,7 +11,7 @@ import '../services/supabase_sync_service.dart';
 import '../services/google_calendar_service.dart';
 import '../services/notification_service.dart';
 
-enum TaskFilter { all, completed, pending }
+enum TaskFilter { all, completed, pending, revision }
 
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
@@ -223,6 +223,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Helper to check if a task is a revision task
+  static bool isRevisionTask(Task task) {
+    if (task.title.toLowerCase().contains('revise:')) return true;
+    if (task.description != null &&
+        task.description!.toLowerCase().contains('#revision')) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Optional callback invoked when a task is completed (for bi-directional sync)
+  void Function(String taskId)? onTaskCompletedCallback;
+
   /// Returns true if [task] matches the given search query [query].
   static bool matchesSearch(Task task, String query) {
     final q = query.trim().toLowerCase();
@@ -293,6 +306,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     final list = _tasks.where((task) {
       if (_filter == TaskFilter.pending && task.completed) return false;
       if (_filter == TaskFilter.completed && !task.completed) return false;
+      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
@@ -308,6 +322,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task> get pendingTasks {
     final list = _tasks.where((task) {
       if (task.completed) return false;
+      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
@@ -320,11 +335,18 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task> get completedTasks {
     final list = _tasks.where((task) {
       if (!task.completed) return false;
+      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
       return true;
     }).toList();
+    _sortTaskList(list);
+    return list;
+  }
+
+  List<Task> get revisionTasks {
+    final list = _tasks.where((task) => isRevisionTask(task)).toList();
     _sortTaskList(list);
     return list;
   }
@@ -788,6 +810,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         _playSoundIfEnabled();
         // Cancel any pending reminder when task is completed.
         NotificationService.instance.cancelTaskReminder(task.id);
+        onTaskCompletedCallback?.call(task.id);
       } else {
         // Re-schedule if un-completing a task that has a due time.
         NotificationService.instance.scheduleTaskReminder(task);
@@ -822,14 +845,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void addTask({
+  Future<String> addTask({
     required String title,
     String? description,
     String? dueDate,
     bool hasTime = false,
     String? dueTime,
     List<Subtask>? subtasks,
-  }) {
+  }) async {
     final newTask = Task(
       id: const Uuid().v4(),
       title: title,
@@ -849,6 +872,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _syncTaskPipeline(newTask);
     // Schedule a system notification if the task has a due time.
     NotificationService.instance.scheduleTaskReminder(newTask);
+    return newTask.id;
   }
 
   void updateTask(

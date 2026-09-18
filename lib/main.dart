@@ -9,6 +9,7 @@ import 'providers/task_provider.dart';
 import 'providers/pomodoro_provider.dart';
 import 'providers/update_provider.dart';
 import 'providers/notification_provider.dart';
+import 'providers/revision_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
@@ -48,6 +49,16 @@ class ZetaApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
+        ChangeNotifierProxyProvider<TaskProvider, RevisionProvider>(
+          create: (_) => RevisionProvider(),
+          update: (_, taskProvider, revProvider) {
+            final provider = revProvider ?? RevisionProvider();
+            taskProvider.onTaskCompletedCallback = (taskId) {
+              provider.syncFromTaskCompletion(taskId, taskProvider);
+            };
+            return provider;
+          },
+        ),
         ChangeNotifierProxyProvider<TaskProvider, NotificationProvider>(
           create: (_) => NotificationProvider(),
           update: (_, taskProvider, notifProvider) {

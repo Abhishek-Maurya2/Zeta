@@ -253,6 +253,50 @@ class ZetaEmptyState extends StatelessWidget {
     );
   }
 
+  /// Preset for Revision / Study tracker empty states.
+  factory ZetaEmptyState.revision({
+    Key? key,
+    IconData icon = Icons.auto_stories_rounded,
+    M3EShapeKind shapeKind = M3EShapeKind.cookie4Sided,
+    required String title,
+    String? subtitle,
+    String? actionLabel,
+    IconData? actionIcon,
+    VoidCallback? onAction,
+    Widget? customAction,
+    ZetaEmptyStateSize size = ZetaEmptyStateSize.standard,
+    Color? shapeColor,
+    Color? iconColor,
+  }) {
+    Widget? action = customAction;
+    if (action == null && actionLabel != null && onAction != null) {
+      action = M3EButton.icon(
+        icon: Icon(actionIcon ?? Icons.add_rounded, size: 18),
+        label: Text(actionLabel),
+        style: M3EButtonStyle.filled,
+        size: size == ZetaEmptyStateSize.compact
+            ? M3EButtonSize.sm
+            : M3EButtonSize.md,
+        onPressed: () {
+          ZetaHaptics.light();
+          onAction();
+        },
+      );
+    }
+
+    return ZetaEmptyState(
+      key: key,
+      icon: icon,
+      shapeKind: shapeKind,
+      title: title,
+      subtitle: subtitle,
+      size: size,
+      primaryAction: action,
+      shapeColor: shapeColor,
+      iconColor: iconColor,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

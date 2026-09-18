@@ -48,9 +48,13 @@ class TasksPage extends StatelessWidget {
         ? pending.length + completed.length
         : taskProvider.totalCount;
 
+    final revisionTasksCount = taskProvider.revisionTasks.length;
+
     final selectedFilterIndex = filter == TaskFilter.all
         ? 0
-        : (filter == TaskFilter.completed ? 1 : 2);
+        : (filter == TaskFilter.completed
+            ? 1
+            : (filter == TaskFilter.pending ? 2 : 3));
 
     final filterButtonGroup = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -68,12 +72,15 @@ class TasksPage extends StatelessWidget {
             taskProvider.setFilter(TaskFilter.completed);
           } else if (index == 2) {
             taskProvider.setFilter(TaskFilter.pending);
+          } else if (index == 3) {
+            taskProvider.setFilter(TaskFilter.revision);
           }
         },
         actions: [
           M3EButtonGroupAction(label: Text('All ($totalCount)')),
           M3EButtonGroupAction(label: Text('Completed (${completed.length})')),
           M3EButtonGroupAction(label: Text('Pending (${pending.length})')),
+          M3EButtonGroupAction(label: Text('Revision ($revisionTasksCount)')),
         ],
       ),
     );
@@ -279,12 +286,28 @@ class TasksPage extends StatelessWidget {
                               title: 'No pending tasks',
                               subtitle:
                                   'You have completed all pending tasks!',
-                             
                             )
                     else
                       _buildDismissibleTaskList(
                         context,
                         pending,
+                        taskProvider,
+                        colorScheme,
+                      ),
+                  ] else if (filter == TaskFilter.revision) ...[
+                    // Revision tasks view
+                    if (taskProvider.revisionTasks.isEmpty)
+                      ZetaEmptyState.tasks(
+                        shapeKind: M3EShapeKind.cookie9Sided,
+                        icon: Icons.sync_rounded,
+                        title: 'No revision tasks',
+                        subtitle:
+                            'Tasks scheduled from the Revision page will appear here.',
+                      )
+                    else
+                      _buildDismissibleTaskList(
+                        context,
+                        taskProvider.revisionTasks,
                         taskProvider,
                         colorScheme,
                       ),

@@ -1,0 +1,282 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
+import '../models/revision.dart';
+import '../models/task.dart';
+import '../providers/task_provider.dart';
+import '../utils/task_date_formatter.dart';
+
+class RevisionProvider with ChangeNotifier {
+  static const String _subjectsKey = 'zeta_revision_subjects_v1';
+  static const String _topicsKey = 'zeta_revision_topics_v1';
+  final Uuid _uuid = const Uuid();
+
+  List<Subject> _subjects = [];
+  List<ChapterTopic> _topics = [];
+  String? _selectedSubjectId;
+  bool _isLoading = true;
+
+  RevisionProvider() {
+    _loadData();
+  }
+
+  List<Subject> get subjects => List.unmodifiable(_subjects);
+  List<ChapterTopic> get topics => List.unmodifiable(_topics);
+  String? get selectedSubjectId => _selectedSubjectId;
+  bool get isLoading => _isLoading;
+
+  Subject? get selectedSubject {
+    if (_selectedSubjectId == null) return _subjects.isNotEmpty ? _subjects.first : null;
+    return _subjects.firstWhere(
+      (s) => s.id == _selectedSubjectId,
+      orElse: () => _subjects.isNotEmpty ? _subjects.first : Subject(id: '', name: ''),
+    );
+  }
+
+  List<ChapterTopic> get topicsForSelectedSubject {
+    final sub = selectedSubject;
+    if (sub == null || sub.id.isEmpty) return [];
+    return _topics.where((t) => t.subjectId == sub.id).toList();
+  }
+
+  int get totalTopicsCount => _topics.length;
+  int get completedTopicsCount => _topics.where((t) => t.isCompleted || t.isMastered).length;
+  int get masteredTopicsCount => _topics.where((t) => t.isMastered).length;
+  int get dueRevisionsCount => _topics.where((t) => t.status == RevisionStatus.overdue || (t.status == RevisionStatus.scheduled && _isDueToday(t.nextRevisionDate))).length;
+
+  static bool _isDueToday(DateTime? date) {
+    if (date == null) return false;
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
+  void selectSubject(String? subjectId) {
+    _selectedSubjectId = subjectId;
+    notifyListeners();
+  }
+
+  // ─── Data Loading & Persistence ──────────────────────────────────────────────
+
+  Future<void> _loadData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final subjectsRaw = prefs.getString(_subjectsKey);
+      final topicsRaw = prefs.getString(_topicsKey);
+
+      if (subjectsRaw != null && subjectsRaw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(subjectsRaw);
+        _subjects = list.map((e) => Subject.fromJson(e as Map<String, dynamic>)).toList();
+      }
+
+      if (topicsRaw != null && topicsRaw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(topicsRaw);
+        _topics = list.map((e) => ChapterTopic.fromJson(e as Map<String, dynamic>)).toList();
+      }
+
+      if (_subjects.isEmpty) {
+        _populateSampleData();
+        await _saveData();
+      }
+
+      if (_subjects.isNotEmpty && _selectedSubjectId == null) {
+        _selectedSubjectId = _subjects.first.id;
+      }
+    } catch (e) {
+      debugPrint('Error loading Revision data: $e');
+      _populateSampleData();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final subjectsJson = jsonEncode(_subjects.map((s) => s.toJson()).toList());
+      final topicsJson = jsonEncode(_topics.map((t) => t.toJson()).toList());
+
+      await prefs.setString(_subjectsKey, subjectsJson);
+      await prefs.setString(_topicsKey, topicsJson);
+    } catch (e) {
+      debugPrint('Error saving Revision data: $e');
+    }
+  }
+
+  void _populateSampleData() {
+    final csId = _uuid.v4();
+    final mathId = _uuid.v4();
+
+    _subjects = [
+      Subject(
+        id: csId,
+        name: 'Computer Science',
+        iconName: 'terminal_rounded',
+        colorValue: 0xFF3B82F6,
+      ),
+      Subject(
+        id: mathId,
+        name: 'Mathematics',
+        iconName: 'calculate_rounded',
+        colorValue: 0xFF10B981,
+      ),
+    ];
+
+    _topics = [
+      ChapterTopic(
+        id: _uuid.v4(),
+        subjectId: csId,
+        title: 'Data Structures: Hash Tables & Graphs',
+        description: 'Collision resolution strategies and Dijkstra shortest path',
+        isCompleted: true,
+        revisionStage: 1,
+        lastRevisedAt: DateTime.now().subtract(const Duration(days: 1)),
+        nextRevisionDate: DateTime.now().add(const Duration(days: 1)),
+      ),
+      ChapterTopic(
+        id: _uuid.v4(),
+        subjectId: csId,
+        title: 'Operating Systems: Virtual Memory',
+        description: 'Page tables, TLB cache, and page replacement policies',
+        isCompleted: false,
+        revisionStage: 0,
+      ),
+      ChapterTopic(
+        id: _uuid.v4(),
+        subjectId: mathId,
+        title: 'Linear Algebra: Eigenvalues & Eigenvectors',
+        description: 'Characteristic equation and matrix diagonalization',
+        isCompleted: true,
+        revisionStage: 2,
+        lastRevisedAt: DateTime.now().subtract(const Duration(days: 3)),
+        nextRevisionDate: DateTime.now().add(const Duration(days: 4)),
+      ),
+    ];
+
+    _selectedSubjectId = csId;
+  }
+
+  // ─── CRUD Operations ────────────────────────────────────────────────────────
+
+  Future<void> addSubject(String name, {String iconName = 'menu_book_rounded', int colorValue = 0xFF6750A4}) async {
+    final newSubject = Subject(
+      id: _uuid.v4(),
+      name: name,
+      iconName: iconName,
+      colorValue: colorValue,
+    );
+    _subjects.add(newSubject);
+    _selectedSubjectId = newSubject.id;
+    await _saveData();
+    notifyListeners();
+  }
+
+  Future<void> updateSubject(Subject subject) async {
+    final index = _subjects.indexWhere((s) => s.id == subject.id);
+    if (index != -1) {
+      _subjects[index] = subject;
+      await _saveData();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteSubject(String subjectId) async {
+    _subjects.removeWhere((s) => s.id == subjectId);
+    _topics.removeWhere((t) => t.subjectId == subjectId);
+    if (_selectedSubjectId == subjectId) {
+      _selectedSubjectId = _subjects.isNotEmpty ? _subjects.first.id : null;
+    }
+    await _saveData();
+    notifyListeners();
+  }
+
+  Future<void> addTopic(String subjectId, String title, {String? description}) async {
+    final newTopic = ChapterTopic(
+      id: _uuid.v4(),
+      subjectId: subjectId,
+      title: title,
+      description: description,
+    );
+    _topics.add(newTopic);
+    await _saveData();
+    notifyListeners();
+  }
+
+  Future<void> updateTopic(ChapterTopic topic) async {
+    final index = _topics.indexWhere((t) => t.id == topic.id);
+    if (index != -1) {
+      _topics[index] = topic;
+      await _saveData();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteTopic(String topicId) async {
+    _topics.removeWhere((t) => t.id == topicId);
+    await _saveData();
+    notifyListeners();
+  }
+
+  // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────
+
+  /// Marks a topic complete or advances its revision stage.
+  /// Schedules next revision date and creates a revision task in [TaskProvider].
+  Future<void> completeTopic(String topicId, TaskProvider taskProvider) async {
+    final index = _topics.indexWhere((t) => t.id == topicId);
+    if (index == -1) return;
+
+    final topic = _topics[index];
+    final currentStage = topic.revisionStage;
+    final nextStage = currentStage >= 4 ? 4 : currentStage + 1;
+
+    DateTime? nextDate;
+    if (nextStage == 1) {
+      nextDate = DateTime.now().add(const Duration(days: 1));
+    } else if (nextStage == 2) {
+      nextDate = DateTime.now().add(const Duration(days: 3));
+    } else if (nextStage == 3) {
+      nextDate = DateTime.now().add(const Duration(days: 7));
+    } else {
+      nextDate = null; // Mastered!
+    }
+
+    String? createdTaskId;
+    if (nextStage < 4 && nextDate != null) {
+      final formattedDueDate = TaskDateFormatter.format(nextDate);
+      final taskTitle = 'Revise: ${topic.title}';
+      final taskDesc = '#Revision  •  Stage $nextStage Spaced Repetition';
+
+      createdTaskId = await taskProvider.addTask(
+        title: taskTitle,
+        description: taskDesc,
+        dueDate: formattedDueDate,
+      );
+    }
+
+    _topics[index] = topic.copyWith(
+      isCompleted: true,
+      revisionStage: nextStage,
+      lastRevisedAt: DateTime.now(),
+      nextRevisionDate: nextDate,
+      associatedTaskId: createdTaskId ?? topic.associatedTaskId,
+    );
+
+    await _saveData();
+    notifyListeners();
+  }
+
+  /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].
+  Future<void> syncFromTaskCompletion(String taskId, TaskProvider taskProvider) async {
+    final index = _topics.indexWhere((t) => t.associatedTaskId == taskId);
+    if (index == -1) return;
+
+    final topic = _topics[index];
+    // Automatically complete topic to advance to next stage
+    await completeTopic(topic.id, taskProvider);
+  }
+}
