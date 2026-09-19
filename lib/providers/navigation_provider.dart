@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import '../components/settings/settings_category.dart';
+import '../pages/settings/components/settings_category.dart';
 
 /// Page identifiers mirroring Sharva's PageId type.
 enum PageId { home, tasks, revision, pomodoro, bin, settings }

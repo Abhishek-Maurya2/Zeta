@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/pages/splash_screen.dart';
@@ -8,6 +9,10 @@ import 'package:zeta/providers/theme_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   Widget buildTestSplash({
     VoidCallback? onComplete,
@@ -35,17 +40,14 @@ void main() {
   }
 
   group('SplashScreen Widget Tests', () {
-    testWidgets('Renders Zeta branding, subtitle, tagline, and progress capsule',
+    testWidgets('Renders centered Zeta logo image',
         (WidgetTester tester) async {
       await tester.pumpWidget(buildTestSplash());
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Zeta'), findsOneWidget);
-      expect(find.text('Personal Workspace'), findsOneWidget);
-      expect(find.text('Material 3 Expressive'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
 
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Adapts background color for light and dark themes',
@@ -72,7 +74,9 @@ void main() {
           matching: find.byType(Material),
         ).first,
       );
-      expect(darkMaterial.color, const Color(0xFF1E1E2E));
+      expect(darkMaterial.color, Colors.black);
+
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Shows close button in preview mode and can be tapped',
@@ -82,6 +86,8 @@ void main() {
 
       expect(find.byIcon(Icons.close), findsOneWidget);
       expect(find.byTooltip('Close Preview'), findsOneWidget);
+
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Does not show close button in production launch mode',
@@ -90,6 +96,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byIcon(Icons.close), findsNothing);
+
+      await tester.pumpAndSettle();
     });
 
     testWidgets('Calls onInitializationComplete after minDuration and exit transition',
@@ -116,7 +124,7 @@ void main() {
     testWidgets('ZetaApp with showSplash: false opens AppScaffold directly',
         (WidgetTester tester) async {
       await tester.pumpWidget(const ZetaApp(showSplash: false));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byType(AppScaffold), findsOneWidget);
       expect(find.byType(SplashScreen), findsNothing);

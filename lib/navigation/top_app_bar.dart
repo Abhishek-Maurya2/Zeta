@@ -9,7 +9,7 @@ import '../providers/theme_provider.dart';
 import '../widgets/zeta_logo.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/segmented_column.dart';
-import '../components/tasks/task_edit_pane.dart';
+import '../components/task_edit_pane.dart';
 import '../theme/breakpoints.dart';
 
 /// Top App Bar mirroring Sharva's header:
@@ -355,61 +355,180 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 ),
                 color: colorScheme.surfaceBright,
                 children: [
-                  ListTile(
-                    leading: Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: colorScheme.primary,
-                    ),
-                    title: const Text('New Task'),
-                    subtitle: const Text('Create a new task or note  [N]'),
-                    dense: true,
+                  InkWell(
                     onTap: () {
                       safeCloseView(null);
                       TaskEditPane.show(context);
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add_circle_outline_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'New Task',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Create a new task or note  [N]',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
-                  ListTile(
-                    leading: Icon(
-                      Icons.delete_outline_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    title: const Text('Bin (Deleted Tasks)'),
-                    subtitle: const Text('Recycle bin and archived tasks'),
-                    dense: true,
+                  InkWell(
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.bin);
                     },
-                  ),
-                  ListTile(
-                    leading: Icon(
-                      Icons.timer_outlined,
-                      color: colorScheme.onSurfaceVariant,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.delete_outline_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Bin (Deleted Tasks)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Recycle bin and archived tasks',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    title: const Text('Pomodoro Timer'),
-                    subtitle: const Text('Focus intervals and session tracker'),
-                    dense: true,
+                  ),
+
+                  InkWell(
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.pomodoro);
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.timer_outlined,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Pomodoro Timer',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Focus intervals and session tracker',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
 
-                  ListTile(
-                    leading: Icon(
-                      Icons.settings_outlined,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    title: const Text('Settings & Preferences'),
-                    subtitle: const Text(
-                      'Customize theme, typography and sync',
-                    ),
-                    dense: true,
+                  InkWell(
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.settings);
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.settings_outlined,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Settings & Preferences',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Customize theme, typography and sync',
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

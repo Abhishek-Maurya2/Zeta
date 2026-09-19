@@ -124,8 +124,8 @@ class AppTheme {
         : colorScheme;
 
     final successColors = effectiveColorScheme.brightness == Brightness.light
-        ? SuccessColors.light(harmonizeWith: seedColor)
-        : SuccessColors.dark(harmonizeWith: seedColor);
+        ? SuccessColors.light()
+        : SuccessColors.dark();
 
     final baseTheme = ThemeData(
       useMaterial3: true,

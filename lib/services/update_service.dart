@@ -73,7 +73,8 @@ class UpdateService {
       _autoCheck = prefs.getBool(prefKeyAutoCheck) ?? true;
 
       // 1. Fetch GitHub PAT from Supabase database automatically without asking the user
-      if (_customToken == null || _customToken!.trim().isEmpty) {
+      if ((_customToken == null || _customToken!.trim().isEmpty) &&
+          !Platform.environment.containsKey('FLUTTER_TEST')) {
         final dbToken = await _resolveTokenFromDatabase();
         if (dbToken != null && dbToken.isNotEmpty) {
           _customToken = dbToken;

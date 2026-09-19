@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zeta/components/settings/updates_section.dart';
+import 'package:zeta/pages/settings/components/updates_section.dart';
 import 'package:zeta/models/update_model.dart';
 import 'package:zeta/services/update_service.dart';
 

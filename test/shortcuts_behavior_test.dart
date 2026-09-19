@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/top_app_bar.dart';
-import 'package:zeta/components/tasks/task_edit_pane.dart';
+import 'package:zeta/components/task_edit_pane.dart';
 
 void main() {
   testWidgets(

@@ -50,8 +50,8 @@ class SuccessColors extends ThemeExtension<SuccessColors> {
   /// Variant content color on top of fixed success roles.
   final Color onSuccessFixedVariant;
 
-  /// Default M3 Success seed color (Material 3 Forest/Emerald Key Green: #386A20).
-  static const Color defaultSeedColor = Color(0xFF386A20);
+  /// Default M3 Success seed color (Material 3 Forest/Emerald Key Green: #3B693A).
+  static const Color defaultSeedColor = Color(0xFF3B693A);
 
   /// Generates light mode M3 Success colors from [seedColor].
   /// Optional [harmonizeWith] harmonizes the success seed with the app's primary seed color.
@@ -79,15 +79,16 @@ class SuccessColors extends ThemeExtension<SuccessColors> {
     );
   }
 
-  /// Generates M3 Success colors dynamically from a [ColorScheme] (harmonized with primary).
+  /// Generates M3 Success colors dynamically from a [ColorScheme].
   factory SuccessColors.fromColorScheme(
     ColorScheme colorScheme, {
     Color seedColor = defaultSeedColor,
+    Color? harmonizeWith,
   }) {
     return _fromSeed(
       seedColor: seedColor,
       brightness: colorScheme.brightness,
-      harmonizeWith: colorScheme.primary,
+      harmonizeWith: harmonizeWith,
     );
   }
 
@@ -107,7 +108,7 @@ class SuccessColors extends ThemeExtension<SuccessColors> {
 
     return SuccessColors(
       success: Color(palette.get(isLight ? 40 : 80)),
-      onSuccess: Color(palette.get(isLight ? 100 : 20)),
+      onSuccess: Color(palette.get(isLight ? 90 : 20)),
       successContainer: Color(palette.get(isLight ? 90 : 30)),
       onSuccessContainer: Color(palette.get(isLight ? 10 : 90)),
       successFixed: Color(palette.get(90)),

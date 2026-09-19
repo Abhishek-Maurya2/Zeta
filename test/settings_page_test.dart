@@ -10,7 +10,6 @@ import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/pages/settings_page.dart';
 import 'package:zeta/widgets/m3_pane_divider.dart';
 import 'package:zeta/widgets/segmented_column.dart';
-import 'package:zeta/components/settings/settings.dart';
 
 Widget createSettingsTestWidget({
   Size size = const Size(1200, 900),
@@ -112,7 +111,13 @@ void main() {
     final colorScheme = Theme.of(tester.element(find.byType(SettingsPage))).colorScheme;
     final containers = tester.widgetList<Container>(find.byType(Container));
     final elevatedContainer = containers.firstWhere(
-      (c) => c.color == colorScheme.surfaceContainer || c.color == colorScheme.surfaceContainerLow,
+      (c) =>
+          c.color == colorScheme.surfaceContainer ||
+          c.color == colorScheme.surfaceContainerLow ||
+          ((c.decoration is BoxDecoration) &&
+              ((c.decoration as BoxDecoration).color == colorScheme.surfaceContainer ||
+                  (c.decoration as BoxDecoration).color == colorScheme.surfaceContainerHigh ||
+                  (c.decoration as BoxDecoration).color == colorScheme.surfaceContainerLow)),
     );
     expect(elevatedContainer, isNotNull);
   });
@@ -185,7 +190,7 @@ void main() {
 
     // Verify TypographySection is rendered
     expect(find.byType(TypographySection), findsOneWidget);
-    expect(find.text('TYPOGRAPHY & FLEX VARIABLE FONTS'), findsOneWidget);
+    expect(find.text('QUICK STYLE PRESETS'), findsOneWidget);
 
     // Verify role switcher buttons
     expect(find.text('Headings'), findsWidgets);

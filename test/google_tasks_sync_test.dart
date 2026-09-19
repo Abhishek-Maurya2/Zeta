@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zeta/models/task.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/services/google_calendar_service.dart';
@@ -6,6 +7,10 @@ import 'package:zeta/utils/task_date_formatter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('Google Tasks Endpoint & Date/Time Mapping', () {
     test('All-day Google Tasks due date (midnight UTC) resolves to correct date without timezone shifting', () {

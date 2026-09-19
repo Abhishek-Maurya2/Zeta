@@ -10,7 +10,7 @@ import 'package:zeta/pages/bin_page.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
-import 'package:zeta/components/tasks/task_edit_pane.dart';
+import 'package:zeta/components/task_edit_pane.dart';
 
 void main() {
   testWidgets('ZetaApp smoke test', (WidgetTester tester) async {
@@ -33,6 +33,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
+    final taskProvider = context.read<TaskProvider>();
+    taskProvider.addTask(title: 'Task Alpha');
+    taskProvider.addTask(title: 'Task Beta');
+    taskProvider.addTask(title: 'Task Gamma');
+    taskProvider.addTask(title: 'Task Delta');
+    final gammaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Gamma').id;
+    final deltaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Delta').id;
+    taskProvider.toggleTask(gammaId);
+    taskProvider.toggleTask(deltaId);
 
     context.read<NavigationProvider>().setActivePage(PageId.tasks);
     await tester.pumpAndSettle();
@@ -72,6 +81,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
+    final taskProvider = context.read<TaskProvider>();
+    taskProvider.addTask(title: 'Task Alpha');
+    taskProvider.addTask(title: 'Task Gamma');
+    final gammaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Gamma').id;
+    taskProvider.toggleTask(gammaId);
 
     context.read<NavigationProvider>().setActivePage(PageId.tasks);
     await tester.pumpAndSettle();
@@ -131,7 +145,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(TaskEditFormContent),
-        matching: find.text('New Task'),
+        matching: find.text('Create Task'),
       ),
       findsOneWidget,
     );

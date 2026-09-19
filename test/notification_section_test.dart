@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:zeta/components/settings/notifications_section.dart';
+import 'package:zeta/pages/settings/components/notifications_section.dart';
 import 'package:zeta/providers/theme_provider.dart';
 import 'package:zeta/providers/notification_provider.dart';
 

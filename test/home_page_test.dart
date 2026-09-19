@@ -4,11 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:zeta/main.dart';
 import 'package:zeta/navigation/app_scaffold.dart';
 import 'package:zeta/pages/home_page.dart';
-import 'package:zeta/components/home/weekly_calendar_strip.dart';
-import 'package:zeta/components/home/todays_focus_card.dart';
-import 'package:zeta/components/home/recent_tasks_section.dart';
-import 'package:zeta/components/home/streak_calendar_card.dart';
-import 'package:zeta/components/home/summary_widgets.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 
 void main() {

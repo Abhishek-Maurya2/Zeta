@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../models/revision.dart';
 import '../../providers/revision_provider.dart';
-import '../../components/revision/revision_subject_card.dart';
-import '../../components/revision/topic_edit_dialog.dart';
+import 'components/revision_subject_card.dart';
+import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
 import '../../widgets/segmented_column.dart';
 

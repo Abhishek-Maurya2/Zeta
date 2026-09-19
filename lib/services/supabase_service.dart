@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -38,6 +39,9 @@ class SupabaseService {
   /// Initializes the Supabase client.
   Future<void> init() async {
     if (_isInitialized) return;
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
     try {
       await Supabase.initialize(
         url: supaUrl,

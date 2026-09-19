@@ -1,1 +1,1 @@
-export 'm3e_pane_divider.dart';
+export '../components/m3_pane_divider.dart';

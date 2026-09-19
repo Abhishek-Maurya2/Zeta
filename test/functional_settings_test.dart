@@ -8,7 +8,6 @@ import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/providers/pomodoro_provider.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/pages/settings_page.dart';
-import 'package:zeta/components/settings/profile_section.dart';
 
 Widget createSettingsTestWidget({
   required ThemeProvider themeProvider,

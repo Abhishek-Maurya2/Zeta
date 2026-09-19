@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:zeta/components/settings/weather_section.dart';
+import 'package:zeta/pages/settings/components/weather_section.dart';
 import 'package:zeta/providers/theme_provider.dart';
 
 void main() {

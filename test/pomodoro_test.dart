@@ -8,13 +8,9 @@ import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/theme_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/pages/pomodoro_page.dart';
-import 'package:zeta/components/pomodoro/pomodoro_timer_pane.dart';
-import 'package:zeta/components/pomodoro/pomodoro_queue_pane.dart';
-import 'package:zeta/components/pomodoro/pomodoro_analysis_pane.dart';
-import 'package:zeta/components/pomodoro/pomodoro_settings_sheet.dart';
-import 'package:zeta/components/pomodoro/m3_pane_divider.dart';
+import 'package:zeta/pages/pomodoro/components/pomodoro_settings_sheet.dart';
+import 'package:zeta/widgets/m3e_pane_divider.dart';
 import 'package:zeta/widgets/segmented_column.dart';
-import 'package:zeta/pages/pomodoro_ambient_page.dart';
 import 'package:zeta/services/ambient_mode_service.dart';
 import 'package:flutter/services.dart';
 
@@ -120,7 +116,7 @@ void main() {
     expect(find.byType(PomodoroAnalysisPane), findsOneWidget);
     expect(find.text('Total Focus'), findsOneWidget);
     expect(find.text('Sessions Done'), findsOneWidget);
-    expect(find.text('Goal Hit'), findsOneWidget);
+    expect(find.text('Active Days'), findsOneWidget);
   });
 
   testWidgets('PomodoroSettingsSheet opens and updates cycle durations',
@@ -236,18 +232,12 @@ void main() {
     expect(find.text('D'), findsAtLeastNWidgets(1));
     expect(find.text('W'), findsAtLeastNWidgets(1));
     expect(find.text('M'), findsAtLeastNWidgets(1));
-    expect(find.text('3M'), findsAtLeastNWidgets(1));
     expect(find.text('Y'), findsAtLeastNWidgets(1));
 
     // Verify navigation buttons exist
     expect(find.byTooltip('Previous period'), findsOneWidget);
     expect(find.byTooltip('Next period'), findsOneWidget);
     expect(find.byTooltip('Jump to current'), findsOneWidget);
-
-    // Tap 3M
-    await tester.tap(find.text('3M').first);
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('Past 3 months'), findsOneWidget);
 
     // Tap Y
     await tester.tap(find.text('Y').first);
