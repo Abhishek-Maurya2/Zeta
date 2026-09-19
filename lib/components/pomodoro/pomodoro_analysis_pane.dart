@@ -130,7 +130,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               actions: ChartRange.values.map((r) {
                 final isSelected = _range == r;
                 return M3EButtonGroupAction(
-                  label: Text(isSelected ? r.fullLabel : r.shortLabel)
+                  label: Text(isSelected ? r.fullLabel : r.shortLabel),
                 );
               }).toList(),
             ),
@@ -174,13 +174,13 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 },
                 actions: [
                   const M3EButtonGroupAction(
-                    icon: Icon(Icons.chevron_left_rounded, size: 18),
+                    icon: Icon(Icons.chevron_left_rounded, size: 25),
                     tooltip: 'Previous period',
                   ),
                   M3EButtonGroupAction(
                     icon: Icon(
                       Icons.chevron_right_rounded,
-                      size: 18,
+                      size: 25,
                       color: _offset < 0
                           ? null
                           : colorScheme.onSurface.withValues(alpha: 0.38),
@@ -190,7 +190,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                   M3EButtonGroupAction(
                     icon: Icon(
                       Icons.history_rounded,
-                      size: 18,
+                      size: 25,
                       color: _offset != 0
                           ? null
                           : colorScheme.onSurface.withValues(alpha: 0.38),
@@ -213,6 +213,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           // ─── Visual Chart Card ────────────────────────────────────
           _buildChartCard(
             context,
+            provider,
             colorScheme,
             textTheme,
             sessionLog,
@@ -574,12 +575,15 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
   Widget _buildChartCard(
     BuildContext context,
+    PomodoroProvider provider,
     ColorScheme colorScheme,
     TextTheme textTheme,
     List<PomodoroSessionLog> sessionLog,
     DateTime now,
     String todayStr,
   ) {
+    final settings = provider.settings;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -590,33 +594,125 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           color: colorScheme.outlineVariant.withValues(alpha: 0.05),
         ),
       ),
-      child: switch (_range) {
-        ChartRange.day => _buildDayBlocksChart(
-          colorScheme,
-          textTheme,
-          sessionLog,
-          now,
-        ),
-        ChartRange.week => _buildWeekDaysChart(
-          colorScheme,
-          textTheme,
-          sessionLog,
-          now,
-          todayStr,
-        ),
-        ChartRange.month => _buildMonthWeeksChart(
-          colorScheme,
-          textTheme,
-          sessionLog,
-          now,
-        ),
-        ChartRange.year => _buildYearMonthsChart(
-          colorScheme,
-          textTheme,
-          sessionLog,
-          now,
-        ),
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header: Visual Legend & Set Goal Action ──
+          Row(
+            children: [
+              // Goal indicator
+              Container(
+                width: 14,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Goal',
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Avg indicator (small dashes)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 4,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary,
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Container(
+                    width: 4,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary,
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Container(
+                    width: 4,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary,
+                      borderRadius: BorderRadius.circular(1.5),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 5),
+              Text(
+                'Avg',
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.secondary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+              const Spacer(),
+              // Set Goal Button
+              FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  textStyle: textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                icon: const Icon(Icons.tune_rounded, size: 14),
+                label: const Text('Set Goal'),
+                onPressed: () => _showSetGoalBottomSheet(context, provider),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          switch (_range) {
+            ChartRange.day => _buildDayBlocksChart(
+              colorScheme,
+              textTheme,
+              sessionLog,
+              now,
+              settings.dayBlockGoalMinutes,
+            ),
+            ChartRange.week => _buildWeekDaysChart(
+              colorScheme,
+              textTheme,
+              sessionLog,
+              now,
+              todayStr,
+              settings.weekDailyGoalMinutes,
+            ),
+            ChartRange.month => _buildMonthWeeksChart(
+              colorScheme,
+              textTheme,
+              sessionLog,
+              now,
+              settings.monthWeeklyGoalMinutes,
+            ),
+            ChartRange.year => _buildYearMonthsChart(
+              colorScheme,
+              textTheme,
+              sessionLog,
+              now,
+              settings.yearMonthlyGoalMinutes,
+            ),
+          },
+        ],
+      ),
     );
   }
 
@@ -669,8 +765,23 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
         final barAreaHeight = chartHeight - labelAreaHeight - 16;
         final goalBottom = (goalFraction * barAreaHeight) + labelAreaHeight;
 
-        // Check if mid-tick label (50%) collides with goal line
-        final showMidTick = (goalFraction - 0.5).abs() > 0.15;
+        final showAvgLine = averageFocus > 0;
+        final avgFraction = effectiveMax > 0
+            ? (averageFocus / effectiveMax).clamp(0.08, 0.92)
+            : 0.0;
+        final avgBottom = (avgFraction * barAreaHeight) + labelAreaHeight;
+
+        // Check if mid-tick label (50%) collides with goal line or average line
+        final showMidTick =
+            (goalFraction - 0.5).abs() > 0.15 &&
+            (!showAvgLine || (avgFraction - 0.5).abs() > 0.15);
+
+        // Check if goal line and average line labels collide on the Y-axis
+        final isGoalAvgColliding =
+            showAvgLine && (goalBottom - avgBottom).abs() < 14;
+        final effectiveAvgLabelBottom = isGoalAvgColliding
+            ? (avgBottom < goalBottom ? avgBottom - 11 : avgBottom + 4)
+            : avgBottom - 7;
 
         const columnGap = 10.0;
         final requiredTotalWidth =
@@ -702,6 +813,10 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               final tooltipLabel = item['tooltipLabel'] as String? ?? label;
               final isBelowAverage =
                   focus > 0 && averageFocus > 0 && focus < averageFocus;
+              final isSuccess =
+                  hitGoal || (goalValue > 0 && focus >= (goalValue * 0.7));
+              final isLowFocus =
+                  averageFocus > 0 && focus < (averageFocus * 0.3);
 
               Widget barWidget;
               if (focus <= 0) {
@@ -717,15 +832,50 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 final fraction = (focus / effectiveMax).clamp(0.0, 1.0);
                 final computedHeight = math.max(6.0, fraction * barAreaHeight);
 
-                final barColor = hitGoal
+                final barColor = isSuccess
                     ? colorScheme.successContainer
-                    : (isBelowAverage
+                    : (isLowFocus
                           ? (isHighlighted
                                 ? colorScheme.error
                                 : colorScheme.errorContainer)
                           : (isHighlighted
                                 ? colorScheme.tertiaryContainer
                                 : colorScheme.secondaryContainer));
+
+                Widget? badgeWidget;
+                if (computedHeight >= badgeSize + 6) {
+                  if (isSuccess) {
+                    badgeWidget = M3EShapeContainer.softBoom(
+                      width: badgeSize,
+                      height: badgeSize,
+                      color: colorScheme.success,
+                      child: Center(
+                        child: Icon(
+                          Icons.check_rounded,
+                          size: iconSize,
+                          color: colorScheme.successContainer,
+                        ),
+                      ),
+                    );
+                  } else if (!isLowFocus) {
+                    badgeWidget = M3EShapeContainer.arrow(
+                      width: badgeSize,
+                      height: badgeSize,
+                      color: isHighlighted
+                          ? colorScheme.tertiary
+                          : colorScheme.secondary,
+                      child: Center(
+                        child: Icon(
+                          Icons.remove_rounded,
+                          size: iconSize,
+                          color: isHighlighted
+                              ? colorScheme.tertiaryContainer
+                              : colorScheme.secondaryContainer,
+                        ),
+                      ),
+                    );
+                  }
+                }
 
                 barWidget = Container(
                   width: barWidth,
@@ -736,23 +886,12 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                       math.min(barWidth / 2, computedHeight / 2),
                     ),
                   ),
-                  child: hitGoal && computedHeight >= badgeSize + 6
+                  child: badgeWidget != null
                       ? Align(
                           alignment: Alignment.topCenter,
                           child: Padding(
                             padding: EdgeInsets.only(top: topPadding),
-                            child: M3EShapeContainer.softBoom(
-                              width: badgeSize,
-                              height: badgeSize,
-                              color: colorScheme.success,
-                              child: Center(
-                                child: Icon(
-                                  Icons.check_rounded,
-                                  size: iconSize,
-                                  color: colorScheme.successContainer,
-                                ),
-                              ),
-                            ),
+                            child: badgeWidget,
                           ),
                         )
                       : null,
@@ -830,11 +969,23 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 child: Container(
                   height: 1.5,
                   decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.75),
+                    color: colorScheme.primary.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(1),
                   ),
                 ),
               ),
+
+              // ── Average Reference Line Across Chart (Dashed) ──
+              if (showAvgLine)
+                Positioned(
+                  left: 0,
+                  right: rightAxisWidth + 4,
+                  bottom: avgBottom,
+                  child: _DashedLine(
+                    color: colorScheme.secondary.withValues(alpha: 0.8),
+                    height: 1.5,
+                  ),
+                ),
 
               // ── Vertical Bars Row (Scrollable if needed, auto-scrolled to end/latest) ──
               Positioned(
@@ -896,6 +1047,20 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
                 ),
               ),
 
+              if (showAvgLine)
+                Positioned(
+                  bottom: effectiveAvgLabelBottom,
+                  right: 0,
+                  child: Text(
+                    _formatAxisDuration(averageFocus.round()),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.secondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 9.5,
+                    ),
+                  ),
+                ),
+
               Positioned(
                 bottom: labelAreaHeight - 4,
                 right: 0,
@@ -920,6 +1085,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     TextTheme textTheme,
     List<PomodoroSessionLog> sessionLog,
     DateTime now,
+    int blockGoal,
   ) {
     final target = now.add(Duration(days: _offset));
     final ds = _toLocalDateStr(target);
@@ -974,12 +1140,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       },
     ];
 
-    final maxBlockFocus = rawBlocks.fold<int>(
-      0,
-      (m, b) => math.max(m, b['focus'] as int),
-    );
-    final blockGoal = maxBlockFocus > 0 ? maxBlockFocus : 45;
-
     final blocks = rawBlocks.map((b) {
       final focus = b['focus'] as int;
       return {...b, 'hitGoal': focus >= blockGoal, 'isHighlighted': false};
@@ -1007,6 +1167,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     List<PomodoroSessionLog> sessionLog,
     DateTime now,
     String todayStr,
+    int weekDailyGoal,
   ) {
     final startOfWeek = now
         .subtract(Duration(days: now.weekday % 7))
@@ -1051,7 +1212,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       });
     }
 
-    final weekDailyGoal = maxDayFocus > 0 ? maxDayFocus : 60;
     final days = rawDays.map((d) {
       final focus = d['focus'] as int;
       return {...d, 'hitGoal': focus >= weekDailyGoal};
@@ -1078,6 +1238,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     TextTheme textTheme,
     List<PomodoroSessionLog> sessionLog,
     DateTime now,
+    int weeklyGoal,
   ) {
     final target = DateTime(now.year, now.month + _offset, 1);
     final daysInMonth = DateTime(target.year, target.month + 1, 0).day;
@@ -1100,8 +1261,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       weekTotals[wIdx] += dayFocus;
     }
 
-    final maxWeekFocus = weekTotals.reduce(math.max);
-    final weeklyGoal = maxWeekFocus > 0 ? maxWeekFocus : 300;
     final currentWeekIdx = _offset == 0
         ? math.min(totalWeeks - 1, (now.day - 1) ~/ 7)
         : -1;
@@ -1138,6 +1297,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
     TextTheme textTheme,
     List<PomodoroSessionLog> sessionLog,
     DateTime now,
+    int monthlyGoal,
   ) {
     final targetYear = now.year + _offset;
     const monthLetters = [
@@ -1189,7 +1349,6 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       });
     }
 
-    final monthlyGoal = maxMonthFocus > 0 ? maxMonthFocus : 1200;
     final yearData = rawYearData.map((m) {
       final focus = m['focus'] as int;
       return {...m, 'hitGoal': focus >= monthlyGoal};
@@ -1364,6 +1523,320 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
       'Dec',
     ];
     return month >= 1 && month <= 12 ? months[month] : '';
+  }
+
+  void _showSetGoalBottomSheet(
+    BuildContext context,
+    PomodoroProvider provider,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            final settings = provider.settings;
+            final dailyGoal = settings.dailyGoalMinutes;
+            const minVal = 15;
+            const maxVal = 480; // 8 hours
+            const divisions = 31; // 15 min steps
+            const presets = [60, 120, 180, 240, 300];
+
+            void updateGoal(int newVal) {
+              ZetaHaptics.selection();
+              provider.updateSettings(
+                settings.copyWith(dailyGoalMinutes: newVal),
+              );
+              setModalState(() {});
+            }
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(ctx).height * 0.85,
+                maxWidth: 580,
+              ),
+              margin: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerLow,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Drag handle
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 1, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Main Target Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.2,
+                              ),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Daily Target',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _formatDuration(dailyGoal),
+                                style: textTheme.headlineLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: colorScheme.primary,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              M3ESlider(
+                                value: dailyGoal
+                                    .clamp(minVal, maxVal)
+                                    .toDouble(),
+                                min: minVal.toDouble(),
+                                max: maxVal.toDouble(),
+                                divisions: divisions,
+                                label: _formatDuration(dailyGoal),
+                                onChanged: (val) => updateGoal(val.round()),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Calculated Projections Grid
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: 0.15,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildCalculatedGoalItem(
+                                label: 'Day & Week',
+                                formula: '1 Day',
+                                value: _formatDuration(dailyGoal),
+                                textTheme: textTheme,
+                                colorScheme: colorScheme,
+                              ),
+                              Container(
+                                width: 1,
+                                height: 32,
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.25,
+                                ),
+                              ),
+                              _buildCalculatedGoalItem(
+                                label: 'Month View',
+                                formula: '7 Days (Week)',
+                                value: _formatDuration(
+                                  settings.monthWeeklyGoalMinutes,
+                                ),
+                                textTheme: textTheme,
+                                colorScheme: colorScheme,
+                              ),
+                              Container(
+                                width: 1,
+                                height: 32,
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.25,
+                                ),
+                              ),
+                              _buildCalculatedGoalItem(
+                                label: 'Year View',
+                                formula: '31 Days (Month)',
+                                value: _formatDuration(
+                                  settings.yearMonthlyGoalMinutes,
+                                ),
+                                textTheme: textTheme,
+                                colorScheme: colorScheme,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Quick Presets
+                        Text(
+                          'QUICK PRESETS',
+                          style: textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: presets.map((preset) {
+                            final isCurrent = dailyGoal == preset;
+                            return ChoiceChip(
+                              label: Text(_formatDuration(preset)),
+                              selected: isCurrent,
+                              onSelected: (_) => updateGoal(preset),
+                              labelStyle: textTheme.labelSmall?.copyWith(
+                                fontWeight: isCurrent
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isCurrent
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                              selectedColor: colorScheme.primaryContainer,
+                              backgroundColor:
+                                  colorScheme.surfaceContainerLowest,
+                            );
+                          }).toList(),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Done button
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Done'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCalculatedGoalItem({
+    required String label,
+    required String formula,
+    required String value,
+    required TextTheme textTheme,
+    required ColorScheme colorScheme,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurfaceVariant,
+            fontSize: 10.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colorScheme.primary,
+          ),
+        ),
+        Text(
+          formula,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            fontSize: 9,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Helper widget that renders a dashed horizontal line with customizable dash size and spacing.
+class _DashedLine extends StatelessWidget {
+  final Color color;
+  final double height;
+
+  static const double dashWidth = 5.0;
+  static const double dashSpace = 3.5;
+
+  const _DashedLine({required this.color, this.height = 1.5});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boxWidth = constraints.maxWidth;
+        if (boxWidth <= 0) return const SizedBox.shrink();
+        final dashCount = (boxWidth / (dashWidth + dashSpace)).floor();
+        if (dashCount <= 0) return const SizedBox.shrink();
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(dashCount, (_) {
+            return SizedBox(
+              width: dashWidth,
+              height: height,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(height / 2),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
   }
 }
 

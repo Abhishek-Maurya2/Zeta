@@ -67,6 +67,12 @@ class PomodoroSettings {
   final bool skipBreaks;
   final bool soundNotification;
   final bool toastNotification;
+  final int dailyGoalMinutes;
+
+  int get dayBlockGoalMinutes => dailyGoalMinutes;
+  int get weekDailyGoalMinutes => dailyGoalMinutes;
+  int get monthWeeklyGoalMinutes => dailyGoalMinutes * 7;
+  int get yearMonthlyGoalMinutes => dailyGoalMinutes * 31;
 
   const PomodoroSettings({
     this.focusDuration = 25,
@@ -79,6 +85,7 @@ class PomodoroSettings {
     this.skipBreaks = false,
     this.soundNotification = true,
     this.toastNotification = true,
+    this.dailyGoalMinutes = 60,
   });
 
   PomodoroSettings copyWith({
@@ -92,6 +99,7 @@ class PomodoroSettings {
     bool? skipBreaks,
     bool? soundNotification,
     bool? toastNotification,
+    int? dailyGoalMinutes,
   }) {
     return PomodoroSettings(
       focusDuration: focusDuration ?? this.focusDuration,
@@ -104,21 +112,23 @@ class PomodoroSettings {
       skipBreaks: skipBreaks ?? this.skipBreaks,
       soundNotification: soundNotification ?? this.soundNotification,
       toastNotification: toastNotification ?? this.toastNotification,
+      dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'focusDuration': focusDuration,
-        'shortBreakDuration': shortBreakDuration,
-        'longBreakDuration': longBreakDuration,
-        'longBreakInterval': longBreakInterval,
-        'autoStartBreaks': autoStartBreaks,
-        'autoStartFocus': autoStartFocus,
-        'autoStartNext': autoStartNext,
-        'skipBreaks': skipBreaks,
-        'soundNotification': soundNotification,
-        'toastNotification': toastNotification,
-      };
+    'focusDuration': focusDuration,
+    'shortBreakDuration': shortBreakDuration,
+    'longBreakDuration': longBreakDuration,
+    'longBreakInterval': longBreakInterval,
+    'autoStartBreaks': autoStartBreaks,
+    'autoStartFocus': autoStartFocus,
+    'autoStartNext': autoStartNext,
+    'skipBreaks': skipBreaks,
+    'soundNotification': soundNotification,
+    'toastNotification': toastNotification,
+    'dailyGoalMinutes': dailyGoalMinutes,
+  };
 
   factory PomodoroSettings.fromJson(Map<String, dynamic> json) {
     return PomodoroSettings(
@@ -132,6 +142,9 @@ class PomodoroSettings {
       skipBreaks: json['skipBreaks'] as bool? ?? false,
       soundNotification: json['soundNotification'] as bool? ?? true,
       toastNotification: json['toastNotification'] as bool? ?? true,
+      dailyGoalMinutes: json['dailyGoalMinutes'] as int? ??
+          json['weekDailyGoalMinutes'] as int? ??
+          60,
     );
   }
 }
@@ -150,26 +163,28 @@ class PomodoroSessionLog {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'mode': mode.toJsonString(),
-        'minutes': minutes,
-        'completedAt': completedAt,
-      };
+    'id': id,
+    'mode': mode.toJsonString(),
+    'minutes': minutes,
+    'completedAt': completedAt,
+  };
 
   factory PomodoroSessionLog.fromJson(Map<String, dynamic> json) {
     return PomodoroSessionLog(
       id: json['id'] as String? ?? '',
       mode: PomodoroMode.fromString(json['mode'] as String? ?? 'focus'),
       minutes: json['minutes'] as int? ?? 0,
-      completedAt: json['completedAt'] as int? ??
-          DateTime.now().millisecondsSinceEpoch,
+      completedAt:
+          json['completedAt'] as int? ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
   /// Converts the session log to a PostgreSQL row for the Supabase `public.pomodoro_sessions` table.
   Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
-    final completedUtc =
-        DateTime.fromMillisecondsSinceEpoch(completedAt, isUtc: true);
+    final completedUtc = DateTime.fromMillisecondsSinceEpoch(
+      completedAt,
+      isUtc: true,
+    );
     return {
       'id': id,
       'user_id': defaultUserId ?? 'singleton',
@@ -184,7 +199,8 @@ class PomodoroSessionLog {
     final rawCompleted = row['completed_at'];
     int completedMs = DateTime.now().millisecondsSinceEpoch;
     if (rawCompleted is String) {
-      completedMs = DateTime.tryParse(rawCompleted)?.millisecondsSinceEpoch ??
+      completedMs =
+          DateTime.tryParse(rawCompleted)?.millisecondsSinceEpoch ??
           completedMs;
     } else if (rawCompleted is int) {
       completedMs = rawCompleted;
@@ -200,8 +216,9 @@ class PomodoroSessionLog {
 
 List<PomodoroSessionItem> generateQueue(PomodoroSettings settings) {
   final queue = <PomodoroSessionItem>[];
-  final interval =
-      settings.longBreakInterval < 1 ? 1 : settings.longBreakInterval;
+  final interval = settings.longBreakInterval < 1
+      ? 1
+      : settings.longBreakInterval;
 
   for (int i = 1; i <= interval; i++) {
     queue.add(
@@ -239,4 +256,3 @@ List<PomodoroSessionItem> generateQueue(PomodoroSettings settings) {
 
   return queue;
 }
-
