@@ -76,6 +76,25 @@ class PomodoroChartCanvas extends StatelessWidget {
     return '$y-$m-$d';
   }
 
+  static String monthName(int month) {
+    const months = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return month >= 1 && month <= 12 ? months[month] : '';
+  }
+
   // ─── Data Generation Helpers for Chart Ranges ─────────────────────────────
 
   static List<Map<String, dynamic>> buildDayBlocks(
@@ -84,17 +103,6 @@ class PomodoroChartCanvas extends StatelessWidget {
     int offset,
     int blockGoal,
   ) {
-    final target = now.add(Duration(days: offset));
-    final ds = toLocalDateStr(target);
-
-    final hours = List<int>.filled(24, 0);
-    for (final e in sessionLog) {
-      final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-      if (toLocalDateStr(d) == ds && e.mode == PomodoroMode.focus) {
-        hours[d.hour] += e.minutes;
-      }
-    }
-
     const blockTooltips = [
       '12:00 AM – 4:00 AM',
       '4:00 AM – 8:00 AM',
@@ -103,44 +111,71 @@ class PomodoroChartCanvas extends StatelessWidget {
       '4:00 PM – 8:00 PM',
       '8:00 PM – 12:00 AM',
     ];
+    const blockLabels = ['12a', '4a', '8a', '12p', '4p', '8p'];
 
-    final rawBlocks = [
-      {
-        'label': '12a',
-        'tooltipLabel': blockTooltips[0],
-        'focus': hours.sublist(0, 4).reduce((a, b) => a + b),
-      },
-      {
-        'label': '4a',
-        'tooltipLabel': blockTooltips[1],
-        'focus': hours.sublist(4, 8).reduce((a, b) => a + b),
-      },
-      {
-        'label': '8a',
-        'tooltipLabel': blockTooltips[2],
-        'focus': hours.sublist(8, 12).reduce((a, b) => a + b),
-      },
-      {
-        'label': '12p',
-        'tooltipLabel': blockTooltips[3],
-        'focus': hours.sublist(12, 16).reduce((a, b) => a + b),
-      },
-      {
-        'label': '4p',
-        'tooltipLabel': blockTooltips[4],
-        'focus': hours.sublist(16, 20).reduce((a, b) => a + b),
-      },
-      {
-        'label': '8p',
-        'tooltipLabel': blockTooltips[5],
-        'focus': hours.sublist(20, 24).reduce((a, b) => a + b),
-      },
-    ];
+    if (offset < 0) {
+      final target = now.add(Duration(days: offset));
+      final ds = toLocalDateStr(target);
 
-    return rawBlocks.map((b) {
-      final focus = b['focus'] as int;
-      return {...b, 'hitGoal': focus >= blockGoal, 'isHighlighted': false};
-    }).toList();
+      final hours = List<int>.filled(24, 0);
+      for (final e in sessionLog) {
+        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+        if (toLocalDateStr(d) == ds && e.mode == PomodoroMode.focus) {
+          hours[d.hour] += e.minutes;
+        }
+      }
+
+      final rawBlocks = List.generate(6, (i) {
+        return {
+          'label': blockLabels[i],
+          'tooltipLabel': blockTooltips[i],
+          'focus': hours.sublist(i * 4, (i + 1) * 4).reduce((a, b) => a + b),
+          'isHighlighted': false,
+        };
+      });
+
+      return rawBlocks.map((b) {
+        final focus = b['focus'] as int;
+        return {...b, 'hitGoal': focus >= blockGoal};
+      }).toList();
+    }
+
+    // offset == 0: continuous last 6 blocks (24 hours) ending at current block
+    final currentBlockStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      (now.hour ~/ 4) * 4,
+    );
+
+    return List.generate(6, (i) {
+      final blockStart = currentBlockStart.subtract(
+        Duration(hours: (5 - i) * 4),
+      );
+      final blockEnd = blockStart.add(const Duration(hours: 4));
+
+      final entries = sessionLog.where((e) {
+        if (e.mode != PomodoroMode.focus) return false;
+        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+        return (d.isAfter(blockStart) || d.isAtSameMomentAs(blockStart)) &&
+            d.isBefore(blockEnd);
+      });
+      final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+
+      final bIdx = blockStart.hour ~/ 4;
+      final isToday = toLocalDateStr(blockStart) == toLocalDateStr(now);
+      final dateTag = isToday
+          ? ''
+          : ' (${monthName(blockStart.month)} ${blockStart.day})';
+
+      return {
+        'label': blockLabels[bIdx],
+        'tooltipLabel': '${blockTooltips[bIdx]}$dateTag',
+        'focus': focus,
+        'hitGoal': focus >= blockGoal,
+        'isHighlighted': i == 5,
+      };
+    });
   }
 
   static List<Map<String, dynamic>> buildWeekDays(
@@ -150,10 +185,7 @@ class PomodoroChartCanvas extends StatelessWidget {
     String todayStr,
     int weekDailyGoal,
   ) {
-    final startOfWeek = now
-        .subtract(Duration(days: now.weekday % 7))
-        .add(Duration(days: offset * 7));
-    const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const dayLetters = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const fullDayNames = [
       'Sunday',
       'Monday',
@@ -163,6 +195,41 @@ class PomodoroChartCanvas extends StatelessWidget {
       'Friday',
       'Saturday',
     ];
+
+    if (offset == 0) {
+      // Continuous 7 rolling days ending at today
+      final targetEndDay = DateTime(now.year, now.month, now.day);
+      final rawDays = <Map<String, dynamic>>[];
+      for (int i = 0; i < 7; i++) {
+        final d = targetEndDay.subtract(Duration(days: 6 - i));
+        final ds = toLocalDateStr(d);
+        final entries = sessionLog.where(
+          (e) =>
+              toLocalDateStr(
+                    DateTime.fromMillisecondsSinceEpoch(e.completedAt),
+                  ) ==
+                  ds &&
+              e.mode == PomodoroMode.focus,
+        );
+        final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        final dayIdx = d.weekday % 7;
+        rawDays.add({
+          'label': dayLetters[dayIdx],
+          'tooltipLabel':
+              '${fullDayNames[dayIdx]} (${monthName(d.month)} ${d.day})',
+          'dateStr': ds,
+          'isHighlighted': ds == todayStr,
+          'focus': focus,
+          'hitGoal': focus >= weekDailyGoal,
+        });
+      }
+      return rawDays;
+    }
+
+    // offset < 0: previous calendar week (Sun-Sat) excluding current running week
+    final startOfWeek = now
+        .subtract(Duration(days: now.weekday % 7))
+        .add(Duration(days: offset * 7));
 
     final rawDays = <Map<String, dynamic>>[];
     for (int i = 0; i < 7; i++) {
@@ -183,17 +250,14 @@ class PomodoroChartCanvas extends StatelessWidget {
       final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       rawDays.add({
         'label': dayLetters[i],
-        'tooltipLabel': fullDayNames[i],
+        'tooltipLabel': '${fullDayNames[i]} (${monthName(d.month)} ${d.day})',
         'dateStr': ds,
-        'isHighlighted': ds == todayStr,
+        'isHighlighted': false,
         'focus': focus,
+        'hitGoal': focus >= weekDailyGoal,
       });
     }
-
-    return rawDays.map((d) {
-      final focus = d['focus'] as int;
-      return {...d, 'hitGoal': focus >= weekDailyGoal};
-    }).toList();
+    return rawDays;
   }
 
   static List<Map<String, dynamic>> buildMonthWeeks(
@@ -202,6 +266,46 @@ class PomodoroChartCanvas extends StatelessWidget {
     int offset,
     int weeklyGoal,
   ) {
+    if (offset == 0) {
+      // Continuous 4 rolling 7-day weeks ending at today
+      final targetEndDay = DateTime(now.year, now.month, now.day);
+      return List.generate(4, (i) {
+        final weekStart = targetEndDay.subtract(Duration(days: (3 - i) * 7 + 6));
+        final weekEnd = targetEndDay.subtract(Duration(days: (3 - i) * 7));
+        final startMs = DateTime(
+          weekStart.year,
+          weekStart.month,
+          weekStart.day,
+        ).millisecondsSinceEpoch;
+        final endMs = DateTime(
+          weekEnd.year,
+          weekEnd.month,
+          weekEnd.day,
+          23,
+          59,
+          59,
+        ).millisecondsSinceEpoch;
+
+        final entries = sessionLog.where(
+          (e) =>
+              e.mode == PomodoroMode.focus &&
+              e.completedAt >= startMs &&
+              e.completedAt <= endMs,
+        );
+        final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+
+        return {
+          'label': 'W${i + 1}',
+          'tooltipLabel':
+              'Week ${i + 1}: ${monthName(weekStart.month)} ${weekStart.day} – ${monthName(weekEnd.month)} ${weekEnd.day}',
+          'focus': focus,
+          'hitGoal': focus >= weeklyGoal,
+          'isHighlighted': i == 3,
+        };
+      });
+    }
+
+    // offset < 0: previous calendar month (W1..W5) excluding current running month
     final target = DateTime(now.year, now.month + offset, 1);
     final daysInMonth = DateTime(target.year, target.month + 1, 0).day;
     final totalWeeks = (daysInMonth / 7).ceil();
@@ -223,18 +327,15 @@ class PomodoroChartCanvas extends StatelessWidget {
       weekTotals[wIdx] += dayFocus;
     }
 
-    final currentWeekIdx = offset == 0
-        ? math.min(totalWeeks - 1, (now.day - 1) ~/ 7)
-        : -1;
-
     return List.generate(totalWeeks, (i) {
       final focus = weekTotals[i];
       return {
         'label': 'W${i + 1}',
-        'tooltipLabel': 'Week ${i + 1}',
+        'tooltipLabel':
+            'Week ${i + 1} (${monthName(target.month)} ${target.year})',
         'focus': focus,
         'hitGoal': focus >= weeklyGoal,
-        'isHighlighted': i == currentWeekIdx,
+        'isHighlighted': false,
       };
     });
   }
@@ -245,7 +346,6 @@ class PomodoroChartCanvas extends StatelessWidget {
     int offset,
     int monthlyGoal,
   ) {
-    final targetYear = now.year + offset;
     const monthLetters = [
       'Jan',
       'Feb',
@@ -275,6 +375,36 @@ class PomodoroChartCanvas extends StatelessWidget {
       'December',
     ];
 
+    if (offset == 0) {
+      // Continuous 12 rolling months ending at current month
+      final targetEndMonth = DateTime(now.year, now.month, 1);
+      final rawYearData = <Map<String, dynamic>>[];
+      for (int i = 0; i < 12; i++) {
+        final mDate = DateTime(
+          targetEndMonth.year,
+          targetEndMonth.month - 11 + i,
+          1,
+        );
+        final entries = sessionLog.where((e) {
+          final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+          return d.year == mDate.year &&
+              d.month == mDate.month &&
+              e.mode == PomodoroMode.focus;
+        });
+        final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        rawYearData.add({
+          'label': monthLetters[mDate.month - 1],
+          'tooltipLabel': '${fullMonthNames[mDate.month - 1]} ${mDate.year}',
+          'focus': total,
+          'hitGoal': total >= monthlyGoal,
+          'isHighlighted': i == 11,
+        });
+      }
+      return rawYearData;
+    }
+
+    // offset < 0: previous calendar year (Jan-Dec) excluding current running year
+    final targetYear = now.year + offset;
     final rawYearData = <Map<String, dynamic>>[];
     for (int m = 1; m <= 12; m++) {
       final entries = sessionLog.where((e) {
@@ -286,16 +416,13 @@ class PomodoroChartCanvas extends StatelessWidget {
       final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       rawYearData.add({
         'label': monthLetters[m - 1],
-        'tooltipLabel': fullMonthNames[m - 1],
+        'tooltipLabel': '${fullMonthNames[m - 1]} $targetYear',
         'focus': total,
-        'isHighlighted': targetYear == now.year && m == now.month,
+        'hitGoal': total >= monthlyGoal,
+        'isHighlighted': false,
       });
     }
-
-    return rawYearData.map((m) {
-      final focus = m['focus'] as int;
-      return {...m, 'hitGoal': focus >= monthlyGoal};
-    }).toList();
+    return rawYearData;
   }
 
   @override
@@ -562,9 +689,7 @@ class PomodoroChartCanvas extends StatelessWidget {
                 bottom: 0,
                 child: isScrollable
                     ? HorizontalEndScrollView(
-                        key: ValueKey(
-                          '${items.length}_${range.name}_$offset',
-                        ),
+                        key: ValueKey('${items.length}_${range.name}_$offset'),
                         child: Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: buildBarsRow(),

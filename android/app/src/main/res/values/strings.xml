@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_pomodoro_short">Pomodoro</string>
+    <string name="shortcut_pomodoro_long">Pomodoro Timer</string>
+    <string name="shortcut_tasks_short">Tasks</string>
+    <string name="shortcut_tasks_long">Manage Tasks</string>
+    <string name="shortcut_calendar_short">Calendar</string>
+    <string name="shortcut_calendar_long">Calendar &amp; Schedule</string>
+    <string name="shortcut_revision_short">Revision</string>
+    <string name="shortcut_revision_long">Revision Notes</string>
+</resources>

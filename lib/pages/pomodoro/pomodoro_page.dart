@@ -285,7 +285,27 @@ class _PomodoroPageState extends State<PomodoroPage> {
                               child: M3EButtonGroup(
                                 type: M3EButtonGroupType.connected,
                                 size: M3EButtonSize.sm,
-                                style: M3EButtonStyle.tonal,
+                                style: M3EButtonStyle.filled,
+                                decoration: M3EToggleButtonDecoration(
+                                  backgroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                        if (states.contains(
+                                          WidgetState.selected,
+                                        )) {
+                                          return colorScheme.primary;
+                                        }
+                                        return colorScheme.tertiaryContainer;
+                                      }),
+                                  foregroundColor:
+                                      WidgetStateProperty.resolveWith((states) {
+                                        if (states.contains(
+                                          WidgetState.selected,
+                                        )) {
+                                          return colorScheme.onPrimary;
+                                        }
+                                        return colorScheme.onTertiaryContainer;
+                                      }),
+                                ),
                                 selectedIndex: _secondaryTab.index,
                                 onSelectedIndexChanged: (idx) {
                                   if (idx != null) {
@@ -410,7 +430,22 @@ class _PomodoroPageState extends State<PomodoroPage> {
             child: M3EButtonGroup(
               type: M3EButtonGroupType.connected,
               size: M3EButtonSize.sm,
-              style: M3EButtonStyle.tonal,
+              style: M3EButtonStyle.filled,
+              decoration: M3EToggleButtonDecoration(
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return colorScheme.primary;
+                  }
+                  return colorScheme.tertiaryContainer;
+                }),
+                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return colorScheme.onPrimary;
+                  }
+                  return colorScheme.onTertiaryContainer;
+                }),
+              ),
+
               selectedIndex: _activeTab.index,
               onSelectedIndexChanged: (idx) {
                 if (idx != null) {

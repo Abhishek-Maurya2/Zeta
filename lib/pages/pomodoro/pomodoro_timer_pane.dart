@@ -72,7 +72,8 @@ class PomodoroTimerPane extends StatelessWidget {
                             tooltip: 'Always-on display',
                             icon: const Icon(
                               Icons.fullscreen_rounded,
-                              size: 20,
+                              size: 25,
+                              fontWeight: FontWeight.bold,
                             ),
                             onPressed: onToggleAod != null
                                 ? () {

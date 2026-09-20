@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../models/pomodoro.dart';
 import 'pomodoro_chart_canvas.dart';
 
-/// Hero stat widget displaying large total focus time, label, and detailed period breakdown.
+/// Hero stat widget displaying large total focus time, label, and detailed period breakdown chips.
 class PomodoroHeroStat extends StatelessWidget {
   final ChartRange range;
   final int offset;
@@ -62,7 +62,10 @@ class PomodoroHeroStat extends StatelessWidget {
 
     int minutesToDisplay = 0;
     String subtitle = 'focus today';
-    String? detailText;
+
+    int? totalPeriodMinutes;
+    int? peakDayMinutes;
+    String? periodBadgeLabel;
 
     if (range == ChartRange.day) {
       final target = now.add(Duration(days: offset));
@@ -77,96 +80,187 @@ class PomodoroHeroStat extends StatelessWidget {
       );
       minutesToDisplay = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       subtitle = ds == todayStr ? 'focus today' : 'focus recorded';
-      if (minutesToDisplay > 0) {
-        detailText =
-            'Total ${formatDuration(minutesToDisplay)} focus recorded on this day';
-      } else {
-        detailText = 'No focus sessions recorded on this day';
-      }
+      totalPeriodMinutes = minutesToDisplay;
+      periodBadgeLabel = ds == todayStr ? 'Today' : '${target.day} ${monthName(target.month)}';
     } else if (range == ChartRange.week) {
-      final startOfWeek = now
-          .subtract(Duration(days: now.weekday % 7))
-          .add(Duration(days: offset * 7));
-      final endOfWeek = startOfWeek.add(const Duration(days: 6));
-      final entries = sessionLog.where((e) {
-        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-        return !d.isBefore(
-              DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
-            ) &&
-            !d.isAfter(
-              DateTime(
-                endOfWeek.year,
-                endOfWeek.month,
-                endOfWeek.day,
-                23,
-                59,
-                59,
-              ),
-            ) &&
-            e.mode == PomodoroMode.focus;
-      });
-      final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      final daysCount = offset == 0 ? ((now.weekday % 7) + 1) : 7;
-      minutesToDisplay = (total / math.max(1, daysCount)).round();
-      subtitle = '/ day (avg)';
+      if (offset == 0) {
+        final targetEndDay = DateTime(now.year, now.month, now.day);
+        final startMs = DateTime(
+          targetEndDay.year,
+          targetEndDay.month,
+          targetEndDay.day,
+        ).subtract(const Duration(days: 6)).millisecondsSinceEpoch;
+        final endMs = DateTime(
+          targetEndDay.year,
+          targetEndDay.month,
+          targetEndDay.day,
+          23,
+          59,
+          59,
+        ).millisecondsSinceEpoch;
 
-      int maxDayFocus = 0;
-      for (int i = 0; i < 7; i++) {
-        final d = DateTime(
-          startOfWeek.year,
-          startOfWeek.month,
-          startOfWeek.day + i,
+        final entries = sessionLog.where(
+          (e) =>
+              e.mode == PomodoroMode.focus &&
+              e.completedAt >= startMs &&
+              e.completedAt <= endMs,
         );
-        final ds = toLocalDateStr(d);
-        final dayMins = sessionLog
-            .where(
-              (e) =>
-                  toLocalDateStr(
-                        DateTime.fromMillisecondsSinceEpoch(e.completedAt),
-                      ) ==
-                      ds &&
-                  e.mode == PomodoroMode.focus,
-            )
-            .fold<int>(0, (s, e) => s + e.minutes);
-        maxDayFocus = math.max(maxDayFocus, dayMins);
-      }
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        minutesToDisplay = (totalPeriodMinutes / 7).round();
+        subtitle = '/ day (avg)';
 
-      detailText =
-          'Focused a total of ${formatDuration(total)} this week (Peak day: ${formatDuration(maxDayFocus)})';
+        int maxDayMins = 0;
+        for (int i = 0; i < 7; i++) {
+          final d = targetEndDay.subtract(Duration(days: 6 - i));
+          final ds = toLocalDateStr(d);
+          final dayMins = sessionLog
+              .where(
+                (e) =>
+                    toLocalDateStr(
+                          DateTime.fromMillisecondsSinceEpoch(e.completedAt),
+                        ) ==
+                        ds &&
+                    e.mode == PomodoroMode.focus,
+              )
+              .fold<int>(0, (s, e) => s + e.minutes);
+          maxDayMins = math.max(maxDayMins, dayMins);
+        }
+        peakDayMinutes = maxDayMins;
+        periodBadgeLabel = 'Last 7 days';
+      } else {
+        final startOfWeek = now
+            .subtract(Duration(days: now.weekday % 7))
+            .add(Duration(days: offset * 7));
+        final endOfWeek = startOfWeek.add(const Duration(days: 6));
+        final entries = sessionLog.where((e) {
+          final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+          return !d.isBefore(
+                DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
+              ) &&
+              !d.isAfter(
+                DateTime(
+                  endOfWeek.year,
+                  endOfWeek.month,
+                  endOfWeek.day,
+                  23,
+                  59,
+                  59,
+                ),
+              ) &&
+              e.mode == PomodoroMode.focus;
+        });
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        minutesToDisplay = (totalPeriodMinutes / 7).round();
+        subtitle = '/ day (avg)';
+
+        int maxDayMins = 0;
+        for (int i = 0; i < 7; i++) {
+          final d = DateTime(
+            startOfWeek.year,
+            startOfWeek.month,
+            startOfWeek.day + i,
+          );
+          final ds = toLocalDateStr(d);
+          final dayMins = sessionLog
+              .where(
+                (e) =>
+                    toLocalDateStr(
+                          DateTime.fromMillisecondsSinceEpoch(e.completedAt),
+                        ) ==
+                        ds &&
+                    e.mode == PomodoroMode.focus,
+              )
+              .fold<int>(0, (s, e) => s + e.minutes);
+          maxDayMins = math.max(maxDayMins, dayMins);
+        }
+        peakDayMinutes = maxDayMins;
+        periodBadgeLabel = 'Last week';
+      }
     } else if (range == ChartRange.month) {
-      final target = DateTime(now.year, now.month + offset, 1);
-      final lastDay = DateTime(target.year, target.month + 1, 0).day;
-      final entries = sessionLog.where((e) {
-        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-        return d.year == target.year &&
-            d.month == target.month &&
-            e.mode == PomodoroMode.focus;
-      });
-      final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      final divisor = offset == 0 ? now.day : lastDay;
-      minutesToDisplay = (total / math.max(1, divisor)).round();
-      subtitle = 'per day (avg)';
-      detailText =
-          'Total ${formatDuration(total)} focus recorded in ${monthName(target.month)}';
+      if (offset == 0) {
+        final targetEndDay = DateTime(now.year, now.month, now.day);
+        final startMs = DateTime(
+          targetEndDay.year,
+          targetEndDay.month,
+          targetEndDay.day,
+        ).subtract(const Duration(days: 27)).millisecondsSinceEpoch;
+        final endMs = DateTime(
+          targetEndDay.year,
+          targetEndDay.month,
+          targetEndDay.day,
+          23,
+          59,
+          59,
+        ).millisecondsSinceEpoch;
+
+        final entries = sessionLog.where(
+          (e) =>
+              e.mode == PomodoroMode.focus &&
+              e.completedAt >= startMs &&
+              e.completedAt <= endMs,
+        );
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        minutesToDisplay = (totalPeriodMinutes / 28).round();
+        subtitle = 'per day (avg)';
+        periodBadgeLabel = 'Last 4 weeks';
+      } else {
+        final target = DateTime(now.year, now.month + offset, 1);
+        final lastDay = DateTime(target.year, target.month + 1, 0).day;
+        final entries = sessionLog.where((e) {
+          final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+          return d.year == target.year &&
+              d.month == target.month &&
+              e.mode == PomodoroMode.focus;
+        });
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        minutesToDisplay = (totalPeriodMinutes / lastDay).round();
+        subtitle = 'per day (avg)';
+        periodBadgeLabel = '${monthName(target.month)} ${target.year}';
+      }
     } else if (range == ChartRange.year) {
-      final targetYear = now.year + offset;
-      final entries = sessionLog.where((e) {
-        final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
-        return d.year == targetYear && e.mode == PomodoroMode.focus;
-      });
-      final total = entries.fold<int>(0, (sum, e) => sum + e.minutes);
-      final daysCount = offset == 0
-          ? math.max(1, now.difference(DateTime(now.year, 1, 1)).inDays + 1)
-          : (DateTime(
-                  targetYear,
-                  12,
-                  31,
-                ).difference(DateTime(targetYear, 1, 1)).inDays +
-                1);
-      minutesToDisplay = (total / math.max(1, daysCount)).round();
-      subtitle = 'per day (avg)';
-      detailText =
-          'Total ${formatDuration(total)} focus recorded in $targetYear';
+      if (offset == 0) {
+        final targetEndMonth = DateTime(now.year, now.month, 1);
+        final startMonth = DateTime(
+          targetEndMonth.year,
+          targetEndMonth.month - 11,
+          1,
+        );
+        final endMonth = DateTime(
+          targetEndMonth.year,
+          targetEndMonth.month + 1,
+          0,
+          23,
+          59,
+          59,
+        );
+
+        final entries = sessionLog.where((e) {
+          if (e.mode != PomodoroMode.focus) return false;
+          final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+          return !d.isBefore(startMonth) && !d.isAfter(endMonth);
+        });
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        minutesToDisplay = (totalPeriodMinutes / 365).round();
+        subtitle = 'per day (avg)';
+        periodBadgeLabel = 'Last 12 months';
+      } else {
+        final targetYear = now.year + offset;
+        final entries = sessionLog.where((e) {
+          final d = DateTime.fromMillisecondsSinceEpoch(e.completedAt);
+          return d.year == targetYear && e.mode == PomodoroMode.focus;
+        });
+        totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
+        final daysCount =
+            (DateTime(
+              targetYear,
+              12,
+              31,
+            ).difference(DateTime(targetYear, 1, 1)).inDays +
+            1);
+        minutesToDisplay = (totalPeriodMinutes / daysCount).round();
+        subtitle = 'per day (avg)';
+        periodBadgeLabel = '$targetYear';
+      }
     }
 
     return Column(
@@ -189,22 +283,93 @@ class PomodoroHeroStat extends StatelessWidget {
               subtitle,
               style: textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
               ),
             ),
           ],
         ),
-        if (detailText != null) ...[
-          const SizedBox(height: 6),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (totalPeriodMinutes != null && totalPeriodMinutes > 0)
+              _StatChip(
+                icon: Icons.timer_outlined,
+                label: 'Total',
+                value: formatDuration(totalPeriodMinutes),
+                backgroundColor: colorScheme.secondaryContainer,
+                textColor: colorScheme.onSecondaryContainer,
+              ),
+            if (peakDayMinutes != null && peakDayMinutes > 0)
+              _StatChip(
+                icon: Icons.bolt_rounded,
+                label: 'Peak day',
+                value: formatDuration(peakDayMinutes),
+                backgroundColor: colorScheme.tertiaryContainer,
+                textColor: colorScheme.onTertiaryContainer,
+              ),
+            if (periodBadgeLabel != null && range != ChartRange.day)
+              _StatChip(
+                icon: Icons.calendar_today_rounded,
+                label: 'Period',
+                value: periodBadgeLabel,
+                backgroundColor: colorScheme.surfaceContainerHigh,
+                textColor: colorScheme.onSurfaceVariant,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color backgroundColor;
+  final Color textColor;
+
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: textColor),
+          const SizedBox(width: 5),
           Text(
-            detailText,
-            style: textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
+            '$label: ',
+            style: textTheme.labelSmall?.copyWith(
               fontWeight: FontWeight.w500,
-              height: 1.35,
+              color: textColor.withValues(alpha: 0.8),
+            ),
+          ),
+          Text(
+            value,
+            style: textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: textColor,
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 }

@@ -106,6 +106,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                       : 'Expand navigation',
                   child: IconButton(
                     icon: Icon(
+                      fontWeight: FontWeight.bold,
                       navProvider.isRailExpanded
                           ? Icons.menu_open_rounded
                           : Icons.menu_rounded,
@@ -164,7 +165,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             controller: controller,
                             leading: isCompact
                                 ? null
-                                : const Icon(M3EIcons.search),
+                                : const Icon(
+                                    M3EIcons.search,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                             readOnly: true,
                             hintText: isCompact
                                 ? 'Search'
@@ -199,6 +203,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                                   child: IconButton(
                                     icon: const Icon(
                                       Icons.close_rounded,
+                                      fontWeight: FontWeight.bold,
                                       size: 18,
                                     ),
                                     color: colorScheme.onSurfaceVariant,
@@ -240,6 +245,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                                     ? 'Switch to light theme'
                                     : 'Switch to dark theme',
                                 icon: Icon(
+                                  fontWeight: FontWeight.bold,
                                   isDark
                                       ? Icons.light_mode_outlined
                                       : Icons.dark_mode_outlined,

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../services/quick_actions_service.dart';
 import '../utils/haptics.dart';
 import '../utils/windows_title_bar.dart';
 
@@ -46,10 +47,12 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   void initState() {
     super.initState();
-    // Register a global hardware-keyboard handler.
-    // This fires for EVERY key event regardless of which widget has focus,
-    // so it works even when the search bar's text field holds focus.
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        QuickActionsService.instance.init(context.read<NavigationProvider>());
+      }
+    });
   }
 
   @override
@@ -535,7 +538,7 @@ class _NavigationRailWidget extends StatelessWidget {
           navProvider.setActivePage(target);
         },
         fab: M3ENavigationRailFabSlot(
-          icon: const Icon(Icons.add_rounded),
+          icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
           label: 'New Task',
           color: M3EFabColor.primary,
           onPressed: () {
@@ -586,7 +589,11 @@ class _FloatingBottomNav extends StatelessWidget {
         fabIcon: isTasksPage
             ? const Tooltip(
                 message: 'New Task',
-                child: Icon(Icons.add_rounded, size: 26),
+                child: Icon(
+                  Icons.add_rounded,
+                  fontWeight: FontWeight.bold,
+                  size: 26,
+                ),
               )
             : null,
         fabPosition: M3EToolbarFabPosition.end,

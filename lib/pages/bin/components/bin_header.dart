@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../utils/haptics.dart';
 import '../../../theme/breakpoints.dart';
 
@@ -101,7 +102,11 @@ class BinHeader extends StatelessWidget {
       },
       actions: [
         M3EButtonGroupAction(
-          icon: const Icon(Icons.restore_rounded, size: 18),
+          icon: const Icon(
+            Icons.restore_rounded,
+            size: 22,
+            fontWeight: FontWeight.w500,
+          ),
           label: const Text('Restore All'),
           decoration: M3EToggleButtonDecoration.styleFrom(
             backgroundColor: colorScheme.secondaryContainer,
@@ -109,7 +114,11 @@ class BinHeader extends StatelessWidget {
           ),
         ),
         M3EButtonGroupAction(
-          icon: const Icon(Icons.delete_sweep_rounded, size: 18),
+          icon: const Icon(
+            Icons.delete_sweep_rounded,
+            size: 22,
+            fontWeight: FontWeight.w500,
+          ),
           label: const Text('Empty Bin'),
           decoration: M3EToggleButtonDecoration.styleFrom(
             backgroundColor: colorScheme.error,

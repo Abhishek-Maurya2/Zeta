@@ -57,7 +57,7 @@ class TodaysFocusCard extends StatelessWidget {
               children: [
                 Icon(
                   Icons.track_changes_rounded,
-                  size: 20,
+                  size: 23,
                   color: colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
@@ -125,6 +125,7 @@ class TodaysFocusCard extends StatelessWidget {
                               ? Icons.check_circle_rounded
                               : Icons.radio_button_unchecked_rounded,
                           size: 24,
+                          fontWeight: FontWeight.bold,
                           color: task!.completed
                               ? const Color(0xFF10B981)
                               : colorScheme.primary,
@@ -196,8 +197,9 @@ class TodaysFocusCard extends StatelessWidget {
                           onTap: () =>
                               taskProvider.toggleSubtask(task!.id, st.id),
                           child: Icon(
+                            fontWeight: FontWeight.bold,
                             st.completed
-                                ? Icons.check_circle_rounded
+                                ? Icons.check_rounded
                                 : Icons.radio_button_unchecked_rounded,
                             size: 18,
                             color: st.completed
@@ -250,7 +252,11 @@ class TodaysFocusCard extends StatelessWidget {
             ),
             child: Center(
               child: M3EButton.icon(
-                icon: const Icon(Icons.add_rounded, size: 20),
+                icon: const Icon(
+                  Icons.add_rounded,
+                  fontWeight: FontWeight.bold,
+                  size: 27,
+                ),
                 label: const Text(
                   'Add new task',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

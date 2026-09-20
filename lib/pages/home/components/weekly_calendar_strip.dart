@@ -240,7 +240,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
                         colorScheme.onSurface.withValues(alpha: 0.1),
                       ),
                     ),
-                    icon: const Icon(Icons.chevron_left_rounded, size: 30),
+                    icon: Icon(
+                      Icons.chevron_left_rounded,
+                      fontWeight: FontWeight.bold,
+                      size: 40,
+                    ),
                     onPressed: () {
                       ZetaHaptics.light();
                       onShiftWeek(-1);
@@ -415,7 +419,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   child: M3EIconButton(
                     size: M3EIconButtonSize.md,
                     width: M3EIconButtonWidth.narrow,
-                    icon: const Icon(Icons.chevron_right_rounded, size: 30),
+                    icon: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 40,
+                      fontWeight: FontWeight.bold,
+                    ),
                     decoration: M3EIconButtonDecoration(
                       backgroundColor: WidgetStateProperty.all(
                         colorScheme.onSurface.withValues(alpha: 0.1),

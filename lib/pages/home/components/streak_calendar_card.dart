@@ -314,7 +314,11 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                         colorScheme.onSurface.withValues(alpha: 0.07),
                       ),
                     ),
-                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                    icon: const Icon(
+                      Icons.chevron_left_rounded,
+                      size: 25,
+                      fontWeight: FontWeight.bold,
+                    ),
                     onPressed: _prevMonth,
                   ),
                   M3EIconButton(
@@ -325,7 +329,11 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                         colorScheme.onSurface.withValues(alpha: 0.07),
                       ),
                     ),
-                    icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                    icon: const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 25,
+                      fontWeight: FontWeight.bold,
+                    ),
                     onPressed: _nextMonth,
                   ),
                 ],
@@ -610,6 +618,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                                 Icon(
                                   Icons.chevron_right_rounded,
                                   size: 16,
+                                  fontWeight: FontWeight.bold,
                                   color: colorScheme.outline,
                                 ),
                               ],

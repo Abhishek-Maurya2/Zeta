@@ -458,8 +458,8 @@ class _SettingsPageState extends State<SettingsPage> {
         : null;
     final selectedIndex =
         selectedCategoryIndex != null && selectedCategoryIndex >= 0
-            ? selectedCategoryIndex
-            : null;
+        ? selectedCategoryIndex
+        : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +467,7 @@ class _SettingsPageState extends State<SettingsPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 15),
           child: Text(
-            'PREFERENCES',
+            'Prefrences',
             style: textTheme.labelMedium?.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w800,

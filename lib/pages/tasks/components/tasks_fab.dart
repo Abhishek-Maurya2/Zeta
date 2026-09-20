@@ -9,11 +9,7 @@ class TasksFab extends StatelessWidget {
   final bool isSelectionMode;
   final VoidCallback? onPressed;
 
-  const TasksFab({
-    super.key,
-    required this.isSelectionMode,
-    this.onPressed,
-  });
+  const TasksFab({super.key, required this.isSelectionMode, this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -21,9 +17,7 @@ class TasksFab extends StatelessWidget {
       bottom: 28,
       right: 36,
       child: AnimatedSlide(
-        offset: isSelectionMode
-            ? const Offset(0, 2.0)
-            : Offset.zero,
+        offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOutCubicEmphasized,
         child: AnimatedScale(
@@ -35,7 +29,7 @@ class TasksFab extends StatelessWidget {
             child: ZetaExtendedFab(
               color: M3EFabColor.primary,
               extended: true,
-              icon: const Icon(Icons.add_rounded),
+              icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
               label: 'Add Task',
               height: 64,
               iconSize: 28,

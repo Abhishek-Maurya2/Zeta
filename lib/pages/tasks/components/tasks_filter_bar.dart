@@ -1,5 +1,6 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+
 import '../../../providers/task_provider.dart';
 import '../../../utils/haptics.dart';
 
@@ -37,15 +38,29 @@ class TasksFilterBar extends StatelessWidget {
     final selectedFilterIndex = filter == TaskFilter.all
         ? 0
         : (filter == TaskFilter.pending
-            ? 1
-            : (filter == TaskFilter.revision ? 2 : null));
+              ? 1
+              : (filter == TaskFilter.revision ? 2 : null));
 
     final filterButtonGroup = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: M3EButtonGroup(
         type: M3EButtonGroupType.connected,
         size: M3EButtonSize.sm,
-        style: M3EButtonStyle.tonal,
+        style: M3EButtonStyle.filled,
+        decoration: M3EToggleButtonDecoration(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.primary;
+            }
+            return colorScheme.tertiaryContainer;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.onPrimary;
+            }
+            return colorScheme.onTertiaryContainer;
+          }),
+        ),
         selectedIndex: selectedFilterIndex,
         onSelectedIndexChanged: (index) {
           if (index == null) return;
@@ -102,10 +117,7 @@ class TasksFilterBar extends StatelessWidget {
         children: [
           Center(child: filterButtonGroup),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [sortButton],
-          ),
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [sortButton]),
         ],
       );
     }
