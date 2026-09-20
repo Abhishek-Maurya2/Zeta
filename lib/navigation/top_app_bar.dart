@@ -331,6 +331,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       }
     }
 
+    final textTheme = Theme.of(context).textTheme;
+
     if (query.isEmpty) {
       return [
         Padding(
@@ -340,22 +342,26 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             children: [
               // ─── Quick Links Header ─────────────────────────────────────
               Text(
-                'QUICK LINKS',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.1,
+                'Quick Links',
+                style: textTheme.labelMedium?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
                   color: colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 6),
               M3ESegmentedColumn(
                 decoration: const M3ESegmentedListDecoration(
-                  padding: EdgeInsets.all(0),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
                 ),
                 color: colorScheme.surfaceBright,
                 children: [
                   InkWell(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                      bottom: Radius.circular(4),
+                    ),
                     onTap: () {
                       safeCloseView(null);
                       TaskEditPane.show(context);
@@ -376,11 +382,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'New Task',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -400,6 +407,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   ),
 
                   InkWell(
+                    borderRadius: BorderRadius.circular(4),
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.bin);
@@ -420,11 +428,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Bin (Deleted Tasks)',
+                                Text(
+                                  'Bin',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -444,6 +453,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   ),
 
                   InkWell(
+                    borderRadius: BorderRadius.circular(4),
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.pomodoro);
@@ -464,11 +474,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Pomodoro Timer',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -488,6 +499,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   ),
 
                   InkWell(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(4),
+                      bottom: Radius.circular(24),
+                    ),
                     onTap: () {
                       safeCloseView(null);
                       navProvider.setActivePage(PageId.settings);
@@ -508,11 +523,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Settings & Preferences',
+                                Text(
+                                  'Settings',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 14,
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -540,12 +556,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
                 // ─── Keyboard Shortcuts Hint ────────────────────────────────
                 Text(
-                  'KEYBOARD SHORTCUTS',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    color: colorScheme.onSurfaceVariant,
+                  'Keyboard Shortcuts',
+                  style: textTheme.labelMedium?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: colorScheme.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -614,11 +630,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            'MATCHING TASKS (${matchingTasks.length})',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
+            'Tasks (${matchingTasks.length})',
+            style: textTheme.labelMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
               color: colorScheme.primary,
             ),
           ),
@@ -736,12 +752,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            'BIN (${matchingBinTasks.length})',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-              color: colorScheme.error,
+            'Bin (${matchingBinTasks.length})',
+            style: textTheme.labelMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: colorScheme.primary,
             ),
           ),
         ),

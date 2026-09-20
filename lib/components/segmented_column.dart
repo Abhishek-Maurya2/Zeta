@@ -65,6 +65,35 @@ class M3ESegmentedColumn extends StatelessWidget {
     this.borderRadiusBuilder,
   });
 
+  BorderRadius _getTileBorderRadius({
+    required int index,
+    required int totalCount,
+    required double outerRadius,
+    required double innerRadius,
+    required double selectedRadius,
+    bool isSelected = false,
+  }) {
+    if (isSelected) {
+      return BorderRadius.circular(selectedRadius);
+    }
+    if (totalCount == 1) {
+      return BorderRadius.circular(outerRadius);
+    }
+    if (index == 0) {
+      return BorderRadius.vertical(
+        top: Radius.circular(outerRadius),
+        bottom: Radius.circular(innerRadius),
+      );
+    }
+    if (index == totalCount - 1) {
+      return BorderRadius.vertical(
+        top: Radius.circular(innerRadius),
+        bottom: Radius.circular(outerRadius),
+      );
+    }
+    return BorderRadius.circular(innerRadius);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (children.isEmpty) {
@@ -95,23 +124,58 @@ class M3ESegmentedColumn extends StatelessWidget {
       };
     }
 
-    Widget list = M3ECardList(
-      itemCount: children.length,
-      itemBuilder: (context, index) => Material(
-        color: Colors.transparent,
-        child: children[index],
+    Widget list = ClipRRect(
+      borderRadius: BorderRadius.circular(effectiveOuterRadius),
+      child: M3ECardList(
+        itemCount: children.length,
+        itemBuilder: (context, index) {
+          final position = children.length == 1
+              ? M3ECardPosition.single
+              : (index == 0
+                  ? M3ECardPosition.first
+                  : (index == children.length - 1
+                      ? M3ECardPosition.last
+                      : M3ECardPosition.middle));
+
+          final isSelected =
+              (selectionController?.isSelected(index) ?? false) ||
+              (selectedIndex != null && index == selectedIndex);
+
+          final cellRadius = borderRadiusBuilder?.call(index, position) ??
+              _getTileBorderRadius(
+                index: index,
+                totalCount: children.length,
+                outerRadius: effectiveOuterRadius,
+                innerRadius: effectiveInnerRadius,
+                selectedRadius: effectiveSelectedRadius,
+                isSelected: isSelected,
+              );
+
+          return ListTileTheme(
+            shape: RoundedRectangleBorder(borderRadius: cellRadius),
+            child: ClipRRect(
+              borderRadius: cellRadius,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: cellRadius,
+                clipBehavior: Clip.antiAlias,
+                child: children[index],
+              ),
+            ),
+          );
+        },
+        outerRadius: effectiveOuterRadius,
+        innerRadius: effectiveInnerRadius,
+        gap: effectiveGap,
+        color: effectiveColor,
+        colorBuilder: colorBuilder,
+        borderRadiusBuilder: effectiveRadiusBuilder,
+        padding: effectivePadding,
+        margin: margin,
+        border: effectiveBorder,
+        emptyBuilder: emptyBuilder,
+        onTap: onTap,
       ),
-      outerRadius: effectiveOuterRadius,
-      innerRadius: effectiveInnerRadius,
-      gap: effectiveGap,
-      color: effectiveColor,
-      colorBuilder: colorBuilder,
-      borderRadiusBuilder: effectiveRadiusBuilder,
-      padding: effectivePadding,
-      margin: margin,
-      border: effectiveBorder,
-      emptyBuilder: emptyBuilder,
-      onTap: onTap,
     );
 
     if (selectionController != null) {
@@ -122,9 +186,7 @@ class M3ESegmentedColumn extends StatelessWidget {
       );
     } else if (selectedIndex != null) {
       list = M3ESelectionScope(
-        controller: M3ESelectionController(
-          initialSelected: {selectedIndex!},
-        ),
+        controller: M3ESelectionController(initialSelected: {selectedIndex!}),
         itemCount: children.length,
         child: list,
       );
