@@ -373,10 +373,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                       ),
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.add_circle_outline_rounded,
-                            color: colorScheme.primary,
-                          ),
+                          Icon(Icons.add_circle_outline_rounded),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(

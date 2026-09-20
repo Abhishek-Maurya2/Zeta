@@ -6,12 +6,19 @@ import '../../../components/task_edit_pane.dart';
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
 import '../../../utils/haptics.dart';
+import '../../../theme/success_colors.dart';
 
 /// Dismissible swipe-to-complete and swipe-to-delete task list.
 class TasksDismissibleList extends StatelessWidget {
   final List<Task> tasks;
   final TaskProvider provider;
-  final void Function(BuildContext context, Offset position, Task task, TaskProvider provider) onContextMenu;
+  final void Function(
+    BuildContext context,
+    Offset position,
+    Task task,
+    TaskProvider provider,
+  )
+  onContextMenu;
 
   const TasksDismissibleList({
     super.key,
@@ -23,6 +30,7 @@ class TasksDismissibleList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return M3EDismissibleList(
       key: ValueKey(
@@ -67,7 +75,9 @@ class TasksDismissibleList extends StatelessWidget {
             ),
             backgroundColor: task.completed
                 ? colorScheme.secondary
-                : const Color(0xFF10B981),
+                : isDark
+                ? colorScheme.successContainer
+                : colorScheme.success,
             onPressed: () => provider.toggleTask(task.id),
           ),
         ];
@@ -78,7 +88,9 @@ class TasksDismissibleList extends StatelessWidget {
         return [
           M3EListSwipeAction(
             icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-            backgroundColor: colorScheme.error,
+            backgroundColor: isDark
+                ? colorScheme.errorContainer
+                : colorScheme.error,
             isPrimary: true,
             onPressed: () => provider.deleteTask(task.id),
           ),
