@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +25,10 @@ import '../components/task_selection_toolbar.dart';
 import '../widgets/m3e_page_transition.dart';
 import '../widgets/m3e_pane_divider.dart';
 import '../theme/breakpoints.dart';
+import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
+
+import 'dart:ui';
 
 /// Adaptive scaffold mirroring Sharva's layout:
 /// - Compact (<600px): M3EToolbar from material_3_expressive at bottom + full-width body
@@ -72,14 +75,15 @@ class _AppScaffoldState extends State<AppScaffold>
   void initState() {
     super.initState();
     _refreshController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 280),
-        )..addListener(() {
-          setState(() {});
-        });
+        AnimationController(vsync: this, duration: M3MotionDuration.medium2)
+          ..addListener(() {
+            setState(() {});
+          });
     _refreshAnimation = Tween<double>(begin: 0.0, end: _targetHeight).animate(
-      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
+      CurvedAnimation(
+        parent: _refreshController,
+        curve: M3MotionEasing.emphasizedDecelerate,
+      ),
     );
 
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
@@ -116,7 +120,7 @@ class _AppScaffoldState extends State<AppScaffold>
         ).animate(
           CurvedAnimation(
             parent: _refreshController,
-            curve: Curves.easeOutCubic,
+            curve: M3MotionEasing.emphasizedDecelerate,
           ),
         );
     await _refreshController.forward(from: 0.0);
@@ -133,7 +137,10 @@ class _AppScaffoldState extends State<AppScaffold>
     ZetaHaptics.light();
 
     _refreshAnimation = Tween<double>(begin: _targetHeight, end: 0.0).animate(
-      CurvedAnimation(parent: _refreshController, curve: Curves.easeInOutCubic),
+      CurvedAnimation(
+        parent: _refreshController,
+        curve: M3MotionEasing.emphasizedAccelerate,
+      ),
     );
     await _refreshController.forward(from: 0.0);
 
@@ -147,7 +154,10 @@ class _AppScaffoldState extends State<AppScaffold>
 
   void _snapBackToZero() {
     _refreshAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
-      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
+      CurvedAnimation(
+        parent: _refreshController,
+        curve: M3MotionEasing.emphasizedDecelerate,
+      ),
     );
     _refreshController.forward(from: 0.0).then((_) {
       if (mounted) {
@@ -452,30 +462,44 @@ class _AppScaffoldState extends State<AppScaffold>
                     ClipRect(
                       child: SizedBox(
                         height: _refreshHeight,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: isDark
-                                ? colorScheme.surface
-                                : colorScheme.surfaceContainer,
-                          ),
-                          width: double.infinity,
-                          alignment: Alignment.center,
-                          child: Opacity(
-                            opacity: (_refreshHeight / _targetHeight).clamp(
-                              0.0,
-                              1.0,
-                            ),
-                            child: Transform.scale(
-                              scale:
-                                  (0.6 + 0.4 * (_refreshHeight / _targetHeight))
-                                      .clamp(0.6, 1.0),
-                              child: const M3ELoadingIndicator(
-                                variant: M3ELoadingIndicatorVariant.contained,
-                                elevation: 0,
+                        child: Builder(
+                          builder: (context) {
+                            final pullRatio = (_refreshHeight / _targetHeight)
+                                .clamp(0.0, 1.0);
+                            final expressiveRatio = M3MotionEasing.emphasized
+                                .transform(pullRatio);
+
+                            return Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal:
+                                    16.0 * (1.0 - expressiveRatio * 0.35),
+                                vertical: 4.0,
                               ),
-                            ),
-                          ),
+                              child: AnimatedContainer(
+                                duration: M3MotionDuration.short3,
+                                curve: M3MotionEasing.emphasized,
+                                width: double.infinity,
+                                alignment: Alignment.center,
+                                child: Opacity(
+                                  opacity: pullRatio,
+                                  child: Transform.rotate(
+                                    angle: _isRefreshing
+                                        ? 0.0
+                                        : (pullRatio * 1.5 * math.pi),
+                                    child: Transform.scale(
+                                      scale: (0.55 + 0.45 * expressiveRatio)
+                                          .clamp(0.55, 1.1),
+                                      child: const M3ELoadingIndicator(
+                                        variant: M3ELoadingIndicatorVariant
+                                            .contained,
+                                        elevation: 0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -799,58 +823,81 @@ class _FloatingBottomNav extends StatelessWidget {
         toolbarTheme: M3ETheme.of(context).toolbarTheme
             .copyWith(containerSize: 65),
       ),
-      child: M3EToolbar(
-        alignment: Alignment.bottomCenter,
-        backgroundColor: colorScheme.primaryContainer,
-        size: M3EToolbarSize.large,
-        padding: const EdgeInsets.symmetric(horizontal: 1),
-        fabIcon: isTasksPage
-            ? const Tooltip(
-                message: 'New Task',
-                child: Icon(
-                  Icons.add_rounded,
-                  fontWeight: FontWeight.bold,
-                  size: 26,
+      child: Center(
+        child: IntrinsicWidth(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+              child: M3EToolbar(
+                alignment: Alignment.bottomCenter,
+                backgroundColor: colorScheme.primaryContainer.withValues(
+                  alpha: 0.7,
                 ),
-              )
-            : null,
-        fabPosition: M3EToolbarFabPosition.end,
-        fabExpandsToolbar: false,
-        onFabPressed: isTasksPage
-            ? () {
-                ZetaHaptics.medium();
-                TaskEditPane.show(context);
-              }
-            : null,
-        actions: [
-          M3EToolbarWidget(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: kNavDestinations
-                  .where(
-                    (dest) =>
-                        dest.id != PageId.settings && dest.id != PageId.bin,
-                  )
-                  .map((dest) {
-                    final isSelected = dest.id == navProvider.activePage;
-                    return _ToolbarNavItem(
-                      destination: dest,
-                      isSelected: isSelected,
-                      onTap: () {
-                        ZetaHaptics.selection();
-                        context.read<TaskProvider>().clearSelection();
-                        if (navProvider.activePage == PageId.revision &&
-                            dest.id != PageId.revision) {
-                          context.read<RevisionProvider>().selectSubject(null);
-                        }
-                        navProvider.setActivePage(dest.id);
-                      },
-                    );
-                  })
-                  .toList(),
+                size: M3EToolbarSize.large,
+                padding: const EdgeInsets.symmetric(horizontal: 1),
+
+                fabIcon: isTasksPage
+                    ? const Tooltip(
+                        message: 'New Task',
+                        child: Icon(
+                          Icons.add_rounded,
+                          fontWeight: FontWeight.bold,
+                          size: 26,
+                        ),
+                      )
+                    : null,
+
+                fabPosition: M3EToolbarFabPosition.end,
+                fabExpandsToolbar: false,
+
+                onFabPressed: isTasksPage
+                    ? () {
+                        ZetaHaptics.medium();
+                        TaskEditPane.show(context);
+                      }
+                    : null,
+
+                actions: [
+                  M3EToolbarWidget(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: kNavDestinations
+                          .where(
+                            (dest) =>
+                                dest.id != PageId.settings &&
+                                dest.id != PageId.bin,
+                          )
+                          .map((dest) {
+                            final isSelected =
+                                dest.id == navProvider.activePage;
+
+                            return _ToolbarNavItem(
+                              destination: dest,
+                              isSelected: isSelected,
+                              onTap: () {
+                                ZetaHaptics.selection();
+                                context.read<TaskProvider>().clearSelection();
+
+                                if (navProvider.activePage == PageId.revision &&
+                                    dest.id != PageId.revision) {
+                                  context
+                                      .read<RevisionProvider>()
+                                      .selectSubject(null);
+                                }
+
+                                navProvider.setActivePage(dest.id);
+                              },
+                            );
+                          })
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -871,61 +918,69 @@ class _ToolbarNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Icon(
+          isSelected ? destination.selectedIcon : destination.icon,
+          size: isSelected ? 26 : 24,
+          color: isSelected
+              ? colorScheme.onSurface
+              : colorScheme.onPrimaryContainer,
+        ),
+        if (isSelected) ...[
+          const SizedBox(width: 8),
+          Text(
+            destination.label,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final navItem = AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      constraints: BoxConstraints(minWidth: isSelected ? 40 : 35),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSelected ? 15 : 4,
+        vertical: 12,
+      ),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? colorScheme.surfaceBright.withValues(alpha: 0.50)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(88),
+      ),
+      child: content,
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3),
       child: Tooltip(
         message: destination.label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(80),
           onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            constraints: BoxConstraints(
-              // minHeight: 48,
-              minWidth: isSelected ? 40 : 35,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: isSelected ? 15 : 4,
-              vertical: 12,
-            ),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? colorScheme.surfaceBright
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(88),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  isSelected ? destination.selectedIcon : destination.icon,
-                  size: isSelected ? 26 : 24,
-                  color: isSelected
-                      ? colorScheme.onSurface
-                      : colorScheme.onPrimaryContainer,
-                ),
-                if (isSelected) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    destination.label,
-                    style: TextStyle(
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                    ),
+          child: isSelected
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(80),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: navItem,
                   ),
-                ],
-              ],
-            ),
-          ),
+                )
+              : navItem,
         ),
       ),
     );
   }
 }
-
 // ─── Body Pane (Page Router) ────────────────────────────────────────────────
 
 class _BodyPane extends StatefulWidget {
