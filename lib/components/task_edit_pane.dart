@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -34,19 +36,91 @@ class TaskEditPane {
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: Colors.transparent,
-        builder: (ctx) => M3EBottomSheet(
-          showDragHandle: true,
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+        elevation: 0,
+        barrierColor: Colors.black.withValues(alpha: 0.05),
+        builder: (ctx) {
+          final colorScheme = Theme.of(ctx).colorScheme;
+
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
-            child: TaskEditFormContent(
-              task: task,
-              initialTitle: initialTitle,
-              onClose: () => Navigator.of(ctx).pop(),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    border: Border(
+                      top: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                        width: 1.0,
+                      ),
+                      left: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                        width: 1.0,
+                      ),
+                      right: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.35,
+                        ),
+                        width: 1.0,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Drag Handle
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 12),
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.40,
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                        ),
+                        child: TaskEditFormContent(
+                          task: task,
+                          initialTitle: initialTitle,
+                          onClose: () => Navigator.of(ctx).pop(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ),
+          );
+        },
       );
     } else {
       // Co-planar 2-pane split mode on Medium & Expanded+ (>= 600dp):
@@ -275,27 +349,27 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
         children: [
           // ─── Header ───
           if (!isCompact)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SizedBox(width: 5),
-              M3EIconButton(
-                icon: const Icon(Icons.close_rounded),
-                size: M3EIconButtonSize.sm,
-                width: M3EIconButtonWidth.wide,
-                decoration: M3EIconButtonDecoration(
-                  backgroundColor: WidgetStateProperty.all(
-                    colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(width: 5),
+                M3EIconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  size: M3EIconButtonSize.sm,
+                  width: M3EIconButtonWidth.wide,
+                  decoration: M3EIconButtonDecoration(
+                    backgroundColor: WidgetStateProperty.all(
+                      colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
+                    ),
                   ),
+                  tooltip: 'Close',
+                  onPressed: () {
+                    ZetaHaptics.light();
+                    _closePane();
+                  },
                 ),
-                tooltip: 'Close',
-                onPressed: () {
-                  ZetaHaptics.light();
-                  _closePane();
-                },
-              ),
-            ],
-          ),
+              ],
+            ),
 
           // ─── Scrollable Fields ───
           Flexible(

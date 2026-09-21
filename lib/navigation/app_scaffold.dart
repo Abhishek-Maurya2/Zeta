@@ -644,33 +644,80 @@ class _AppScaffoldState extends State<AppScaffold>
                                                           6,
                                                         ),
                                                     decoration: BoxDecoration(
-                                                      color: isDark
-                                                          ? colorScheme
-                                                                .surfaceContainerHigh
-                                                          : colorScheme
-                                                                .surfaceContainer,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             20,
                                                           ),
-                                                    ),
-                                                    clipBehavior:
-                                                        Clip.antiAlias,
-                                                    child: SafeArea(
-                                                      child: TaskEditFormContent(
-                                                        key: ValueKey(
-                                                          taskProvider
-                                                                  .editingTask
-                                                                  ?.id ??
-                                                              'new_task',
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: colorScheme
+                                                              .shadow
+                                                              .withValues(
+                                                                alpha: 0.12,
+                                                              ),
+                                                          blurRadius: 16,
+                                                          offset: const Offset(
+                                                            0,
+                                                            6,
+                                                          ),
                                                         ),
-                                                        task: taskProvider
-                                                            .editingTask,
-                                                        initialTitle: taskProvider
-                                                            .editingInitialTitle,
-                                                        onClose: () =>
-                                                            taskProvider
-                                                                .closeEditPane(),
+                                                      ],
+                                                    ),
+                                                    child: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
+                                                      child: BackdropFilter(
+                                                        filter: ImageFilter.blur(
+                                                          sigmaX: 10,
+                                                          sigmaY: 10,
+                                                        ),
+                                                        child: Container(
+                                                          decoration:
+                                                              BoxDecoration(
+                                                                color: colorScheme
+                                                                    .primaryContainer
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.70,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      20,
+                                                                    ),
+                                                                border:
+                                                                    Border.all(
+                                                                      color: colorScheme
+                                                                          .outlineVariant
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.35,
+                                                                          ),
+                                                                      width: 1.0,
+                                                                    ),
+                                                              ),
+                                                          child: SafeArea(
+                                                            child:
+                                                                TaskEditFormContent(
+                                                                  key: ValueKey(
+                                                                    taskProvider
+                                                                            .editingTask
+                                                                            ?.id ??
+                                                                        'new_task',
+                                                                  ),
+                                                                  task:
+                                                                      taskProvider
+                                                                          .editingTask,
+                                                                  initialTitle:
+                                                                      taskProvider
+                                                                          .editingInitialTitle,
+                                                                  onClose: () =>
+                                                                      taskProvider
+                                                                          .closeEditPane(),
+                                                                ),
+                                                          ),
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
@@ -823,7 +870,9 @@ class _FloatingBottomNav extends StatelessWidget {
       primaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
       secondaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
       tertiaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
-      surfaceContainerHigh: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      surfaceContainerHigh: colorScheme.primaryContainer.withValues(
+        alpha: 0.70,
+      ),
       primary: colorScheme.primaryContainer.withValues(alpha: 0.70),
       onPrimaryContainer: colorScheme.onPrimaryContainer,
       onSecondaryContainer: colorScheme.onPrimaryContainer,
@@ -834,14 +883,12 @@ class _FloatingBottomNav extends StatelessWidget {
     final navToolbar = M3ETheme(
       data: baseM3ETheme.copyWith(
         colorScheme: glassColorScheme,
-        toolbarTheme: baseM3ETheme.toolbarTheme.copyWith(
-          containerSize: 65,
-        ),
+        toolbarTheme: baseM3ETheme.toolbarTheme.copyWith(containerSize: 65),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
           child: M3EToolbar(
             backgroundColor: colorScheme.primaryContainer.withValues(
               alpha: 0.70,
@@ -855,8 +902,7 @@ class _FloatingBottomNav extends StatelessWidget {
                   children: kNavDestinations
                       .where(
                         (dest) =>
-                            dest.id != PageId.settings &&
-                            dest.id != PageId.bin,
+                            dest.id != PageId.settings && dest.id != PageId.bin,
                       )
                       .map((dest) {
                         final isSelected = dest.id == navProvider.activePage;
@@ -870,9 +916,9 @@ class _FloatingBottomNav extends StatelessWidget {
 
                             if (navProvider.activePage == PageId.revision &&
                                 dest.id != PageId.revision) {
-                              context
-                                  .read<RevisionProvider>()
-                                  .selectSubject(null);
+                              context.read<RevisionProvider>().selectSubject(
+                                null,
+                              );
                             }
 
                             navProvider.setActivePage(dest.id);
@@ -929,10 +975,7 @@ class _FloatingBottomNav extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           IntrinsicWidth(child: navToolbar),
-          if (isTasksPage) ...[
-            const SizedBox(width: 8),
-            fabButton,
-          ],
+          if (isTasksPage) ...[const SizedBox(width: 8), fabButton],
         ],
       ),
     );
