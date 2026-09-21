@@ -1,0 +1,85 @@
+import 'package:drift/drift.dart';
+import '../../models/pomodoro.dart';
+import '../app_database.dart';
+
+/// Data Access Object for the [PomodoroSessionsTable].
+class SessionDao {
+  final AppDatabase _db;
+
+  SessionDao(this._db);
+
+  // ─── Reads ─────────────────────────────────────────────────────────────────
+
+  /// Returns recent sessions up to [limit], ordered by completedAt descending.
+  /// Pass [since] to fetch only sessions after a given timestamp (incremental load).
+  Future<List<PomodoroSessionLog>> getSessions({
+    int limit = 200,
+    DateTime? since,
+  }) async {
+    final query = _db.select(_db.pomodoroSessionsTable)
+      ..orderBy([(t) => OrderingTerm.desc(t.completedAtMs)])
+      ..limit(limit);
+
+    if (since != null) {
+      query.where(
+        (t) => t.completedAtMs.isBiggerThanValue(since.millisecondsSinceEpoch),
+      );
+    }
+
+    final rows = await query.get();
+    return rows.map(AppDatabase.rowToSession).toList();
+  }
+
+  /// Returns all sessions ever stored (for full sync reconciliation).
+  Future<List<PomodoroSessionLog>> getAllSessions() async {
+    final rows = await (_db.select(_db.pomodoroSessionsTable)
+          ..orderBy([(t) => OrderingTerm.asc(t.completedAtMs)]))
+        .get();
+    return rows.map(AppDatabase.rowToSession).toList();
+  }
+
+  /// Returns the most recent completedAt timestamp in the local store,
+  /// used as the `since` cursor for incremental pull from Supabase.
+  Future<DateTime?> getLastSessionTimestamp() async {
+    final row = await (_db.select(_db.pomodoroSessionsTable)
+          ..orderBy([(t) => OrderingTerm.desc(t.completedAtMs)])
+          ..limit(1))
+        .getSingleOrNull();
+    if (row == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(row.completedAtMs);
+  }
+
+  // ─── Writes ────────────────────────────────────────────────────────────────
+
+  /// Upserts a single session.
+  Future<void> upsertSession(PomodoroSessionLog session) async {
+    await _db.into(_db.pomodoroSessionsTable).insertOnConflictUpdate(
+      AppDatabase.sessionToCompanion(session),
+    );
+  }
+
+  /// Batch-upserts multiple sessions (initial migration or cloud pull).
+  Future<void> upsertAll(List<PomodoroSessionLog> sessions) async {
+    await _db.batch((batch) {
+      for (final s in sessions) {
+        batch.insert(
+          _db.pomodoroSessionsTable,
+          AppDatabase.sessionToCompanion(s),
+          mode: InsertMode.insertOrReplace,
+        );
+      }
+    });
+  }
+
+  /// Hard-deletes a session by ID.
+  Future<void> deleteSession(String sessionId) async {
+    await (_db.delete(_db.pomodoroSessionsTable)
+          ..where((t) => t.id.equals(sessionId)))
+        .go();
+  }
+
+  /// Clears all session rows (used when user clears session log).
+  Future<void> clearAll() async {
+    await _db.delete(_db.pomodoroSessionsTable).go();
+  }
+}

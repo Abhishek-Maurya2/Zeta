@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -35,7 +37,8 @@ class AppScaffold extends StatefulWidget {
   State<AppScaffold> createState() => _AppScaffoldState();
 }
 
-class _AppScaffoldState extends State<AppScaffold> {
+class _AppScaffoldState extends State<AppScaffold>
+    with TickerProviderStateMixin {
   /// GlobalKey used to call openSearch() / closeSearch() on the TopAppBar.
   final GlobalKey<TopAppBarWidgetState> _topBarKey =
       GlobalKey<TopAppBarWidgetState>();
@@ -44,9 +47,39 @@ class _AppScaffoldState extends State<AppScaffold> {
   /// subsequent shortcuts (N, R, /) work immediately without a click.
   final FocusNode _rootFocus = FocusNode(debugLabel: 'ScaffoldRoot');
 
+  late final AnimationController _refreshController;
+  late Animation<double> _refreshAnimation;
+  double _dragOffset = 0.0;
+  bool _isRefreshing = false;
+  bool _hasHapticFired = false;
+
+  static const double _targetHeight = 64.0;
+  static const double _maxStretchHeight = 96.0;
+  static const double _triggerThreshold = 52.0;
+
+  double get _refreshHeight {
+    if (_refreshController.isAnimating) {
+      return _refreshAnimation.value;
+    }
+    if (_isRefreshing) {
+      return _targetHeight;
+    }
+    return _dragOffset;
+  }
+
   @override
   void initState() {
     super.initState();
+    _refreshController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    )..addListener(() {
+        setState(() {});
+      });
+    _refreshAnimation = Tween<double>(begin: 0.0, end: _targetHeight).animate(
+      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
+    );
+
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -57,9 +90,123 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   @override
   void dispose() {
+    _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
     super.dispose();
+  }
+
+  Future<void> _triggerRefresh() async {
+    if (_isRefreshing) return;
+    final nav = context.read<NavigationProvider>();
+    if (nav.activePage == PageId.settings) return;
+
+    setState(() {
+      _isRefreshing = true;
+    });
+    ZetaHaptics.medium();
+
+    final taskProvider = context.read<TaskProvider>();
+    _refreshAnimation = Tween<double>(
+      begin: _dragOffset > 0 ? _dragOffset : 0.0,
+      end: _targetHeight,
+    ).animate(
+      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
+    );
+    await _refreshController.forward(from: 0.0);
+
+    try {
+      final syncOperation = taskProvider.syncWithCloud(force: true);
+      final minDelay = Future.delayed(const Duration(milliseconds: 1400));
+      await Future.wait([syncOperation, minDelay]);
+    } catch (_) {
+      await Future.delayed(const Duration(milliseconds: 1000));
+    }
+
+    if (!mounted) return;
+    ZetaHaptics.light();
+
+    _refreshAnimation = Tween<double>(
+      begin: _targetHeight,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(parent: _refreshController, curve: Curves.easeInOutCubic),
+    );
+    await _refreshController.forward(from: 0.0);
+
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+        _dragOffset = 0.0;
+      });
+    }
+  }
+
+  void _snapBackToZero() {
+    _refreshAnimation = Tween<double>(
+      begin: _dragOffset,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
+    );
+    _refreshController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          _dragOffset = 0.0;
+        });
+      }
+    });
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (_isRefreshing) return false;
+    final nav = context.read<NavigationProvider>();
+    if (nav.activePage == PageId.settings) return false;
+
+    if (notification.metrics.axis != Axis.vertical) return false;
+
+    if (notification is OverscrollNotification) {
+      if (notification.overscroll < 0) {
+        final newDrag = (_dragOffset - notification.overscroll * 0.5)
+            .clamp(0.0, _maxStretchHeight);
+        setState(() {
+          _dragOffset = newDrag;
+        });
+        if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
+          _hasHapticFired = true;
+          ZetaHaptics.selection();
+        }
+      }
+    } else if (notification is ScrollUpdateNotification) {
+      if (notification.metrics.pixels <= 0 && (notification.scrollDelta ?? 0) < 0) {
+        final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+            .clamp(0.0, _maxStretchHeight);
+        setState(() {
+          _dragOffset = newDrag;
+        });
+        if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
+          _hasHapticFired = true;
+          ZetaHaptics.selection();
+        }
+      } else if (_dragOffset > 0 && (notification.scrollDelta ?? 0) > 0) {
+        final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+            .clamp(0.0, _maxStretchHeight);
+        setState(() {
+          _dragOffset = newDrag;
+        });
+        if (_dragOffset < _triggerThreshold) {
+          _hasHapticFired = false;
+        }
+      }
+    } else if (notification is ScrollEndNotification) {
+      _hasHapticFired = false;
+      if (_dragOffset >= _triggerThreshold) {
+        _triggerRefresh();
+      } else if (_dragOffset > 0) {
+        _snapBackToZero();
+      }
+    }
+    return false;
   }
 
   /// Dynamic resizable width for the co-planar task edit split pane on Medium/Expanded+
@@ -139,13 +286,11 @@ class _AppScaffoldState extends State<AppScaffold> {
     if ((logical == LogicalKeyboardKey.keyR &&
             !HardwareKeyboard.instance.isShiftPressed) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
-      context.read<TaskProvider>().syncWithCloud(force: true);
-      M3ESnackbar.show(
-        context,
-        message: 'Syncing with cloud…',
-        duration: const Duration(seconds: 2),
-      );
-      return true;
+      final nav = context.read<NavigationProvider>();
+      if (nav.activePage != PageId.settings) {
+        _triggerRefresh();
+        return true;
+      }
     }
 
     // ── Space : toggle Pomodoro timer when on Pomodoro page ─────────────────
@@ -298,9 +443,47 @@ class _AppScaffoldState extends State<AppScaffold> {
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
-                  // 2. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
+                  // 2. Expandable Stretchable Refresh Container below topappbar
+                  if (navProvider.activePage != PageId.settings && _refreshHeight > 0.001)
+                    ClipRect(
+                      child: SizedBox(
+                        height: _refreshHeight,
+                        child: Container(
+                          width: double.infinity,
+                          color: colorScheme.surface,
+                          alignment: Alignment.center,
+                          child: Opacity(
+                            opacity: (_refreshHeight / _targetHeight).clamp(0.0, 1.0),
+                            child: Transform.scale(
+                              scale: (0.6 + 0.4 * (_refreshHeight / _targetHeight))
+                                  .clamp(0.6, 1.0),
+                              child: const M3ELoadingIndicator(
+                                variant: M3ELoadingIndicatorVariant.contained,
+                                elevation: 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
                   Expanded(
-                    child: isCompact
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _handleScrollNotification,
+                      child: ScrollConfiguration(
+                        behavior: const MaterialScrollBehavior().copyWith(
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          dragDevices: {
+                            PointerDeviceKind.touch,
+                            PointerDeviceKind.mouse,
+                            PointerDeviceKind.trackpad,
+                            PointerDeviceKind.stylus,
+                          },
+                        ),
+                        child: isCompact
                         ? Stack(
                             children: [
                               Positioned.fill(
@@ -473,6 +656,8 @@ class _AppScaffoldState extends State<AppScaffold> {
                               ),
                             ],
                           ),
+                      ),
+                    ),
                   ),
                 ],
               ),

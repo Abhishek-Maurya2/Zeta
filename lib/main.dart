@@ -16,6 +16,8 @@ import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
+import 'database/database_provider.dart';
+import 'database/migration_service.dart';
 
 bool get _isTestMode =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
@@ -25,11 +27,21 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
+
+  // Initialize the local SQLite database synchronously — providers depend on it.
+  DatabaseProvider.instance.init();
+
+  // Await the one-time SharedPreferences → SQLite migration.
+  // This ensures data is in SQLite BEFORE any provider reads from the DB.
+  // On subsequent launches this is a near-instant no-op (flag already set).
+  await MigrationService(DatabaseProvider.instance.db).runIfNeeded();
+
   // Asynchronously initialize Supabase without blocking the initial frame
   unawaited(SupabaseService().init());
   unawaited(NotificationService.instance.init());
   runApp(const ZetaApp());
 }
+
 
 class ZetaApp extends StatelessWidget {
   final bool? showSplash;

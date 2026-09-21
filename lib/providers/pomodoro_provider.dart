@@ -8,13 +8,15 @@ import '../models/pomodoro.dart';
 import '../services/pomodoro_sync_service.dart';
 import '../services/notification_service.dart';
 import '../utils/haptics.dart';
+import '../database/database_provider.dart';
+import '../database/daos/session_dao.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _settingsKey = 'zeta_pomodoro_settings_v1';
-  static const String _sessionLogKey = 'zeta_pomodoro_session_log_v1';
   static const int _maxLogEntries = 1000;
 
   final PomodoroSyncService _syncService = PomodoroSyncService();
+  late final SessionDao _sessionDao;
 
   PomodoroSettings _settings = const PomodoroSettings();
   List<PomodoroSessionItem> _queue = [];
@@ -28,6 +30,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
 
   PomodoroProvider() {
+    _sessionDao = DatabaseProvider.instance.sessionDao;
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -116,13 +119,19 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Synchronizes local sessions with Supabase database.
+  ///
+  /// Uses incremental sync: passes the timestamp of the most recent local
+  /// session as [since], so only new remote sessions are fetched.
   Future<void> syncWithCloud({bool force = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final masterSync = prefs.getBool('zeta_master_sync_enabled') ?? true;
       if (!masterSync && !force) return;
 
-      final remoteSessions = await _syncService.pullSessions();
+      // Determine cursor: most recent session timestamp in local SQLite.
+      final since = force ? null : await _sessionDao.getLastSessionTimestamp();
+
+      final remoteSessions = await _syncService.pullSessions(since: since);
 
       final existingIds = _sessionLog.map((s) => s.id).toSet();
       final remoteIds = remoteSessions.map((s) => s.id).toSet();
@@ -170,30 +179,20 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _settings = PomodoroSettings.fromJson(map);
       }
 
-      // Load Log
-      final logRaw = prefs.getString(_sessionLogKey);
-      if (logRaw != null) {
-        final list = jsonDecode(logRaw) as List<dynamic>;
-        final loaded = list
-            .map((item) =>
-                PomodoroSessionLog.fromJson(item as Map<String, dynamic>))
-            .where((e) => !e.id.startsWith('sample-'))
-            .toList();
-        _sessionLog = loaded;
-        // Save cleaned log back to storage if legacy sample entries were removed
-        if (loaded.length != list.length) {
-          await _saveSessionLog();
-        }
-      }
-
+      // Load sessions from SQLite (drift)
+      final sessions = await _sessionDao.getSessions(limit: 1000);
+      _sessionLog = sessions
+          .where((s) => !s.id.startsWith('sample-'))
+          .toList()
+        ..sort((a, b) => a.completedAt.compareTo(b.completedAt));
 
       // Re-generate queue with restored settings
       _queue = generateQueue(_settings);
       _activeQueueIndex = 0;
       _syncWithCurrentQueueItem();
       notifyListeners();
-    } catch (_) {
-      // Ignore parsing errors and fallback to defaults
+    } catch (e) {
+      debugPrint('PomodoroProvider: _loadFromStorage error - $e');
     }
   }
 
@@ -205,11 +204,13 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _saveSessionLog() async {
+    // Persist to SQLite via drift DAO.
+    // The DAO handles upserts efficiently and avoids the SharedPreferences blob overhead.
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final serialized = _sessionLog.map((e) => e.toJson()).toList();
-      await prefs.setString(_sessionLogKey, jsonEncode(serialized));
-    } catch (_) {}
+      await _sessionDao.upsertAll(_sessionLog);
+    } catch (e) {
+      debugPrint('PomodoroProvider: _saveSessionLog error - $e');
+    }
   }
 
   void _syncWithCurrentQueueItem() {
@@ -431,7 +432,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> clearSessionLog() async {
     _sessionLog.clear();
-    await _saveSessionLog();
+    await _sessionDao.clearAll();
     unawaited(_syncService.clearSessions());
     notifyListeners();
   }

@@ -160,17 +160,28 @@ class SupabaseSyncService {
   }
 
   /// Subscribes to Realtime PostgreSQL changes on `public.tasks` table.
+  ///
+  /// Applies a server-side `user_id` row filter so only changes belonging to
+  /// the current user are delivered — avoids unnecessary traffic in shared
+  /// Supabase projects.
   void subscribeToRealtime({void Function(Task task, String eventType)? onChange}) {
     if (!_supabaseService.isInitialized) return;
     if (onChange != null) onRemoteChange = onChange;
 
+    final userId = _supabaseService.effectiveUserId;
+
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabaseService.client
-        .channel('public:tasks')
+        .channel('public:tasks:$userId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'tasks',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
           callback: (payload) {
             try {
               final eventType = payload.eventType.name;
@@ -187,7 +198,7 @@ class SupabaseSyncService {
           },
         )
         .subscribe();
-    debugPrint('SupabaseSyncService: Subscribed to Realtime channel public:tasks');
+    debugPrint('SupabaseSyncService: Subscribed to Realtime channel public:tasks (user=$userId)');
   }
 
   /// Clean up resources on disposal.

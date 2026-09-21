@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -12,8 +13,42 @@ import 'components/bin_empty_state.dart';
 import '../../components/task_context_menu.dart';
 import '../../theme/breakpoints.dart';
 
-class BinPage extends StatelessWidget {
+/// Recycle bin page showing deleted tasks, initially loading 10 at a time
+/// and displaying [M3ELoadingIndicator] for at least 3 seconds before loading the rest.
+class BinPage extends StatefulWidget {
   const BinPage({super.key});
+
+  @override
+  State<BinPage> createState() => _BinPageState();
+}
+
+class _BinPageState extends State<BinPage> {
+  static const int _initialCount = 10;
+  static const Duration _minLoadingDuration = Duration(seconds: 3);
+
+  bool _loadedAll = false;
+  bool _isLoading = false;
+  Timer? _timer;
+
+  void _checkAutoLoad(int totalCount) {
+    if (totalCount > _initialCount && !_loadedAll && !_isLoading) {
+      _isLoading = true;
+      _timer?.cancel();
+      _timer = Timer(_minLoadingDuration, () {
+        if (!mounted) return;
+        setState(() {
+          _loadedAll = true;
+          _isLoading = false;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   void _showContextMenu(
     BuildContext context,
@@ -41,6 +76,13 @@ class BinPage extends StatelessWidget {
 
     final binTasks = taskProvider.binTasks;
     final totalCount = binTasks.length;
+    final hasMore = totalCount > _initialCount;
+
+    _checkAutoLoad(totalCount);
+
+    final visibleTasks = (_loadedAll || !hasMore)
+        ? binTasks
+        : binTasks.take(_initialCount).toList();
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
@@ -59,13 +101,17 @@ class BinPage extends StatelessWidget {
               // 1. Bin Header
               BinHeader(
                 totalCount: totalCount,
-                onRestoreAll: () => taskProvider.restoreAllFromBin(),
+                onRestoreAll: () {
+                  setState(() => _loadedAll = false);
+                  taskProvider.restoreAllFromBin();
+                },
                 onRequestEmptyBin: () async {
                   final confirmed = await EmptyBinDialog.show(
                     context,
                     totalCount,
                   );
                   if (confirmed == true) {
+                    setState(() => _loadedAll = false);
                     taskProvider.emptyBin();
                   }
                 },
@@ -74,13 +120,13 @@ class BinPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // 2. Task List or Empty State
-              if (totalCount > 0)
+              if (totalCount > 0) ...[
                 M3ESegmentedColumn(
                   decoration: const M3ESegmentedListDecoration(
                     padding: EdgeInsets.all(1.0),
                   ),
                   color: colorScheme.surfaceContainerLowest,
-                  children: binTasks.map((task) {
+                  children: visibleTasks.map((task) {
                     return TaskCardItem(
                       key: ValueKey(task.id),
                       task: task,
@@ -95,8 +141,22 @@ class BinPage extends StatelessWidget {
                           _showContextMenu(context, pos, task, taskProvider),
                     );
                   }).toList(),
-                )
-              else
+                ),
+
+                // ─── Automatic Loading Indicator (Visible for ≥ 3 seconds) ──
+                if (hasMore && !_loadedAll) ...[
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: M3ELoadingIndicator(
+                        variant: M3ELoadingIndicatorVariant.contained,
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ] else
                 BinEmptyState(
                   onNavigateToTasks: () =>
                       navProvider.setActivePage(PageId.tasks),

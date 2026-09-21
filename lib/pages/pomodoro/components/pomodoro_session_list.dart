@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -5,9 +6,22 @@ import '../../../widgets/segmented_column.dart';
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
 
-/// Recent completed focus sessions list with clear history action.
-class PomodoroSessionList extends StatelessWidget {
+/// Recent completed focus sessions list showing 5 sessions initially,
+/// displaying [M3ELoadingIndicator] for at least 3 seconds before automatically loading the rest.
+class PomodoroSessionList extends StatefulWidget {
   const PomodoroSessionList({super.key});
+
+  @override
+  State<PomodoroSessionList> createState() => _PomodoroSessionListState();
+}
+
+class _PomodoroSessionListState extends State<PomodoroSessionList> {
+  static const int _initialCount = 5;
+  static const Duration _minLoadingDuration = Duration(seconds: 3);
+
+  bool _loadedAll = false;
+  bool _isLoading = false;
+  Timer? _timer;
 
   static String monthName(int month) {
     const months = [
@@ -48,6 +62,7 @@ class PomodoroSessionList extends StatelessWidget {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
+              setState(() => _loadedAll = false);
               provider.clearSessionLog();
             },
             child: const Text('Clear All'),
@@ -57,12 +72,42 @@ class PomodoroSessionList extends StatelessWidget {
     );
   }
 
+  void _checkAutoLoad(int totalSessions) {
+    if (totalSessions > _initialCount && !_loadedAll && !_isLoading) {
+      _isLoading = true;
+      _timer?.cancel();
+      _timer = Timer(_minLoadingDuration, () {
+        if (!mounted) return;
+        setState(() {
+          _loadedAll = true;
+          _isLoading = false;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
     final sessionLog = provider.sessionLog;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
+    final reversedLogs = sessionLog.reversed.toList();
+    final totalSessions = reversedLogs.length;
+    final hasMore = totalSessions > _initialCount;
+
+    _checkAutoLoad(totalSessions);
+
+    final visibleSessions = (_loadedAll || !hasMore)
+        ? reversedLogs
+        : reversedLogs.take(_initialCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,6 +143,7 @@ class PomodoroSessionList extends StatelessWidget {
 
         const SizedBox(height: 10),
 
+        // ─── Session List Container ───────────────────────────────
         M3ESegmentedColumn(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           color: colorScheme.surfaceContainerLowest,
@@ -113,7 +159,7 @@ class PomodoroSessionList extends StatelessWidget {
                     ),
                   ),
                 ]
-              : sessionLog.reversed.take(20).map((entry) {
+              : visibleSessions.map((entry) {
                   final date = DateTime.fromMillisecondsSinceEpoch(
                     entry.completedAt,
                   );
@@ -194,6 +240,20 @@ class PomodoroSessionList extends StatelessWidget {
                   );
                 }).toList(),
         ),
+
+        // ─── Automatic Loading Indicator (Visible for ≥ 3 seconds) ──
+        if (hasMore && !_loadedAll) ...[
+          const SizedBox(height: 16),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: M3ELoadingIndicator(
+                variant: M3ELoadingIndicatorVariant.contained,
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

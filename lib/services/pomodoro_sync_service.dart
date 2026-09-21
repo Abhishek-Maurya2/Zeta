@@ -54,7 +54,14 @@ class PomodoroSyncService {
   }
 
   /// Pull pomodoro sessions from Supabase `public.pomodoro_sessions` table.
-  Future<List<PomodoroSessionLog>> pullSessions({int limit = 1000}) async {
+  ///
+  /// Pass [since] to fetch only sessions completed after that timestamp
+  /// (incremental sync).  On first launch, [since] is null and we fetch the
+  /// most recent [limit] sessions.
+  Future<List<PomodoroSessionLog>> pullSessions({
+    int limit = 200,
+    DateTime? since,
+  }) async {
     await _ensureInitialized();
     if (!_supabaseService.isInitialized) return [];
 
@@ -63,10 +70,19 @@ class PomodoroSyncService {
 
     try {
       final userId = _supabaseService.effectiveUserId;
-      final response = await _supabaseService.client
+      var filter = _supabaseService.client
           .from('pomodoro_sessions')
           .select()
-          .eq('user_id', userId)
+          .eq('user_id', userId);
+
+      if (since != null) {
+        filter = filter.gte(
+          'completed_at',
+          since.toUtc().toIso8601String(),
+        );
+      }
+
+      final response = await filter
           .order('completed_at', ascending: false)
           .limit(limit)
           .timeout(const Duration(seconds: 15));
@@ -84,7 +100,8 @@ class PomodoroSyncService {
 
       _lastSyncedAt = DateTime.now();
       debugPrint(
-        'PomodoroSyncService: Pulled ${sessions.length} sessions successfully.',
+        'PomodoroSyncService: Pulled ${sessions.length} sessions '
+        '(since=${since?.toIso8601String() ?? "all"}).',
       );
       unawaited(processPendingQueue());
       return sessions;
@@ -204,6 +221,9 @@ class PomodoroSyncService {
   }
 
   /// Subscribes to Realtime PostgreSQL changes on `public.pomodoro_sessions`.
+  ///
+  /// Applies a server-side `user_id` row filter so only changes belonging to
+  /// the current user are delivered.
   void subscribeToRealtime({
     void Function(PomodoroSessionLog session, String eventType)? onSessionChange,
   }) {
@@ -212,15 +232,22 @@ class PomodoroSyncService {
     if (isTest || !_supabaseService.isInitialized) return;
     if (onSessionChange != null) onRemoteSessionChange = onSessionChange;
 
+    final userId = _supabaseService.effectiveUserId;
+
     try {
       _sessionsRealtimeChannel?.unsubscribe();
     } catch (_) {}
     _sessionsRealtimeChannel = _supabaseService.client
-        .channel('public:pomodoro_sessions')
+        .channel('public:pomodoro_sessions:$userId')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'pomodoro_sessions',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
           callback: (payload) {
             try {
               final eventType = payload.eventType.name;
@@ -243,7 +270,7 @@ class PomodoroSyncService {
         .subscribe();
 
     debugPrint(
-      'PomodoroSyncService: Subscribed to Realtime channel public:pomodoro_sessions',
+      'PomodoroSyncService: Subscribed to Realtime channel public:pomodoro_sessions (user=$userId)',
     );
   }
 

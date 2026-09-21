@@ -6,6 +6,7 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
+import 'components/tasks_completed_paginated_list.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
 import 'components/tasks_fab.dart';
@@ -120,7 +121,7 @@ class TasksPage extends StatelessWidget {
                         onClearSearch: () => taskProvider.clearSearchQuery(),
                       )
                     else
-                      TasksDismissibleList(
+                      TasksCompletedPaginatedList(
                         tasks: completed,
                         provider: taskProvider,
                         onContextMenu: _showContextMenu,
@@ -203,7 +204,7 @@ class TasksPage extends StatelessWidget {
                         const SizedBox(height: 12),
                         Opacity(
                           opacity: 0.85,
-                          child: TasksDismissibleList(
+                          child: TasksCompletedPaginatedList(
                             tasks: completed,
                             provider: taskProvider,
                             onContextMenu: _showContextMenu,

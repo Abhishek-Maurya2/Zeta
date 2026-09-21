@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,20 +9,21 @@ import '../utils/haptics.dart';
 import '../services/supabase_sync_service.dart';
 import '../services/google_calendar_service.dart';
 import '../services/notification_service.dart';
+import '../database/database_provider.dart';
+import '../database/daos/task_dao.dart';
 
 enum TaskFilter { all, completed, pending, revision }
 
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
 class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
-  static const String _tasksKey = 'zeta_tasks_v1';
-  static const String _binTasksKey = 'zeta_bin_tasks_v1';
   static const String _autoSaveKey = 'zeta_auto_save';
   static const String _soundEffectsKey = 'zeta_sound_effects';
   static const String _sortByPrefKey = 'zeta_task_sort_by_v1';
 
   final SupabaseSyncService _syncService = SupabaseSyncService();
   final GoogleCalendarService _googleService = GoogleCalendarService();
+  late final TaskDao _taskDao;
 
   bool _isSyncing = false;
   bool _isGoogleSyncing = false;
@@ -44,6 +44,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   TaskProvider() {
+    _taskDao = DatabaseProvider.instance.taskDao;
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -363,27 +364,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _loadFromStorage() async {
     try {
+      // ── Load sort preference ────────────────────────────────────────────────
       final prefs = await SharedPreferences.getInstance();
-      final tasksRaw = prefs.getString(_tasksKey);
-      if (tasksRaw != null) {
-        final list = jsonDecode(tasksRaw) as List<dynamic>;
-        final loaded = list
-            .map((item) => Task.fromJson(item as Map<String, dynamic>))
-            .toList();
-        _tasks.clear();
-        _tasks.addAll(loaded);
-      }
-
-      final binRaw = prefs.getString(_binTasksKey);
-      if (binRaw != null) {
-        final list = jsonDecode(binRaw) as List<dynamic>;
-        final loaded = list
-            .map((item) => Task.fromJson(item as Map<String, dynamic>))
-            .toList();
-        _binTasks.clear();
-        _binTasks.addAll(loaded);
-      }
-
       final savedSort = prefs.getString(_sortByPrefKey);
       if (savedSort != null) {
         _sortBy = TaskSortOption.values.firstWhere(
@@ -392,18 +374,39 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         );
       }
 
-      // Purge any corrupted or empty tasks from local cache
-      _tasks.removeWhere((t) => t.title.trim().isEmpty);
-      _binTasks.removeWhere((t) => t.title.trim().isEmpty);
+      // ── Load tasks from SQLite (drift) ──────────────────────────────────────
+      final activeTasks = await _taskDao.getActiveTasks();
+      final binTaskList = await _taskDao.getBinTasks();
+
+      _tasks.clear();
+      _tasks.addAll(activeTasks.where((t) => t.title.trim().isNotEmpty));
+
+      _binTasks.clear();
+      _binTasks.addAll(binTaskList.where((t) => t.title.trim().isNotEmpty));
+
+      // ── 90-day bin eviction ─────────────────────────────────────────────────
+      // Only bin tasks (already soft-deleted by the user) are evicted.
+      // Completed tasks are intentionally kept so analytics remain accurate.
+      final evicted = await _taskDao.evictOldBinTasks(retentionDays: 90);
+      if (evicted > 0) {
+        _binTasks.removeWhere((t) =>
+            t.deletedAt != null &&
+            t.deletedAt!.isBefore(
+              DateTime.now().subtract(const Duration(days: 90)),
+            ));
+        debugPrint('TaskProvider: Evicted $evicted bin tasks older than 90 days.');
+      }
 
       _invalidateCache();
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('TaskProvider: _loadFromStorage error - $e');
+    }
 
     // Subscribe to real-time changes from other clients
     _syncService.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
-    // Initial background cloud sync
+    // Initial background cloud sync (incremental — only fetches delta)
     syncWithCloud();
   }
 
@@ -412,6 +415,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (eventType == 'DELETE') {
       _tasks.removeWhere((t) => t.id == remoteTask.id);
       _binTasks.removeWhere((t) => t.id == remoteTask.id);
+      _taskDao.hardDelete(remoteTask.id);
     } else {
       if (remoteTask.title.trim().isEmpty) return; // Discard empty tasks
 
@@ -432,12 +436,15 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
           _tasks.insert(0, remoteTask);
         }
       }
+      _taskDao.upsertTask(remoteTask);
     }
-    saveTasks();
     notifyListeners();
   }
 
   /// Synchronize all tasks with Supabase backend and Google Tasks.
+  ///
+  /// Uses incremental sync: only fetches tasks updated since [_syncService.lastSyncedAt]
+  /// to avoid pulling the entire task list on every sync cycle.
   Future<void> syncWithCloud({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final masterSync = prefs.getBool('zeta_master_sync_enabled') ?? true;
@@ -450,7 +457,11 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       await _googleService.loadTokens(forceReload: force);
       _startGooglePollingTimer();
-      final remoteTasks = await _syncService.pullTasks();
+
+      // Incremental pull: only fetch tasks changed since last sync.
+      // On force (or first run when lastSyncedAt is null), fetch everything.
+      final since = force ? null : _syncService.lastSyncedAt;
+      final remoteTasks = await _syncService.pullTasks(since: since);
       remoteTasks.removeWhere((t) => t.title.trim().isEmpty);
 
       if (remoteTasks.isNotEmpty) {
@@ -473,6 +484,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
             _binTasks.removeWhere((t) => t.id == remote.id);
           }
         }
+        // Persist merged remote tasks to local SQLite
+        await _taskDao.upsertAll(remoteTasks);
         await saveTasks();
       }
 
@@ -788,13 +801,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> saveTasks() async {
+    // Persist to SQLite via drift DAO (replaces SharedPreferences JSON blob).
+    // The DAO handles upserts efficiently — only changed rows are rewritten.
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final tasksSerialized = _tasks.map((t) => t.toJson()).toList();
-      final binSerialized = _binTasks.map((t) => t.toJson()).toList();
-      await prefs.setString(_tasksKey, jsonEncode(tasksSerialized));
-      await prefs.setString(_binTasksKey, jsonEncode(binSerialized));
-    } catch (_) {}
+      await _taskDao.upsertAll([..._tasks, ..._binTasks]);
+    } catch (e) {
+      debugPrint('TaskProvider: saveTasks error - $e');
+    }
   }
 
   Future<void> _autoSaveTasksIfEnabled() async {
