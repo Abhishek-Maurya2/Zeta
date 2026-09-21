@@ -815,89 +815,125 @@ class _FloatingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final baseM3ETheme = M3ETheme.of(context);
 
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
-    return M3ETheme(
-      data: M3ETheme.of(context).copyWith(
-        toolbarTheme: M3ETheme.of(context).toolbarTheme
-            .copyWith(containerSize: 65),
+    final glassColorScheme = baseM3ETheme.colorScheme.copyWith(
+      primaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      secondaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      tertiaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      surfaceContainerHigh: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      primary: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      onPrimaryContainer: colorScheme.onPrimaryContainer,
+      onSecondaryContainer: colorScheme.onPrimaryContainer,
+      onTertiaryContainer: colorScheme.onPrimaryContainer,
+      onPrimary: colorScheme.onPrimaryContainer,
+    );
+
+    final navToolbar = M3ETheme(
+      data: baseM3ETheme.copyWith(
+        colorScheme: glassColorScheme,
+        toolbarTheme: baseM3ETheme.toolbarTheme.copyWith(
+          containerSize: 65,
+        ),
       ),
-      child: Center(
-        child: IntrinsicWidth(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
-              child: M3EToolbar(
-                alignment: Alignment.bottomCenter,
-                backgroundColor: colorScheme.primaryContainer.withValues(
-                  alpha: 0.7,
-                ),
-                size: M3EToolbarSize.large,
-                padding: const EdgeInsets.symmetric(horizontal: 1),
-
-                fabIcon: isTasksPage
-                    ? const Tooltip(
-                        message: 'New Task',
-                        child: Icon(
-                          Icons.add_rounded,
-                          fontWeight: FontWeight.bold,
-                          size: 26,
-                        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(32),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: M3EToolbar(
+            backgroundColor: colorScheme.primaryContainer.withValues(
+              alpha: 0.70,
+            ),
+            size: M3EToolbarSize.large,
+            padding: const EdgeInsets.symmetric(horizontal: 1),
+            actions: [
+              M3EToolbarWidget(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: kNavDestinations
+                      .where(
+                        (dest) =>
+                            dest.id != PageId.settings &&
+                            dest.id != PageId.bin,
                       )
-                    : null,
+                      .map((dest) {
+                        final isSelected = dest.id == navProvider.activePage;
 
-                fabPosition: M3EToolbarFabPosition.end,
-                fabExpandsToolbar: false,
+                        return _ToolbarNavItem(
+                          destination: dest,
+                          isSelected: isSelected,
+                          onTap: () {
+                            ZetaHaptics.selection();
+                            context.read<TaskProvider>().clearSelection();
 
-                onFabPressed: isTasksPage
-                    ? () {
-                        ZetaHaptics.medium();
-                        TaskEditPane.show(context);
-                      }
-                    : null,
+                            if (navProvider.activePage == PageId.revision &&
+                                dest.id != PageId.revision) {
+                              context
+                                  .read<RevisionProvider>()
+                                  .selectSubject(null);
+                            }
 
-                actions: [
-                  M3EToolbarWidget(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: kNavDestinations
-                          .where(
-                            (dest) =>
-                                dest.id != PageId.settings &&
-                                dest.id != PageId.bin,
-                          )
-                          .map((dest) {
-                            final isSelected =
-                                dest.id == navProvider.activePage;
+                            navProvider.setActivePage(dest.id);
+                          },
+                        );
+                      })
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
-                            return _ToolbarNavItem(
-                              destination: dest,
-                              isSelected: isSelected,
-                              onTap: () {
-                                ZetaHaptics.selection();
-                                context.read<TaskProvider>().clearSelection();
-
-                                if (navProvider.activePage == PageId.revision &&
-                                    dest.id != PageId.revision) {
-                                  context
-                                      .read<RevisionProvider>()
-                                      .selectSubject(null);
-                                }
-
-                                navProvider.setActivePage(dest.id);
-                              },
-                            );
-                          })
-                          .toList(),
-                    ),
+    final fabButton = ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer.withValues(alpha: 0.70),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                ZetaHaptics.medium();
+                TaskEditPane.show(context);
+              },
+              child: Tooltip(
+                message: 'New Task',
+                child: Center(
+                  child: Icon(
+                    Icons.add_rounded,
+                    size: 26,
+                    color: colorScheme.onPrimaryContainer,
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
+      ),
+    );
+
+    return Center(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          IntrinsicWidth(child: navToolbar),
+          if (isTasksPage) ...[
+            const SizedBox(width: 8),
+            fabButton,
+          ],
+        ],
       ),
     );
   }

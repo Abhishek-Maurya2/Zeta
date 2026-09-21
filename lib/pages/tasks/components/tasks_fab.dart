@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -13,6 +14,18 @@ class TasksFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseM3ETheme = M3ETheme.of(context);
+
+    final glassColorScheme = baseM3ETheme.colorScheme.copyWith(
+      primary: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      onPrimary: colorScheme.onPrimaryContainer,
+      primaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      onPrimaryContainer: colorScheme.onPrimaryContainer,
+      secondaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
+      onSecondaryContainer: colorScheme.onPrimaryContainer,
+    );
+
     return Positioned(
       bottom: 28,
       right: 36,
@@ -26,19 +39,51 @@ class TasksFab extends StatelessWidget {
           curve: Curves.easeInOutCubic,
           child: IgnorePointer(
             ignoring: isSelectionMode,
-            child: ZetaExtendedFab(
-              color: M3EFabColor.primary,
-              extended: true,
-              icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
-              label: 'Add Task',
-              height: 64,
-              iconSize: 28,
-              cornerRadius: 15,
-              extendedHorizontalPadding: 30,
-              iconLabelGap: 15,
-              labelFontSize: 18,
-              labelFontWeight: FontWeight.w600,
-              onPressed: onPressed ?? () => TaskEditPane.show(context),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: M3ETheme(
+                      data: baseM3ETheme.copyWith(colorScheme: glassColorScheme),
+                      child: ZetaExtendedFab(
+                        color: M3EFabColor.primary,
+                        extended: true,
+                        icon: const Icon(Icons.add_rounded),
+                        label: 'Add Task',
+                        height: 64,
+                        iconSize: 28,
+                        cornerRadius: 20,
+                        extendedHorizontalPadding: 30,
+                        iconLabelGap: 15,
+                        labelFontSize: 18,
+                        labelFontWeight: FontWeight.w600,
+                        elevation: 0,
+                        hoverElevation: 0,
+                        onPressed: onPressed ?? () => TaskEditPane.show(context),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -46,3 +91,4 @@ class TasksFab extends StatelessWidget {
     );
   }
 }
+
