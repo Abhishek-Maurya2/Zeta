@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -53,9 +54,9 @@ class _AppScaffoldState extends State<AppScaffold>
   bool _isRefreshing = false;
   bool _hasHapticFired = false;
 
-  static const double _targetHeight = 64.0;
-  static const double _maxStretchHeight = 96.0;
-  static const double _triggerThreshold = 52.0;
+  static const double _targetHeight = 80.0;
+  static const double _maxStretchHeight = 90.0;
+  static const double _triggerThreshold = 50.0;
 
   double get _refreshHeight {
     if (_refreshController.isAnimating) {
@@ -70,12 +71,13 @@ class _AppScaffoldState extends State<AppScaffold>
   @override
   void initState() {
     super.initState();
-    _refreshController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 280),
-    )..addListener(() {
-        setState(() {});
-      });
+    _refreshController =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 280),
+        )..addListener(() {
+          setState(() {});
+        });
     _refreshAnimation = Tween<double>(begin: 0.0, end: _targetHeight).animate(
       CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
     );
@@ -107,12 +109,16 @@ class _AppScaffoldState extends State<AppScaffold>
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
-    _refreshAnimation = Tween<double>(
-      begin: _dragOffset > 0 ? _dragOffset : 0.0,
-      end: _targetHeight,
-    ).animate(
-      CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
-    );
+    _refreshAnimation =
+        Tween<double>(
+          begin: _dragOffset > 0 ? _dragOffset : 0.0,
+          end: _targetHeight,
+        ).animate(
+          CurvedAnimation(
+            parent: _refreshController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     await _refreshController.forward(from: 0.0);
 
     try {
@@ -126,10 +132,7 @@ class _AppScaffoldState extends State<AppScaffold>
     if (!mounted) return;
     ZetaHaptics.light();
 
-    _refreshAnimation = Tween<double>(
-      begin: _targetHeight,
-      end: 0.0,
-    ).animate(
+    _refreshAnimation = Tween<double>(begin: _targetHeight, end: 0.0).animate(
       CurvedAnimation(parent: _refreshController, curve: Curves.easeInOutCubic),
     );
     await _refreshController.forward(from: 0.0);
@@ -143,10 +146,7 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   void _snapBackToZero() {
-    _refreshAnimation = Tween<double>(
-      begin: _dragOffset,
-      end: 0.0,
-    ).animate(
+    _refreshAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
       CurvedAnimation(parent: _refreshController, curve: Curves.easeOutCubic),
     );
     _refreshController.forward(from: 0.0).then((_) {
@@ -167,8 +167,10 @@ class _AppScaffoldState extends State<AppScaffold>
 
     if (notification is OverscrollNotification) {
       if (notification.overscroll < 0) {
-        final newDrag = (_dragOffset - notification.overscroll * 0.5)
-            .clamp(0.0, _maxStretchHeight);
+        final newDrag = (_dragOffset - notification.overscroll * 0.5).clamp(
+          0.0,
+          _maxStretchHeight,
+        );
         setState(() {
           _dragOffset = newDrag;
         });
@@ -178,7 +180,8 @@ class _AppScaffoldState extends State<AppScaffold>
         }
       }
     } else if (notification is ScrollUpdateNotification) {
-      if (notification.metrics.pixels <= 0 && (notification.scrollDelta ?? 0) < 0) {
+      if (notification.metrics.pixels <= 0 &&
+          (notification.scrollDelta ?? 0) < 0) {
         final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
             .clamp(0.0, _maxStretchHeight);
         setState(() {
@@ -444,19 +447,29 @@ class _AppScaffoldState extends State<AppScaffold>
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
                   // 2. Expandable Stretchable Refresh Container below topappbar
-                  if (navProvider.activePage != PageId.settings && _refreshHeight > 0.001)
+                  if (navProvider.activePage != PageId.settings &&
+                      _refreshHeight > 0.001)
                     ClipRect(
                       child: SizedBox(
                         height: _refreshHeight,
                         child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: isDark
+                                ? colorScheme.surface
+                                : colorScheme.surfaceContainer,
+                          ),
                           width: double.infinity,
-                          color: colorScheme.surface,
                           alignment: Alignment.center,
                           child: Opacity(
-                            opacity: (_refreshHeight / _targetHeight).clamp(0.0, 1.0),
+                            opacity: (_refreshHeight / _targetHeight).clamp(
+                              0.0,
+                              1.0,
+                            ),
                             child: Transform.scale(
-                              scale: (0.6 + 0.4 * (_refreshHeight / _targetHeight))
-                                  .clamp(0.6, 1.0),
+                              scale:
+                                  (0.6 + 0.4 * (_refreshHeight / _targetHeight))
+                                      .clamp(0.6, 1.0),
                               child: const M3ELoadingIndicator(
                                 variant: M3ELoadingIndicatorVariant.contained,
                                 elevation: 0,
@@ -484,178 +497,198 @@ class _AppScaffoldState extends State<AppScaffold>
                           },
                         ),
                         child: isCompact
-                        ? Stack(
-                            children: [
-                              Positioned.fill(
-                                child: _BodyPane(
-                                  activePage: navProvider.activePage,
-                                ),
-                              ),
-                              // Floating Bottom Navigation: moves down out of view when selecting
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 16,
-                                child: AnimatedSlide(
-                                  offset: isSelectionMode
-                                      ? const Offset(0, 2.0)
-                                      : Offset.zero,
-                                  duration: const Duration(milliseconds: 320),
-                                  curve: Curves.easeInOutCubicEmphasized,
-                                  child: AnimatedOpacity(
-                                    opacity: isSelectionMode ? 0.0 : 1.0,
-                                    duration: const Duration(milliseconds: 220),
-                                    child: IgnorePointer(
-                                      ignoring: isSelectionMode,
-                                      child: Center(
-                                        child: _FloatingBottomNav(
-                                          navProvider: navProvider,
+                            ? Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: _BodyPane(
+                                      activePage: navProvider.activePage,
+                                    ),
+                                  ),
+                                  // Floating Bottom Navigation: moves down out of view when selecting
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 16,
+                                    child: AnimatedSlide(
+                                      offset: isSelectionMode
+                                          ? const Offset(0, 2.0)
+                                          : Offset.zero,
+                                      duration: const Duration(
+                                        milliseconds: 320,
+                                      ),
+                                      curve: Curves.easeInOutCubicEmphasized,
+                                      child: AnimatedOpacity(
+                                        opacity: isSelectionMode ? 0.0 : 1.0,
+                                        duration: const Duration(
+                                          milliseconds: 220,
+                                        ),
+                                        child: IgnorePointer(
+                                          ignoring: isSelectionMode,
+                                          child: Center(
+                                            child: _FloatingBottomNav(
+                                              navProvider: navProvider,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              // Floating Selection Toolbar: moves up from bottom into position
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 16,
-                                child: AnimatedSlide(
-                                  offset: isSelectionMode
-                                      ? Offset.zero
-                                      : const Offset(0, 2.0),
-                                  duration: const Duration(milliseconds: 320),
-                                  curve: Curves.easeInOutCubicEmphasized,
-                                  child: AnimatedOpacity(
-                                    opacity: isSelectionMode ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 250),
-                                    child: IgnorePointer(
-                                      ignoring: !isSelectionMode,
-                                      child: TaskSelectionToolbar(
-                                        taskProvider: taskProvider,
+                                  // Floating Selection Toolbar: moves up from bottom into position
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 16,
+                                    child: AnimatedSlide(
+                                      offset: isSelectionMode
+                                          ? Offset.zero
+                                          : const Offset(0, 2.0),
+                                      duration: const Duration(
+                                        milliseconds: 320,
+                                      ),
+                                      curve: Curves.easeInOutCubicEmphasized,
+                                      child: AnimatedOpacity(
+                                        opacity: isSelectionMode ? 1.0 : 0.0,
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        child: IgnorePointer(
+                                          ignoring: !isSelectionMode,
+                                          child: TaskSelectionToolbar(
+                                            taskProvider: taskProvider,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // M3E Navigation Rail from material_3_expressive (no internal toggle button)
-                              _NavigationRailWidget(
-                                isExpanded: navProvider.isRailExpanded,
-                                navProvider: navProvider,
-                              ),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // M3E Navigation Rail from material_3_expressive (no internal toggle button)
+                                  _NavigationRailWidget(
+                                    isExpanded: navProvider.isRailExpanded,
+                                    navProvider: navProvider,
+                                  ),
 
-                              // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
-                              Expanded(
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.stretch,
-                                        children: [
-                                          Expanded(
-                                            child: _BodyPane(
-                                              activePage:
-                                                  navProvider.activePage,
-                                            ),
-                                          ),
-                                          if (taskProvider.isEditPaneOpen) ...[
-                                            M3EPaneDivider(
-                                              onDragUpdate: (delta) {
-                                                setState(() {
-                                                  _taskEditPaneWidth =
-                                                      (_taskEditPaneWidth -
-                                                              delta)
-                                                          .clamp(300.0, 600.0);
-                                                });
-                                              },
-                                              onDoubleTap: () {
-                                                setState(() {
-                                                  _taskEditPaneWidth = 380.0;
-                                                });
-                                                ZetaHaptics.medium();
-                                              },
-                                              tooltip: 'Drag to resize task pane · Double-tap to reset (380dp)',
-                                            ),
-                                            SizedBox(
-                                              width: _taskEditPaneWidth,
-                                              child: Container(
-                                                margin:
-                                                    const EdgeInsets.fromLTRB(
-                                                      0,
-                                                      16,
-                                                      16,
-                                                      6,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: isDark
-                                                      ? colorScheme
-                                                            .surfaceContainerHigh
-                                                      : colorScheme
-                                                            .surfaceContainer,
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
+                                  // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Expanded(
+                                                child: _BodyPane(
+                                                  activePage:
+                                                      navProvider.activePage,
                                                 ),
-                                                clipBehavior: Clip.antiAlias,
-                                                child: SafeArea(
-                                                  child: TaskEditFormContent(
-                                                    key: ValueKey(
-                                                      taskProvider
-                                                              .editingTask
-                                                              ?.id ??
-                                                          'new_task',
+                                              ),
+                                              if (taskProvider
+                                                  .isEditPaneOpen) ...[
+                                                M3EPaneDivider(
+                                                  onDragUpdate: (delta) {
+                                                    setState(() {
+                                                      _taskEditPaneWidth =
+                                                          (_taskEditPaneWidth -
+                                                                  delta)
+                                                              .clamp(
+                                                                300.0,
+                                                                600.0,
+                                                              );
+                                                    });
+                                                  },
+                                                  onDoubleTap: () {
+                                                    setState(() {
+                                                      _taskEditPaneWidth =
+                                                          380.0;
+                                                    });
+                                                    ZetaHaptics.medium();
+                                                  },
+                                                  tooltip: 'Drag to resize task pane · Double-tap to reset (380dp)',
+                                                ),
+                                                SizedBox(
+                                                  width: _taskEditPaneWidth,
+                                                  child: Container(
+                                                    margin:
+                                                        const EdgeInsets.fromLTRB(
+                                                          0,
+                                                          16,
+                                                          16,
+                                                          6,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: isDark
+                                                          ? colorScheme
+                                                                .surfaceContainerHigh
+                                                          : colorScheme
+                                                                .surfaceContainer,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            20,
+                                                          ),
                                                     ),
-                                                    task: taskProvider
-                                                        .editingTask,
-                                                    initialTitle: taskProvider
-                                                        .editingInitialTitle,
-                                                    onClose: () => taskProvider
-                                                        .closeEditPane(),
+                                                    clipBehavior:
+                                                        Clip.antiAlias,
+                                                    child: SafeArea(
+                                                      child: TaskEditFormContent(
+                                                        key: ValueKey(
+                                                          taskProvider
+                                                                  .editingTask
+                                                                  ?.id ??
+                                                              'new_task',
+                                                        ),
+                                                        task: taskProvider
+                                                            .editingTask,
+                                                        initialTitle: taskProvider
+                                                            .editingInitialTitle,
+                                                        onClose: () =>
+                                                            taskProvider
+                                                                .closeEditPane(),
+                                                      ),
+                                                    ),
                                                   ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 0,
+                                          right: 0,
+                                          bottom: 24,
+                                          child: AnimatedSlide(
+                                            offset: isSelectionMode
+                                                ? Offset.zero
+                                                : const Offset(0, 2.0),
+                                            duration: const Duration(
+                                              milliseconds: 320,
+                                            ),
+                                            curve:
+                                                Curves.easeInOutCubicEmphasized,
+                                            child: AnimatedOpacity(
+                                              opacity: isSelectionMode
+                                                  ? 1.0
+                                                  : 0.0,
+                                              duration: const Duration(
+                                                milliseconds: 250,
+                                              ),
+                                              child: IgnorePointer(
+                                                ignoring: !isSelectionMode,
+                                                child: TaskSelectionToolbar(
+                                                  taskProvider: taskProvider,
                                                 ),
                                               ),
                                             ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 24,
-                                      child: AnimatedSlide(
-                                        offset: isSelectionMode
-                                            ? Offset.zero
-                                            : const Offset(0, 2.0),
-                                        duration: const Duration(
-                                          milliseconds: 320,
-                                        ),
-                                        curve: Curves.easeInOutCubicEmphasized,
-                                        child: AnimatedOpacity(
-                                          opacity: isSelectionMode ? 1.0 : 0.0,
-                                          duration: const Duration(
-                                            milliseconds: 250,
-                                          ),
-                                          child: IgnorePointer(
-                                            ignoring: !isSelectionMode,
-                                            child: TaskSelectionToolbar(
-                                              taskProvider: taskProvider,
-                                            ),
                                           ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
                       ),
                     ),
                   ),
