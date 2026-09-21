@@ -1,6 +1,9 @@
+import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../widgets/segmented_column.dart';
 import '../../../providers/pomodoro_provider.dart';
 
@@ -12,6 +15,8 @@ class PomodoroSettingsSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.15),
       builder: (context) => const PomodoroSettingsSheet(),
     );
   }
@@ -23,275 +28,338 @@ class PomodoroSettingsSheet extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-        maxWidth: 600,
-      ),
-      margin: EdgeInsets.only(
-        bottom: MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 32,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+          maxWidth: 600,
+        ),
+        child: Container(
+          margin: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              children: [
-                Expanded(
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.shadow.withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHigh.withValues(
+                    alpha: 0.60,
+                  ),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.30),
+                    width: 1.0,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        'Pomodoro Settings',
-                        style: textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurface,
+                      // Drag handle
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.only(top: 12, bottom: 8),
+                          width: 32,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.60,
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Configure session durations, intervals, and automation',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Pomodoro Settings',
+                                    style: textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              style: IconButton.styleFrom(
+                                backgroundColor: colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Scrollable Settings Content
+                      Flexible(
+                        child: ListView(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          children: [
+                            // ─── 1. Cycle Durations (M3ESegmentedColumn) ───
+                            Text(
+                              'CYCLE DURATIONS',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            M3ESegmentedColumn(
+                              decoration: M3ESegmentedListDecoration(
+                                padding: const EdgeInsets.all(1.0),
+                                border: BorderSide(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  width: 1.0,
+                                ),
+                              ),
+                              color: colorScheme.surfaceContainerLowest
+                                  .withValues(alpha: 0.45),
+                              children: [
+                                // Focus Duration
+                                _buildSliderTile(
+                                  context,
+                                  icon: Icons.psychology_rounded,
+                                  title: 'Focus Duration',
+                                  currentLabel:
+                                      '${settings.focusDuration} minutes',
+                                  value: settings.focusDuration.toDouble(),
+                                  min: 5,
+                                  max: 90,
+                                  divisions: 17,
+                                  label: '${settings.focusDuration}m',
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(focusDuration: val),
+                                    );
+                                  },
+                                ),
+
+                                // Short Break Duration
+                                _buildSliderTile(
+                                  context,
+                                  icon: Icons.coffee_rounded,
+                                  title: 'Short Break Duration',
+                                  currentLabel:
+                                      '${settings.shortBreakDuration} minutes',
+                                  value: settings.shortBreakDuration.toDouble(),
+                                  min: 1,
+                                  max: 30,
+                                  divisions: 29,
+                                  label: '${settings.shortBreakDuration}m',
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(
+                                        shortBreakDuration: val,
+                                      ),
+                                    );
+                                  },
+                                ),
+
+                                // Long Break Duration
+                                _buildSliderTile(
+                                  context,
+                                  icon: Icons.hotel_rounded,
+                                  title: 'Long Break Duration',
+                                  currentLabel:
+                                      '${settings.longBreakDuration} minutes',
+                                  value: settings.longBreakDuration.toDouble(),
+                                  min: 5,
+                                  max: 60,
+                                  divisions: 11,
+                                  label: '${settings.longBreakDuration}m',
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(longBreakDuration: val),
+                                    );
+                                  },
+                                ),
+
+                                // Long Break Interval
+                                _buildSliderTile(
+                                  context,
+                                  icon: Icons.repeat_rounded,
+                                  title: 'Long Break Interval',
+                                  currentLabel:
+                                      'Every ${settings.longBreakInterval} focus sessions',
+                                  value: settings.longBreakInterval.toDouble(),
+                                  min: 1,
+                                  max: 10,
+                                  divisions: 9,
+                                  label: '${settings.longBreakInterval} cycles',
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(longBreakInterval: val),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // ─── 2. Automation & Sound (M3ESegmentedColumn) ───
+                            Text(
+                              'AUTOMATION & SOUND',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.1,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            M3ESegmentedColumn(
+                              decoration: M3ESegmentedListDecoration(
+                                padding: const EdgeInsets.all(1.0),
+                                border: BorderSide(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  width: 1.0,
+                                ),
+                              ),
+                              color: colorScheme.surfaceContainerLowest
+                                  .withValues(alpha: 0.45),
+                              children: [
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.play_arrow_rounded,
+                                  title: 'Auto-start breaks',
+                                  subtitle: 'Automatically start break timer when focus session finishes',
+                                  value: settings.autoStartBreaks,
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(autoStartBreaks: val),
+                                    );
+                                  },
+                                ),
+
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.fast_forward_rounded,
+                                  title: 'Auto-start focus sessions',
+                                  subtitle: 'Automatically start focus timer when break finishes',
+                                  value: settings.autoStartFocus,
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(autoStartFocus: val),
+                                    );
+                                  },
+                                ),
+
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.all_inclusive_rounded,
+                                  title: 'Continuous auto-run',
+                                  subtitle: 'Auto-start every queue item continuously',
+                                  value: settings.autoStartNext,
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(autoStartNext: val),
+                                    );
+                                  },
+                                ),
+
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.skip_next_rounded,
+                                  title: 'Skip breaks',
+                                  subtitle: 'Omit breaks to cycle continuously through focus intervals',
+                                  value: settings.skipBreaks,
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(skipBreaks: val),
+                                    );
+                                  },
+                                ),
+
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.volume_up_rounded,
+                                  title: 'Sound alerts',
+                                  subtitle: 'Play audio chime and vibration when session completes',
+                                  value: settings.soundNotification,
+                                  selectedIcon: const Icon(
+                                    Icons.volume_up_rounded,
+                                  ),
+                                  unselectedIcon: const Icon(
+                                    Icons.volume_off_rounded,
+                                  ),
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(soundNotification: val),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // Reset to defaults
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: GlassButton(
+                                size: M3EButtonSize.sm,
+                                borderRadius: 12,
+                                icon: const Icon(
+                                  Icons.restore_rounded,
+                                  size: 18,
+                                ),
+                                onPressed: () =>
+                                    provider.resetToDefaultSettings(),
+                                child: const Text('Reset to Defaults'),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+              ),
             ),
           ),
-
-          const Divider(height: 1),
-
-          // Scrollable Settings Content
-          Flexible(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              children: [
-                // ─── 1. Cycle Durations (M3ESegmentedColumn) ───
-                Text(
-                  'CYCLE DURATIONS',
-                  style: textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(1.0),
-                  ),
-                  color: colorScheme.surfaceContainerLowest,
-                  children: [
-                    // Focus Duration
-                    _buildSliderTile(
-                      context,
-                      icon: Icons.psychology_rounded,
-                      title: 'Focus Duration',
-                      currentLabel: '${settings.focusDuration} minutes',
-                      value: settings.focusDuration.toDouble(),
-                      min: 5,
-                      max: 90,
-                      divisions: 17,
-                      label: '${settings.focusDuration}m',
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(focusDuration: val),
-                        );
-                      },
-                    ),
-
-                    // Short Break Duration
-                    _buildSliderTile(
-                      context,
-                      icon: Icons.coffee_rounded,
-                      title: 'Short Break Duration',
-                      currentLabel: '${settings.shortBreakDuration} minutes',
-                      value: settings.shortBreakDuration.toDouble(),
-                      min: 1,
-                      max: 30,
-                      divisions: 29,
-                      label: '${settings.shortBreakDuration}m',
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(shortBreakDuration: val),
-                        );
-                      },
-                    ),
-
-                    // Long Break Duration
-                    _buildSliderTile(
-                      context,
-                      icon: Icons.hotel_rounded,
-                      title: 'Long Break Duration',
-                      currentLabel: '${settings.longBreakDuration} minutes',
-                      value: settings.longBreakDuration.toDouble(),
-                      min: 5,
-                      max: 60,
-                      divisions: 11,
-                      label: '${settings.longBreakDuration}m',
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(longBreakDuration: val),
-                        );
-                      },
-                    ),
-
-                    // Long Break Interval
-                    _buildSliderTile(
-                      context,
-                      icon: Icons.repeat_rounded,
-                      title: 'Long Break Interval',
-                      currentLabel:
-                          'Every ${settings.longBreakInterval} focus sessions',
-                      value: settings.longBreakInterval.toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: '${settings.longBreakInterval} cycles',
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(longBreakInterval: val),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // ─── 2. Automation & Sound (M3ESegmentedColumn) ───
-                Text(
-                  'AUTOMATION & SOUND',
-                  style: textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(1.0),
-                  ),
-                  color: colorScheme.surfaceContainerLowest,
-                  children: [
-                    _buildSwitchTile(
-                      context,
-                      icon: Icons.play_arrow_rounded,
-                      title: 'Auto-start breaks',
-                      subtitle:
-                          'Automatically start break timer when focus session finishes',
-                      value: settings.autoStartBreaks,
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(autoStartBreaks: val),
-                        );
-                      },
-                    ),
-
-                    _buildSwitchTile(
-                      context,
-                      icon: Icons.fast_forward_rounded,
-                      title: 'Auto-start focus sessions',
-                      subtitle:
-                          'Automatically start focus timer when break finishes',
-                      value: settings.autoStartFocus,
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(autoStartFocus: val),
-                        );
-                      },
-                    ),
-
-                    _buildSwitchTile(
-                      context,
-                      icon: Icons.all_inclusive_rounded,
-                      title: 'Continuous auto-run',
-                      subtitle: 'Auto-start every queue item continuously',
-                      value: settings.autoStartNext,
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(autoStartNext: val),
-                        );
-                      },
-                    ),
-
-                    _buildSwitchTile(
-                      context,
-                      icon: Icons.skip_next_rounded,
-                      title: 'Skip breaks',
-                      subtitle:
-                          'Omit breaks to cycle continuously through focus intervals',
-                      value: settings.skipBreaks,
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(skipBreaks: val),
-                        );
-                      },
-                    ),
-
-                    _buildSwitchTile(
-                      context,
-                      icon: Icons.volume_up_rounded,
-                      title: 'Sound alerts',
-                      subtitle:
-                          'Play audio chime and vibration when session completes',
-                      value: settings.soundNotification,
-                      selectedIcon: const Icon(Icons.volume_up_rounded),
-                      unselectedIcon: const Icon(Icons.volume_off_rounded),
-                      onChanged: (val) {
-                        provider.updateSettings(
-                          settings.copyWith(soundNotification: val),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Reset to defaults
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => provider.resetToDefaultSettings(),
-                    icon: const Icon(Icons.restore_rounded, size: 18),
-                    label: const Text('Reset to Defaults'),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

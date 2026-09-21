@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -56,10 +57,11 @@ class _AppScaffoldState extends State<AppScaffold>
   double _dragOffset = 0.0;
   bool _isRefreshing = false;
   bool _hasHapticFired = false;
+  bool _isUserPulling = false;
 
   static const double _targetHeight = 80.0;
-  static const double _maxStretchHeight = 90.0;
-  static const double _triggerThreshold = 50.0;
+  static const double _maxStretchHeight = 100.0;
+  static const double _triggerThreshold = 70.0;
 
   double get _refreshHeight {
     if (_refreshController.isAnimating) {
@@ -109,6 +111,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     setState(() {
       _isRefreshing = true;
+      _isUserPulling = false;
     });
     ZetaHaptics.medium();
 
@@ -153,6 +156,7 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   void _snapBackToZero() {
+    if (_dragOffset <= 0.0) return;
     _refreshAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
       CurvedAnimation(
         parent: _refreshController,
@@ -173,10 +177,30 @@ class _AppScaffoldState extends State<AppScaffold>
     final nav = context.read<NavigationProvider>();
     if (nav.activePage == PageId.settings) return false;
 
+    // 1. Only listen to primary vertical scroll notifications.
+    // notification.depth != 0 ignores nested lists, dialogs, drawers, and split panes.
+    if (notification.depth != 0) return false;
     if (notification.metrics.axis != Axis.vertical) return false;
 
+    // 2. ScrollStartNotification: only begin tracking pull-to-refresh if:
+    //    - this is an active physical drag gesture (dragDetails != null)
+    //    - the scroll view is already at or near the top edge (pixels <= 1.0)
+    //    Mouse wheel, trackpad scrolling, ballistic flings, and window resizing
+    //    always have dragDetails == null, so they will NEVER start a pull gesture.
+    if (notification is ScrollStartNotification) {
+      if (notification.dragDetails != null &&
+          notification.metrics.pixels <= 1.0) {
+        _isUserPulling = true;
+      } else {
+        _isUserPulling = false;
+      }
+    }
+
+    // 3. OverscrollNotification: fired when pulling past boundary (e.g. ClampingScrollPhysics)
     if (notification is OverscrollNotification) {
-      if (notification.overscroll < 0) {
+      if (_isUserPulling &&
+          notification.dragDetails != null &&
+          notification.overscroll < 0) {
         final newDrag = (_dragOffset - notification.overscroll * 0.5).clamp(
           0.0,
           _maxStretchHeight,
@@ -189,36 +213,65 @@ class _AppScaffoldState extends State<AppScaffold>
           ZetaHaptics.selection();
         }
       }
-    } else if (notification is ScrollUpdateNotification) {
-      if (notification.metrics.pixels <= 0 &&
-          (notification.scrollDelta ?? 0) < 0) {
-        final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-            .clamp(0.0, _maxStretchHeight);
-        setState(() {
-          _dragOffset = newDrag;
-        });
-        if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
-          _hasHapticFired = true;
-          ZetaHaptics.selection();
+    }
+    // 4. ScrollUpdateNotification: fired during scroll (e.g. BouncingScrollPhysics)
+    else if (notification is ScrollUpdateNotification) {
+      if (notification.dragDetails != null && _isUserPulling) {
+        if (notification.metrics.pixels <= 0 &&
+            (notification.scrollDelta ?? 0) < 0) {
+          final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+              .clamp(0.0, _maxStretchHeight);
+          setState(() {
+            _dragOffset = newDrag;
+          });
+          if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
+            _hasHapticFired = true;
+            ZetaHaptics.selection();
+          }
+        } else if (_dragOffset > 0 && (notification.scrollDelta ?? 0) > 0) {
+          final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+              .clamp(0.0, _maxStretchHeight);
+          setState(() {
+            _dragOffset = newDrag;
+          });
+          if (_dragOffset < _triggerThreshold) {
+            _hasHapticFired = false;
+          }
         }
-      } else if (_dragOffset > 0 && (notification.scrollDelta ?? 0) > 0) {
-        final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-            .clamp(0.0, _maxStretchHeight);
-        setState(() {
-          _dragOffset = newDrag;
-        });
-        if (_dragOffset < _triggerThreshold) {
+      } else if (notification.dragDetails == null) {
+        // Non-drag event (mouse wheel tick, trackpad scroll, ballistic fling, or window resize)
+        if (_isUserPulling || _dragOffset > 0) {
+          _isUserPulling = false;
           _hasHapticFired = false;
+          if (_dragOffset > 0) {
+            _snapBackToZero();
+          }
         }
       }
-    } else if (notification is ScrollEndNotification) {
+    }
+    // 5. ScrollEndNotification: user released pointer
+    else if (notification is ScrollEndNotification) {
+      final wasPulling = _isUserPulling;
+      _isUserPulling = false;
       _hasHapticFired = false;
-      if (_dragOffset >= _triggerThreshold) {
+
+      if (wasPulling && _dragOffset >= _triggerThreshold) {
         _triggerRefresh();
       } else if (_dragOffset > 0) {
         _snapBackToZero();
       }
     }
+    // 6. UserScrollNotification: if scroll direction becomes idle
+    else if (notification is UserScrollNotification) {
+      if (notification.direction == ScrollDirection.idle &&
+          !_isRefreshing &&
+          _dragOffset > 0) {
+        _isUserPulling = false;
+        _hasHapticFired = false;
+        _snapBackToZero();
+      }
+    }
+
     return false;
   }
 

@@ -326,7 +326,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),
@@ -342,23 +342,37 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     required bool isCompact,
     required ColorScheme colorScheme,
     bool selected = false,
+    double borderRadius = 8.0,
   }) {
     if (!isCompact) return child;
+    final radius = BorderRadius.circular(borderRadius);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: radius,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected
-                  ? colorScheme.primary.withValues(alpha: 0.40)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.30),
-              width: 1.0,
+        child: Stack(
+          fit: StackFit.passthrough,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                color: selected
+                    ? colorScheme.primary.withValues(alpha: 0.12)
+                    : colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.20,
+                      ),
+              ),
+              child: child,
             ),
-          ),
-          child: child,
+            if (selected)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(borderRadius: radius),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -793,7 +807,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     decoration: M3EButtonDecoration(
                       backgroundColor: WidgetStatePropertyAll(
                         isCompact
-                            ? colorScheme.errorContainer.withValues(alpha: 0.45)
+                            ? colorScheme.errorContainer.withValues(alpha: 0.6)
                             : colorScheme.errorContainer,
                       ),
                       foregroundColor: WidgetStatePropertyAll(
@@ -821,7 +835,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     decoration: M3EButtonDecoration(
                       backgroundColor: WidgetStatePropertyAll(
                         isCompact
-                            ? colorScheme.errorContainer.withValues(alpha: 0.45)
+                            ? colorScheme.errorContainer.withValues(alpha: 0.9)
                             : colorScheme.errorContainer,
                       ),
                       foregroundColor: WidgetStatePropertyAll(
@@ -839,7 +853,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   decoration: M3EButtonDecoration(
                     backgroundColor: WidgetStatePropertyAll(
                       isCompact
-                          ? colorScheme.success.withValues(alpha: 0.60)
+                          ? colorScheme.success.withValues(alpha: 0.80)
                           : colorScheme.success,
                     ),
                     foregroundColor: WidgetStatePropertyAll(
