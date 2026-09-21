@@ -1,7 +1,9 @@
+import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../models/revision.dart';
 import '../../../providers/revision_provider.dart';
 
@@ -12,24 +14,21 @@ Future<bool?> showDeleteConfirmationDialog({
   required String message,
   String confirmLabel = 'Delete',
 }) {
-  return showDialog<bool>(
+  return showGlassDialog<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    builder: (ctx) => GlassAlertDialog(
+      maxWidth: 400.0,
       title: Text(title),
       content: Text(message),
       actions: [
-        M3EButton(
+        GlassButton(
           onPressed: () => Navigator.pop(ctx, false),
-          style: M3EButtonStyle.text,
-          size: M3EButtonSize.sm,
           child: const Text('Cancel'),
         ),
-        M3EButton(
+        GlassButton(
+          isDestructive: true,
           onPressed: () => Navigator.pop(ctx, true),
-          style: M3EButtonStyle.filled,
-          size: M3EButtonSize.sm,
-          child: Text(confirmLabel, style: const TextStyle(color: Colors.white)),
+          child: Text(confirmLabel),
         ),
       ],
     ),
@@ -43,7 +42,7 @@ class SubjectEditDialog extends StatefulWidget {
   const SubjectEditDialog({super.key, this.subject});
 
   static Future<void> show(BuildContext context, {Subject? subject}) {
-    return showDialog(
+    return showGlassDialog(
       context: context,
       builder: (context) => SubjectEditDialog(subject: subject),
     );
@@ -120,8 +119,7 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
     final isEditing = widget.subject != null;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    return GlassAlertDialog(
       title: Text(isEditing ? 'Edit Subject' : 'New Subject'),
       content: SingleChildScrollView(
         child: Column(
@@ -136,8 +134,25 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
                 hintText: 'e.g. Modern World History',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
+                fillColor: colorScheme.surface.withValues(alpha: 0.45),
               ),
             ),
             const SizedBox(height: 20),
@@ -157,25 +172,37 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
                 return InkWell(
                   onTap: () => setState(() => _selectedIcon = iconName),
                   borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? colorScheme.primaryContainer
-                          : colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                      border: isSelected
-                          ? Border.all(color: colorScheme.primary, width: 2)
-                          : null,
-                    ),
-                    child: Icon(
-                      _resolveIcon(iconName),
-                      color: isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
-                      size: 20,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? colorScheme.primaryContainer.withValues(alpha: 0.85)
+                              : colorScheme.surfaceContainerHighest.withValues(
+                                  alpha: 0.35,
+                                ),
+                          borderRadius: BorderRadius.circular(12),
+                          border: isSelected
+                              ? Border.all(color: colorScheme.primary, width: 2)
+                              : Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.30,
+                                  ),
+                                ),
+                        ),
+                        child: Icon(
+                          _resolveIcon(iconName),
+                          color: isSelected
+                              ? colorScheme.onPrimaryContainer
+                              : colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -231,13 +258,12 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
         ),
       ),
       actions: [
-        M3EButton(
+        GlassButton(
           onPressed: () => Navigator.pop(context),
-          style: M3EButtonStyle.text,
-          size: M3EButtonSize.sm,
           child: const Text('Cancel'),
         ),
-        M3EButton(
+        GlassButton(
+          isPrimary: true,
           onPressed: () async {
             final name = _controller.text.trim();
             if (name.isNotEmpty) {
@@ -260,8 +286,6 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
               if (context.mounted) Navigator.pop(context);
             }
           },
-          style: M3EButtonStyle.filled,
-          size: M3EButtonSize.sm,
           child: Text(isEditing ? 'Save Changes' : 'Create'),
         ),
       ],
@@ -283,7 +307,7 @@ class TopicEditDialog extends StatefulWidget {
     ChapterTopic? topic,
     String? subjectId,
   }) {
-    return showDialog(
+    return showGlassDialog(
       context: context,
       builder: (context) => TopicEditDialog(topic: topic, subjectId: subjectId),
     );
@@ -315,9 +339,9 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.topic != null;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+    return GlassAlertDialog(
       title: Text(isEditing ? 'Edit Topic' : 'Add Topic'),
       content: SingleChildScrollView(
         child: Column(
@@ -332,8 +356,25 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
                 hintText: 'e.g. Causes of World War I',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
+                fillColor: colorScheme.surface.withValues(alpha: 0.45),
               ),
             ),
             const SizedBox(height: 16),
@@ -344,8 +385,25 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
                 hintText: 'Short notes or core syllabus references',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
                 ),
                 filled: true,
+                fillColor: colorScheme.surface.withValues(alpha: 0.45),
               ),
               maxLines: 3,
             ),
@@ -353,13 +411,12 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
         ),
       ),
       actions: [
-        M3EButton(
+        GlassButton(
           onPressed: () => Navigator.pop(context),
-          style: M3EButtonStyle.text,
-          size: M3EButtonSize.sm,
           child: const Text('Cancel'),
         ),
-        M3EButton(
+        GlassButton(
+          isPrimary: true,
           onPressed: () async {
             final title = _titleController.text.trim();
             final desc = _descController.text.trim();
@@ -382,8 +439,6 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
               if (context.mounted) Navigator.pop(context);
             }
           },
-          style: M3EButtonStyle.filled,
-          size: M3EButtonSize.sm,
           child: Text(isEditing ? 'Save Changes' : 'Add Topic'),
         ),
       ],

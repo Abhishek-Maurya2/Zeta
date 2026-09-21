@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../models/task.dart';
 import '../utils/haptics.dart';
+import 'glass_m3e_menu.dart';
 
 enum TaskContextAction {
   select,
@@ -27,12 +28,14 @@ class TaskContextMenu {
     VoidCallback? onPermanentDelete,
   }) async {
     ZetaHaptics.medium();
-    final selected = await showM3EMenu<TaskContextAction>(
+
+    final selected = await showGlassM3EMenu<TaskContextAction>(
       context: context,
       anchor: Rect.fromLTWH(position.dx, position.dy, 1, 1),
       position: M3EMenuAnchorPosition.bottomStart,
       colorStyle: M3EMenuColorStyle.vibrant,
       preferredWidth: 230,
+      menuHeightOverride: isBin ? 121.0 : 226.0,
       children: isBin
           ? [
               const M3EMenuEntry(

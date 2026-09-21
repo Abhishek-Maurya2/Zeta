@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../components/glass_m3e_menu.dart';
 import '../../../models/revision.dart';
 
 class RevisionTopicTile extends StatelessWidget {
@@ -106,7 +107,7 @@ class RevisionTopicTile extends StatelessWidget {
                 ),
               ),
               if (onEdit != null || onDelete != null)
-                M3EMenu(
+                GlassM3EMenu(
                   position: M3EMenuAnchorPosition.bottomEnd,
                   colorStyle: M3EMenuColorStyle.vibrant,
                   anchorBuilder: (BuildContext context, VoidCallback open) {
