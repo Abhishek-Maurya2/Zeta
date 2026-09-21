@@ -66,26 +66,6 @@ class TaskEditPane {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(28),
                     ),
-                    border: Border(
-                      top: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.35,
-                        ),
-                        width: 1.0,
-                      ),
-                      left: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.35,
-                        ),
-                        width: 1.0,
-                      ),
-                      right: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(
-                          alpha: 0.35,
-                        ),
-                        width: 1.0,
-                      ),
-                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -336,6 +316,202 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     }
   }
 
+  Widget _buildGlassButton({
+    required Widget child,
+    required bool isCompact,
+    required Color borderColor,
+    double borderRadius = 24.0,
+  }) {
+    if (!isCompact) return child;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassChip({
+    required Widget child,
+    required bool isCompact,
+    required ColorScheme colorScheme,
+    bool selected = false,
+  }) {
+    if (!isCompact) return child;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.primary.withValues(alpha: 0.40)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.30),
+              width: 1.0,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubtaskInput({
+    required BuildContext context,
+    required bool isCompact,
+    required ColorScheme colorScheme,
+  }) {
+    final inputWidget = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: isCompact
+          ? BoxDecoration(
+              // color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.35),
+              // borderRadius: BorderRadius.circular(16),
+              // border: Border.all(
+              //   color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+              //   width: 1.0,
+              // ),
+            )
+          : null,
+      child: Row(
+        children: [
+          Icon(
+            Icons.subdirectory_arrow_right_rounded,
+            size: 20,
+            color: colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _newSubtaskController,
+              style: const TextStyle(fontSize: 14),
+              decoration: InputDecoration(
+                hintText: 'Add a subtask...',
+                hintStyle: TextStyle(
+                  fontSize: 14,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+                isDense: true,
+                border: InputBorder.none,
+              ),
+              onSubmitted: (_) => _addSubtask(),
+            ),
+          ),
+          M3EIconButton(
+            icon: const Icon(Icons.add_rounded, size: 18),
+            size: M3EIconButtonSize.xs,
+            width: M3EIconButtonWidth.narrow,
+            variant: M3EIconButtonVariant.tonal,
+            tooltip: 'Add subtask',
+            onPressed: _addSubtask,
+          ),
+        ],
+      ),
+    );
+
+    if (!isCompact) return inputWidget;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: inputWidget,
+      ),
+    );
+  }
+
+  Widget _buildSubtasksList({
+    required BuildContext context,
+    required bool isCompact,
+    required ColorScheme colorScheme,
+  }) {
+    if (_subtasks.isEmpty) return const SizedBox.shrink();
+
+    final segmentedCol = M3ESegmentedColumn(
+      decoration: const M3ESegmentedListDecoration(padding: EdgeInsets.all(0)),
+      color: isCompact
+          ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
+          : colorScheme.surfaceContainerLowest,
+      children: _subtasks.map((st) {
+        return ListTile(
+          dense: true,
+          leading: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              ZetaHaptics.selection();
+              _toggleSubtask(st.id);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(1.0),
+              child: Icon(
+                st.completed
+                    ? Icons.check_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 22,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          title: Text(
+            st.title,
+            style: TextStyle(
+              fontSize: 15,
+              decoration: st.completed ? TextDecoration.lineThrough : null,
+              color: st.completed
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onSurface,
+            ),
+          ),
+          trailing: M3EIconButton(
+            icon: const Icon(Icons.close_rounded, size: 21),
+            size: M3EIconButtonSize.xs,
+            variant: M3EIconButtonVariant.standard,
+            tooltip: 'Remove subtask',
+            onPressed: () {
+              ZetaHaptics.light();
+              _removeSubtask(st.id);
+            },
+          ),
+        );
+      }).toList(),
+    );
+
+    if (!isCompact) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: segmentedCol,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              // border: Border.all(
+              //   color: colorScheme.outlineVariant.withValues(alpha: 0.30),
+              //   width: 1.0,
+              // ),
+            ),
+            child: segmentedCol,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -500,55 +676,68 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       if (_dueDate != null)
-                        M3EChip(
-                          type: M3EChipType.filter,
-                          label: _dueDate!,
-                          leading: const Icon(
-                            Icons.edit_calendar_rounded,
-                            size: 16,
-                          ),
+                        _buildGlassChip(
+                          isCompact: isCompact,
+                          colorScheme: colorScheme,
                           selected: true,
-                          onPressed: _pickDate,
-                          onDeleted: () => setState(() {
-                            _dueDate = null;
-                            _hasTime = false;
-                            _dueTime = null;
-                          }),
+                          child: M3EChip(
+                            type: M3EChipType.filter,
+                            label: _dueDate!,
+                            leading: const Icon(
+                              Icons.edit_calendar_rounded,
+                              size: 16,
+                            ),
+                            selected: true,
+                            onPressed: _pickDate,
+                            onDeleted: () => setState(() {
+                              _dueDate = null;
+                              _hasTime = false;
+                              _dueTime = null;
+                            }),
+                          ),
                         )
                       else
-                        M3EChip(
-                          type: M3EChipType.assist,
-                          label: 'Pick date',
-                          leading: const Icon(
-                            Icons.calendar_month_rounded,
-                            size: 16,
+                        _buildGlassChip(
+                          isCompact: isCompact,
+                          colorScheme: colorScheme,
+                          selected: false,
+                          child: M3EChip(
+                            type: M3EChipType.assist,
+                            label: 'Pick date',
+                            leading: const Icon(
+                              Icons.calendar_month_rounded,
+                              size: 16,
+                            ),
+                            onPressed: _pickDate,
                           ),
-                          onPressed: _pickDate,
                         ),
-                      M3EChip(
-                        type: _hasTime
-                            ? M3EChipType.filter
-                            : M3EChipType.assist,
-                        label: _hasTime && _dueTime != null
-                            ? _dueTime!
-                            : 'Add Time',
-                        leading: Icon(
-                          _hasTime
-                              ? Icons.schedule_rounded
-                              : Icons.alarm_add_rounded,
-                          size: 16,
-                          color: _hasTime
-                              ? colorScheme.onSurfaceVariant
-                              : colorScheme.onSurfaceVariant,
-                        ),
+                      _buildGlassChip(
+                        isCompact: isCompact,
+                        colorScheme: colorScheme,
                         selected: _hasTime,
-                        onPressed: _pickTime,
-                        onDeleted: _hasTime
-                            ? () => setState(() {
-                                _hasTime = false;
-                                _dueTime = null;
-                              })
-                            : null,
+                        child: M3EChip(
+                          type: _hasTime
+                              ? M3EChipType.filter
+                              : M3EChipType.assist,
+                          label: _hasTime && _dueTime != null
+                              ? _dueTime!
+                              : 'Add Time',
+                          leading: Icon(
+                            _hasTime
+                                ? Icons.schedule_rounded
+                                : Icons.alarm_add_rounded,
+                            size: 16,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          selected: _hasTime,
+                          onPressed: _pickTime,
+                          onDeleted: _hasTime
+                              ? () => setState(() {
+                                  _hasTime = false;
+                                  _dueTime = null;
+                                })
+                              : null,
+                        ),
                       ),
                     ],
                   ),
@@ -567,102 +756,17 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
                   const SizedBox(height: 8),
 
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.subdirectory_arrow_right_rounded,
-                          size: 20,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _newSubtaskController,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: InputDecoration(
-                              hintText: 'Add a subtask...',
-                              hintStyle: TextStyle(
-                                fontSize: 14,
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.6,
-                                ),
-                              ),
-                              isDense: true,
-                              border: InputBorder.none,
-                            ),
-                            onSubmitted: (_) => _addSubtask(),
-                          ),
-                        ),
-                        M3EIconButton(
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          size: M3EIconButtonSize.xs,
-                          width: M3EIconButtonWidth.narrow,
-                          variant: M3EIconButtonVariant.tonal,
-                          tooltip: 'Add subtask',
-                          onPressed: _addSubtask,
-                        ),
-                      ],
-                    ),
+                  _buildSubtaskInput(
+                    context: context,
+                    isCompact: isCompact,
+                    colorScheme: colorScheme,
                   ),
 
-                  if (_subtasks.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    M3ESegmentedColumn(
-                      decoration: const M3ESegmentedListDecoration(
-                        padding: EdgeInsets.all(0),
-                      ),
-                      color: colorScheme.surfaceContainerLowest,
-                      children: _subtasks.map((st) {
-                        return ListTile(
-                          dense: true,
-                          leading: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              ZetaHaptics.selection();
-                              _toggleSubtask(st.id);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(1.0),
-                              child: Icon(
-                                st.completed
-                                    ? Icons.check_rounded
-                                    : Icons.radio_button_unchecked_rounded,
-                                size: 22,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            st.title,
-                            style: TextStyle(
-                              fontSize: 15,
-                              decoration: st.completed
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              color: st.completed
-                                  ? colorScheme.onSurfaceVariant
-                                  : colorScheme.onSurface,
-                            ),
-                          ),
-                          trailing: M3EIconButton(
-                            icon: const Icon(Icons.close_rounded, size: 21),
-                            size: M3EIconButtonSize.xs,
-                            variant: M3EIconButtonVariant.standard,
-                            tooltip: 'Remove subtask',
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              _removeSubtask(st.id);
-                            },
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                  _buildSubtasksList(
+                    context: context,
+                    isCompact: isCompact,
+                    colorScheme: colorScheme,
+                  ),
 
                   const SizedBox(height: 20),
                 ],
@@ -680,59 +784,78 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
             runSpacing: 10,
             children: [
               if (isEditing)
-                M3EButton.icon(
-                  onPressed: _handleDelete,
-                  // style: M3EButtonStyle.outlined,
-                  size: M3EButtonSize.md,
-                  decoration: M3EButtonDecoration(
-                    backgroundColor: WidgetStatePropertyAll(
-                      colorScheme.errorContainer,
+                _buildGlassButton(
+                  isCompact: isCompact,
+                  borderColor: colorScheme.error.withValues(alpha: 0.35),
+                  child: M3EButton.icon(
+                    onPressed: _handleDelete,
+                    size: M3EButtonSize.md,
+                    decoration: M3EButtonDecoration(
+                      backgroundColor: WidgetStatePropertyAll(
+                        isCompact
+                            ? colorScheme.errorContainer.withValues(alpha: 0.45)
+                            : colorScheme.errorContainer,
+                      ),
+                      foregroundColor: WidgetStatePropertyAll(
+                        colorScheme.onErrorContainer,
+                      ),
                     ),
-                    foregroundColor: WidgetStatePropertyAll(
-                      colorScheme.onErrorContainer,
+                    icon: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 20,
+                      color: colorScheme.error,
                     ),
+                    label: const Text('Delete'),
                   ),
-                  icon: Icon(
-                    Icons.delete_outline_rounded,
-                    size: 20,
-                    color: colorScheme.error,
-                  ),
-                  label: const Text('Delete'),
                 )
               else
-                M3EButton(
-                  onPressed: () {
-                    ZetaHaptics.light();
-                    _closePane();
-                  },
-                  size: M3EButtonSize.md,
+                _buildGlassButton(
+                  isCompact: isCompact,
+                  borderColor: colorScheme.error.withValues(alpha: 0.35),
+                  child: M3EButton(
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      _closePane();
+                    },
+                    size: M3EButtonSize.md,
+                    decoration: M3EButtonDecoration(
+                      backgroundColor: WidgetStatePropertyAll(
+                        isCompact
+                            ? colorScheme.errorContainer.withValues(alpha: 0.45)
+                            : colorScheme.errorContainer,
+                      ),
+                      foregroundColor: WidgetStatePropertyAll(
+                        colorScheme.onErrorContainer,
+                      ),
+                    ),
+                    child: const Text('Cancel', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              _buildGlassButton(
+                isCompact: isCompact,
+                borderColor: colorScheme.success.withValues(alpha: 0.35),
+                child: M3EButton.icon(
+                  onPressed: _handleSave,
                   decoration: M3EButtonDecoration(
                     backgroundColor: WidgetStatePropertyAll(
-                      colorScheme.errorContainer,
+                      isCompact
+                          ? colorScheme.success.withValues(alpha: 0.60)
+                          : colorScheme.success,
                     ),
                     foregroundColor: WidgetStatePropertyAll(
-                      colorScheme.onErrorContainer,
+                      colorScheme.onSuccess,
                     ),
                   ),
-                  child: const Text('Cancel', style: TextStyle(fontSize: 16)),
-                ),
-              M3EButton.icon(
-                onPressed: _handleSave,
-                decoration: M3EButtonDecoration(
-                  backgroundColor: WidgetStatePropertyAll(colorScheme.success),
-                  foregroundColor: WidgetStatePropertyAll(
-                    colorScheme.onSuccess,
+                  size: M3EButtonSize.md,
+                  icon: Icon(
+                    isEditing ? Icons.check_rounded : Icons.add_rounded,
+                    size: 20,
+                    color: colorScheme.onSuccess,
                   ),
-                ),
-                size: M3EButtonSize.md,
-                icon: Icon(
-                  isEditing ? Icons.check_rounded : Icons.add_rounded,
-                  size: 20,
-                  color: colorScheme.onSuccess,
-                ),
-                label: Text(
-                  isEditing ? 'Save Task' : 'Create Task',
-                  style: const TextStyle(fontSize: 16),
+                  label: Text(
+                    isEditing ? 'Save Task' : 'Create Task',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],

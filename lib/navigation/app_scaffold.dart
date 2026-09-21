@@ -644,6 +644,11 @@ class _AppScaffoldState extends State<AppScaffold>
                                                           6,
                                                         ),
                                                     decoration: BoxDecoration(
+                                                      color: isDark
+                                                          ? colorScheme
+                                                              .surfaceContainerHigh
+                                                          : colorScheme
+                                                              .surfaceContainer,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             20,
@@ -653,7 +658,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                           color: colorScheme
                                                               .shadow
                                                               .withValues(
-                                                                alpha: 0.12,
+                                                                alpha: 0.08,
                                                               ),
                                                           blurRadius: 16,
                                                           offset: const Offset(
@@ -663,61 +668,23 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         ),
                                                       ],
                                                     ),
-                                                    child: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            20,
-                                                          ),
-                                                      child: BackdropFilter(
-                                                        filter: ImageFilter.blur(
-                                                          sigmaX: 10,
-                                                          sigmaY: 10,
+                                                    clipBehavior: Clip.antiAlias,
+                                                    child: SafeArea(
+                                                      child: TaskEditFormContent(
+                                                        key: ValueKey(
+                                                          taskProvider
+                                                                  .editingTask
+                                                                  ?.id ??
+                                                              'new_task',
                                                         ),
-                                                        child: Container(
-                                                          decoration:
-                                                              BoxDecoration(
-                                                                color: colorScheme
-                                                                    .primaryContainer
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          0.70,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      20,
-                                                                    ),
-                                                                border:
-                                                                    Border.all(
-                                                                      color: colorScheme
-                                                                          .outlineVariant
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                0.35,
-                                                                          ),
-                                                                      width: 1.0,
-                                                                    ),
-                                                              ),
-                                                          child: SafeArea(
-                                                            child:
-                                                                TaskEditFormContent(
-                                                                  key: ValueKey(
-                                                                    taskProvider
-                                                                            .editingTask
-                                                                            ?.id ??
-                                                                        'new_task',
-                                                                  ),
-                                                                  task:
-                                                                      taskProvider
-                                                                          .editingTask,
-                                                                  initialTitle:
-                                                                      taskProvider
-                                                                          .editingInitialTitle,
-                                                                  onClose: () =>
-                                                                      taskProvider
-                                                                          .closeEditPane(),
-                                                                ),
-                                                          ),
-                                                        ),
+                                                        task: taskProvider
+                                                            .editingTask,
+                                                        initialTitle:
+                                                            taskProvider
+                                                                .editingInitialTitle,
+                                                        onClose: () =>
+                                                            taskProvider
+                                                                .closeEditPane(),
                                                       ),
                                                     ),
                                                   ),
