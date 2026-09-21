@@ -11,7 +11,11 @@ class QuickActionsService {
   NavigationProvider? _navProvider;
 
   void init(NavigationProvider navProvider) {
-    if (kIsWeb) return;
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.android &&
+            defaultTargetPlatform != TargetPlatform.iOS)) {
+      return;
+    }
     _navProvider = navProvider;
 
     _quickActions.initialize((String shortcutType) {

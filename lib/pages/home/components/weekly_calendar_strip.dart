@@ -39,24 +39,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
     return false;
   }
 
-  Future<void> _openDatePicker(BuildContext context) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: now.subtract(const Duration(days: 365)),
-      lastDate: now.add(const Duration(days: 365 * 2)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-    );
-    if (picked != null) {
-      onSelectDate(picked);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

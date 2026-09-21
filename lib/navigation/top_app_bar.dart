@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -159,6 +161,35 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   constraints: const BoxConstraints(maxWidth: 600),
                   child: M3ESearchAnchor(
                     searchController: _searchController,
+                    viewBackgroundColor: colorScheme.surfaceContainerHigh
+                        .withValues(alpha: 0.65),
+                    viewElevation: 0,
+                    viewSurfaceTintColor: colorScheme.primaryContainer
+                        .withValues(alpha: 0.5),
+                    viewSide: BorderSide(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                      width: 1.0,
+                    ),
+                    viewShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(isCompact ? 28 : 28),
+                    ),
+                    dividerColor: colorScheme.outlineVariant.withValues(
+                      alpha: 0.0,
+                    ),
+                    viewBuilder: (suggestions) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.vertical(
+                          bottom: Radius.circular(isCompact ? 28 : 28),
+                        ),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
+                          child: ListView(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            children: suggestions.toList(),
+                          ),
+                        ),
+                      );
+                    },
                     builder:
                         (BuildContext context, M3ESearchController controller) {
                           return M3ESearchBar(
@@ -358,10 +389,14 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               ),
               const SizedBox(height: 6),
               M3ESegmentedColumn(
-                decoration: const M3ESegmentedListDecoration(
-                  padding: EdgeInsets.fromLTRB(0, 0, 0, 0),
+                decoration: M3ESegmentedListDecoration(
+                  padding: EdgeInsets.zero,
+                  border: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                    width: 1.0,
+                  ),
                 ),
-                color: colorScheme.surfaceBright,
+                color: colorScheme.surfaceBright.withValues(alpha: 0.45),
                 children: [
                   InkWell(
                     borderRadius: const BorderRadius.vertical(
@@ -554,7 +589,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
               if (!ZetaWindowSizeClass.of(context).isCompact) ...[
                 const SizedBox(height: 12),
-                const Divider(),
+                // Divider(
+                //   color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                // ),
                 const SizedBox(height: 8),
 
                 // ─── Keyboard Shortcuts Hint ────────────────────────────────
@@ -595,10 +632,14 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(0),
+          decoration: M3ESegmentedListDecoration(
+            padding: EdgeInsets.zero,
+            border: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+              width: 1.0,
+            ),
           ),
-          color: colorScheme.surfaceBright,
+          color: colorScheme.surfaceBright.withValues(alpha: 0.45),
           children: [
             ListTile(
               leading: Icon(Icons.search_rounded, color: colorScheme.primary),
@@ -738,10 +779,14 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3ESegmentedColumn(
-            decoration: const M3ESegmentedListDecoration(
-              padding: EdgeInsets.all(0),
+            decoration: M3ESegmentedListDecoration(
+              padding: EdgeInsets.zero,
+              border: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                width: 1.0,
+              ),
             ),
-            color: colorScheme.surfaceBright,
+            color: colorScheme.surfaceBright.withValues(alpha: 0.45),
             children: taskTiles,
           ),
         ),
@@ -794,10 +839,14 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3ESegmentedColumn(
-            decoration: const M3ESegmentedListDecoration(
-              padding: EdgeInsets.all(0),
+            decoration: M3ESegmentedListDecoration(
+              padding: EdgeInsets.zero,
+              border: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+                width: 1.0,
+              ),
             ),
-            color: colorScheme.surfaceBright,
+            color: colorScheme.surfaceBright.withValues(alpha: 0.45),
             children: binTiles,
           ),
         ),
@@ -825,8 +874,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
+        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.25),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -839,7 +891,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: colorScheme.surface,
+              color: colorScheme.surface.withValues(alpha: 0.50),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.25),

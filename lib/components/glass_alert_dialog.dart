@@ -241,23 +241,18 @@ class GlassButton extends StatelessWidget {
 
     final Color bg;
     final Color fg;
-    final Color border;
 
     if (isDestructive) {
       bg = backgroundColor ?? colorScheme.error.withValues(alpha: 0.80);
       fg = foregroundColor ?? Colors.white;
-      border = borderColor ?? colorScheme.error.withValues(alpha: 0.40);
     } else if (isPrimary) {
       bg = backgroundColor ?? colorScheme.primary.withValues(alpha: 0.85);
       fg = foregroundColor ?? colorScheme.onPrimary;
-      border = borderColor ?? colorScheme.primary.withValues(alpha: 0.40);
     } else {
       bg =
           backgroundColor ??
           colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
       fg = foregroundColor ?? colorScheme.onSurface;
-      border =
-          borderColor ?? colorScheme.outlineVariant.withValues(alpha: 0.30);
     }
 
     final buttonDecoration = M3EButtonDecoration(
