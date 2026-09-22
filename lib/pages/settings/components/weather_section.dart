@@ -241,7 +241,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                                                 ? 'clear_night'
                                                 : 'clear_day'),
                                         isDay: weather?.isEffectivelyDay,
-                                        size: 36,
+                                        size: 40,
                                       ),
                                     ),
                                   ),

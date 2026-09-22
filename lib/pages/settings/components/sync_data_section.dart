@@ -116,6 +116,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
         'themeMode': themeProvider.themeMode.name,
         'seedColor':
             '#${themeProvider.seedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
+        'useSystemColor': themeProvider.useSystemColor,
         'variant': themeProvider.variant.name,
         'highContrast': themeProvider.highContrast,
         'animations': themeProvider.animations,

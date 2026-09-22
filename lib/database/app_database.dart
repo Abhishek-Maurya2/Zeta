@@ -95,5 +95,11 @@ class AppDatabase extends _$AppDatabase {
 
 /// Opens the SQLite connection using drift_flutter's default path resolution.
 QueryExecutor _openConnection() {
-  return driftDatabase(name: 'zeta_app_db');
+  return driftDatabase(
+    name: 'zeta_app_db',
+    web: DriftWebOptions(
+      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+      driftWorker: Uri.parse('drift_worker.js'),
+    ),
+  );
 }

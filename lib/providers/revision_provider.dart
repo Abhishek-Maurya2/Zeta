@@ -101,6 +101,29 @@ class RevisionProvider with ChangeNotifier {
     }
   }
 
+  /// Pulls the latest revision subjects and topics from Supabase.
+  Future<void> refreshData() async {
+    try {
+      final remoteSubjects = await _syncService.pullSubjects();
+      final remoteTopics = await _syncService.pullTopics();
+
+      if (_syncService.lastError == null) {
+        if (remoteSubjects.isNotEmpty) {
+          _subjects = remoteSubjects;
+        }
+        if (remoteTopics.isNotEmpty) {
+          _topics = remoteTopics;
+        }
+        if (remoteSubjects.isNotEmpty || remoteTopics.isNotEmpty) {
+          await _saveData();
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('RevisionProvider: refreshData error - $e');
+    }
+  }
+
   Future<void> _saveData() async {
     try {
       final prefs = await SharedPreferences.getInstance();

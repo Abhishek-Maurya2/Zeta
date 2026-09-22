@@ -7,6 +7,7 @@ class WeatherIcon extends StatelessWidget {
   final double size;
   final bool? isDay;
   final Widget? placeholder;
+  final VoidCallback? onTap;
 
   const WeatherIcon({
     super.key,
@@ -14,6 +15,7 @@ class WeatherIcon extends StatelessWidget {
     this.size = 24,
     this.isDay,
     this.placeholder,
+    this.onTap,
   });
 
   @override
@@ -71,12 +73,25 @@ class WeatherIcon extends StatelessWidget {
         _weatherSvgMap[defaultFallback] ??
         _weatherSvgMap['clear_day']!;
 
-    return SvgPicture.string(
+    final svgWidget = SvgPicture.string(
       svgString,
       width: size,
       height: size,
       placeholderBuilder: placeholder != null ? (_) => placeholder! : null,
     );
+
+    if (onTap != null) {
+      return MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          behavior: HitTestBehavior.opaque,
+          child: svgWidget,
+        ),
+      );
+    }
+
+    return svgWidget;
   }
 }
 

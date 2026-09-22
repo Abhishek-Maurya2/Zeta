@@ -15,6 +15,7 @@ import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/revision_provider.dart';
+import '../providers/theme_provider.dart';
 import '../pages/home_page.dart';
 import '../pages/tasks_page.dart';
 import '../pages/revision_page.dart';
@@ -116,6 +117,10 @@ class _AppScaffoldState extends State<AppScaffold>
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
+    final pomodoroProvider = context.read<PomodoroProvider>();
+    final themeProvider = context.read<ThemeProvider>();
+    final revisionProvider = context.read<RevisionProvider>();
+
     _refreshAnimation =
         Tween<double>(
           begin: _dragOffset > 0 ? _dragOffset : 0.0,
@@ -129,9 +134,14 @@ class _AppScaffoldState extends State<AppScaffold>
     await _refreshController.forward(from: 0.0);
 
     try {
-      final syncOperation = taskProvider.syncWithCloud(force: true);
       final minDelay = Future.delayed(const Duration(milliseconds: 1400));
-      await Future.wait([syncOperation, minDelay]);
+      await Future.wait([
+        taskProvider.syncWithCloud(force: true),
+        pomodoroProvider.syncWithCloud(force: true),
+        themeProvider.refreshWeather(),
+        revisionProvider.refreshData(),
+        minDelay,
+      ]);
     } catch (_) {
       await Future.delayed(const Duration(milliseconds: 1000));
     }

@@ -82,6 +82,7 @@ const List<SeedPreset> kSeedPresets = [
 class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyThemeMode = 'zeta_theme_mode';
   static const String _prefKeySeedColor = 'zeta_seed_color';
+  static const String _prefKeyUseSystemColor = 'zeta_use_system_color';
   static const String _prefKeyVariant = 'zeta_scheme_variant';
   static const String _prefKeyHighContrast = 'zeta_high_contrast';
   static const String _prefKeyAnimations = 'zeta_animations';
@@ -152,6 +153,17 @@ class ThemeProvider extends ChangeNotifier {
     _seedColor = color;
     notifyListeners();
     _saveSetting(_prefKeySeedColor, color.toARGB32().toString());
+  }
+
+  // ─── System Accent Color ────────────────────────────────────────────────
+  bool _useSystemColor = false;
+  bool get useSystemColor => _useSystemColor;
+
+  void setUseSystemColor(bool value) {
+    if (_useSystemColor == value) return;
+    _useSystemColor = value;
+    notifyListeners();
+    _saveSetting(_prefKeyUseSystemColor, value);
   }
 
   // ─── Scheme Variant ─────────────────────────────────────────────────────
@@ -658,6 +670,9 @@ class ThemeProvider extends ChangeNotifier {
           setSeedColor(Color(0xFF000000 | parsed));
         }
       }
+      if (json['useSystemColor'] is bool) {
+        setUseSystemColor(json['useSystemColor'] as bool);
+      }
       if (json['variant'] is String) {
         final v = M3EColorVariant.values.firstWhere(
           (varItem) => varItem.name == json['variant'],
@@ -718,6 +733,7 @@ class ThemeProvider extends ChangeNotifier {
   void resetDefaults() {
     _themeMode = ThemeMode.system;
     _seedColor = const Color(0xFF6750A4);
+    _useSystemColor = false;
     _variant = M3EColorVariant.expressive;
     _highContrast = false;
     _animations = true;
@@ -762,6 +778,8 @@ class ThemeProvider extends ChangeNotifier {
         final parsed = int.tryParse(colorVal);
         if (parsed != null) _seedColor = Color(parsed);
       }
+
+      _useSystemColor = prefs.getBool(_prefKeyUseSystemColor) ?? _useSystemColor;
 
       final variantStr = prefs.getString(_prefKeyVariant);
       if (variantStr != null) {

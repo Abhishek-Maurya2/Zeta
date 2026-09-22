@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -93,6 +94,9 @@ class _ZetaAppView extends StatelessWidget {
     final themeMode = context.select<ThemeProvider, ThemeMode>(
       (p) => p.themeMode,
     );
+    final useSystemColor = context.select<ThemeProvider, bool>(
+      (p) => p.useSystemColor,
+    );
     final seedColor = context.select<ThemeProvider, Color>((p) => p.seedColor);
     final variant = context.select<ThemeProvider, M3EColorVariant>(
       (p) => p.variant,
@@ -128,42 +132,53 @@ class _ZetaAppView extends StatelessWidget {
         ? 1.08
         : 1.0;
 
-    return MaterialApp(
-      title: 'Zeta',
-      debugShowCheckedModeBanner: false,
-      themeMode: themeMode,
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScaleFactor)),
-          child: child ?? const SizedBox.shrink(),
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        final effectiveLightSeed = (useSystemColor && lightDynamic != null)
+            ? lightDynamic.primary
+            : seedColor;
+        final effectiveDarkSeed = (useSystemColor && darkDynamic != null)
+            ? darkDynamic.primary
+            : effectiveLightSeed;
+
+        return MaterialApp(
+          title: 'Zeta',
+          debugShowCheckedModeBanner: false,
+          themeMode: themeMode,
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context)
+                  .copyWith(textScaler: TextScaler.linear(textScaleFactor)),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          theme: AppTheme.light(
+            effectiveLightSeed,
+            variant,
+            cornerStyle,
+            highContrast,
+            compactDensity,
+            animations,
+            headings,
+            titles,
+            body,
+            labels,
+          ),
+          darkTheme: AppTheme.dark(
+            effectiveDarkSeed,
+            variant,
+            cornerStyle,
+            highContrast,
+            compactDensity,
+            animations,
+            headings,
+            titles,
+            body,
+            labels,
+          ),
+          home: ZetaAppRoot(showSplash: showSplash),
         );
       },
-      theme: AppTheme.light(
-        seedColor,
-        variant,
-        cornerStyle,
-        highContrast,
-        compactDensity,
-        animations,
-        headings,
-        titles,
-        body,
-        labels,
-      ),
-      darkTheme: AppTheme.dark(
-        seedColor,
-        variant,
-        cornerStyle,
-        highContrast,
-        compactDensity,
-        animations,
-        headings,
-        titles,
-        body,
-        labels,
-      ),
-      home: ZetaAppRoot(showSplash: showSplash),
     );
   }
 }

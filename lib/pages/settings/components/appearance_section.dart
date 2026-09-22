@@ -12,6 +12,7 @@ class AppearanceSection extends StatelessWidget {
   const AppearanceSection({super.key, this.onToast});
 
   void _showColorSheet(BuildContext context, ThemeProvider themeProvider) {
+    if (themeProvider.useSystemColor) return;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -412,56 +413,117 @@ class AppearanceSection extends StatelessWidget {
                   ),
                 ),
 
+                // Use System Colour (Accent Colour)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.palette_outlined,
+                        size: 24,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Use system colour (accent colour)',
+                              style: textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Derive app theme from system accent color',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      M3ESwitch(
+                        value: themeProvider.useSystemColor,
+                        selectedIcon: const Icon(Icons.check_rounded),
+                        unselectedIcon: const Icon(Icons.close_rounded),
+                        onChanged: (val) {
+                          themeProvider.setUseSystemColor(val);
+                          onToast?.call(
+                            val
+                                ? 'Using system accent colour'
+                                : 'Using palette seed preset',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
                 // Palette Seed Preset
                 InkWell(
-                  onTap: () => _showColorSheet(context, themeProvider),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.color_lens_rounded,
-                          size: 24,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Palette Seed Preset',
-                                style: textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              Text(
-                                '${currentPreset.name} • ${currentPreset.desc}',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                  onTap: themeProvider.useSystemColor
+                      ? null
+                      : () => _showColorSheet(context, themeProvider),
+                  child: Opacity(
+                    opacity: themeProvider.useSystemColor ? 0.38 : 1.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.color_lens_rounded,
+                            size: 24,
+                            color: colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        Container(
-                          width: 35,
-                          height: 35,
-                          decoration: BoxDecoration(
-                            color: themeProvider.seedColor,
-                            shape: BoxShape.circle,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Palette Seed Preset',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  themeProvider.useSystemColor
+                                      ? 'Disabled (using system accent colour)'
+                                      : '${currentPreset.name} • ${currentPreset.desc}',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ],
+                          Container(
+                            width: 35,
+                            height: 35,
+                            decoration: BoxDecoration(
+                              color: themeProvider.useSystemColor
+                                  ? colorScheme.outlineVariant
+                                  : themeProvider.seedColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

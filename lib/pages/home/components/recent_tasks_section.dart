@@ -62,7 +62,7 @@ class RecentTasksSection extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.checklist_rounded,
-                    size: 20,
+                    size: 22,
                     color: colorScheme.primary,
                   ),
                   const SizedBox(width: 8),

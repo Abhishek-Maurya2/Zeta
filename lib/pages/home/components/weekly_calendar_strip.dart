@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/theme_provider.dart';
+import '../../../providers/navigation_provider.dart';
+import '../../settings/components/settings_category.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
@@ -132,40 +134,57 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     themeProvider.showWeatherInHeader) ...[
                   const SizedBox(height: 4),
 
-                  // Weather Telemetry Below Date
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        tempStr,
-                        style: TextStyle(
-                          fontFamily: 'GoogleSansFlex',
-                          fontSize: 26,
-                          color: colorScheme.onSurfaceVariant,
-                          fontVariations: const [
-                            FontVariation('wght', 700), // Weight
-                            FontVariation('wdth', 180),
-                            FontVariation('GRAD', 180), // Grade stroke density
-                            FontVariation('opsz', 220), // Optical size
-                            FontVariation('slnt', -10),
+                  // Weather Telemetry Below Date (Clickable to open Weather Page)
+                  Tooltip(
+                    message:
+                        '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}\nClick to open weather settings',
+                    child: InkWell(
+                      hoverColor: Colors.transparent,
+                      
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        ZetaHaptics.light();
+                        final navProvider = context.read<NavigationProvider>();
+                        navProvider.setActivePage(PageId.settings);
+                        navProvider.setSettingsCategory(SettingsCategory.weather);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              tempStr,
+                              style: TextStyle(
+                                fontFamily: 'GoogleSansFlex',
+                                fontSize: 26,
+                                color: colorScheme.onSurfaceVariant,
+                                fontVariations: const [
+                                  FontVariation('wght', 700), // Weight
+                                  FontVariation('wdth', 180),
+                                  FontVariation('GRAD', 180), // Grade stroke density
+                                  FontVariation('opsz', 220), // Optical size
+                                  FontVariation('slnt', -10),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            WeatherIcon(
+                              name:
+                                  weather?.iconName ??
+                                  (DateTime.now().hour < 6 ||
+                                          DateTime.now().hour >= 19
+                                      ? 'partly_cloudy_night'
+                                      : 'partly_cloudy_day'),
+                              size: 28,
+                            ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      Tooltip(
-                        message:
-                            '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}',
-                        child: WeatherIcon(
-                          name:
-                              weather?.iconName ??
-                              (DateTime.now().hour < 6 ||
-                                      DateTime.now().hour >= 19
-                                  ? 'partly_cloudy_night'
-                                  : 'partly_cloudy_day'),
-                          size: 28,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ],
               ],
