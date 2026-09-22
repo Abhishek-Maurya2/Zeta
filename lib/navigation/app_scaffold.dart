@@ -408,7 +408,11 @@ class _AppScaffoldState extends State<AppScaffold>
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
-    final taskProvider = context.watch<TaskProvider>();
+    final isSelectionMode =
+        context.select<TaskProvider, bool>((p) => p.isSelectionMode) &&
+        navProvider.activePage == PageId.tasks;
+    final isEditPaneOpen =
+        context.select<TaskProvider, bool>((p) => p.isEditPaneOpen);
     final sizeClass = ZetaWindowSizeClass.of(context);
 
     if (_previousSizeClass != sizeClass) {
@@ -425,8 +429,6 @@ class _AppScaffoldState extends State<AppScaffold>
     }
 
     final isCompact = sizeClass.isCompact;
-    final isSelectionMode =
-        taskProvider.isSelectionMode && navProvider.activePage == PageId.tasks;
 
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
@@ -456,7 +458,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final canPop =
         !isSelectionMode &&
-        !taskProvider.isEditPaneOpen &&
+        !isEditPaneOpen &&
         navProvider.activePage == PageId.home &&
         (_topBarKey.currentState == null ||
             !_topBarKey.currentState!.isSearchOpen);
@@ -467,16 +469,16 @@ class _AppScaffoldState extends State<AppScaffold>
         if (didPop) return;
 
         // 0. If task edit split side pane is open, close it first
-        if (taskProvider.isEditPaneOpen) {
+        if (isEditPaneOpen) {
           ZetaHaptics.light();
-          taskProvider.closeEditPane();
+          context.read<TaskProvider>().closeEditPane();
           return;
         }
 
         // 1. If multi-selection mode is active, dismiss it first
         if (isSelectionMode) {
           ZetaHaptics.light();
-          taskProvider.clearSelection();
+          context.read<TaskProvider>().clearSelection();
           return;
         }
 
@@ -640,8 +642,11 @@ class _AppScaffoldState extends State<AppScaffold>
                                         ),
                                         child: IgnorePointer(
                                           ignoring: !isSelectionMode,
-                                          child: TaskSelectionToolbar(
-                                            taskProvider: taskProvider,
+                                          child: Consumer<TaskProvider>(
+                                            builder: (context, tp, _) =>
+                                                TaskSelectionToolbar(
+                                              taskProvider: tp,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -673,8 +678,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                       navProvider.activePage,
                                                 ),
                                               ),
-                                              if (taskProvider
-                                                  .isEditPaneOpen) ...[
+                                              if (isEditPaneOpen) ...[
                                                 M3EPaneDivider(
                                                   onDragUpdate: (delta) {
                                                     setState(() {
@@ -734,20 +738,20 @@ class _AppScaffoldState extends State<AppScaffold>
                                                     clipBehavior:
                                                         Clip.antiAlias,
                                                     child: SafeArea(
-                                                      child: TaskEditFormContent(
-                                                        key: ValueKey(
-                                                          taskProvider
-                                                                  .editingTask
-                                                                  ?.id ??
-                                                              'new_task',
+                                                      child: Consumer<TaskProvider>(
+                                                        builder: (context, tp, _) =>
+                                                            TaskEditFormContent(
+                                                          key: ValueKey(
+                                                            tp.editingTask
+                                                                    ?.id ??
+                                                                'new_task',
+                                                          ),
+                                                          task: tp.editingTask,
+                                                          initialTitle: tp
+                                                              .editingInitialTitle,
+                                                          onClose: () =>
+                                                              tp.closeEditPane(),
                                                         ),
-                                                        task: taskProvider
-                                                            .editingTask,
-                                                        initialTitle: taskProvider
-                                                            .editingInitialTitle,
-                                                        onClose: () =>
-                                                            taskProvider
-                                                                .closeEditPane(),
                                                       ),
                                                     ),
                                                   ),
@@ -778,8 +782,11 @@ class _AppScaffoldState extends State<AppScaffold>
                                               ),
                                               child: IgnorePointer(
                                                 ignoring: !isSelectionMode,
-                                                child: TaskSelectionToolbar(
-                                                  taskProvider: taskProvider,
+                                                child: Consumer<TaskProvider>(
+                                                  builder: (context, tp, _) =>
+                                                      TaskSelectionToolbar(
+                                                    taskProvider: tp,
+                                                  ),
                                                 ),
                                               ),
                                             ),

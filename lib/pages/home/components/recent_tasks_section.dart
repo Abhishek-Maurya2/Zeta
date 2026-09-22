@@ -46,7 +46,6 @@ class RecentTasksSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
 
     return Column(
@@ -85,12 +84,12 @@ class RecentTasksSection extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
-                      '${tasks.length} Active',
+                      '$totalCount',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -100,36 +99,39 @@ class RecentTasksSection extends StatelessWidget {
               ),
             ),
 
-            // View All Action
-            InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                if (onViewAll != null) {
-                  onViewAll!();
-                } else {
-                  navProvider.setActivePage(PageId.tasks);
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'View All',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+            // "View All →" button
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onViewAll ??
+                    () {
+                      navProvider.setActivePage(PageId.tasks);
+                    },
+                borderRadius: BorderRadius.circular(100),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
                         color: colorScheme.primary,
                       ),
-                    ),
-                    const SizedBox(width: 2),
-                    Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 14,
-                      color: colorScheme.primary,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -148,18 +150,24 @@ class RecentTasksSection extends StatelessWidget {
             ),
             color: colorScheme.surfaceContainerLowest,
             children: tasks.map((task) {
-              return TaskCardItem(
-                key: ValueKey(task.id),
-                task: task,
-                isExpanded: taskProvider.isTaskExpanded(task.id),
-                onToggle: () => taskProvider.toggleTask(task.id),
-                onToggleExpand: () => taskProvider.toggleTaskExpanded(task.id),
-                onToggleSubtask: (subtaskId) =>
-                    taskProvider.toggleSubtask(task.id, subtaskId),
-                onTap: () => TaskEditPane.show(context, task: task),
-                onContextMenu: (pos) =>
-                    _showContextMenu(context, pos, task, taskProvider),
-                onDelete: () => taskProvider.deleteTask(task.id),
+              return Selector<TaskProvider, bool>(
+                selector: (_, p) => p.isTaskExpanded(task.id),
+                builder: (context, isExpanded, _) {
+                  final tp = context.read<TaskProvider>();
+                  return TaskCardItem(
+                    key: ValueKey(task.id),
+                    task: task,
+                    isExpanded: isExpanded,
+                    onToggle: () => tp.toggleTask(task.id),
+                    onToggleExpand: () => tp.toggleTaskExpanded(task.id),
+                    onToggleSubtask: (subtaskId) =>
+                        tp.toggleSubtask(task.id, subtaskId),
+                    onTap: () => TaskEditPane.show(context, task: task),
+                    onContextMenu: (pos) =>
+                        _showContextMenu(context, pos, task, tp),
+                    onDelete: () => tp.deleteTask(task.id),
+                  );
+                },
               );
             }).toList(),
           ),

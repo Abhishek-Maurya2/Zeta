@@ -353,6 +353,14 @@ class RevisionTagInfo {
     this.cleanedDescription,
   });
 
+  static final RegExp _revisionRegex = RegExp(r'#revision\b', caseSensitive: false);
+  static final RegExp _stageRegex = RegExp(r'Stage\s*(\d+)', caseSensitive: false);
+  static final RegExp _stripRevisionRegex = RegExp(
+    r'#revision\s*([•·\-\|]?\s*Stage\s*\d+\s*(Spaced\s*Repetition)?)?',
+    caseSensitive: false,
+  );
+  static final RegExp _cleanSeparatorsRegex = RegExp(r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$');
+
   static RevisionTagInfo parse(String? rawDescription, {String? taskTitle}) {
     final hasTitleRevise = taskTitle != null &&
         taskTitle.trim().toLowerCase().startsWith('revise:');
@@ -372,8 +380,7 @@ class RevisionTagInfo {
       );
     }
 
-    final hasTag = RegExp(r'#revision\b', caseSensitive: false)
-        .hasMatch(rawDescription);
+    final hasTag = _revisionRegex.hasMatch(rawDescription);
     if (!hasTag && !hasTitleRevise) {
       return RevisionTagInfo(
         isRevision: false,
@@ -384,8 +391,7 @@ class RevisionTagInfo {
 
     // Extract stage if present (e.g., "#Revision • Stage 2 Spaced Repetition")
     String label = 'Revision';
-    final stageMatch = RegExp(r'Stage\s*(\d+)', caseSensitive: false)
-        .firstMatch(rawDescription);
+    final stageMatch = _stageRegex.firstMatch(rawDescription);
     if (stageMatch != null) {
       final stageNum = stageMatch.group(1);
       label = 'Revision • Stage $stageNum';
@@ -393,18 +399,12 @@ class RevisionTagInfo {
 
     // Strip the revision tag and stage repetition marker from the description
     String cleaned = rawDescription
-        .replaceAll(
-          RegExp(
-            r'#revision\s*([•·\-\|]?\s*Stage\s*\d+\s*(Spaced\s*Repetition)?)?',
-            caseSensitive: false,
-          ),
-          '',
-        )
+        .replaceAll(_stripRevisionRegex, '')
         .trim();
 
     // Clean up any dangling leading/trailing bullets, dashes, or separators
     cleaned = cleaned
-        .replaceAll(RegExp(r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$'), '')
+        .replaceAll(_cleanSeparatorsRegex, '')
         .trim();
 
     return RevisionTagInfo(

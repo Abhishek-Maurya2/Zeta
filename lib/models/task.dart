@@ -82,18 +82,25 @@ class Task {
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? (createdAt ?? DateTime.now());
 
+  static final RegExp _subtasksDescriptionRegex = RegExp(
+    r'(?:\r?\n)*Subtasks:\s*(?:\r?\n\s*\[[ x✓]?\].*)+',
+    caseSensitive: false,
+  );
+  static final RegExp _scheduledTimeDescriptionRegex = RegExp(
+    r'(?:\r?\n)*⏰\s*Scheduled Time:\s*[^\r\n]+',
+    caseSensitive: false,
+  );
+  static final RegExp _uuidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+  static final RegExp _nonHexRegex = RegExp(r'[^0-9a-fA-F]');
+
   /// Sanitizes descriptions to strip any legacy artificial checklists or scheduled time annotations.
   static String? sanitizeDescription(String? desc) {
     if (desc == null) return null;
     var cleaned = desc;
-    cleaned = cleaned.replaceAll(
-      RegExp(r'(?:\r?\n)*Subtasks:\s*(?:\r?\n\s*\[[ x✓]?\].*)+', caseSensitive: false),
-      '',
-    );
-    cleaned = cleaned.replaceAll(
-      RegExp(r'(?:\r?\n)*⏰\s*Scheduled Time:\s*[^\r\n]+', caseSensitive: false),
-      '',
-    );
+    cleaned = cleaned.replaceAll(_subtasksDescriptionRegex, '');
+    cleaned = cleaned.replaceAll(_scheduledTimeDescriptionRegex, '');
     cleaned = cleaned.trim();
     return cleaned.isNotEmpty ? cleaned : null;
   }
@@ -183,10 +190,9 @@ class Task {
 
     // Ensure id is a valid UUID for PostgreSQL uuid column
     String supabaseId = id;
-    final uuidRegex = RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
-    if (!uuidRegex.hasMatch(supabaseId)) {
+    if (!_uuidRegex.hasMatch(supabaseId)) {
       // Deterministically create UUID from legacy ID
-      final padded = id.replaceAll(RegExp(r'[^0-9a-fA-F]'), '').padRight(32, '0').substring(0, 32);
+      final padded = id.replaceAll(_nonHexRegex, '').padRight(32, '0').substring(0, 32);
       supabaseId = '${padded.substring(0, 8)}-${padded.substring(8, 12)}-4${padded.substring(13, 16)}-8${padded.substring(17, 20)}-${padded.substring(20, 32)}';
     }
 

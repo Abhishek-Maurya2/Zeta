@@ -99,10 +99,16 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool isTaskExpanded(String taskId) => _expandedTaskIds.contains(taskId);
 
   List<Task>? _cachedFilteredAndSortedTasks;
+  List<Task>? _cachedPendingTasks;
+  List<Task>? _cachedCompletedTasks;
+  List<Task>? _cachedRevisionTasks;
   Timer? _saveDebounceTimer;
 
   void _invalidateCache() {
     _cachedFilteredAndSortedTasks = null;
+    _cachedPendingTasks = null;
+    _cachedCompletedTasks = null;
+    _cachedRevisionTasks = null;
   }
 
   void _scheduleSave() {
@@ -331,6 +337,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   List<Task> get pendingTasks {
+    if (_cachedPendingTasks != null) return _cachedPendingTasks!;
     final list = _tasks.where((task) {
       if (task.completed) return false;
       if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
@@ -340,10 +347,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       return true;
     }).toList();
     _sortTaskList(list);
-    return list;
+    _cachedPendingTasks = List.unmodifiable(list);
+    return _cachedPendingTasks!;
   }
 
   List<Task> get completedTasks {
+    if (_cachedCompletedTasks != null) return _cachedCompletedTasks!;
     final list = _tasks.where((task) {
       if (!task.completed) return false;
       if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
@@ -353,13 +362,16 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       return true;
     }).toList();
     _sortTaskList(list);
-    return list;
+    _cachedCompletedTasks = List.unmodifiable(list);
+    return _cachedCompletedTasks!;
   }
 
   List<Task> get revisionTasks {
+    if (_cachedRevisionTasks != null) return _cachedRevisionTasks!;
     final list = _tasks.where((task) => isRevisionTask(task)).toList();
     _sortTaskList(list);
-    return list;
+    _cachedRevisionTasks = List.unmodifiable(list);
+    return _cachedRevisionTasks!;
   }
 
   Future<void> _loadFromStorage() async {

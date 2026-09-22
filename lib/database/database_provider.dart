@@ -13,9 +13,9 @@ class DatabaseProvider {
   static final DatabaseProvider _instance = DatabaseProvider._();
   static DatabaseProvider get instance => _instance;
 
-  late final AppDatabase _db;
-  late final TaskDao taskDao;
-  late final SessionDao sessionDao;
+  AppDatabase? _db;
+  TaskDao? _taskDao;
+  SessionDao? _sessionDao;
 
   bool _initialized = false;
 
@@ -23,17 +23,31 @@ class DatabaseProvider {
   void init() {
     if (_initialized) return;
     _db = AppDatabase();
-    taskDao = TaskDao(_db);
-    sessionDao = SessionDao(_db);
+    _taskDao = TaskDao(_db!);
+    _sessionDao = SessionDao(_db!);
     _initialized = true;
   }
 
-  AppDatabase get db => _db;
+  TaskDao get taskDao {
+    if (!_initialized) init();
+    return _taskDao!;
+  }
+
+  SessionDao get sessionDao {
+    if (!_initialized) init();
+    return _sessionDao!;
+  }
+
+  AppDatabase get db {
+    if (!_initialized) init();
+    return _db!;
+  }
 
   /// Closes the database connection. Call only on app shutdown.
   Future<void> close() async {
     if (_initialized) {
-      await _db.close();
+      await _db?.close();
+      _initialized = false;
     }
   }
 }

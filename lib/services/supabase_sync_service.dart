@@ -49,25 +49,39 @@ class SupabaseSyncService {
 
     try {
       final userId = _supabaseService.effectiveUserId;
-      var query = _supabaseService.client
-          .from('tasks')
-          .select()
-          .eq('user_id', userId);
-
-      if (since != null) {
-        query = query.gte('updated_at', since.toUtc().toIso8601String());
-      }
-
-      final response = await query.order('created_at', ascending: false).timeout(
-            const Duration(seconds: 15),
-          );
-
+      const pageSize = 1000;
+      int offset = 0;
       final List<Task> tasks = [];
-      for (final row in response as List<dynamic>) {
-        try {
-          tasks.add(Task.fromSupabaseRow(row as Map<String, dynamic>));
-        } catch (e) {
-          debugPrint('SupabaseSyncService: Error parsing task row - $e');
+      bool hasMore = true;
+
+      while (hasMore) {
+        var query = _supabaseService.client
+            .from('tasks')
+            .select()
+            .eq('user_id', userId);
+
+        if (since != null) {
+          query = query.gte('updated_at', since.toUtc().toIso8601String());
+        }
+
+        final response = await query
+            .order('created_at', ascending: false)
+            .range(offset, offset + pageSize - 1)
+            .timeout(const Duration(seconds: 15));
+
+        final rows = response as List<dynamic>;
+        for (final row in rows) {
+          try {
+            tasks.add(Task.fromSupabaseRow(row as Map<String, dynamic>));
+          } catch (e) {
+            debugPrint('SupabaseSyncService: Error parsing task row - $e');
+          }
+        }
+
+        if (rows.length < pageSize) {
+          hasMore = false;
+        } else {
+          offset += pageSize;
         }
       }
 

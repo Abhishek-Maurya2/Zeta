@@ -33,9 +33,7 @@ class TasksDismissibleList extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return M3EDismissibleList(
-      key: ValueKey(
-        'dismissible_${tasks.map((t) => t.id).join('_')}_${provider.selectedTaskIds.join(',')}',
-      ),
+      key: const ValueKey('tasks_dismissible_list'),
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: tasks.length,
