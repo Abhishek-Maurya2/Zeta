@@ -89,7 +89,7 @@ class PomodoroSettingsSheet extends StatelessWidget {
                       // Header
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
+                          horizontal: 20,
                           vertical: 8,
                         ),
                         child: Row(
@@ -100,21 +100,17 @@ class PomodoroSettingsSheet extends StatelessWidget {
                                 children: [
                                   Text(
                                     'Pomodoro Settings',
-                                    style: textTheme.titleLarge?.copyWith(
+                                    style: textTheme.displaySmall?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       color: colorScheme.onSurface,
+                                      fontSize: 25,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            IconButton(
+                            M3EIconButton(
                               icon: const Icon(Icons.close_rounded),
-                              style: IconButton.styleFrom(
-                                backgroundColor: colorScheme
-                                    .surfaceContainerHighest
-                                    .withValues(alpha: 0.35),
-                              ),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],
@@ -131,11 +127,12 @@ class PomodoroSettingsSheet extends StatelessWidget {
                           children: [
                             // ─── 1. Cycle Durations (M3ESegmentedColumn) ───
                             Text(
-                              'CYCLE DURATIONS',
+                              'Cycle Durations',
                               style: textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                                color: colorScheme.primary,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -235,13 +232,62 @@ class PomodoroSettingsSheet extends StatelessWidget {
 
                             const SizedBox(height: 24),
 
-                            // ─── 2. Automation & Sound (M3ESegmentedColumn) ───
+                            // ─── 2. Timer Display (M3ESegmentedColumn) ───
                             Text(
-                              'AUTOMATION & SOUND',
+                              'Timer Display',
                               style: textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            M3ESegmentedColumn(
+                              decoration: M3ESegmentedListDecoration(
+                                padding: const EdgeInsets.all(1.0),
+                                border: BorderSide(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                  width: 1.0,
+                                ),
+                              ),
+                              color: colorScheme.surfaceContainerLowest
+                                  .withValues(alpha: 0.45),
+                              children: [
+                                _buildSwitchTile(
+                                  context,
+                                  icon: Icons.timer_outlined,
+                                  title: 'Count up timer',
+                                  subtitle: 'Count up elapsed time instead of counting down',
+                                  value: settings.countUp,
+                                  selectedIcon: const Icon(
+                                    Icons.arrow_upward_rounded,
+                                  ),
+                                  unselectedIcon: const Icon(
+                                    Icons.arrow_downward_rounded,
+                                  ),
+                                  onChanged: (val) {
+                                    provider.updateSettings(
+                                      settings.copyWith(countUp: val),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // ─── 3. Automation & Sound (M3ESegmentedColumn) ───
+                            Text(
+                              'Automation & Sound',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.5,
+                                color: colorScheme.primary,
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -284,33 +330,6 @@ class PomodoroSettingsSheet extends StatelessWidget {
                                     );
                                   },
                                 ),
-
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.all_inclusive_rounded,
-                                  title: 'Continuous auto-run',
-                                  subtitle: 'Auto-start every queue item continuously',
-                                  value: settings.autoStartNext,
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(autoStartNext: val),
-                                    );
-                                  },
-                                ),
-
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.skip_next_rounded,
-                                  title: 'Skip breaks',
-                                  subtitle: 'Omit breaks to cycle continuously through focus intervals',
-                                  value: settings.skipBreaks,
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(skipBreaks: val),
-                                    );
-                                  },
-                                ),
-
                                 _buildSwitchTile(
                                   context,
                                   icon: Icons.volume_up_rounded,
@@ -339,14 +358,25 @@ class PomodoroSettingsSheet extends StatelessWidget {
                               alignment: Alignment.centerLeft,
                               child: GlassButton(
                                 size: M3EButtonSize.sm,
+                                backgroundColor: colorScheme.secondaryContainer
+                                    .withValues(alpha: 0.45),
                                 borderRadius: 12,
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.restore_rounded,
-                                  size: 18,
+                                  size: 20,
+                                  color: colorScheme.onSecondaryContainer,
                                 ),
                                 onPressed: () =>
                                     provider.resetToDefaultSettings(),
-                                child: const Text('Reset to Defaults'),
+                                child: Text(
+                                  'Reset to Defaults',
+                                  style: textTheme.labelMedium?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    // letterSpacing: 0.5,
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(height: 24),

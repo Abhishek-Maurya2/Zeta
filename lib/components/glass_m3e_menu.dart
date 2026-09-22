@@ -22,12 +22,11 @@ Future<T?> showGlassM3EMenu<T>({
   final colorScheme = Theme.of(context).colorScheme;
   final count = M3EMenuPlacer.approximateItemCount(children);
 
-  final menuTheme = themeOverride ??
+  final menuTheme =
+      themeOverride ??
       M3EMenuTheme(
         elevation: 0,
-        backgroundColor: colorScheme.tertiaryContainer.withValues(
-          alpha: 0.50,
-        ),
+        backgroundColor: colorScheme.tertiaryContainer.withValues(alpha: 0.50),
       );
 
   final zeroElevTheme = menuTheme.copyWith(elevation: 0);

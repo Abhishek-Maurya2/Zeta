@@ -53,6 +53,10 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
+IDI_POMODORO            ICON                    "resources\\ic_pomodoro.ico"
+IDI_TASKS               ICON                    "resources\\ic_tasks.ico"
+IDI_CALENDAR            ICON                    "resources\\ic_calendar.ico"
+IDI_REVISION            ICON                    "resources\\ic_revision.ico"
 
 
 /////////////////////////////////////////////////////////////////////////////

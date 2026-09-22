@@ -42,6 +42,7 @@ class TaskDueDateChip extends StatelessWidget {
                 : Icons.calendar_today_outlined,
             size: 16,
             color: colorScheme.onSecondaryContainer,
+            fontWeight: FontWeight.w600,
           ),
           const SizedBox(width: 8),
           Text(
@@ -52,7 +53,7 @@ class TaskDueDateChip extends StatelessWidget {
             ),
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
               color: isCompleted
                   ? colorScheme.onSecondaryContainer.withValues(alpha: 0.6)
                   : colorScheme.onSecondaryContainer,
@@ -151,13 +152,14 @@ class TaskSubtasksBadge extends StatelessWidget {
               color: isExpanded
                   ? colorScheme.onPrimaryContainer
                   : colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
             ),
             const SizedBox(width: 5),
             Text(
               '$completedCount/${subtasks.length} Subtasks',
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w700,
                 color: isExpanded
                     ? colorScheme.onPrimaryContainer
                     : colorScheme.onSurfaceVariant,
@@ -170,6 +172,8 @@ class TaskSubtasksBadge extends StatelessWidget {
                     ? Icons.expand_less_rounded
                     : Icons.expand_more_rounded,
                 size: 16,
+                fontWeight: FontWeight.w600,
+
                 color: isExpanded
                     ? colorScheme.onSecondaryContainer
                     : colorScheme.onSurfaceVariant,
@@ -266,11 +270,7 @@ class StreakPeriodChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.date_range_rounded,
-            size: 14,
-            color: colorScheme.primary,
-          ),
+          Icon(Icons.date_range_rounded, size: 14, color: colorScheme.primary),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -353,16 +353,25 @@ class RevisionTagInfo {
     this.cleanedDescription,
   });
 
-  static final RegExp _revisionRegex = RegExp(r'#revision\b', caseSensitive: false);
-  static final RegExp _stageRegex = RegExp(r'Stage\s*(\d+)', caseSensitive: false);
+  static final RegExp _revisionRegex = RegExp(
+    r'#revision\b',
+    caseSensitive: false,
+  );
+  static final RegExp _stageRegex = RegExp(
+    r'Stage\s*(\d+)',
+    caseSensitive: false,
+  );
   static final RegExp _stripRevisionRegex = RegExp(
     r'#revision\s*([•·\-\|]?\s*Stage\s*\d+\s*(Spaced\s*Repetition)?)?',
     caseSensitive: false,
   );
-  static final RegExp _cleanSeparatorsRegex = RegExp(r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$');
+  static final RegExp _cleanSeparatorsRegex = RegExp(
+    r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$',
+  );
 
   static RevisionTagInfo parse(String? rawDescription, {String? taskTitle}) {
-    final hasTitleRevise = taskTitle != null &&
+    final hasTitleRevise =
+        taskTitle != null &&
         taskTitle.trim().toLowerCase().startsWith('revise:');
 
     if (rawDescription == null || rawDescription.trim().isEmpty) {
@@ -398,14 +407,10 @@ class RevisionTagInfo {
     }
 
     // Strip the revision tag and stage repetition marker from the description
-    String cleaned = rawDescription
-        .replaceAll(_stripRevisionRegex, '')
-        .trim();
+    String cleaned = rawDescription.replaceAll(_stripRevisionRegex, '').trim();
 
     // Clean up any dangling leading/trailing bullets, dashes, or separators
-    cleaned = cleaned
-        .replaceAll(_cleanSeparatorsRegex, '')
-        .trim();
+    cleaned = cleaned.replaceAll(_cleanSeparatorsRegex, '').trim();
 
     return RevisionTagInfo(
       isRevision: true,
@@ -420,11 +425,7 @@ class TaskRevisionChip extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
 
-  const TaskRevisionChip({
-    super.key,
-    this.label = 'Revision',
-    this.onTap,
-  });
+  const TaskRevisionChip({super.key, this.label = 'Revision', this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -467,4 +468,3 @@ class TaskRevisionChip extends StatelessWidget {
     return content;
   }
 }
-

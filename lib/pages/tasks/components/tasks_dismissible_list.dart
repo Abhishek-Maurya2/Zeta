@@ -56,7 +56,7 @@ class TasksDismissibleList extends StatelessWidget {
         if (index < 0 || index >= tasks.length) return null;
         final task = tasks[index];
         if (provider.isTaskSelected(task.id)) {
-          return BorderRadius.circular(35.0);
+          return BorderRadius.circular(45.0);
         }
         return null;
       },

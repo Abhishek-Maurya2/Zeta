@@ -104,14 +104,33 @@ class PomodoroChartCanvas extends StatelessWidget {
     int blockGoal,
   ) {
     const blockTooltips = [
-      '12:00 AM – 4:00 AM',
-      '4:00 AM – 8:00 AM',
-      '8:00 AM – 12:00 PM',
-      '12:00 PM – 4:00 PM',
-      '4:00 PM – 8:00 PM',
-      '8:00 PM – 12:00 AM',
+      '12:00 AM – 2:00 AM',
+      '2:00 AM – 4:00 AM',
+      '4:00 AM – 6:00 AM',
+      '6:00 AM – 8:00 AM',
+      '8:00 AM – 10:00 AM',
+      '10:00 AM – 12:00 PM',
+      '12:00 PM – 2:00 PM',
+      '2:00 PM – 4:00 PM',
+      '4:00 PM – 6:00 PM',
+      '6:00 PM – 8:00 PM',
+      '8:00 PM – 10:00 PM',
+      '10:00 PM – 12:00 AM',
     ];
-    const blockLabels = ['12a', '4a', '8a', '12p', '4p', '8p'];
+    const blockLabels = [
+      '12 am',
+      '2 am',
+      '4 am',
+      '6 am',
+      '8 am',
+      '10 am',
+      '12 pm',
+      '2 pm',
+      '4 pm',
+      '6 pm',
+      '8 pm',
+      '10 pm',
+    ];
 
     if (offset < 0) {
       final target = now.add(Duration(days: offset));
@@ -125,11 +144,11 @@ class PomodoroChartCanvas extends StatelessWidget {
         }
       }
 
-      final rawBlocks = List.generate(6, (i) {
+      final rawBlocks = List.generate(12, (i) {
         return {
           'label': blockLabels[i],
           'tooltipLabel': blockTooltips[i],
-          'focus': hours.sublist(i * 4, (i + 1) * 4).reduce((a, b) => a + b),
+          'focus': hours.sublist(i * 2, (i + 1) * 2).reduce((a, b) => a + b),
           'isHighlighted': false,
         };
       });
@@ -140,19 +159,19 @@ class PomodoroChartCanvas extends StatelessWidget {
       }).toList();
     }
 
-    // offset == 0: continuous last 6 blocks (24 hours) ending at current block
+    // offset == 0: continuous last 12 blocks (24 hours) ending at current block
     final currentBlockStart = DateTime(
       now.year,
       now.month,
       now.day,
-      (now.hour ~/ 4) * 4,
+      (now.hour ~/ 2) * 2,
     );
 
-    return List.generate(6, (i) {
+    return List.generate(12, (i) {
       final blockStart = currentBlockStart.subtract(
-        Duration(hours: (5 - i) * 4),
+        Duration(hours: (11 - i) * 2),
       );
-      final blockEnd = blockStart.add(const Duration(hours: 4));
+      final blockEnd = blockStart.add(const Duration(hours: 2));
 
       final entries = sessionLog.where((e) {
         if (e.mode != PomodoroMode.focus) return false;
@@ -162,7 +181,7 @@ class PomodoroChartCanvas extends StatelessWidget {
       });
       final focus = entries.fold<int>(0, (sum, e) => sum + e.minutes);
 
-      final bIdx = blockStart.hour ~/ 4;
+      final bIdx = blockStart.hour ~/ 2;
       final isToday = toLocalDateStr(blockStart) == toLocalDateStr(now);
       final dateTag = isToday
           ? ''
@@ -173,7 +192,7 @@ class PomodoroChartCanvas extends StatelessWidget {
         'tooltipLabel': '${blockTooltips[bIdx]}$dateTag',
         'focus': focus,
         'hitGoal': focus >= blockGoal,
-        'isHighlighted': i == 5,
+        'isHighlighted': i == 11,
       };
     });
   }
@@ -270,7 +289,9 @@ class PomodoroChartCanvas extends StatelessWidget {
       // Continuous 4 rolling 7-day weeks ending at today
       final targetEndDay = DateTime(now.year, now.month, now.day);
       return List.generate(4, (i) {
-        final weekStart = targetEndDay.subtract(Duration(days: (3 - i) * 7 + 6));
+        final weekStart = targetEndDay.subtract(
+          Duration(days: (3 - i) * 7 + 6),
+        );
         final weekEnd = targetEndDay.subtract(Duration(days: (3 - i) * 7));
         final startMs = DateTime(
           weekStart.year,

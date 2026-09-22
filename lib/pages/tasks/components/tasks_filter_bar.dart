@@ -83,7 +83,7 @@ class TasksFilterBar extends StatelessWidget {
 
     final sortButton = M3ESplitButton<TaskSortOption>(
       size: M3EButtonSize.sm,
-      style: M3EButtonStyle.tonal,
+      style: M3EButtonStyle.filled,
       leadingIcon: taskProvider.getSortIcon(sortBy),
       label: taskProvider.getSortLabel(sortBy),
       selectedValue: sortBy,
@@ -101,6 +101,7 @@ class TasksFilterBar extends StatelessWidget {
         popupDecoration: M3ESplitButtonPopupDecoration(
           backgroundColor: colorScheme.tertiaryContainer,
           selectedColor: colorScheme.tertiary,
+          elevation: 0,
         ),
       ),
       items: TaskSortOption.values.map((opt) {

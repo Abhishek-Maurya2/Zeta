@@ -3,7 +3,7 @@
     <shortcut
         android:shortcutId="action_pomodoro"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_pomodoro"
         android:shortcutShortLabel="@string/shortcut_pomodoro_short"
         android:shortcutLongLabel="@string/shortcut_pomodoro_long">
         <intent
@@ -11,12 +11,14 @@
             android:targetPackage="com.abhishek.zeta.zeta"
             android:targetClass="com.abhishek.zeta.zeta.MainActivity">
             <extra android:name="route" android:value="action_pomodoro" />
+            <extra android:name="some unique action key" android:value="action_pomodoro" />
+            <extra android:name="shortcut_type" android:value="action_pomodoro" />
         </intent>
     </shortcut>
     <shortcut
         android:shortcutId="action_tasks"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_tasks"
         android:shortcutShortLabel="@string/shortcut_tasks_short"
         android:shortcutLongLabel="@string/shortcut_tasks_long">
         <intent
@@ -24,12 +26,14 @@
             android:targetPackage="com.abhishek.zeta.zeta"
             android:targetClass="com.abhishek.zeta.zeta.MainActivity">
             <extra android:name="route" android:value="action_tasks" />
+            <extra android:name="some unique action key" android:value="action_tasks" />
+            <extra android:name="shortcut_type" android:value="action_tasks" />
         </intent>
     </shortcut>
     <shortcut
         android:shortcutId="action_calendar"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_calendar"
         android:shortcutShortLabel="@string/shortcut_calendar_short"
         android:shortcutLongLabel="@string/shortcut_calendar_long">
         <intent
@@ -37,12 +41,14 @@
             android:targetPackage="com.abhishek.zeta.zeta"
             android:targetClass="com.abhishek.zeta.zeta.MainActivity">
             <extra android:name="route" android:value="action_calendar" />
+            <extra android:name="some unique action key" android:value="action_calendar" />
+            <extra android:name="shortcut_type" android:value="action_calendar" />
         </intent>
     </shortcut>
     <shortcut
         android:shortcutId="action_revision"
         android:enabled="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/ic_revision"
         android:shortcutShortLabel="@string/shortcut_revision_short"
         android:shortcutLongLabel="@string/shortcut_revision_long">
         <intent
@@ -50,6 +56,8 @@
             android:targetPackage="com.abhishek.zeta.zeta"
             android:targetClass="com.abhishek.zeta.zeta.MainActivity">
             <extra android:name="route" android:value="action_revision" />
+            <extra android:name="some unique action key" android:value="action_revision" />
+            <extra android:name="shortcut_type" android:value="action_revision" />
         </intent>
     </shortcut>
 </shortcuts>

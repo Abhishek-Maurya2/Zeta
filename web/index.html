@@ -85,6 +85,11 @@
 
       // 3. Fallback safety timer
       setTimeout(hideWebSplash, 3000);
+
+      // 4. Block default browser context menu so in-app context menus work seamlessly
+      window.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+      });
     </script>
   </body>
 </html>

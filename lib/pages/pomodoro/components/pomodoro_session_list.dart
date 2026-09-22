@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -113,11 +114,9 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ─── Completed Session Log Header ─────────────────────────
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               'Recent Sessions',
@@ -126,21 +125,25 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
                 color: colorScheme.onSurface,
               ),
             ),
-            if (sessionLog.isNotEmpty) ...[
-              const SizedBox(width: 4),
-              TextButton.icon(
+
+            if (sessionLog.isNotEmpty)
+              M3EButton.icon(
                 onPressed: () => _confirmClearLogs(context, provider),
                 icon: const Icon(Icons.delete_outline_rounded, size: 15),
                 label: const Text('Clear'),
-                style: TextButton.styleFrom(
-                  foregroundColor: colorScheme.error,
-                  visualDensity: VisualDensity.compact,
+                size: M3EButtonSize.sm,
+                tooltip: 'Clear session log',
+                decoration: M3EButtonDecoration(
+                  backgroundColor: WidgetStatePropertyAll(
+                    colorScheme.errorContainer,
+                  ),
+                  foregroundColor: WidgetStatePropertyAll(
+                    colorScheme.onErrorContainer,
+                  ),
                 ),
               ),
-            ],
           ],
         ),
-
         const SizedBox(height: 10),
 
         // ─── Session List Container ───────────────────────────────
@@ -153,8 +156,7 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: ZetaEmptyState.pomodoro(
                       title: 'No sessions recorded yet',
-                      subtitle:
-                          'Complete focus sessions to start tracking your daily progress.',
+                      subtitle: 'Complete focus sessions to start tracking your daily progress.',
                       size: ZetaEmptyStateSize.standard,
                     ),
                   ),

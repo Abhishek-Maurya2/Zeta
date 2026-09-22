@@ -68,6 +68,7 @@ class PomodoroSettings {
   final bool soundNotification;
   final bool toastNotification;
   final int dailyGoalMinutes;
+  final bool countUp;
 
   int get dayBlockGoalMinutes => dailyGoalMinutes;
   int get weekDailyGoalMinutes => dailyGoalMinutes;
@@ -86,6 +87,7 @@ class PomodoroSettings {
     this.soundNotification = true,
     this.toastNotification = true,
     this.dailyGoalMinutes = 60,
+    this.countUp = false,
   });
 
   PomodoroSettings copyWith({
@@ -100,6 +102,7 @@ class PomodoroSettings {
     bool? soundNotification,
     bool? toastNotification,
     int? dailyGoalMinutes,
+    bool? countUp,
   }) {
     return PomodoroSettings(
       focusDuration: focusDuration ?? this.focusDuration,
@@ -113,6 +116,7 @@ class PomodoroSettings {
       soundNotification: soundNotification ?? this.soundNotification,
       toastNotification: toastNotification ?? this.toastNotification,
       dailyGoalMinutes: dailyGoalMinutes ?? this.dailyGoalMinutes,
+      countUp: countUp ?? this.countUp,
     );
   }
 
@@ -128,6 +132,7 @@ class PomodoroSettings {
     'soundNotification': soundNotification,
     'toastNotification': toastNotification,
     'dailyGoalMinutes': dailyGoalMinutes,
+    'countUp': countUp,
   };
 
   factory PomodoroSettings.fromJson(Map<String, dynamic> json) {
@@ -145,6 +150,7 @@ class PomodoroSettings {
       dailyGoalMinutes: json['dailyGoalMinutes'] as int? ??
           json['weekDailyGoalMinutes'] as int? ??
           60,
+      countUp: json['countUp'] as bool? ?? false,
     );
   }
 }

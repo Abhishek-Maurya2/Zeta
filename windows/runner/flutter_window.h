@@ -34,6 +34,9 @@ class FlutterWindow : public Win32Window {
   // Title bar channel for syncing color and theme
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> title_bar_channel_;
 
+  // Shortcuts channel for Jump List tasks and argument forwarding
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> shortcuts_channel_;
+
   bool is_fullscreen_ = false;
   WINDOWPLACEMENT wp_prev_ = {sizeof(WINDOWPLACEMENT)};
   DWORD dw_prev_style_ = 0;

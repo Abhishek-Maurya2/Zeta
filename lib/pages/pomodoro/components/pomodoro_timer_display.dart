@@ -8,10 +8,7 @@ import '../../../providers/pomodoro_provider.dart';
 class PomodoroTimerDisplay extends StatelessWidget {
   final double size;
 
-  const PomodoroTimerDisplay({
-    super.key,
-    this.size = 290.0,
-  });
+  const PomodoroTimerDisplay({super.key, this.size = 290.0});
 
   @override
   Widget build(BuildContext context) {
@@ -42,8 +39,7 @@ class PomodoroTimerDisplay extends StatelessWidget {
                   value: animatedProgress,
                   size: size,
                   strokeWidth: 12,
-                  wavelength: 32,
-                  amplitude: 1,
+                  wavelength: 27,
                   trackStrokeWidth: 12,
                   color: colorScheme.primary,
                   trackColor: colorScheme.surfaceContainerHighest,

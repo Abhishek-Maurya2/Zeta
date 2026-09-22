@@ -9,6 +9,8 @@ import 'package:zeta/providers/theme_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/pages/pomodoro_page.dart';
 import 'package:zeta/pages/pomodoro/components/pomodoro_settings_sheet.dart';
+import 'package:zeta/pages/pomodoro/components/pomodoro_timer_display.dart';
+import 'package:zeta/pages/pomodoro/components/pomodoro_chart_canvas.dart';
 import 'package:zeta/widgets/m3e_pane_divider.dart';
 import 'package:zeta/widgets/segmented_column.dart';
 import 'package:zeta/services/ambient_mode_service.dart';
@@ -230,7 +232,7 @@ void main() {
 
     // Verify all range options exist
     expect(find.text('D'), findsAtLeastNWidgets(1));
-    expect(find.text('W'), findsAtLeastNWidgets(1));
+    expect(find.text('Week'), findsAtLeastNWidgets(1));
     expect(find.text('M'), findsAtLeastNWidgets(1));
     expect(find.text('Y'), findsAtLeastNWidgets(1));
 
@@ -248,7 +250,7 @@ void main() {
     await tester.tap(find.byTooltip('Previous period'));
     await tester.pump(const Duration(milliseconds: 100));
     final currentYear = DateTime.now().year;
-    expect(find.text('${currentYear - 1}'), findsOneWidget);
+    expect(find.text('${currentYear - 1}'), findsAtLeastNWidgets(1));
 
     // Tap Jump to current
     await tester.tap(find.byTooltip('Jump to current'));
@@ -386,5 +388,107 @@ void main() {
 
     expect(find.byType(PomodoroAmbientPage), findsNothing);
     expect(AmbientModeService.isActive, isFalse);
+  });
+
+  testWidgets(
+      'Pomodoro count up switch toggles timer display between countdown and countup',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final provider = PomodoroProvider();
+
+    await tester.pumpWidget(
+      createPomodoroTestWidget(pomodoroProvider: provider),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Initially countdown: displays 25:00
+    expect(provider.settings.countUp, isFalse);
+    expect(provider.formattedTime, equals('25:00'));
+    expect(
+      find.descendant(
+        of: find.byType(PomodoroTimerDisplay),
+        matching: find.text('25:00'),
+      ),
+      findsOneWidget,
+    );
+
+    // Tap Configure to open settings sheet
+    final configureBtn = find.text('Configure').first;
+    await tester.tap(configureBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(find.text('Timer Display'), findsOneWidget);
+    expect(find.text('Count up timer'), findsOneWidget);
+
+    // Toggle count up
+    provider.updateSettings(provider.settings.copyWith(countUp: true));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(provider.settings.countUp, isTrue);
+    expect(provider.formattedTime, equals('00:00'));
+    expect(
+      find.descendant(
+        of: find.byType(PomodoroTimerDisplay),
+        matching: find.text('00:00'),
+      ),
+      findsOneWidget,
+    );
+
+    // Toggle back to countdown
+    provider.updateSettings(provider.settings.copyWith(countUp: false));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(provider.settings.countUp, isFalse);
+    expect(provider.formattedTime, equals('25:00'));
+    expect(
+      find.descendant(
+        of: find.byType(PomodoroTimerDisplay),
+        matching: find.text('25:00'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'PomodoroSettingsSheet displays simplified non-overlapping Automation & Sound options',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final provider = PomodoroProvider();
+
+    await tester.pumpWidget(
+      createPomodoroTestWidget(pomodoroProvider: provider),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Tap Configure to open settings sheet
+    final configureBtn = find.text('Configure').first;
+    await tester.tap(configureBtn);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    // Verify Automation & Sound section with simplified options
+    expect(find.text('Automation & Sound'), findsOneWidget);
+    expect(find.text('Auto-start breaks'), findsOneWidget);
+    expect(find.text('Auto-start focus sessions'), findsOneWidget);
+    expect(find.text('Sound alerts'), findsOneWidget);
+
+    // Verify overlapping options are removed from the sheet
+    expect(find.text('Continuous auto-run'), findsNothing);
+  });
+
+  test('PomodoroChartCanvas.buildDayBlocks generates 12 two-hour blocks', () {
+    final now = DateTime(2026, 9, 22, 14, 30);
+    final blocks = PomodoroChartCanvas.buildDayBlocks([], now, 0, 60);
+    expect(blocks.length, equals(12));
+    expect(blocks.last['isHighlighted'], isTrue);
+    expect(blocks.any((b) => b['label'] == '12 am'), isTrue);
+    expect(blocks.any((b) => b['label'] == '2 pm'), isTrue);
   });
 }

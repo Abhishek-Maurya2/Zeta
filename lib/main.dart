@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -19,12 +20,19 @@ import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
 import 'database/database_provider.dart';
 import 'database/migration_service.dart';
+import 'services/quick_actions_service.dart';
 
 bool get _isTestMode =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
 
-void main() async {
+void main([List<String> args = const <String>[]]) async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    unawaited(BrowserContextMenu.disableContextMenu());
+  }
+  if (args.isNotEmpty) {
+    QuickActionsService.instance.setInitialArgs(args);
+  }
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );

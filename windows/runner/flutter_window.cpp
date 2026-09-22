@@ -2,8 +2,11 @@
 
 #include <dwmapi.h>
 #include <optional>
+#include <string>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "jump_list.h"
+#include "utils.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -120,6 +123,23 @@ bool FlutterWindow::OnCreate() {
         }
       });
 
+  shortcuts_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "zeta/windows_shortcuts",
+          &flutter::StandardMethodCodec::GetInstance());
+
+  shortcuts_channel_->SetMethodCallHandler(
+      [](const auto& call, auto result) {
+        if (call.method_name() == "setupJumpList") {
+          bool ok = jump_list::SetupTaskbarJumpList();
+          result->Success(flutter::EncodableValue(ok));
+        } else {
+          result->NotImplemented();
+        }
+      });
+
+  jump_list::SetupTaskbarJumpList();
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -169,6 +189,7 @@ void FlutterWindow::OnDestroy() {
   }
   SetThreadExecutionState(ES_CONTINUOUS);
   title_bar_channel_ = nullptr;
+  shortcuts_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -194,6 +215,35 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+    case WM_COPYDATA: {
+      auto cds = reinterpret_cast<PCOPYDATASTRUCT>(lparam);
+      if (cds && cds->dwData == 0x5A455441) {  // 'ZETA'
+        const wchar_t* cmd = reinterpret_cast<const wchar_t*>(cds->lpData);
+        if (cmd && shortcuts_channel_) {
+          std::wstring wcmd(cmd);
+          std::string route;
+          size_t pos = wcmd.find(L"--route=");
+          if (pos != std::wstring::npos) {
+            std::wstring wroute = wcmd.substr(pos + 8);
+            size_t space_pos = wroute.find(L' ');
+            if (space_pos != std::wstring::npos) {
+              wroute = wroute.substr(0, space_pos);
+            }
+            route = Utf8FromUtf16(wroute.c_str());
+          } else {
+            route = Utf8FromUtf16(wcmd.c_str());
+          }
+
+          if (!route.empty()) {
+            shortcuts_channel_->InvokeMethod(
+                "onShortcut",
+                std::make_unique<flutter::EncodableValue>(route));
+          }
+        }
+        return TRUE;
+      }
+      break;
+    }
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);

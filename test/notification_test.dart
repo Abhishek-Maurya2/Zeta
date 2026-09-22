@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zeta/models/task.dart';
 import 'package:zeta/models/pomodoro.dart';
 import 'package:zeta/providers/notification_provider.dart';
@@ -7,6 +8,10 @@ import 'package:zeta/services/notification_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
 
   group('NotificationService & NotificationProvider Tests', () {
     test('NotificationService singleton instance is available', () {
@@ -92,7 +97,7 @@ void main() {
       // Should not throw
     });
 
-    test('PomodoroProvider registers onPomodoroAction and handles toggle/skip', () {
+    testWidgets('PomodoroProvider registers onPomodoroAction and handles toggle/skip', (tester) async {
       final pomodoro = PomodoroProvider();
       expect(NotificationService.instance.onPomodoroAction, isNotNull);
 
@@ -117,6 +122,7 @@ void main() {
       expect(pomodoro.activeQueueIndex, isNot(initialQueueIndex));
 
       pomodoro.dispose();
+      await tester.pumpAndSettle();
       expect(NotificationService.instance.onPomodoroAction, isNull);
     });
   });

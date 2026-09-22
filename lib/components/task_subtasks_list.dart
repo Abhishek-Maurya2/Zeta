@@ -24,13 +24,11 @@ class TaskSubtasksList extends StatelessWidget {
     if (subtasks.isEmpty) return const SizedBox.shrink();
 
     final colorScheme = Theme.of(context).colorScheme;
-    final effectiveBgColor =
-        backgroundColor ??
-        colorScheme.tertiaryContainer.withValues(alpha: 0.4);
+    final effectiveBgColor = backgroundColor ?? colorScheme.tertiaryContainer;
 
     return M3ESegmentedColumn(
       decoration: const M3ESegmentedListDecoration(
-        padding: EdgeInsets.all(2),
+        padding: EdgeInsets.all(1),
         outerRadius: 16,
         innerRadius: 6,
       ),
@@ -42,9 +40,10 @@ class TaskSubtasksList extends StatelessWidget {
             children: [
               Icon(
                 subtask.completed
-                    ? Icons.check_circle_rounded
+                    ? Icons.check_rounded
                     : Icons.radio_button_unchecked_rounded,
                 size: 16,
+                fontWeight: FontWeight.w600,
                 color: subtask.completed
                     ? const Color(0xFF10B981)
                     : colorScheme.onSurfaceVariant,
@@ -54,7 +53,9 @@ class TaskSubtasksList extends StatelessWidget {
                 child: Text(
                   subtask.title,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
+                    fontFamily: 'RobotoMono',
+                    fontWeight: FontWeight.w500,
                     color: subtask.completed
                         ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
                         : colorScheme.onSurface,

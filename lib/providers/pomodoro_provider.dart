@@ -80,9 +80,17 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     return (elapsed / _totalDuration).clamp(0.0, 1.0);
   }
 
+  bool get isCountUp => _settings.countUp;
+
+  int get elapsedSeconds =>
+      (_totalDuration - _timeLeft).clamp(0, _totalDuration);
+
+  int get displaySeconds => _settings.countUp ? elapsedSeconds : _timeLeft;
+
   String get formattedTime {
-    final mins = _timeLeft ~/ 60;
-    final secs = _timeLeft % 60;
+    final timeToDisplay = displaySeconds;
+    final mins = timeToDisplay ~/ 60;
+    final secs = timeToDisplay % 60;
     return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 
@@ -302,6 +310,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       timeLeft: _timeLeft,
       totalDuration: _totalDuration,
       isRunning: _isRunning,
+      countUp: _settings.countUp,
       forceWindowsUpdate: force,
     );
   }
@@ -347,10 +356,9 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Determine auto-start for next session
     final nextIndex = (_activeQueueIndex + 1) % _queue.length;
     final nextItem = _queue[nextIndex];
-    final shouldAutoStart = _settings.autoStartNext ||
-        (nextItem.mode == PomodoroMode.focus
-            ? _settings.autoStartFocus
-            : _settings.autoStartBreaks);
+    final shouldAutoStart = nextItem.mode == PomodoroMode.focus
+        ? _settings.autoStartFocus
+        : _settings.autoStartBreaks;
 
     _advanceQueue(autoStart: shouldAutoStart);
   }
@@ -423,6 +431,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _syncWithCurrentQueueItem();
       }
     }
+    _updateLiveNotification(force: true);
     notifyListeners();
   }
 

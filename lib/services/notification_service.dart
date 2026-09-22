@@ -395,6 +395,7 @@ class NotificationService {
     required int timeLeft,
     required int totalDuration,
     required bool isRunning,
+    bool countUp = false,
     bool forceWindowsUpdate = false,
   }) async {
     if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled) return;
@@ -405,8 +406,9 @@ class NotificationService {
         : 0.0;
     final progressPercent = (progress * 100).round();
 
-    final mins = timeLeft ~/ 60;
-    final secs = timeLeft % 60;
+    final displaySeconds = countUp ? (totalDuration - timeLeft) : timeLeft;
+    final mins = displaySeconds ~/ 60;
+    final secs = displaySeconds % 60;
     final formattedTime =
         '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
 
@@ -460,7 +462,9 @@ class NotificationService {
           _NotifIds.pomodoroLiveId,
           modeLabel,
           isRunning
-              ? '$formattedTime remaining ($progressPercent%)'
+              ? (countUp
+                  ? '$formattedTime elapsed ($progressPercent%)'
+                  : '$formattedTime remaining ($progressPercent%)')
               : 'Paused at $formattedTime ($progressPercent%)',
           details,
         );
@@ -514,7 +518,9 @@ class NotificationService {
                 progress: NotificationProgress(
                   title: '$modeLabel Progress',
                   value: progress.clamp(0.0, 1.0),
-                  valueStringOverride: '$formattedTime left ($progressPercent%)',
+                  valueStringOverride: countUp
+                      ? '$formattedTime elapsed ($progressPercent%)'
+                      : '$formattedTime left ($progressPercent%)',
                   status: isRunning ? 'In Progress' : 'Paused',
                 ),
                 actions: [
@@ -541,7 +547,9 @@ class NotificationService {
                 ? '$modeLabel — $formattedTime'
                 : '$modeLabel (Paused)';
             final body = isRunning
-                ? '$bar $progressPercent%\n$formattedTime remaining'
+                ? (countUp
+                    ? '$bar $progressPercent%\n$formattedTime elapsed'
+                    : '$bar $progressPercent%\n$formattedTime remaining')
                 : '$bar $progressPercent%\nPaused at $formattedTime';
 
             _windowsLiveNotification = LocalNotification(

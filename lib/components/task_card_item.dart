@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../models/task.dart';
+import '../theme/breakpoints.dart';
+import '../theme/motion_tokens.dart';
 import '../utils/haptics.dart';
 import 'task_chips.dart';
 import 'task_subtasks_list.dart';
@@ -52,10 +54,16 @@ class TaskCardItem extends StatelessWidget {
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
     final isCompletedOrDeleted = isDeleted || task.completed;
-    final revisionInfo = RevisionTagInfo.parse(task.description, taskTitle: task.title);
+    final revisionInfo = RevisionTagInfo.parse(
+      task.description,
+      taskTitle: task.title,
+    );
     final displayDescription = revisionInfo.isRevision
         ? revisionInfo.cleanedDescription
         : task.description;
+
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -88,17 +96,17 @@ class TaskCardItem extends StatelessWidget {
                         Text(
                           task.title,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: 16,
                             fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.w500,
+                                ? FontWeight.w700
+                                : FontWeight.w600,
                             color: isSelected
                                 ? colorScheme.onSecondaryContainer
                                 : (isCompletedOrDeleted
-                                    ? colorScheme.onSurfaceVariant.withValues(
-                                        alpha: isDeleted ? 0.75 : 0.7,
-                                      )
-                                    : colorScheme.onSurface),
+                                      ? colorScheme.onSurfaceVariant.withValues(
+                                          alpha: isDeleted ? 0.75 : 0.7,
+                                        )
+                                      : colorScheme.onSurface),
                             decoration: isCompletedOrDeleted
                                 ? TextDecoration.lineThrough
                                 : null,
@@ -112,10 +120,11 @@ class TaskCardItem extends StatelessWidget {
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               color: isSelected
-                                  ? colorScheme.onSecondaryContainer
-                                      .withValues(alpha: 0.8)
+                                  ? colorScheme.onSecondaryContainer.withValues(
+                                      alpha: 0.8,
+                                    )
                                   : colorScheme.onSurfaceVariant.withValues(
                                       alpha: isDeleted ? 0.6 : 0.8,
                                     ),
@@ -175,18 +184,26 @@ class TaskCardItem extends StatelessWidget {
                 ),
               ],
 
-              // ─── Subtasks List: Takes full horizontal space ───────────────
-              if (isExpanded && hasSubtasks) ...[
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: TaskSubtasksList(
-                    subtasks: subtasks,
-                    onToggleSubtask: isDeleted ? null : onToggleSubtask,
-                    isReadOnly: isDeleted,
+              // ─── Subtasks List: Collapsible with M3 Expressive Motion Tokens ──
+              if (hasSubtasks)
+                _ExpressiveCollapsibleList(
+                  isExpanded: isExpanded,
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: 10,
+                      left: isCompact ? 0 : 34,
+                      right: isCompact ? 0 : 34,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TaskSubtasksList(
+                        subtasks: subtasks,
+                        onToggleSubtask: isDeleted ? null : onToggleSubtask,
+                        isReadOnly: isDeleted,
+                      ),
+                    ),
                   ),
                 ),
-              ],
             ],
           ),
         ),
@@ -316,3 +333,85 @@ class TaskCardItem extends StatelessWidget {
 
 /// Expressive alias for [TaskCardItem] following Flutter component naming best practices.
 typedef TaskCard = TaskCardItem;
+
+/// An expressive collapsible wrapper using Material 3 motion tokens
+/// ([M3MotionDuration.medium2], [M3MotionEasing.emphasizedDecelerate], and [M3MotionEasing.emphasizedAccelerate])
+/// to smoothly animate subtask list expansion and collapse.
+class _ExpressiveCollapsibleList extends StatefulWidget {
+  final bool isExpanded;
+  final Widget child;
+
+  const _ExpressiveCollapsibleList({
+    required this.isExpanded,
+    required this.child,
+  });
+
+  @override
+  State<_ExpressiveCollapsibleList> createState() =>
+      _ExpressiveCollapsibleListState();
+}
+
+class _ExpressiveCollapsibleListState extends State<_ExpressiveCollapsibleList>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _heightFactor;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: M3MotionDuration.medium2,
+      vsync: this,
+      value: widget.isExpanded ? 1.0 : 0.0,
+    );
+
+    _heightFactor = CurvedAnimation(
+      parent: _controller,
+      curve: M3MotionEasing.emphasizedDecelerate,
+      reverseCurve: M3MotionEasing.emphasizedAccelerate.flipped,
+    );
+
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.2, 1.0, curve: Curves.easeInOut),
+      reverseCurve: const Interval(0.0, 0.8, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExpressiveCollapsibleList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded) {
+      if (widget.isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        if (_controller.isDismissed && !widget.isExpanded) {
+          return const SizedBox.shrink();
+        }
+        return SizeTransition(
+          sizeFactor: _heightFactor,
+          alignment: Alignment.topCenter,
+          child: FadeTransition(opacity: _opacity, child: child),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
