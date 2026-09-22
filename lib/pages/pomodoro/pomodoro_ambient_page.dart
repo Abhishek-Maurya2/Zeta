@@ -127,11 +127,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
           provider.skipSession();
           _resetInactivityTimer();
         },
-        const SingleActivator(LogicalKeyboardKey.keyR): () {
-          ZetaHaptics.light();
-          provider.resetTimer();
-          _resetInactivityTimer();
-        },
       },
       child: Focus(
         autofocus: true,

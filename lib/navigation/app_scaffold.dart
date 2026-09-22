@@ -709,9 +709,9 @@ class _AppScaffoldState extends State<AppScaffold>
                                                     decoration: BoxDecoration(
                                                       color: isDark
                                                           ? colorScheme
-                                                              .surfaceContainerHigh
+                                                                .surfaceContainerHigh
                                                           : colorScheme
-                                                              .surfaceContainer,
+                                                                .surfaceContainer,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             20,
@@ -731,7 +731,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         ),
                                                       ],
                                                     ),
-                                                    clipBehavior: Clip.antiAlias,
+                                                    clipBehavior:
+                                                        Clip.antiAlias,
                                                     child: SafeArea(
                                                       child: TaskEditFormContent(
                                                         key: ValueKey(
@@ -742,9 +743,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         ),
                                                         task: taskProvider
                                                             .editingTask,
-                                                        initialTitle:
-                                                            taskProvider
-                                                                .editingInitialTitle,
+                                                        initialTitle: taskProvider
+                                                            .editingInitialTitle,
                                                         onClose: () =>
                                                             taskProvider
                                                                 .closeEditPane(),
