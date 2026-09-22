@@ -69,7 +69,7 @@ class RevisionTopicTile extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 5, 1, 10),
+      padding: const EdgeInsets.fromLTRB(5, 1, 1, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -93,30 +93,28 @@ class RevisionTopicTile extends StatelessWidget {
                     ),
                   ),
                 ),
+
+              // title
               Expanded(
                 child: Text(
                   topic.title,
                   style: textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: colorScheme.onSurface,
-                    decoration: topic.isMastered
-                        ? TextDecoration.lineThrough
-                        : null,
                     fontSize: 20,
                   ),
                 ),
               ),
+
+              // menu
               if (onEdit != null || onDelete != null)
                 GlassM3EMenu(
                   position: M3EMenuAnchorPosition.bottomEnd,
                   colorStyle: M3EMenuColorStyle.vibrant,
                   anchorBuilder: (BuildContext context, VoidCallback open) {
-                    return M3EIconButton(
+                    return IconButton(
                       icon: const Icon(Icons.more_vert_rounded, size: 20),
                       onPressed: open,
-                      variant: M3EIconButtonVariant.standard,
-                      size: M3EIconButtonSize.sm,
-                      width: M3EIconButtonWidth.narrow,
                     );
                   },
                   children: [
@@ -177,10 +175,10 @@ class RevisionTopicTile extends StatelessWidget {
 
               const SizedBox(width: 12),
 
-              // Revision stage dots (●●○)
-              if (stage > 0 && stage < 4)
+              // Revision stage dots (●●●○)
+              if (stage > 0 && stage < 5)
                 Row(
-                  children: List.generate(3, (i) {
+                  children: List.generate(4, (i) {
                     final active = i < stage;
                     return Padding(
                       padding: const EdgeInsets.only(right: 4),
@@ -203,17 +201,19 @@ class RevisionTopicTile extends StatelessWidget {
 
               // Action button
               if (!topic.isMastered)
-                M3EButton.icon(
+                M3EIconButton(
                   onPressed: onComplete,
-                  style: stage == 0
-                      ? M3EButtonStyle.filled
-                      : M3EButtonStyle.tonal,
-                  size: M3EButtonSize.sm,
+                  size: M3EIconButtonSize.sm,
+                  width: M3EIconButtonWidth.wide,
+                  variant: M3EIconButtonVariant.filled,
                   icon: Icon(
                     stage == 0 ? Icons.check_rounded : Icons.sync_rounded,
-                    size: 16,
+                    size: 20,
+                    fontWeight: FontWeight.w700,
                   ),
-                  label: Text(stage == 0 ? 'Complete' : 'Revise'),
+                  tooltip: (stage == 0)
+                      ? 'Start Revision'
+                      : 'Move to Next Stage',
                 ),
 
               const SizedBox(width: 10),

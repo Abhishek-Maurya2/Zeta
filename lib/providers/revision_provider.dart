@@ -8,9 +8,68 @@ import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
 import '../services/revision_sync_service.dart';
 
+/// Persisted configuration for the Revision spaced-repetition system.
+class RevisionSettings {
+  /// Days until next revision for stages 1-4.
+  final int stage1Days;
+  final int stage2Days;
+  final int stage3Days;
+  final int stage4Days;
+  /// Whether to automatically create revision reminder tasks on the Task Page.
+  final bool autoCreateTasks;
+  /// Whether to provide haptic feedback when updating revisions.
+  final bool hapticFeedback;
+
+  const RevisionSettings({
+    this.stage1Days = 5,
+    this.stage2Days = 10,
+    this.stage3Days = 20,
+    this.stage4Days = 40,
+    this.autoCreateTasks = true,
+    this.hapticFeedback = true,
+  });
+
+  RevisionSettings copyWith({
+    int? stage1Days,
+    int? stage2Days,
+    int? stage3Days,
+    int? stage4Days,
+    bool? autoCreateTasks,
+    bool? hapticFeedback,
+  }) =>
+      RevisionSettings(
+        stage1Days: stage1Days ?? this.stage1Days,
+        stage2Days: stage2Days ?? this.stage2Days,
+        stage3Days: stage3Days ?? this.stage3Days,
+        stage4Days: stage4Days ?? this.stage4Days,
+        autoCreateTasks: autoCreateTasks ?? this.autoCreateTasks,
+        hapticFeedback: hapticFeedback ?? this.hapticFeedback,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'stage1Days': stage1Days,
+    'stage2Days': stage2Days,
+    'stage3Days': stage3Days,
+    'stage4Days': stage4Days,
+    'autoCreateTasks': autoCreateTasks,
+    'hapticFeedback': hapticFeedback,
+  };
+
+  factory RevisionSettings.fromJson(Map<String, dynamic> json) =>
+      RevisionSettings(
+        stage1Days: (json['stage1Days'] as int?) ?? 5,
+        stage2Days: (json['stage2Days'] as int?) ?? 10,
+        stage3Days: (json['stage3Days'] as int?) ?? 20,
+        stage4Days: (json['stage4Days'] as int?) ?? 40,
+        autoCreateTasks: (json['autoCreateTasks'] as bool?) ?? true,
+        hapticFeedback: (json['hapticFeedback'] as bool?) ?? true,
+      );
+}
+
 class RevisionProvider with ChangeNotifier {
   static const String _subjectsKey = 'zeta_revision_subjects_v2';
   static const String _topicsKey = 'zeta_revision_topics_v2';
+  static const String _settingsKey = 'zeta_revision_settings_v1';
   final Uuid _uuid = const Uuid();
   final RevisionSyncService _syncService = RevisionSyncService();
 
@@ -18,6 +77,7 @@ class RevisionProvider with ChangeNotifier {
   List<ChapterTopic> _topics = [];
   String? _selectedSubjectId;
   bool _isLoading = true;
+  RevisionSettings _settings = const RevisionSettings();
 
   RevisionProvider() {
     _loadData();
@@ -27,6 +87,7 @@ class RevisionProvider with ChangeNotifier {
   List<ChapterTopic> get topics => List.unmodifiable(_topics);
   String? get selectedSubjectId => _selectedSubjectId;
   bool get isLoading => _isLoading;
+  RevisionSettings get settings => _settings;
 
   Subject? get selectedSubject {
     if (_selectedSubjectId == null) return null;
@@ -67,6 +128,13 @@ class RevisionProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final subjectsRaw = prefs.getString(_subjectsKey);
       final topicsRaw = prefs.getString(_topicsKey);
+      final settingsRaw = prefs.getString(_settingsKey);
+
+      if (settingsRaw != null && settingsRaw.isNotEmpty) {
+        _settings = RevisionSettings.fromJson(
+          jsonDecode(settingsRaw) as Map<String, dynamic>,
+        );
+      }
 
       if (subjectsRaw != null && subjectsRaw.isNotEmpty) {
         final List<dynamic> list = jsonDecode(subjectsRaw);
@@ -132,9 +200,24 @@ class RevisionProvider with ChangeNotifier {
 
       await prefs.setString(_subjectsKey, subjectsJson);
       await prefs.setString(_topicsKey, topicsJson);
+      await prefs.setString(_settingsKey, jsonEncode(_settings.toJson()));
     } catch (e) {
       debugPrint('Error saving Revision data: $e');
     }
+  }
+
+  // ─── Settings ────────────────────────────────────────────────────────────────
+
+  Future<void> updateSettings(RevisionSettings newSettings) async {
+    _settings = newSettings;
+    notifyListeners();
+    await _saveData();
+  }
+
+  void resetToDefaultSettings() {
+    _settings = const RevisionSettings();
+    notifyListeners();
+    _saveData();
   }
 
   // ─── CRUD Operations ────────────────────────────────────────────────────────
@@ -163,7 +246,15 @@ class RevisionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteSubject(String subjectId) async {
+  Future<void> deleteSubject(String subjectId, TaskProvider taskProvider) async {
+    // Cascade: delete all revision tasks linked to topics of this subject
+    final subjectTopics = _topics.where((t) => t.subjectId == subjectId).toList();
+    for (final topic in subjectTopics) {
+      final taskId = topic.associatedTaskId;
+      if (taskId != null) {
+        taskProvider.deleteTask(taskId);
+      }
+    }
     _subjects.removeWhere((s) => s.id == subjectId);
     _topics.removeWhere((t) => t.subjectId == subjectId);
     if (_selectedSubjectId == subjectId) {
@@ -206,7 +297,15 @@ class RevisionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> deleteTopic(String topicId) async {
+  Future<void> deleteTopic(String topicId, TaskProvider taskProvider) async {
+    // Cascade: delete the revision task linked to this topic (if any)
+    final topicIndex = _topics.indexWhere((t) => t.id == topicId);
+    if (topicIndex != -1) {
+      final taskId = _topics[topicIndex].associatedTaskId;
+      if (taskId != null) {
+        taskProvider.deleteTask(taskId);
+      }
+    }
     _topics.removeWhere((t) => t.id == topicId);
     await _saveData();
     notifyListeners();
@@ -256,21 +355,29 @@ class RevisionProvider with ChangeNotifier {
 
     final topic = _topics[index];
     final currentStage = topic.revisionStage;
-    final nextStage = currentStage >= 4 ? 4 : currentStage + 1;
+    final nextStage = currentStage >= 5 ? 5 : currentStage + 1;
 
     DateTime? nextDate;
     if (nextStage == 1) {
-      nextDate = DateTime.now().add(const Duration(days: 1));
+      nextDate = DateTime.now().add(Duration(days: _settings.stage1Days));
     } else if (nextStage == 2) {
-      nextDate = DateTime.now().add(const Duration(days: 3));
+      nextDate = DateTime.now().add(Duration(days: _settings.stage2Days));
     } else if (nextStage == 3) {
-      nextDate = DateTime.now().add(const Duration(days: 7));
+      nextDate = DateTime.now().add(Duration(days: _settings.stage3Days));
+    } else if (nextStage == 4) {
+      nextDate = DateTime.now().add(Duration(days: _settings.stage4Days));
     } else {
       nextDate = null; // Mastered!
     }
 
+    // Remove the old associated task before creating a new one
+    final oldTaskId = topic.associatedTaskId;
+    if (oldTaskId != null) {
+      taskProvider.deleteTask(oldTaskId);
+    }
+
     String? createdTaskId;
-    if (nextStage < 4 && nextDate != null) {
+    if (_settings.autoCreateTasks && nextStage < 5 && nextDate != null) {
       final formattedDueDate = TaskDateFormatter.format(nextDate);
       final taskTitle = 'Revise: ${topic.title}';
       final taskDesc = '#Revision  •  Stage $nextStage Spaced Repetition';
@@ -287,7 +394,7 @@ class RevisionProvider with ChangeNotifier {
       revisionStage: nextStage,
       lastRevisedAt: DateTime.now(),
       nextRevisionDate: nextDate,
-      associatedTaskId: createdTaskId ?? topic.associatedTaskId,
+      associatedTaskId: createdTaskId,
     );
 
     await _saveData();

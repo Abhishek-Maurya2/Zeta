@@ -259,6 +259,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ZetaHaptics.light();
                               navProvider.setActivePage(PageId.home);
                             },
+                            tooltip: 'Back',
                           )
                         : null,
                     title: const Text('Settings'),
@@ -306,6 +307,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         ZetaHaptics.light();
                         navProvider.clearSettingsCategory();
                       },
+                            tooltip: 'Back',
+
                     ),
                     title: Text(activeCategoryMeta?.label ?? 'Settings'),
                   ),

@@ -411,8 +411,9 @@ class _AppScaffoldState extends State<AppScaffold>
     final isSelectionMode =
         context.select<TaskProvider, bool>((p) => p.isSelectionMode) &&
         navProvider.activePage == PageId.tasks;
-    final isEditPaneOpen =
-        context.select<TaskProvider, bool>((p) => p.isEditPaneOpen);
+    final isEditPaneOpen = context.select<TaskProvider, bool>(
+      (p) => p.isEditPaneOpen,
+    );
     final sizeClass = ZetaWindowSizeClass.of(context);
 
     if (_previousSizeClass != sizeClass) {
@@ -645,8 +646,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                           child: Consumer<TaskProvider>(
                                             builder: (context, tp, _) =>
                                                 TaskSelectionToolbar(
-                                              taskProvider: tp,
-                                            ),
+                                                  taskProvider: tp,
+                                                ),
                                           ),
                                         ),
                                       ),
@@ -741,17 +742,19 @@ class _AppScaffoldState extends State<AppScaffold>
                                                       child: Consumer<TaskProvider>(
                                                         builder: (context, tp, _) =>
                                                             TaskEditFormContent(
-                                                          key: ValueKey(
-                                                            tp.editingTask
-                                                                    ?.id ??
-                                                                'new_task',
-                                                          ),
-                                                          task: tp.editingTask,
-                                                          initialTitle: tp
-                                                              .editingInitialTitle,
-                                                          onClose: () =>
-                                                              tp.closeEditPane(),
-                                                        ),
+                                                              key: ValueKey(
+                                                                tp
+                                                                        .editingTask
+                                                                        ?.id ??
+                                                                    'new_task',
+                                                              ),
+                                                              task: tp
+                                                                  .editingTask,
+                                                              initialTitle: tp
+                                                                  .editingInitialTitle,
+                                                              onClose: () => tp
+                                                                  .closeEditPane(),
+                                                            ),
                                                       ),
                                                     ),
                                                   ),
@@ -785,8 +788,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                                 child: Consumer<TaskProvider>(
                                                   builder: (context, tp, _) =>
                                                       TaskSelectionToolbar(
-                                                    taskProvider: tp,
-                                                  ),
+                                                        taskProvider: tp,
+                                                      ),
                                                 ),
                                               ),
                                             ),
@@ -1069,7 +1072,7 @@ class _ToolbarNavItem extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: isSelected
-            ? colorScheme.surfaceBright.withValues(alpha: 0.50)
+            ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(88),
       ),

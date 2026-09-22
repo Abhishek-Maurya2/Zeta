@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/revision_provider.dart';
+import 'components/revision_settings_sheet.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../theme/breakpoints.dart';
 import '../../theme/motion_tokens.dart';
@@ -329,12 +330,13 @@ class _RevisionPageState extends State<RevisionPage> {
                           revProvider.selectSubject(null);
                         });
                       },
+                      tooltip: 'Back',
                     ),
                     title: Text(selectedSubject.name),
                     actions: [
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: M3EButton.icon(
+                        child: M3EIconButton(
                           onPressed: () {
                             ZetaHaptics.light();
                             AddTopicDialog.show(
@@ -342,10 +344,15 @@ class _RevisionPageState extends State<RevisionPage> {
                               subjectId: selectedSubject.id,
                             );
                           },
-                          style: M3EButtonStyle.filled,
-                          size: M3EButtonSize.sm,
-                          icon: const Icon(Icons.add_rounded, size: 18),
-                          label: const Text('Add'),
+                          variant: M3EIconButtonVariant.filled,
+                          size: M3EIconButtonSize.sm,
+                          width: M3EIconButtonWidth.wide,
+                          icon: const Icon(
+                            Icons.add_rounded,
+                            size: 23,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          tooltip: 'Add Topic',
                         ),
                       ),
                     ],
@@ -445,7 +452,7 @@ class _RevisionPageState extends State<RevisionPage> {
                         if (revProvider.selectedSubject != null)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
-                            child: M3EButton.icon(
+                            child: M3EIconButton(
                               onPressed: () {
                                 ZetaHaptics.light();
                                 AddTopicDialog.show(
@@ -453,10 +460,15 @@ class _RevisionPageState extends State<RevisionPage> {
                                   subjectId: revProvider.selectedSubject!.id,
                                 );
                               },
-                              style: M3EButtonStyle.filled,
-                              size: M3EButtonSize.sm,
-                              icon: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Add'),
+                              variant: M3EIconButtonVariant.filled,
+                              size: M3EIconButtonSize.sm,
+                              width: M3EIconButtonWidth.wide,
+                              icon: const Icon(
+                                Icons.add_rounded,
+                                size: 23,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              tooltip: 'Add Topic',
                             ),
                           ),
                       ],

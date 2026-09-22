@@ -110,7 +110,7 @@ class RevisionPane2 extends StatelessWidget {
                         'Are you sure you want to delete "${topic.title}"? This cannot be undone.',
                   );
                   if (confirmed == true) {
-                    revProvider.deleteTopic(topic.id);
+                    revProvider.deleteTopic(topic.id, taskProvider);
                   }
                 },
               ),

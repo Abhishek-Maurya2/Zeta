@@ -1,12 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
-enum RevisionStatus {
-  notStarted,
-  scheduled,
-  overdue,
-  mastered,
-}
+enum RevisionStatus { notStarted, scheduled, overdue, mastered }
 
 class Subject {
   final String id;
@@ -26,22 +22,22 @@ class Subject {
   Color get color => Color(colorValue);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'iconName': iconName,
-        'colorValue': colorValue,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'iconName': iconName,
+    'colorValue': colorValue,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   factory Subject.fromJson(Map<String, dynamic> json) => Subject(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        iconName: json['iconName'] as String? ?? 'menu_book_rounded',
-        colorValue: json['colorValue'] as int? ?? 0xFF6750A4,
-        createdAt: json['createdAt'] != null
-            ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-      );
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    iconName: json['iconName'] as String? ?? 'menu_book_rounded',
+    colorValue: json['colorValue'] as int? ?? 0xFF6750A4,
+    createdAt: json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+        : DateTime.now(),
+  );
 
   factory Subject.fromSupabaseRow(Map<String, dynamic> row) {
     int parsedColor = 0xFF6750A4;
@@ -59,13 +55,17 @@ class Subject {
     }
 
     String icon = row['icon'] as String? ?? 'menu_book_rounded';
-    if (!icon.endsWith('_rounded') && !icon.endsWith('_sharp') && !icon.endsWith('_outlined')) {
+    if (!icon.endsWith('_rounded') &&
+        !icon.endsWith('_sharp') &&
+        !icon.endsWith('_outlined')) {
       icon = '${icon}_rounded';
     }
 
     DateTime created = DateTime.now();
     if (row['created_at'] != null) {
-      created = DateTime.tryParse(row['created_at'].toString())?.toLocal() ?? DateTime.now();
+      created =
+          DateTime.tryParse(row['created_at'].toString())?.toLocal() ??
+          DateTime.now();
     }
 
     return Subject(
@@ -112,12 +112,14 @@ class ChapterTopic {
   final String title;
   final String? description;
   final bool isCompleted;
+
   /// Spaced Repetition stage:
   /// 0 = Not started
-  /// 1 = Revised 1x (due +1 day)
-  /// 2 = Revised 2x (due +3 days)
-  /// 3 = Revised 3x (due +7 days)
-  /// 4 = Mastered 🏆
+  /// 1 = Revised 1x (due +5 days)
+  /// 2 = Revised 2x (due +10 days)
+  /// 3 = Revised 3x (due +20 days)
+  /// 4 = Revised 4x (due +40 days)
+  /// 5 = Mastered 🏆
   final int revisionStage;
   final DateTime? lastRevisedAt;
   final DateTime? nextRevisionDate;
@@ -137,7 +139,7 @@ class ChapterTopic {
     this.sortOrder = 0,
   });
 
-  bool get isMastered => revisionStage >= 4;
+  bool get isMastered => revisionStage >= 5;
 
   RevisionStatus get status {
     if (isMastered) return RevisionStatus.mastered;
@@ -157,34 +159,34 @@ class ChapterTopic {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'subjectId': subjectId,
-        'title': title,
-        'description': description,
-        'isCompleted': isCompleted,
-        'revisionStage': revisionStage,
-        'lastRevisedAt': lastRevisedAt?.toIso8601String(),
-        'nextRevisionDate': nextRevisionDate?.toIso8601String(),
-        'associatedTaskId': associatedTaskId,
-        'sortOrder': sortOrder,
-      };
+    'id': id,
+    'subjectId': subjectId,
+    'title': title,
+    'description': description,
+    'isCompleted': isCompleted,
+    'revisionStage': revisionStage,
+    'lastRevisedAt': lastRevisedAt?.toIso8601String(),
+    'nextRevisionDate': nextRevisionDate?.toIso8601String(),
+    'associatedTaskId': associatedTaskId,
+    'sortOrder': sortOrder,
+  };
 
   factory ChapterTopic.fromJson(Map<String, dynamic> json) => ChapterTopic(
-        id: json['id'] as String? ?? '',
-        subjectId: json['subjectId'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        description: json['description'] as String?,
-        isCompleted: json['isCompleted'] as bool? ?? false,
-        revisionStage: json['revisionStage'] as int? ?? 0,
-        lastRevisedAt: json['lastRevisedAt'] != null
-            ? DateTime.tryParse(json['lastRevisedAt'] as String)
-            : null,
-        nextRevisionDate: json['nextRevisionDate'] != null
-            ? DateTime.tryParse(json['nextRevisionDate'] as String)
-            : null,
-        associatedTaskId: json['associatedTaskId'] as String?,
-        sortOrder: json['sortOrder'] as int? ?? (json['sort_order'] as int? ?? 0),
-      );
+    id: json['id'] as String? ?? '',
+    subjectId: json['subjectId'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    description: json['description'] as String?,
+    isCompleted: json['isCompleted'] as bool? ?? false,
+    revisionStage: json['revisionStage'] as int? ?? 0,
+    lastRevisedAt: json['lastRevisedAt'] != null
+        ? DateTime.tryParse(json['lastRevisedAt'] as String)
+        : null,
+    nextRevisionDate: json['nextRevisionDate'] != null
+        ? DateTime.tryParse(json['nextRevisionDate'] as String)
+        : null,
+    associatedTaskId: json['associatedTaskId'] as String?,
+    sortOrder: json['sortOrder'] as int? ?? (json['sort_order'] as int? ?? 0),
+  );
 
   factory ChapterTopic.fromSupabaseRow(Map<String, dynamic> row) {
     final stagesRaw = row['stages'];
@@ -207,8 +209,10 @@ class ChapterTopic {
         if (isStageDone) {
           completedStages++;
           if (s['completedAt'] != null) {
-            final parsed = DateTime.tryParse(s['completedAt'].toString())?.toLocal();
-            if (parsed != null && (lastRevised == null || parsed.isAfter(lastRevised))) {
+            final parsed = DateTime.tryParse(s['completedAt'].toString())
+                ?.toLocal();
+            if (parsed != null &&
+                (lastRevised == null || parsed.isAfter(lastRevised))) {
               lastRevised = parsed;
             }
           }
@@ -218,7 +222,7 @@ class ChapterTopic {
       }
     }
 
-    final isMastered = row['status'] == 'mastered' || completedStages >= 4;
+    final isMastered = row['status'] == 'mastered' || completedStages >= 5;
     final isCompleted = completedStages > 0 || row['status'] == 'completed';
 
     return ChapterTopic(
