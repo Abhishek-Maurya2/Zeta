@@ -236,12 +236,12 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           // ─── Visual Chart Card ────────────────────────────────────
           _buildChartCard(context, provider, colorScheme, textTheme),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 35),
 
           // ─── Summary Stat Cards Grid ──────────────────────────────
           PomodoroSummaryCards(sessionLog: sessionLog),
 
-          const SizedBox(height: 25),
+          const SizedBox(height: 30),
 
           // ─── Completed Session Log List ───────────────────────────
           const PomodoroSessionList(),

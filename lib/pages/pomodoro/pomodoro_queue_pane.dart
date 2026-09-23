@@ -115,7 +115,7 @@ class PomodoroQueuePane extends StatelessWidget {
             )
           else
             M3ESegmentedColumn(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               color: colorScheme.surfaceContainerLowest,
               selectedIndex: activeIndex,
               onTap: (idx) => provider.jumpToSession(idx),

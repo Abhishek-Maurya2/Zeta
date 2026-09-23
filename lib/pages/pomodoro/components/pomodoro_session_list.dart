@@ -120,17 +120,18 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
           children: [
             Text(
               'Recent Sessions',
-              style: textTheme.titleMedium?.copyWith(
+              style: textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: colorScheme.onSurface,
+                fontSize: 25,
               ),
             ),
 
             if (sessionLog.isNotEmpty)
               M3EButton.icon(
                 onPressed: () => _confirmClearLogs(context, provider),
-                icon: const Icon(Icons.delete_outline_rounded, size: 15),
-                label: const Text('Clear'),
+                icon: Icon(Icons.delete_outline_rounded, size: 20),
+                label: Text('Clear', style: TextStyle(fontSize: 16)),
                 size: M3EButtonSize.sm,
                 tooltip: 'Clear session log',
                 decoration: M3EButtonDecoration(
@@ -173,25 +174,29 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
                   return Row(
                     children: [
                       // Leading Icon Badge
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isFocus
-                              ? colorScheme.surfaceContainerHigh
-                              : colorScheme.surfaceContainerHighest,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isFocus
-                              ? Icons.psychology_rounded
-                              : (entry.mode == PomodoroMode.shortBreak
-                                    ? Icons.coffee_rounded
-                                    : Icons.hotel_rounded),
-                          size: 18,
-                          color: isFocus
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant,
+                      M3EShapeContainer(
+                        kind: isFocus
+                            ? M3EShapeKind.ghostish
+                            : (entry.mode == PomodoroMode.shortBreak
+                                  ? M3EShapeKind.softBoom
+                                  : M3EShapeKind.pill),
+                        width: 40,
+                        height: 40,
+                        color: isFocus
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        child: Center(
+                          child: Icon(
+                            isFocus
+                                ? Icons.psychology_rounded
+                                : (entry.mode == PomodoroMode.shortBreak
+                                      ? Icons.coffee_rounded
+                                      : Icons.hotel_rounded),
+                            size: 28,
+                            color: isFocus
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
 

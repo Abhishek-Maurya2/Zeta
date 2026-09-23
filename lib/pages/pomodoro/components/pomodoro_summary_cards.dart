@@ -1,15 +1,14 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../models/pomodoro.dart';
 
 /// Row of 3 summary cards: Total Focus, Sessions Done, and Active Days.
+/// Uses [M3EShapeContainer] for expressive shape iconography.
 class PomodoroSummaryCards extends StatelessWidget {
   final List<PomodoroSessionLog> sessionLog;
 
-  const PomodoroSummaryCards({
-    super.key,
-    required this.sessionLog,
-  });
+  const PomodoroSummaryCards({super.key, required this.sessionLog});
 
   static String formatDuration(int minutes) {
     if (minutes <= 0) return '0m';
@@ -51,113 +50,172 @@ class PomodoroSummaryCards extends StatelessWidget {
     }
     final daysActive = daysMap.length;
 
-    return Row(
-      children: [
-        // Total Focus Time Card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.timer_rounded, size: 20, color: colorScheme.primary),
-                const SizedBox(height: 8),
-                Text(
-                  formatDuration(totalFocusMinutes),
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
-                  ),
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Total Focus Time Card
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.12),
                 ),
-                Text(
-                  'Total Focus',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  M3EShapeContainer(
+                    kind: M3EShapeKind.cookie4Sided,
+                    width: 45,
+                    height: 45,
+                    color: colorScheme.onPrimaryContainer,
+                    child: Center(
+                      child: Icon(
+                        Icons.timer_rounded,
+                        size: 25,
+                        color: colorScheme.primaryContainer,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    formatDuration(totalFocusMinutes),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onPrimaryContainer,
+                      fontSize: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Total Focus',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
 
-        const SizedBox(width: 10),
+          const SizedBox(width: 10),
 
-        // Completed Sessions Card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.check_circle_rounded,
-                  size: 20,
-                  color: colorScheme.tertiary,
+          // Completed Sessions Card
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.12),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  '$totalSessionsCount',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  M3EShapeContainer(
+                    kind: M3EShapeKind.clover8Leaf,
+                    width: 45,
+                    height: 45,
+                    color: colorScheme.onTertiaryContainer,
+                    child: Center(
+                      child: Icon(
+                        Icons.checklist_rounded,
+                        size: 25,
+                        color: colorScheme.tertiaryContainer,
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  'Sessions Done',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 12),
+                  Text(
+                    '$totalSessionsCount',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onTertiaryContainer,
+                      fontSize: 30,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(width: 10),
-
-        // Active Days Card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.stars_rounded,
-                  size: 20,
-                  color: Colors.amber.shade700,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$daysActive days',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.onSurface,
+                  const SizedBox(height: 5),
+                  Text(
+                    'Sessions Done',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onTertiaryContainer,
+                    ),
                   ),
-                ),
-                Text(
-                  'Active Days',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+
+          const SizedBox(width: 10),
+
+          // Active Days Card
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.12),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  M3EShapeContainer(
+                    kind: M3EShapeKind.gem,
+                    width: 45,
+                    height: 45,
+                    color: colorScheme.onSecondaryContainer,
+                    child: Center(
+                      child: Icon(
+                        Icons.calendar_today_rounded,
+                        size: 25,
+                        color: colorScheme.secondaryContainer,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '$daysActive days',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSecondaryContainer,
+                      fontSize: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Active Days',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

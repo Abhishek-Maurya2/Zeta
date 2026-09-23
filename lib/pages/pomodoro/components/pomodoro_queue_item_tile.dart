@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../models/pomodoro.dart';
 
@@ -25,33 +26,36 @@ class PomodoroQueueItemTile extends StatelessWidget {
     return Row(
       children: [
         // Leading Icon Badge
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: isActive
-                ? colorScheme.primary
-                : (isPast
+        M3EShapeContainer(
+          kind: isActive ? M3EShapeKind.flower : M3EShapeKind.pentagon,
+          width: 40,
+          height: 40,
+          color: isActive
+              ? colorScheme.primary
+              : (isPast
                     ? colorScheme.surfaceContainerHigh
-                    : colorScheme.surfaceContainerHighest),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isActive
-                ? (isRunning ? Icons.timelapse_rounded : Icons.play_arrow_rounded)
-                : (isPast
-                    ? Icons.check_rounded
-                    : (item.mode == PomodoroMode.focus
-                        ? Icons.psychology_rounded
-                        : (item.mode == PomodoroMode.shortBreak
-                            ? Icons.coffee_rounded
-                            : Icons.hotel_rounded))),
-            size: 18,
-            color: isActive
-                ? colorScheme.onPrimary
-                : (isPast
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant),
+                    : colorScheme.secondaryContainer),
+          child: Center(
+            child: Icon(
+              isActive
+                  ? (isRunning
+                        ? Icons.timelapse_rounded
+                        : Icons.play_arrow_rounded)
+                  : (isPast
+                        ? Icons.check_rounded
+                        : (item.mode == PomodoroMode.focus
+                              ? Icons.psychology_rounded
+                              : (item.mode == PomodoroMode.shortBreak
+                                    ? Icons.coffee_rounded
+                                    : Icons.hotel_rounded))),
+              size: 23,
+              fontWeight: FontWeight.w700,
+              color: isActive
+                  ? colorScheme.onPrimary
+                  : (isPast
+                        ? colorScheme.onSurface
+                        : colorScheme.onSecondaryContainer),
+            ),
           ),
         ),
 
@@ -66,39 +70,53 @@ class PomodoroQueueItemTile extends StatelessWidget {
                 children: [
                   Text(
                     item.label,
-                    style: textTheme.bodyMedium?.copyWith(
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                    style: textTheme.labelLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                       color: isActive
                           ? colorScheme.onSecondaryContainer
                           : (isPast
-                              ? colorScheme.onSurface.withValues(alpha: 0.6)
-                              : colorScheme.onSurface),
+                                ? colorScheme.onSurface.withValues(alpha: 0.6)
+                                : colorScheme.onSurface),
                     ),
                   ),
                   if (item.sessionNumber != null) ...[
-                    const SizedBox(width: 4),
-                    Text(
-                      '#${item.sessionNumber}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: isActive
-                            ? colorScheme.onSecondaryContainer.withValues(
-                                alpha: 0.7,
-                              )
-                            : colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.7,
-                              ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: !isActive
+                            ? isPast
+                                  ? colorScheme.secondary.withValues(alpha: 0.7)
+                                  : colorScheme.secondary
+                            : colorScheme.primary,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Text(
+                        '${item.sessionNumber}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onPrimary,
+                          fontSize: 12,
+                          fontFamily: 'RobotoMono',
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 2),
               Text(
                 '${item.durationMinutes}:00',
-                style: textTheme.labelSmall?.copyWith(
-                  fontFamily: 'monospace',
+                style: TextStyle(
+                  fontFamily: 'RobotoMono',
+                  fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                   color: isActive
-                      ? colorScheme.onSecondaryContainer.withValues(alpha: 0.8)
+                      ? colorScheme.onSecondaryContainer
+                      : isPast
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.7)
                       : colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -109,10 +127,7 @@ class PomodoroQueueItemTile extends StatelessWidget {
         // Trailing Indicator
         if (isActive)
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: colorScheme.primary,
               borderRadius: BorderRadius.circular(12),
@@ -127,11 +142,11 @@ class PomodoroQueueItemTile extends StatelessWidget {
           )
         else
           Icon(
-            Icons.play_circle_outline_rounded,
-            size: 20,
+            Icons.play_arrow_rounded,
+            size: 25,
             color: isPast
-                ? colorScheme.outlineVariant.withValues(alpha: 0.5)
-                : colorScheme.outline,
+                ? colorScheme.outlineVariant
+                : colorScheme.onSecondaryContainer,
           ),
       ],
     );
