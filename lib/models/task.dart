@@ -4,40 +4,34 @@ class Subtask {
   final String id;
   String title;
   bool completed;
-  String? googleTaskId;
 
   Subtask({
     required this.id,
     required this.title,
     this.completed = false,
-    this.googleTaskId,
   });
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'title': title,
         'completed': completed,
-        if (googleTaskId != null) 'google_task_id': googleTaskId,
       };
 
   factory Subtask.fromJson(Map<String, dynamic> json) => Subtask(
         id: json['id'] as String? ?? '',
         title: json['title'] as String? ?? '',
         completed: json['completed'] as bool? ?? false,
-        googleTaskId: (json['google_task_id'] ?? json['googleTaskId']) as String?,
       );
 
   Subtask copyWith({
     String? id,
     String? title,
     bool? completed,
-    String? googleTaskId,
   }) {
     return Subtask(
       id: id ?? this.id,
       title: title ?? this.title,
       completed: completed ?? this.completed,
-      googleTaskId: googleTaskId ?? this.googleTaskId,
     );
   }
 }
@@ -55,9 +49,6 @@ class Task {
   DateTime createdAt;
   DateTime updatedAt;
   DateTime? deletedAt;
-  String? googleEventId;
-  String? googleTaskId;
-  String? googleEtag;
   DateTime? lastSyncedAt;
 
   Task({
@@ -73,9 +64,6 @@ class Task {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deletedAt,
-    this.googleEventId,
-    this.googleTaskId,
-    this.googleEtag,
     this.lastSyncedAt,
   })  : description = sanitizeDescription(description),
         subtasks = subtasks ?? [],
@@ -118,9 +106,6 @@ class Task {
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         'deletedAt': deletedAt?.toIso8601String(),
-        'googleEventId': googleEventId,
-        'googleTaskId': googleTaskId,
-        'googleEtag': googleEtag,
         'lastSyncedAt': lastSyncedAt?.toIso8601String(),
       };
 
@@ -147,9 +132,6 @@ class Task {
         deletedAt: json['deletedAt'] != null
             ? DateTime.tryParse(json['deletedAt'] as String)
             : null,
-        googleEventId: json['googleEventId'] as String?,
-        googleTaskId: json['googleTaskId'] as String?,
-        googleEtag: json['googleEtag'] as String?,
         lastSyncedAt: json['lastSyncedAt'] != null
             ? DateTime.tryParse(json['lastSyncedAt'] as String)
             : null,
@@ -208,9 +190,6 @@ class Task {
       'deleted_at': deletedAt?.toUtc().toIso8601String(),
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
-      'google_event_id': googleEventId,
-      'google_task_id': googleTaskId,
-      'google_etag': googleEtag,
       'last_synced_at': DateTime.now().toUtc().toIso8601String(),
     };
   }
@@ -270,9 +249,6 @@ class Task {
       deletedAt: row['deleted_at'] != null
           ? DateTime.tryParse(row['deleted_at'].toString())?.toLocal()
           : null,
-      googleEventId: row['google_event_id'] as String?,
-      googleTaskId: row['google_task_id'] as String?,
-      googleEtag: row['google_etag'] as String?,
       lastSyncedAt: row['last_synced_at'] != null
           ? DateTime.tryParse(row['last_synced_at'].toString())?.toLocal()
           : null,
@@ -292,9 +268,6 @@ class Task {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
-    String? googleEventId,
-    String? googleTaskId,
-    String? googleEtag,
     DateTime? lastSyncedAt,
   }) {
     return Task(
@@ -310,9 +283,6 @@ class Task {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
-      googleEventId: googleEventId ?? this.googleEventId,
-      googleTaskId: googleTaskId ?? this.googleTaskId,
-      googleEtag: googleEtag ?? this.googleEtag,
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );
   }

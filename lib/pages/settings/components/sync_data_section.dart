@@ -6,8 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../widgets/segmented_column.dart';
-import '../../../services/supabase_service.dart';
-import '../../../services/google_calendar_service.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
@@ -23,28 +21,21 @@ class SyncDataSection extends StatefulWidget {
 }
 
 class _SyncDataSectionState extends State<SyncDataSection> {
-  final SupabaseService _supabase = SupabaseService();
-  final GoogleCalendarService _google = GoogleCalendarService();
-
   bool _masterSyncEnabled = true;
-  late bool _syncTasks;
   bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
-    _syncTasks = _google.syncTasksEnabled;
     _loadState();
   }
 
   Future<void> _loadState() async {
     final prefs = await SharedPreferences.getInstance();
     final master = prefs.getBool('zeta_master_sync_enabled') ?? true;
-    await _google.loadTokens();
     if (mounted) {
       setState(() {
         _masterSyncEnabled = master;
-        _syncTasks = _google.syncTasksEnabled;
       });
     }
   }
@@ -67,9 +58,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       final pomodoroFuture = context.read<PomodoroProvider>().syncWithCloud(
         force: true,
       );
-      await Future.wait([taskFuture, pomodoroFuture]);
+      final profileFuture = context.read<ThemeProvider>().syncProfileWithDb();
+      await Future.wait([taskFuture, pomodoroFuture, profileFuture]);
       if (!mounted) return;
-      widget.onToast?.call('Cloud and Google sync completed successfully!');
+      widget.onToast?.call('Cloud sync completed successfully!');
     } catch (e) {
       if (!mounted) return;
       widget.onToast?.call('Sync note: $e');
@@ -77,25 +69,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       if (mounted) {
         setState(() => _isSyncing = false);
       }
-    }
-  }
-
-  Future<void> _handleConnect() async {
-    try {
-      await _supabase.signInWithGoogle();
-      widget.onToast?.call('Redirecting to Google Sign-In...');
-    } catch (e) {
-      widget.onToast?.call('Google Sign-In error: $e');
-    }
-  }
-
-  Future<void> _handleDisconnect() async {
-    try {
-      await _supabase.signOut();
-      if (mounted) setState(() {});
-      widget.onToast?.call('Disconnected from Google account.');
-    } catch (e) {
-      widget.onToast?.call('Error disconnecting: $e');
     }
   }
 
@@ -263,13 +236,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final themeProvider = context.watch<ThemeProvider>();
 
-    final isConnected = _google.isConnected || _supabase.isAuthenticated;
-    final accountEmail =
-        _google.accountEmail ??
-        _supabase.currentUser?.email ??
-        (themeProvider.userEmail.isNotEmpty
-            ? themeProvider.userEmail
-            : 'Local Account');
     final isSyncBusy =
         _isSyncing || taskProvider.isSyncing || pomodoroProvider.isSyncing;
 
@@ -358,14 +324,12 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   ),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final isCompact = constraints.maxWidth < 450;
-
                       final iconWidget = Container(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: _masterSyncEnabled && isConnected
-                              ? const Color(0xFF4285F4).withValues(alpha: 0.15)
+                          color: _masterSyncEnabled
+                              ? colorScheme.primary.withValues(alpha: 0.12)
                               : colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -373,10 +337,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                           _masterSyncEnabled
                               ? Icons.sync_alt_rounded
                               : Icons.sync_disabled_rounded,
-                          color: _masterSyncEnabled && isConnected
-                              ? const Color(0xFF4285F4)
+                          color: _masterSyncEnabled
+                              ? colorScheme.primary
                               : colorScheme.onSurfaceVariant.withValues(
-                                  alpha: _masterSyncEnabled ? 1.0 : 0.38,
+                                  alpha: 0.38,
                                 ),
                           size: 24,
                         ),
@@ -389,7 +353,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  'Cloud & Google Sync',
+                                  'Cloud Sync',
                                   style: textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w700,
                                     color: colorScheme.onSurface.withValues(
@@ -408,26 +372,18 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                                 decoration: BoxDecoration(
                                   color: !_masterSyncEnabled
                                       ? colorScheme.surfaceContainerHighest
-                                      : (isConnected
-                                            ? const Color(0xFF10B981)
-                                                  .withValues(alpha: 0.15)
-                                            : colorScheme.errorContainer),
+                                      : const Color(0xFF10B981)
+                                            .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  !_masterSyncEnabled
-                                      ? 'Paused'
-                                      : (isConnected
-                                            ? 'Connected'
-                                            : 'Disconnected'),
+                                  !_masterSyncEnabled ? 'Paused' : 'Active',
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: !_masterSyncEnabled
                                         ? colorScheme.onSurfaceVariant
-                                        : (isConnected
-                                              ? const Color(0xFF10B981)
-                                              : colorScheme.onErrorContainer),
+                                        : const Color(0xFF10B981),
                                   ),
                                 ),
                               ),
@@ -437,9 +393,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                           Text(
                             !_masterSyncEnabled
                                 ? 'Sync is paused. Turn on master switch to resume.'
-                                : (isConnected
-                                      ? 'Synced with $accountEmail'
-                                      : 'Connect your Google account to sync tasks'),
+                                : 'Auto-sync active',
                             style: textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant.withValues(
                                 alpha: _masterSyncEnabled ? 1.0 : 0.38,
@@ -460,102 +414,35 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                             size: M3EButtonSize.sm,
                             selectedIndex: null,
                             onSelectedIndexChanged: (index) {
-                              if (!_masterSyncEnabled) return;
-                              if (isConnected) {
-                                if (index == 0) {
-                                  if (!isSyncBusy) {
-                                    ZetaHaptics.light();
-                                    _handleSync();
-                                  }
-                                } else if (index == 1) {
-                                  ZetaHaptics.light();
-                                  _handleDisconnect();
-                                }
-                              } else {
-                                if (index == 0) {
-                                  ZetaHaptics.light();
-                                  _handleConnect();
-                                }
-                              }
+                              if (!_masterSyncEnabled || isSyncBusy) return;
+                              ZetaHaptics.light();
+                              _handleSync();
                             },
                             actions: [
-                              if (isConnected) ...[
-                                M3EButtonGroupAction(
-                                  icon: isSyncBusy
-                                      ? const SizedBox(
-                                          width: 14,
-                                          height: 14,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.sync_rounded,
-                                          size: 16,
+                              M3EButtonGroupAction(
+                                icon: isSyncBusy
+                                    ? const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
                                         ),
-                                  label: const Text('Sync Now'),
-                                  tooltip: isSyncBusy
-                                      ? 'Syncing...'
-                                      : 'Sync cloud data now',
-                                  decoration:
-                                      M3EToggleButtonDecoration.styleFrom(
-                                        backgroundColor:
-                                            colorScheme.primaryContainer,
-                                        foregroundColor:
-                                            colorScheme.onPrimaryContainer,
-                                      ),
+                                      )
+                                    : const Icon(Icons.sync_rounded, size: 16),
+                                label: const Text('Sync'),
+                                tooltip: isSyncBusy
+                                    ? 'Syncing...'
+                                    : 'Sync cloud data now',
+                                decoration: M3EToggleButtonDecoration.styleFrom(
+                                  backgroundColor: colorScheme.primaryContainer,
+                                  foregroundColor:
+                                      colorScheme.onPrimaryContainer,
                                 ),
-                                M3EButtonGroupAction(
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 16,
-                                  ),
-                                  tooltip: 'Disconnect',
-                                  decoration:
-                                      M3EToggleButtonDecoration.styleFrom(
-                                        backgroundColor:
-                                            colorScheme.primaryContainer,
-                                        foregroundColor:
-                                            colorScheme.onPrimaryContainer,
-                                      ),
-                                ),
-                              ] else ...[
-                                M3EButtonGroupAction(
-                                  icon: const Icon(
-                                    Icons.login_rounded,
-                                    size: 16,
-                                  ),
-                                  label: const Text('Connect Account'),
-                                  decoration:
-                                      M3EToggleButtonDecoration.styleFrom(
-                                        backgroundColor:
-                                            colorScheme.primaryContainer,
-                                        foregroundColor:
-                                            colorScheme.onPrimaryContainer,
-                                      ),
-                                ),
-                              ],
+                              ),
                             ],
                           ),
                         ),
                       );
-
-                      if (isCompact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                iconWidget,
-                                const SizedBox(width: 14),
-                                Expanded(child: infoWidget),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            buttonsWidget,
-                          ],
-                        );
-                      }
 
                       return Row(
                         children: [
@@ -567,70 +454,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                         ],
                       );
                     },
-                  ),
-                ),
-
-                // Toggle Google Tasks Sync
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.task_alt_rounded,
-                        size: 22,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: _masterSyncEnabled ? 1.0 : 0.38,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Sync Google Tasks',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface.withValues(
-                                  alpha: _masterSyncEnabled ? 1.0 : 0.38,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              'Two-way sync for tasks and subtasks',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: _masterSyncEnabled ? 1.0 : 0.38,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3ESwitch(
-                        value: _syncTasks,
-                        selectedIcon: const Icon(Icons.check_rounded, size: 16),
-                        unselectedIcon: const Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                        ),
-                        onChanged: _masterSyncEnabled
-                            ? (val) {
-                                setState(() => _syncTasks = val);
-                                _google.updateSyncPreferences(tasks: val);
-                                widget.onToast?.call(
-                                  val
-                                      ? 'Google Tasks sync enabled'
-                                      : 'Google Tasks sync disabled',
-                                );
-                              }
-                            : null,
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -685,7 +508,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                               ),
                             ),
                             Text(
-                              'Tasks, sessions & settings copied to clipboard',
+                              'Tasks, Sessions & Revisions',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),

@@ -17,9 +17,6 @@ class TasksTable extends Table {
   IntColumn get createdAtMs => integer()();
   IntColumn get updatedAtMs => integer()();
   IntColumn get deletedAtMs => integer().nullable()();
-  TextColumn get googleEventId => text().nullable()();
-  TextColumn get googleTaskId => text().nullable()();
-  TextColumn get googleEtag => text().nullable()();
   IntColumn get lastSyncedAtMs => integer().nullable()();
 
   @override
@@ -35,6 +32,21 @@ class PomodoroSessionsTable extends Table {
   TextColumn get mode => text()();
   IntColumn get minutes => integer()();
   IntColumn get completedAtMs => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// SQLite table for user profile persistence.
+class ProfilesTable extends Table {
+  @override
+  String get tableName => 'profiles';
+
+  TextColumn get id => text()(); // 'singleton'
+  TextColumn get displayName => text().withDefault(const Constant(''))();
+  TextColumn get email => text().withDefault(const Constant(''))();
+  TextColumn get avatarImage => text().nullable()();
+  IntColumn get updatedAtMs => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

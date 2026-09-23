@@ -43,8 +43,8 @@ void main() {
 
     // 2. Verify Hero card actions
     expect(find.byType(M3EButtonGroup), findsOneWidget);
-    expect(find.text('Upload image'), findsWidgets);
-    expect(find.text('Image URL'), findsWidgets);
+    expect(find.text('Upload'), findsWidgets);
+    expect(find.text('URL'), findsWidgets);
 
     // 3. Test Display Name editing
     final editNameButton = find.widgetWithText(M3EButton, 'Edit').first;

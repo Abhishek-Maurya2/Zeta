@@ -8,6 +8,7 @@ import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/providers/pomodoro_provider.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/pages/settings_page.dart';
+import 'package:zeta/database/database_provider.dart';
 
 Widget createSettingsTestWidget({
   required ThemeProvider themeProvider,
@@ -81,14 +82,15 @@ void main() {
     final taskProvider = TaskProvider();
     final initialCount = taskProvider.totalCount;
 
-    taskProvider.addTask(title: 'New functional test task');
+    final id = await taskProvider.addTask(title: 'New functional test task');
     expect(taskProvider.totalCount, equals(initialCount + 1));
-    await taskProvider.saveTasks();
 
-    final prefs = await SharedPreferences.getInstance();
-    final tasksJson = prefs.getString('zeta_tasks_v1');
-    expect(tasksJson, isNotNull);
-    expect(tasksJson!.contains('New functional test task'), isTrue);
+    final activeTasks =
+        await DatabaseProvider.instance.taskDao.getActiveTasks();
+    expect(
+        activeTasks
+            .any((t) => t.id == id && t.title == 'New functional test task'),
+        isTrue);
   });
 
   test('ThemeProvider configuration export and import round-trip', () async {

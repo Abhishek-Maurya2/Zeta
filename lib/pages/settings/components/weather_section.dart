@@ -806,7 +806,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Celsius (°C) temperature and metric wind speed (km/h)',
+                              'Celsius and (km/h) metric for wind speed ',
                               style: textTheme.bodySmall?.copyWith(
                                 color: isMasterOn
                                     ? colorScheme.onSurfaceVariant

@@ -15,10 +15,8 @@ void main() {
         dueTime: '10:30 AM',
         subtasks: [
           Subtask(id: 's1', title: 'Connect Realtime', completed: true),
-          Subtask(id: 's2', title: 'Verify Google Tasks', completed: false),
+          Subtask(id: 's2', title: 'Verify Subtask', completed: false),
         ],
-        googleEventId: 'abc123event',
-        googleTaskId: 'xyz456gtask',
       );
 
       final row = task.toSupabaseRow(defaultUserId: 'singleton');
@@ -29,14 +27,12 @@ void main() {
       expect(row['description'], equals('Bi-directional sync and Google Calendar mapping'));
       expect(row['completed'], isFalse);
       expect(row['has_time'], isTrue);
-      expect(row['google_event_id'], equals('abc123event'));
-      expect(row['google_task_id'], equals('xyz456gtask'));
 
       final subtasks = row['subtasks'] as List<dynamic>;
       expect(subtasks.length, equals(2));
       expect(subtasks[0]['title'], equals('Connect Realtime'));
       expect(subtasks[0]['completed'], isTrue);
-      expect(subtasks[1]['title'], equals('Verify Google Tasks'));
+      expect(subtasks[1]['title'], equals('Verify Subtask'));
       expect(subtasks[1]['completed'], isFalse);
     });
 
@@ -67,9 +63,6 @@ void main() {
         'deleted_at': null,
         'created_at': '2026-09-10T12:00:00.000Z',
         'updated_at': '2026-09-12T04:35:00.000Z',
-        'google_event_id': 'gcal_123',
-        'google_task_id': 'gtask_456',
-        'google_etag': 'etag_abc',
         'last_synced_at': '2026-09-12T04:35:00.000Z',
       };
 
@@ -84,8 +77,6 @@ void main() {
       expect(task.subtasks.length, equals(2));
       expect(task.subtasks.first.title, equals('Demographic dividend'));
       expect(task.subtasks.first.completed, isTrue);
-      expect(task.googleEventId, equals('gcal_123'));
-      expect(task.googleTaskId, equals('gtask_456'));
       expect(task.deletedAt, isNull);
     });
 

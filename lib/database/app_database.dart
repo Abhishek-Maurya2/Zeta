@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/widgets.dart' hide Table;
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
+import 'connection/connection.dart';
 import 'tables.dart';
 
 part 'app_database.g.dart';
@@ -14,12 +12,38 @@ part 'app_database.g.dart';
 /// Replaces the SharedPreferences JSON-blob approach with a proper relational
 /// store, enabling incremental reads, partial writes, and indexed queries
 /// instead of re-serializing the entire task list on every mutation.
-@DriftDatabase(tables: [TasksTable, PomodoroSessionsTable])
+@DriftDatabase(tables: [TasksTable, PomodoroSessionsTable, ProfilesTable])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+          );
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(profilesTable);
+          }
+          if (from < 3) {
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+            );
+          }
+        },
+      );
 
   // ─── Task helpers ───────────────────────────────────────────────────────────
 
@@ -43,9 +67,6 @@ class AppDatabase extends _$AppDatabase {
       deletedAt: row.deletedAtMs != null
           ? DateTime.fromMillisecondsSinceEpoch(row.deletedAtMs!)
           : null,
-      googleEventId: row.googleEventId,
-      googleTaskId: row.googleTaskId,
-      googleEtag: row.googleEtag,
       lastSyncedAt: row.lastSyncedAtMs != null
           ? DateTime.fromMillisecondsSinceEpoch(row.lastSyncedAtMs!)
           : null,
@@ -67,9 +88,6 @@ class AppDatabase extends _$AppDatabase {
       createdAtMs: Value(t.createdAt.millisecondsSinceEpoch),
       updatedAtMs: Value(t.updatedAt.millisecondsSinceEpoch),
       deletedAtMs: Value(t.deletedAt?.millisecondsSinceEpoch),
-      googleEventId: Value(t.googleEventId),
-      googleTaskId: Value(t.googleTaskId),
-      googleEtag: Value(t.googleEtag),
       lastSyncedAtMs: Value(t.lastSyncedAt?.millisecondsSinceEpoch),
     );
   }
@@ -97,17 +115,4 @@ class AppDatabase extends _$AppDatabase {
 
 /// Opens the SQLite connection using drift_flutter's default path resolution,
 /// or an in-memory database when running in Flutter test environments.
-QueryExecutor _openConnection() {
-  final isTest =
-      WidgetsBinding.instance.runtimeType.toString().contains('Test');
-  if (isTest) {
-    return NativeDatabase.memory();
-  }
-  return driftDatabase(
-    name: 'zeta_app_db',
-    web: DriftWebOptions(
-      sqlite3Wasm: Uri.parse('sqlite3.wasm'),
-      driftWorker: Uri.parse('drift_worker.js'),
-    ),
-  );
-}
+QueryExecutor _openConnection() => openConnection();

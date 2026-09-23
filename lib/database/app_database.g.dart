@@ -144,39 +144,6 @@ class $TasksTableTable extends TasksTable
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _googleEventIdMeta = const VerificationMeta(
-    'googleEventId',
-  );
-  @override
-  late final GeneratedColumn<String> googleEventId = GeneratedColumn<String>(
-    'google_event_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _googleTaskIdMeta = const VerificationMeta(
-    'googleTaskId',
-  );
-  @override
-  late final GeneratedColumn<String> googleTaskId = GeneratedColumn<String>(
-    'google_task_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _googleEtagMeta = const VerificationMeta(
-    'googleEtag',
-  );
-  @override
-  late final GeneratedColumn<String> googleEtag = GeneratedColumn<String>(
-    'google_etag',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _lastSyncedAtMsMeta = const VerificationMeta(
     'lastSyncedAtMs',
   );
@@ -202,9 +169,6 @@ class $TasksTableTable extends TasksTable
     createdAtMs,
     updatedAtMs,
     deletedAtMs,
-    googleEventId,
-    googleTaskId,
-    googleEtag,
     lastSyncedAtMs,
   ];
   @override
@@ -311,30 +275,6 @@ class $TasksTableTable extends TasksTable
         ),
       );
     }
-    if (data.containsKey('google_event_id')) {
-      context.handle(
-        _googleEventIdMeta,
-        googleEventId.isAcceptableOrUnknown(
-          data['google_event_id']!,
-          _googleEventIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('google_task_id')) {
-      context.handle(
-        _googleTaskIdMeta,
-        googleTaskId.isAcceptableOrUnknown(
-          data['google_task_id']!,
-          _googleTaskIdMeta,
-        ),
-      );
-    }
-    if (data.containsKey('google_etag')) {
-      context.handle(
-        _googleEtagMeta,
-        googleEtag.isAcceptableOrUnknown(data['google_etag']!, _googleEtagMeta),
-      );
-    }
     if (data.containsKey('last_synced_at_ms')) {
       context.handle(
         _lastSyncedAtMsMeta,
@@ -401,18 +341,6 @@ class $TasksTableTable extends TasksTable
         DriftSqlType.int,
         data['${effectivePrefix}deleted_at_ms'],
       ),
-      googleEventId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}google_event_id'],
-      ),
-      googleTaskId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}google_task_id'],
-      ),
-      googleEtag: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}google_etag'],
-      ),
       lastSyncedAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}last_synced_at_ms'],
@@ -439,9 +367,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   final int createdAtMs;
   final int updatedAtMs;
   final int? deletedAtMs;
-  final String? googleEventId;
-  final String? googleTaskId;
-  final String? googleEtag;
   final int? lastSyncedAtMs;
   const TasksTableData({
     required this.id,
@@ -456,9 +381,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     required this.createdAtMs,
     required this.updatedAtMs,
     this.deletedAtMs,
-    this.googleEventId,
-    this.googleTaskId,
-    this.googleEtag,
     this.lastSyncedAtMs,
   });
   @override
@@ -485,15 +407,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     map['updated_at_ms'] = Variable<int>(updatedAtMs);
     if (!nullToAbsent || deletedAtMs != null) {
       map['deleted_at_ms'] = Variable<int>(deletedAtMs);
-    }
-    if (!nullToAbsent || googleEventId != null) {
-      map['google_event_id'] = Variable<String>(googleEventId);
-    }
-    if (!nullToAbsent || googleTaskId != null) {
-      map['google_task_id'] = Variable<String>(googleTaskId);
-    }
-    if (!nullToAbsent || googleEtag != null) {
-      map['google_etag'] = Variable<String>(googleEtag);
     }
     if (!nullToAbsent || lastSyncedAtMs != null) {
       map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs);
@@ -525,15 +438,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       deletedAtMs: deletedAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAtMs),
-      googleEventId: googleEventId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(googleEventId),
-      googleTaskId: googleTaskId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(googleTaskId),
-      googleEtag: googleEtag == null && nullToAbsent
-          ? const Value.absent()
-          : Value(googleEtag),
       lastSyncedAtMs: lastSyncedAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSyncedAtMs),
@@ -558,9 +462,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
       deletedAtMs: serializer.fromJson<int?>(json['deletedAtMs']),
-      googleEventId: serializer.fromJson<String?>(json['googleEventId']),
-      googleTaskId: serializer.fromJson<String?>(json['googleTaskId']),
-      googleEtag: serializer.fromJson<String?>(json['googleEtag']),
       lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
     );
   }
@@ -580,9 +481,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'updatedAtMs': serializer.toJson<int>(updatedAtMs),
       'deletedAtMs': serializer.toJson<int?>(deletedAtMs),
-      'googleEventId': serializer.toJson<String?>(googleEventId),
-      'googleTaskId': serializer.toJson<String?>(googleTaskId),
-      'googleEtag': serializer.toJson<String?>(googleEtag),
       'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
     };
   }
@@ -600,9 +498,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     int? createdAtMs,
     int? updatedAtMs,
     Value<int?> deletedAtMs = const Value.absent(),
-    Value<String?> googleEventId = const Value.absent(),
-    Value<String?> googleTaskId = const Value.absent(),
-    Value<String?> googleEtag = const Value.absent(),
     Value<int?> lastSyncedAtMs = const Value.absent(),
   }) => TasksTableData(
     id: id ?? this.id,
@@ -617,11 +512,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     createdAtMs: createdAtMs ?? this.createdAtMs,
     updatedAtMs: updatedAtMs ?? this.updatedAtMs,
     deletedAtMs: deletedAtMs.present ? deletedAtMs.value : this.deletedAtMs,
-    googleEventId: googleEventId.present
-        ? googleEventId.value
-        : this.googleEventId,
-    googleTaskId: googleTaskId.present ? googleTaskId.value : this.googleTaskId,
-    googleEtag: googleEtag.present ? googleEtag.value : this.googleEtag,
     lastSyncedAtMs: lastSyncedAtMs.present
         ? lastSyncedAtMs.value
         : this.lastSyncedAtMs,
@@ -650,15 +540,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       deletedAtMs: data.deletedAtMs.present
           ? data.deletedAtMs.value
           : this.deletedAtMs,
-      googleEventId: data.googleEventId.present
-          ? data.googleEventId.value
-          : this.googleEventId,
-      googleTaskId: data.googleTaskId.present
-          ? data.googleTaskId.value
-          : this.googleTaskId,
-      googleEtag: data.googleEtag.present
-          ? data.googleEtag.value
-          : this.googleEtag,
       lastSyncedAtMs: data.lastSyncedAtMs.present
           ? data.lastSyncedAtMs.value
           : this.lastSyncedAtMs,
@@ -680,9 +561,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
-          ..write('googleEventId: $googleEventId, ')
-          ..write('googleTaskId: $googleTaskId, ')
-          ..write('googleEtag: $googleEtag, ')
           ..write('lastSyncedAtMs: $lastSyncedAtMs')
           ..write(')'))
         .toString();
@@ -702,9 +580,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     createdAtMs,
     updatedAtMs,
     deletedAtMs,
-    googleEventId,
-    googleTaskId,
-    googleEtag,
     lastSyncedAtMs,
   );
   @override
@@ -723,9 +598,6 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           other.createdAtMs == this.createdAtMs &&
           other.updatedAtMs == this.updatedAtMs &&
           other.deletedAtMs == this.deletedAtMs &&
-          other.googleEventId == this.googleEventId &&
-          other.googleTaskId == this.googleTaskId &&
-          other.googleEtag == this.googleEtag &&
           other.lastSyncedAtMs == this.lastSyncedAtMs);
 }
 
@@ -742,9 +614,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
   final Value<int> createdAtMs;
   final Value<int> updatedAtMs;
   final Value<int?> deletedAtMs;
-  final Value<String?> googleEventId;
-  final Value<String?> googleTaskId;
-  final Value<String?> googleEtag;
   final Value<int?> lastSyncedAtMs;
   final Value<int> rowid;
   const TasksTableCompanion({
@@ -760,9 +629,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.createdAtMs = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
     this.deletedAtMs = const Value.absent(),
-    this.googleEventId = const Value.absent(),
-    this.googleTaskId = const Value.absent(),
-    this.googleEtag = const Value.absent(),
     this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -779,9 +645,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     required int createdAtMs,
     required int updatedAtMs,
     this.deletedAtMs = const Value.absent(),
-    this.googleEventId = const Value.absent(),
-    this.googleTaskId = const Value.absent(),
-    this.googleEtag = const Value.absent(),
     this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -801,9 +664,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Expression<int>? createdAtMs,
     Expression<int>? updatedAtMs,
     Expression<int>? deletedAtMs,
-    Expression<String>? googleEventId,
-    Expression<String>? googleTaskId,
-    Expression<String>? googleEtag,
     Expression<int>? lastSyncedAtMs,
     Expression<int>? rowid,
   }) {
@@ -820,9 +680,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
       if (deletedAtMs != null) 'deleted_at_ms': deletedAtMs,
-      if (googleEventId != null) 'google_event_id': googleEventId,
-      if (googleTaskId != null) 'google_task_id': googleTaskId,
-      if (googleEtag != null) 'google_etag': googleEtag,
       if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -841,9 +698,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Value<int>? createdAtMs,
     Value<int>? updatedAtMs,
     Value<int?>? deletedAtMs,
-    Value<String?>? googleEventId,
-    Value<String?>? googleTaskId,
-    Value<String?>? googleEtag,
     Value<int?>? lastSyncedAtMs,
     Value<int>? rowid,
   }) {
@@ -860,9 +714,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       createdAtMs: createdAtMs ?? this.createdAtMs,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
       deletedAtMs: deletedAtMs ?? this.deletedAtMs,
-      googleEventId: googleEventId ?? this.googleEventId,
-      googleTaskId: googleTaskId ?? this.googleTaskId,
-      googleEtag: googleEtag ?? this.googleEtag,
       lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
       rowid: rowid ?? this.rowid,
     );
@@ -907,15 +758,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     if (deletedAtMs.present) {
       map['deleted_at_ms'] = Variable<int>(deletedAtMs.value);
     }
-    if (googleEventId.present) {
-      map['google_event_id'] = Variable<String>(googleEventId.value);
-    }
-    if (googleTaskId.present) {
-      map['google_task_id'] = Variable<String>(googleTaskId.value);
-    }
-    if (googleEtag.present) {
-      map['google_etag'] = Variable<String>(googleEtag.value);
-    }
     if (lastSyncedAtMs.present) {
       map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs.value);
     }
@@ -940,9 +782,6 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
-          ..write('googleEventId: $googleEventId, ')
-          ..write('googleTaskId: $googleTaskId, ')
-          ..write('googleEtag: $googleEtag, ')
           ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -1270,12 +1109,388 @@ class PomodoroSessionsTableCompanion
   }
 }
 
+class $ProfilesTableTable extends ProfilesTable
+    with TableInfo<$ProfilesTableTable, ProfilesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProfilesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _emailMeta = const VerificationMeta('email');
+  @override
+  late final GeneratedColumn<String> email = GeneratedColumn<String>(
+    'email',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _avatarImageMeta = const VerificationMeta(
+    'avatarImage',
+  );
+  @override
+  late final GeneratedColumn<String> avatarImage = GeneratedColumn<String>(
+    'avatar_image',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    displayName,
+    email,
+    avatarImage,
+    updatedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'profiles';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProfilesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('email')) {
+      context.handle(
+        _emailMeta,
+        email.isAcceptableOrUnknown(data['email']!, _emailMeta),
+      );
+    }
+    if (data.containsKey('avatar_image')) {
+      context.handle(
+        _avatarImageMeta,
+        avatarImage.isAcceptableOrUnknown(
+          data['avatar_image']!,
+          _avatarImageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProfilesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProfilesTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      email: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}email'],
+      )!,
+      avatarImage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_image'],
+      ),
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      ),
+    );
+  }
+
+  @override
+  $ProfilesTableTable createAlias(String alias) {
+    return $ProfilesTableTable(attachedDatabase, alias);
+  }
+}
+
+class ProfilesTableData extends DataClass
+    implements Insertable<ProfilesTableData> {
+  final String id;
+  final String displayName;
+  final String email;
+  final String? avatarImage;
+  final int? updatedAtMs;
+  const ProfilesTableData({
+    required this.id,
+    required this.displayName,
+    required this.email,
+    this.avatarImage,
+    this.updatedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['display_name'] = Variable<String>(displayName);
+    map['email'] = Variable<String>(email);
+    if (!nullToAbsent || avatarImage != null) {
+      map['avatar_image'] = Variable<String>(avatarImage);
+    }
+    if (!nullToAbsent || updatedAtMs != null) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    }
+    return map;
+  }
+
+  ProfilesTableCompanion toCompanion(bool nullToAbsent) {
+    return ProfilesTableCompanion(
+      id: Value(id),
+      displayName: Value(displayName),
+      email: Value(email),
+      avatarImage: avatarImage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarImage),
+      updatedAtMs: updatedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAtMs),
+    );
+  }
+
+  factory ProfilesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProfilesTableData(
+      id: serializer.fromJson<String>(json['id']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      email: serializer.fromJson<String>(json['email']),
+      avatarImage: serializer.fromJson<String?>(json['avatarImage']),
+      updatedAtMs: serializer.fromJson<int?>(json['updatedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'displayName': serializer.toJson<String>(displayName),
+      'email': serializer.toJson<String>(email),
+      'avatarImage': serializer.toJson<String?>(avatarImage),
+      'updatedAtMs': serializer.toJson<int?>(updatedAtMs),
+    };
+  }
+
+  ProfilesTableData copyWith({
+    String? id,
+    String? displayName,
+    String? email,
+    Value<String?> avatarImage = const Value.absent(),
+    Value<int?> updatedAtMs = const Value.absent(),
+  }) => ProfilesTableData(
+    id: id ?? this.id,
+    displayName: displayName ?? this.displayName,
+    email: email ?? this.email,
+    avatarImage: avatarImage.present ? avatarImage.value : this.avatarImage,
+    updatedAtMs: updatedAtMs.present ? updatedAtMs.value : this.updatedAtMs,
+  );
+  ProfilesTableData copyWithCompanion(ProfilesTableCompanion data) {
+    return ProfilesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      email: data.email.present ? data.email.value : this.email,
+      avatarImage: data.avatarImage.present
+          ? data.avatarImage.value
+          : this.avatarImage,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfilesTableData(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('email: $email, ')
+          ..write('avatarImage: $avatarImage, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, displayName, email, avatarImage, updatedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProfilesTableData &&
+          other.id == this.id &&
+          other.displayName == this.displayName &&
+          other.email == this.email &&
+          other.avatarImage == this.avatarImage &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
+  final Value<String> id;
+  final Value<String> displayName;
+  final Value<String> email;
+  final Value<String?> avatarImage;
+  final Value<int?> updatedAtMs;
+  final Value<int> rowid;
+  const ProfilesTableCompanion({
+    this.id = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.email = const Value.absent(),
+    this.avatarImage = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProfilesTableCompanion.insert({
+    required String id,
+    this.displayName = const Value.absent(),
+    this.email = const Value.absent(),
+    this.avatarImage = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<ProfilesTableData> custom({
+    Expression<String>? id,
+    Expression<String>? displayName,
+    Expression<String>? email,
+    Expression<String>? avatarImage,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (displayName != null) 'display_name': displayName,
+      if (email != null) 'email': email,
+      if (avatarImage != null) 'avatar_image': avatarImage,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProfilesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? displayName,
+    Value<String>? email,
+    Value<String?>? avatarImage,
+    Value<int?>? updatedAtMs,
+    Value<int>? rowid,
+  }) {
+    return ProfilesTableCompanion(
+      id: id ?? this.id,
+      displayName: displayName ?? this.displayName,
+      email: email ?? this.email,
+      avatarImage: avatarImage ?? this.avatarImage,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (email.present) {
+      map['email'] = Variable<String>(email.value);
+    }
+    if (avatarImage.present) {
+      map['avatar_image'] = Variable<String>(avatarImage.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfilesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('displayName: $displayName, ')
+          ..write('email: $email, ')
+          ..write('avatarImage: $avatarImage, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TasksTableTable tasksTable = $TasksTableTable(this);
   late final $PomodoroSessionsTableTable pomodoroSessionsTable =
       $PomodoroSessionsTableTable(this);
+  late final $ProfilesTableTable profilesTable = $ProfilesTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1283,6 +1498,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     tasksTable,
     pomodoroSessionsTable,
+    profilesTable,
   ];
 }
 
@@ -1299,9 +1515,6 @@ typedef $$TasksTableTableCreateCompanionBuilder = TasksTableCompanion Function({
   required int createdAtMs,
   required int updatedAtMs,
   Value<int?> deletedAtMs,
-  Value<String?> googleEventId,
-  Value<String?> googleTaskId,
-  Value<String?> googleEtag,
   Value<int?> lastSyncedAtMs,
   Value<int> rowid,
 });
@@ -1318,9 +1531,6 @@ typedef $$TasksTableTableUpdateCompanionBuilder = TasksTableCompanion Function({
   Value<int> createdAtMs,
   Value<int> updatedAtMs,
   Value<int?> deletedAtMs,
-  Value<String?> googleEventId,
-  Value<String?> googleTaskId,
-  Value<String?> googleEtag,
   Value<int?> lastSyncedAtMs,
   Value<int> rowid,
 });
@@ -1391,21 +1601,6 @@ class $$TasksTableTableFilterComposer
 
   ColumnFilters<int> get deletedAtMs => $composableBuilder(
     column: $table.deletedAtMs,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get googleEventId => $composableBuilder(
-    column: $table.googleEventId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get googleTaskId => $composableBuilder(
-    column: $table.googleTaskId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get googleEtag => $composableBuilder(
-    column: $table.googleEtag,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1484,21 +1679,6 @@ class $$TasksTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get googleEventId => $composableBuilder(
-    column: $table.googleEventId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get googleTaskId => $composableBuilder(
-    column: $table.googleTaskId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get googleEtag => $composableBuilder(
-    column: $table.googleEtag,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get lastSyncedAtMs => $composableBuilder(
     column: $table.lastSyncedAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -1560,21 +1740,6 @@ class $$TasksTableTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get googleEventId => $composableBuilder(
-    column: $table.googleEventId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get googleTaskId => $composableBuilder(
-    column: $table.googleTaskId,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get googleEtag => $composableBuilder(
-    column: $table.googleEtag,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<int> get lastSyncedAtMs => $composableBuilder(
     column: $table.lastSyncedAtMs,
     builder: (column) => column,
@@ -1624,9 +1789,6 @@ class $$TasksTableTableTableManager
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> updatedAtMs = const Value.absent(),
                 Value<int?> deletedAtMs = const Value.absent(),
-                Value<String?> googleEventId = const Value.absent(),
-                Value<String?> googleTaskId = const Value.absent(),
-                Value<String?> googleEtag = const Value.absent(),
                 Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksTableCompanion(
@@ -1642,9 +1804,6 @@ class $$TasksTableTableTableManager
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 deletedAtMs: deletedAtMs,
-                googleEventId: googleEventId,
-                googleTaskId: googleTaskId,
-                googleEtag: googleEtag,
                 lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
@@ -1662,9 +1821,6 @@ class $$TasksTableTableTableManager
                 required int createdAtMs,
                 required int updatedAtMs,
                 Value<int?> deletedAtMs = const Value.absent(),
-                Value<String?> googleEventId = const Value.absent(),
-                Value<String?> googleTaskId = const Value.absent(),
-                Value<String?> googleEtag = const Value.absent(),
                 Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksTableCompanion.insert(
@@ -1680,9 +1836,6 @@ class $$TasksTableTableTableManager
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 deletedAtMs: deletedAtMs,
-                googleEventId: googleEventId,
-                googleTaskId: googleTaskId,
-                googleEtag: googleEtag,
                 lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
@@ -1934,6 +2087,225 @@ typedef $$PomodoroSessionsTableTableProcessedTableManager =
       PomodoroSessionsTableData,
       PrefetchHooks Function()
     >;
+typedef $$ProfilesTableTableCreateCompanionBuilder =
+    ProfilesTableCompanion Function({
+      required String id,
+      Value<String> displayName,
+      Value<String> email,
+      Value<String?> avatarImage,
+      Value<int?> updatedAtMs,
+      Value<int> rowid,
+    });
+typedef $$ProfilesTableTableUpdateCompanionBuilder =
+    ProfilesTableCompanion Function({
+      Value<String> id,
+      Value<String> displayName,
+      Value<String> email,
+      Value<String?> avatarImage,
+      Value<int?> updatedAtMs,
+      Value<int> rowid,
+    });
+
+class $$ProfilesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ProfilesTableTable> {
+  $$ProfilesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarImage => $composableBuilder(
+    column: $table.avatarImage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProfilesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProfilesTableTable> {
+  $$ProfilesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get email => $composableBuilder(
+    column: $table.email,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarImage => $composableBuilder(
+    column: $table.avatarImage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProfilesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProfilesTableTable> {
+  $$ProfilesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get email =>
+      $composableBuilder(column: $table.email, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarImage => $composableBuilder(
+    column: $table.avatarImage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+}
+
+class $$ProfilesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProfilesTableTable,
+          ProfilesTableData,
+          $$ProfilesTableTableFilterComposer,
+          $$ProfilesTableTableOrderingComposer,
+          $$ProfilesTableTableAnnotationComposer,
+          $$ProfilesTableTableCreateCompanionBuilder,
+          $$ProfilesTableTableUpdateCompanionBuilder,
+          (
+            ProfilesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $ProfilesTableTable,
+              ProfilesTableData
+            >,
+          ),
+          ProfilesTableData,
+          PrefetchHooks Function()
+        > {
+  $$ProfilesTableTableTableManager(_$AppDatabase db, $ProfilesTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProfilesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProfilesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProfilesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String?> avatarImage = const Value.absent(),
+                Value<int?> updatedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProfilesTableCompanion(
+                id: id,
+                displayName: displayName,
+                email: email,
+                avatarImage: avatarImage,
+                updatedAtMs: updatedAtMs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> displayName = const Value.absent(),
+                Value<String> email = const Value.absent(),
+                Value<String?> avatarImage = const Value.absent(),
+                Value<int?> updatedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProfilesTableCompanion.insert(
+                id: id,
+                displayName: displayName,
+                email: email,
+                avatarImage: avatarImage,
+                updatedAtMs: updatedAtMs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ProfilesTableTable, ProfilesTableData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ProfilesTableTable,
+                    ProfilesTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProfilesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProfilesTableTable,
+      ProfilesTableData,
+      $$ProfilesTableTableFilterComposer,
+      $$ProfilesTableTableOrderingComposer,
+      $$ProfilesTableTableAnnotationComposer,
+      $$ProfilesTableTableCreateCompanionBuilder,
+      $$ProfilesTableTableUpdateCompanionBuilder,
+      (
+        ProfilesTableData,
+        BaseReferences<_$AppDatabase, $ProfilesTableTable, ProfilesTableData>,
+      ),
+      ProfilesTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1942,4 +2314,6 @@ class $AppDatabaseManager {
       $$TasksTableTableTableManager(_db, _db.tasksTable);
   $$PomodoroSessionsTableTableTableManager get pomodoroSessionsTable =>
       $$PomodoroSessionsTableTableTableManager(_db, _db.pomodoroSessionsTable);
+  $$ProfilesTableTableTableManager get profilesTable =>
+      $$ProfilesTableTableTableManager(_db, _db.profilesTable);
 }

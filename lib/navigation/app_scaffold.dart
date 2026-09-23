@@ -142,6 +142,7 @@ class _AppScaffoldState extends State<AppScaffold>
       await Future.wait([
         taskProvider.syncWithCloud(force: true),
         pomodoroProvider.syncWithCloud(force: true),
+        themeProvider.syncProfileWithDb(),
         themeProvider.refreshWeather(),
         revisionProvider.refreshData(),
         minDelay,

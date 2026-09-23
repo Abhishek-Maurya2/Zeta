@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,7 +10,6 @@ import '../../../widgets/segmented_column.dart';
 import '../../../widgets/user_avatar.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/supabase_service.dart';
-import '../../../services/google_calendar_service.dart';
 import '../../../utils/haptics.dart';
 
 class ProfileSection extends StatefulWidget {
@@ -22,7 +23,6 @@ class ProfileSection extends StatefulWidget {
 
 class _ProfileSectionState extends State<ProfileSection> {
   final SupabaseService _supabase = SupabaseService();
-  final GoogleCalendarService _google = GoogleCalendarService();
 
   bool _isEditingName = false;
   bool _isEditingEmail = false;
@@ -99,11 +99,8 @@ class _ProfileSectionState extends State<ProfileSection> {
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         if (bytes.isNotEmpty) {
-          final ext = picked.extension?.toLowerCase() ?? 'png';
-          final mime = (ext == 'jpg' || ext == 'jpeg')
-              ? 'image/jpeg'
-              : 'image/png';
-          final encoded = 'data:$mime;base64,${base64Encode(bytes)}';
+          final processedBytes = await _resizeImageBytes(bytes);
+          final encoded = 'data:image/png;base64,${base64Encode(processedBytes)}';
           themeProvider.setAvatarPhoto(encoded);
           widget.onToast?.call('Profile photo updated and saved to database.');
         }
@@ -111,6 +108,22 @@ class _ProfileSectionState extends State<ProfileSection> {
     } catch (e) {
       widget.onToast?.call('Could not pick image: $e');
     }
+  }
+
+  Future<Uint8List> _resizeImageBytes(Uint8List bytes, {int maxDimension = 512}) async {
+    try {
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: maxDimension,
+      );
+      final frame = await codec.getNextFrame();
+      final byteData =
+          await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData != null) {
+        return byteData.buffer.asUint8List();
+      }
+    } catch (_) {}
+    return bytes;
   }
 
   void _showImageUrlDialog(BuildContext context, ThemeProvider themeProvider) {
@@ -187,12 +200,9 @@ class _ProfileSectionState extends State<ProfileSection> {
     final textTheme = Theme.of(context).textTheme;
 
     final hasPhoto = themeProvider.hasAvatarPhoto;
-    final isConnected = _google.isConnected || _supabase.isAuthenticated;
-    final connectedEmail = _google.accountEmail ?? _supabase.currentUser?.email;
+    final isConnected = _supabase.isAuthenticated;
 
-    final displayEmail = themeProvider.userEmail.isNotEmpty
-        ? themeProvider.userEmail
-        : (connectedEmail ?? '');
+    final displayEmail = themeProvider.userEmail;
 
     return Align(
       alignment: Alignment.topCenter,

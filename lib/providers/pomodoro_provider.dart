@@ -317,8 +317,11 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _isRunning && _targetEndTime != null) {
-      _tick();
+    if (state == AppLifecycleState.resumed) {
+      if (_isRunning && _targetEndTime != null) {
+        _tick();
+      }
+      syncWithCloud();
     }
   }
 
@@ -349,7 +352,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_sessionLog.length > _maxLogEntries) {
         _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
       }
-      _saveSessionLog();
+      unawaited(_sessionDao.upsertSession(logEntry));
       unawaited(_syncService.pushSession(logEntry));
     }
 
@@ -402,7 +405,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_sessionLog.length > _maxLogEntries) {
       _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
     }
-    _saveSessionLog();
+    unawaited(_sessionDao.upsertSession(logEntry));
     unawaited(_syncService.pushSession(logEntry));
   }
 

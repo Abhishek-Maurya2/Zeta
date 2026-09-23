@@ -1,6 +1,7 @@
 import 'app_database.dart';
 import 'daos/task_dao.dart';
 import 'daos/session_dao.dart';
+import 'daos/profile_dao.dart';
 
 /// Global singleton accessor for the drift SQLite database and its DAOs.
 ///
@@ -16,6 +17,7 @@ class DatabaseProvider {
   AppDatabase? _db;
   TaskDao? _taskDao;
   SessionDao? _sessionDao;
+  ProfileDao? _profileDao;
 
   bool _initialized = false;
 
@@ -25,6 +27,7 @@ class DatabaseProvider {
     _db = customDb ?? AppDatabase();
     _taskDao = TaskDao(_db!);
     _sessionDao = SessionDao(_db!);
+    _profileDao = ProfileDao(_db!);
     _initialized = true;
   }
 
@@ -36,6 +39,11 @@ class DatabaseProvider {
   SessionDao get sessionDao {
     if (!_initialized) init();
     return _sessionDao!;
+  }
+
+  ProfileDao get profileDao {
+    if (!_initialized) init();
+    return _profileDao!;
   }
 
   AppDatabase get db {

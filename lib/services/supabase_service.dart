@@ -27,11 +27,11 @@ class SupabaseService {
   User? get currentUser => _isInitialized ? client.auth.currentUser : null;
   Session? get currentSession => _isInitialized ? client.auth.currentSession : null;
 
-  /// Returns the authenticated user's ID, or falls back to 'singleton' for local/offline mode.
-  String get effectiveUserId => currentUser?.id ?? 'singleton';
+  /// In zero-auth single-user mode, all cloud operations map directly to the 'singleton' workspace.
+  String get effectiveUserId => 'singleton';
 
-  /// Whether a live authenticated user session is active.
-  bool get isAuthenticated => currentUser != null;
+  /// In zero-auth mode, the connection is active as long as Supabase client is initialized.
+  bool get isAuthenticated => _isInitialized;
 
   Stream<AuthState>? get authStateChanges =>
       _isInitialized ? client.auth.onAuthStateChange : null;
@@ -58,33 +58,6 @@ class SupabaseService {
         final _ = Supabase.instance.client;
         _isInitialized = true;
       } catch (_) {}
-    }
-  }
-
-  /// Sign in with Google OAuth requesting calendar & tasks scopes.
-  Future<bool> signInWithGoogle({String? redirectTo}) async {
-    if (!_isInitialized) await init();
-    try {
-      final redirect = redirectTo ?? 'zeta://login-callback';
-      return await client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: redirect,
-        scopes: 'https://www.googleapis.com/auth/tasks',
-      );
-    } catch (e) {
-      debugPrint('SupabaseService: signInWithGoogle error - $e');
-      rethrow;
-    }
-  }
-
-  /// Sign out the current user session.
-  Future<void> signOut() async {
-    if (!_isInitialized) return;
-    try {
-      await client.auth.signOut();
-      debugPrint('SupabaseService: Signed out current user.');
-    } catch (e) {
-      debugPrint('SupabaseService: signOut error - $e');
     }
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task.dart';
+import '../database/database_provider.dart';
 import 'supabase_service.dart';
 
 /// Service responsible for bi-directional synchronization between local tasks and the
@@ -26,9 +27,21 @@ class SupabaseSyncService {
 
   final List<Task> _pendingQueue = [];
 
-  /// Processes any queued offline tasks that previously failed to push.
+  /// Processes any queued offline tasks that previously failed to push,
+  /// including tasks modified offline stored in SQLite.
   Future<void> processPendingQueue() async {
-    if (_pendingQueue.isEmpty || !_supabaseService.isInitialized) return;
+    if (!_supabaseService.isInitialized) return;
+    try {
+      final unsynced =
+          await DatabaseProvider.instance.taskDao.getUnsyncedTasks();
+      for (final t in unsynced) {
+        if (!_pendingQueue.any((p) => p.id == t.id)) {
+          _pendingQueue.add(t);
+        }
+      }
+    } catch (_) {}
+
+    if (_pendingQueue.isEmpty) return;
     final toProcess = List<Task>.from(_pendingQueue);
     _pendingQueue.clear();
     for (final task in toProcess) {
@@ -133,6 +146,8 @@ class SupabaseSyncService {
         debugPrint('SupabaseSyncService: Upserted task "${task.title}" (${task.id})');
         _lastSyncedAt = DateTime.now();
         _pendingQueue.removeWhere((t) => t.id == task.id);
+        unawaited(DatabaseProvider.instance.taskDao
+            .markTaskSynced(task.id, _lastSyncedAt!));
         return true;
       } catch (e) {
         retryCount++;

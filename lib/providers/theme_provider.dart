@@ -864,6 +864,34 @@ class ThemeProvider extends ChangeNotifier {
       // Refresh live weather telemetry and sync DB profile in the background
       refreshWeather();
       syncProfileWithDb();
+
+      // Subscribe to live Realtime profile mutations
+      ProfileService().subscribeToRealtime(
+        onProfileChange: (data) {
+          final name = data['display_name'] as String?;
+          final email = data['email'] as String?;
+          final photo = data['avatar_image'] as String?;
+          bool changed = false;
+          if (name != null && name.trim().isNotEmpty && name != _userName) {
+            _userName = name.trim();
+            _saveSetting(_prefKeyUserName, _userName);
+            changed = true;
+          }
+          if (email != null && email != _userEmail) {
+            _userEmail = email.trim();
+            _saveSetting(_prefKeyUserEmail, _userEmail);
+            changed = true;
+          }
+          if (photo != null && photo != _avatarPhoto) {
+            _avatarPhoto = photo.isEmpty ? null : photo;
+            _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
+            changed = true;
+          }
+          if (changed) {
+            notifyListeners();
+          }
+        },
+      );
     } catch (_) {}
   }
 

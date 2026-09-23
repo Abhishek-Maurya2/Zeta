@@ -31,6 +31,25 @@ class TaskDao {
     return rows.map(AppDatabase.rowToTask).toList();
   }
 
+  /// Returns all tasks modified offline that have not yet been synced to Supabase
+  /// (i.e. lastSyncedAtMs is null or updatedAtMs > lastSyncedAtMs).
+  Future<List<Task>> getUnsyncedTasks() async {
+    final rows = await (_db.select(_db.tasksTable)
+          ..where((t) =>
+              t.lastSyncedAtMs.isNull() |
+              t.updatedAtMs.isBiggerThan(t.lastSyncedAtMs)))
+        .get();
+    return rows.map(AppDatabase.rowToTask).toList();
+  }
+
+  /// Marks a task row as synced at [syncedAt].
+  Future<void> markTaskSynced(String taskId, DateTime syncedAt) async {
+    await (_db.update(_db.tasksTable)..where((t) => t.id.equals(taskId)))
+        .write(TasksTableCompanion(
+      lastSyncedAtMs: Value(syncedAt.millisecondsSinceEpoch),
+    ));
+  }
+
   // ─── Writes ────────────────────────────────────────────────────────────────
 
   /// Upserts a single task. Used for every create/update/delete mutation.
