@@ -35,7 +35,7 @@ class IoAmbientPlatformAdapter implements AmbientPlatformAdapter {
       await SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.edgeToEdge,
       );
-      SystemChrome.setEnabledSystemUIMode(
+      await SystemChrome.setEnabledSystemUIMode(
         SystemUiMode.manual,
         overlays: SystemUiOverlay.values,
       );

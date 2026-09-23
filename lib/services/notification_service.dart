@@ -339,7 +339,7 @@ class NotificationService {
         title,
         body,
         tzDue,
-        NotificationDetails(
+        const NotificationDetails(
           android: AndroidNotificationDetails(
             _NotifIds.taskChannelId,
             _NotifIds.taskChannelName,
@@ -449,7 +449,7 @@ class NotificationService {
                 isRunning ? 'Pause' : 'Resume',
                 showsUserInterface: true,
               ),
-              AndroidNotificationAction(
+              const AndroidNotificationAction(
                 'action_skip',
                 'Next',
                 showsUserInterface: true,
@@ -529,7 +529,7 @@ class NotificationService {
                     arguments: 'action:toggle',
                     activationType: NotificationActivationType.foreground,
                   ),
-                  NotificationAction(
+                  const NotificationAction(
                     content: 'Next',
                     arguments: 'action:skip',
                     activationType: NotificationActivationType.foreground,

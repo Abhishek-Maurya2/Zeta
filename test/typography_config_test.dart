@@ -49,7 +49,7 @@ void main() {
         grade: 110,
       );
 
-      final base = const TextStyle(fontSize: 20);
+      const base = TextStyle(fontSize: 20);
       final style = config.toTextStyle(base);
 
       expect(style.fontVariations, isNotNull);
@@ -90,7 +90,7 @@ void main() {
     test('ThemeProvider updates and resets role typography', () {
       final themeProvider = ThemeProvider();
 
-      final custom = const RoleTypographyConfig(
+      const custom = RoleTypographyConfig(
         fontId: 'roboto-mono',
         weight: 700,
         width: 100,

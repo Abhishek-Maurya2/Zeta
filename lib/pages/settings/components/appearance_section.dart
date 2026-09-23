@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/color_variant.dart';
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../utils/haptics.dart';
 import '../../../providers/theme_provider.dart';
 

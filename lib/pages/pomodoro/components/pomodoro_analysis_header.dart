@@ -161,7 +161,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 }
               },
               actions: [
-                M3EButtonGroupAction(
+                const M3EButtonGroupAction(
                   icon: Icon(
                     Icons.chevron_left_rounded,
                     size: 25,

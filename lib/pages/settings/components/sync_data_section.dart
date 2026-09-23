@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
@@ -45,7 +45,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('zeta_master_sync_enabled', value);
     if (value) {
-      _handleSync();
+      await _handleSync();
     }
   }
 

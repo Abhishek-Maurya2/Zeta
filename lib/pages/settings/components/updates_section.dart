@@ -4,8 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../providers/update_provider.dart';
 import '../../../utils/haptics.dart';
-import '../../../widgets/zeta_logo.dart';
-import '../../../widgets/segmented_column.dart';
+import '../../../components/zeta_logo.dart';
+import '../../../components/segmented_column.dart';
 
 /// Clean, minimal About & Updates screen mirroring Lawnchair / Android style:
 /// App Logo -> App Name -> Version -> Status button -> Changelog (when available) -> Developer list.
@@ -54,7 +54,7 @@ class UpdatesSection extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
-        child: SingleChildScrollView(
+        child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 36),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -176,7 +176,7 @@ class UpdatesSection extends StatelessWidget {
                 ),
               ] else if (isChecking) ...[
                 // Checking indicator
-                M3EProgressIndicator.circular(
+                const M3EProgressIndicator.circular(
                   value: null,
                   size: 45,
                   strokeWidth: 5,

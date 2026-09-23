@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
 
@@ -118,20 +118,23 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Recent Sessions',
-              style: textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-                fontSize: 25,
+            Flexible(
+              child: Text(
+                'Recent Sessions',
+                style: textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                  fontSize: 25,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
 
             if (sessionLog.isNotEmpty)
               M3EButton.icon(
                 onPressed: () => _confirmClearLogs(context, provider),
-                icon: Icon(Icons.delete_outline_rounded, size: 20),
-                label: Text('Clear', style: TextStyle(fontSize: 16)),
+                icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                label: const Text('Clear', style: TextStyle(fontSize: 16)),
                 size: M3EButtonSize.sm,
                 tooltip: 'Clear session log',
                 decoration: M3EButtonDecoration(

@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zeta/theme/breakpoints.dart';
-import 'package:zeta/widgets/m3e_pane_divider.dart';
-import 'package:zeta/widgets/m3e_supporting_pane_scaffold.dart';
+import 'package:zeta/components/m3e_pane_divider.dart';
+import 'package:zeta/components/m3e_supporting_pane_scaffold.dart';
 
 void main() {
   group('ZetaWindowSizeClass Unit Tests', () {

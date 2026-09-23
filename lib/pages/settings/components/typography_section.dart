@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../providers/theme_provider.dart';
 import '../../../theme/typography_config.dart';
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../utils/haptics.dart';
 
 class TypographySection extends StatefulWidget {

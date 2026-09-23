@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
-import '../../../widgets/weather_icon.dart';
+import '../../../components/weather_icon.dart';
 import '../../../utils/haptics.dart';
 
 class WeatherSection extends StatefulWidget {

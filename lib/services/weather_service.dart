@@ -412,7 +412,7 @@ class WeatherService {
   static Future<Map<String, dynamic>?> detectLocation() async {
     // 1. Hardware GPS Location with system permission prompt
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (serviceEnabled) {
         LocationPermission permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.denied) {

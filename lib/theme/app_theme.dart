@@ -132,7 +132,9 @@ class AppTheme {
       colorScheme: effectiveColorScheme,
       brightness: effectiveColorScheme.brightness,
       extensions: [successColors],
-      visualDensity: compactDensity ? VisualDensity.compact : VisualDensity.standard,
+      visualDensity: compactDensity
+          ? VisualDensity.compact
+          : VisualDensity.standard,
       pageTransitionsTheme: animations
           ? const PageTransitionsTheme()
           : const PageTransitionsTheme(
@@ -195,7 +197,9 @@ class AppTheme {
         labelType: NavigationRailLabelType.all,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: effectiveColorScheme.surfaceContainerHigh,
+        backgroundColor: effectiveColorScheme.brightness == Brightness.dark
+            ? effectiveColorScheme.surfaceContainer
+            : effectiveColorScheme.surface,
         indicatorColor: effectiveColorScheme.secondaryContainer,
       ),
       appBarTheme: AppBarTheme(
@@ -208,8 +212,8 @@ class AppTheme {
       ),
       scaffoldBackgroundColor:
           effectiveColorScheme.brightness == Brightness.dark
-              ? effectiveColorScheme.surfaceContainer
-              : effectiveColorScheme.surface,
+          ? effectiveColorScheme.surfaceContainer
+          : effectiveColorScheme.surface,
       cardTheme: CardThemeData(
         color: effectiveColorScheme.surfaceContainerLow,
         elevation: 0,

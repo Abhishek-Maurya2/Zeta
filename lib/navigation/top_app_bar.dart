@@ -8,9 +8,9 @@ import '../utils/haptics.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/theme_provider.dart';
-import '../widgets/zeta_logo.dart';
-import '../widgets/user_avatar.dart';
-import '../widgets/segmented_column.dart';
+import '../components/zeta_logo.dart';
+import '../components/user_avatar.dart';
+import '../components/segmented_column.dart';
 import '../components/task_edit_pane.dart';
 import '../theme/breakpoints.dart';
 
@@ -414,7 +414,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.add_circle_outline_rounded),
+                          const Icon(Icons.add_circle_outline_rounded),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(

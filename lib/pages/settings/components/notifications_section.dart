@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../services/notification_service.dart';

@@ -62,7 +62,7 @@ class TodaysFocusCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isToday ? "Today's Focus" : "Focus • $formattedDate",
+                  isToday ? "Today's Focus" : 'Focus • $formattedDate',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.3,

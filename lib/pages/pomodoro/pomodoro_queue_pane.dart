@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../widgets/segmented_column.dart';
+import '../../components/segmented_column.dart';
 import '../../providers/pomodoro_provider.dart';
 import 'components/pomodoro_settings_sheet.dart';
 import 'components/pomodoro_queue_item_tile.dart';

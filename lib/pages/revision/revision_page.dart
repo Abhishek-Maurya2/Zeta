@@ -7,9 +7,9 @@ import 'components/topic_edit_dialog.dart';
 import '../../theme/breakpoints.dart';
 import '../../theme/motion_tokens.dart';
 import '../../utils/haptics.dart';
-import '../../widgets/m3_pane_divider.dart';
-import '../../widgets/m3e_page_transition.dart';
-import '../../widgets/segmented_column.dart';
+import '../../components/m3_pane_divider.dart';
+import '../../components/m3e_page_transition.dart';
+import '../../components/segmented_column.dart';
 import 'revision_pane1.dart';
 import 'revision_pane2.dart';
 

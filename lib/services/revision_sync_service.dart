@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import '../models/revision.dart';
 import 'supabase_service.dart';
+import 'network_service.dart';
 
 /// Service responsible for bi-directional synchronization between local Revision
 /// data and Supabase `public.revision_subjects` and `public.revision_topics` tables.
@@ -35,7 +36,7 @@ class RevisionSyncService {
   /// Pull subjects from Supabase `public.revision_subjects` table.
   Future<List<Subject>> pullSubjects() async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return [];
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return [];
 
     _isSyncing = true;
     _lastError = null;
@@ -56,11 +57,16 @@ class RevisionSyncService {
           debugPrint('RevisionSyncService: Error parsing subject row - $e');
         }
       }
+      NetworkService().markOnline();
       _lastSyncedAt = DateTime.now();
       return subjects;
     } catch (e) {
       _lastError = e.toString();
       debugPrint('RevisionSyncService: pullSubjects error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return [];
     } finally {
       _isSyncing = false;
@@ -70,7 +76,7 @@ class RevisionSyncService {
   /// Pull topics from Supabase `public.revision_topics` table.
   Future<List<ChapterTopic>> pullTopics() async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return [];
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return [];
 
     _isSyncing = true;
     _lastError = null;
@@ -92,11 +98,16 @@ class RevisionSyncService {
           debugPrint('RevisionSyncService: Error parsing topic row - $e');
         }
       }
+      NetworkService().markOnline();
       _lastSyncedAt = DateTime.now();
       return topics;
     } catch (e) {
       _lastError = e.toString();
       debugPrint('RevisionSyncService: pullTopics error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return [];
     } finally {
       _isSyncing = false;
@@ -106,15 +117,20 @@ class RevisionSyncService {
   /// Pushes a subject to Supabase.
   Future<bool> pushSubject(Subject subject) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
 
     try {
       final userId = _supabaseService.effectiveUserId;
       final row = subject.toSupabaseRow(defaultUserId: userId);
       await _supabaseService.client.from('revision_subjects').upsert(row);
+      NetworkService().markOnline();
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: pushSubject error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return false;
     }
   }
@@ -122,7 +138,7 @@ class RevisionSyncService {
   /// Deletes a subject and its associated topics from Supabase.
   Future<bool> deleteSubject(String subjectId) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
 
     try {
       await _supabaseService.client
@@ -133,9 +149,14 @@ class RevisionSyncService {
           .from('revision_subjects')
           .delete()
           .eq('id', subjectId);
+      NetworkService().markOnline();
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: deleteSubject error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return false;
     }
   }
@@ -143,15 +164,20 @@ class RevisionSyncService {
   /// Pushes a topic to Supabase.
   Future<bool> pushTopic(ChapterTopic topic) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
 
     try {
       final userId = _supabaseService.effectiveUserId;
       final row = topic.toSupabaseRow(defaultUserId: userId);
       await _supabaseService.client.from('revision_topics').upsert(row);
+      NetworkService().markOnline();
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: pushTopic error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return false;
     }
   }
@@ -159,16 +185,21 @@ class RevisionSyncService {
   /// Pushes a batch of topics to Supabase (e.g. after reordering).
   Future<bool> pushTopics(List<ChapterTopic> topics) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || topics.isEmpty) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline || topics.isEmpty) return false;
 
     try {
       final userId = _supabaseService.effectiveUserId;
       final rows =
           topics.map((t) => t.toSupabaseRow(defaultUserId: userId)).toList();
       await _supabaseService.client.from('revision_topics').upsert(rows);
+      NetworkService().markOnline();
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: pushTopics error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return false;
     }
   }
@@ -176,16 +207,21 @@ class RevisionSyncService {
   /// Deletes a topic from Supabase.
   Future<bool> deleteTopic(String topicId) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
 
     try {
       await _supabaseService.client
           .from('revision_topics')
           .delete()
           .eq('id', topicId);
+      NetworkService().markOnline();
       return true;
     } catch (e) {
       debugPrint('RevisionSyncService: deleteTopic error - $e');
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        NetworkService().markOffline();
+      }
       return false;
     }
   }

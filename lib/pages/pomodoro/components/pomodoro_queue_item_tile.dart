@@ -68,16 +68,20 @@ class PomodoroQueueItemTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
-                    item.label,
-                    style: textTheme.labelLarge?.copyWith(
-                      fontSize: 20,
-                      fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
-                      color: isActive
-                          ? colorScheme.onSecondaryContainer
-                          : (isPast
-                                ? colorScheme.onSurface.withValues(alpha: 0.6)
-                                : colorScheme.onSurface),
+                  Flexible(
+                    child: Text(
+                      item.label,
+                      style: textTheme.labelLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight:
+                            isActive ? FontWeight.w800 : FontWeight.w500,
+                        color: isActive
+                            ? colorScheme.onSecondaryContainer
+                            : (isPast
+                                  ? colorScheme.onSurface.withValues(alpha: 0.6)
+                                  : colorScheme.onSurface),
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (item.sessionNumber != null) ...[

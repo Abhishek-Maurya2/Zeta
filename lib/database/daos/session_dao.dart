@@ -49,6 +49,37 @@ class SessionDao {
     return DateTime.fromMillisecondsSinceEpoch(row.completedAtMs);
   }
 
+  /// Returns all sessions completed offline that haven't been synced to Supabase yet.
+  Future<List<PomodoroSessionLog>> getUnsyncedSessions() async {
+    final rows = await (_db.select(_db.pomodoroSessionsTable)
+          ..where((t) => t.lastSyncedAtMs.isNull())
+          ..orderBy([(t) => OrderingTerm.asc(t.completedAtMs)]))
+        .get();
+    return rows.map(AppDatabase.rowToSession).toList();
+  }
+
+  /// Marks a session as synced at [syncedAt].
+  Future<void> markSessionSynced(String sessionId, DateTime syncedAt) async {
+    await (_db.update(_db.pomodoroSessionsTable)
+          ..where((t) => t.id.equals(sessionId)))
+        .write(PomodoroSessionsTableCompanion(
+      lastSyncedAtMs: Value(syncedAt.millisecondsSinceEpoch),
+    ));
+  }
+
+  /// Marks multiple sessions as synced at [syncedAt].
+  Future<void> markSessionsSynced(
+    Iterable<String> sessionIds,
+    DateTime syncedAt,
+  ) async {
+    if (sessionIds.isEmpty) return;
+    await (_db.update(_db.pomodoroSessionsTable)
+          ..where((t) => t.id.isIn(sessionIds)))
+        .write(PomodoroSessionsTableCompanion(
+      lastSyncedAtMs: Value(syncedAt.millisecondsSinceEpoch),
+    ));
+  }
+
   // ─── Writes ────────────────────────────────────────────────────────────────
 
   /// Upserts a single session.

@@ -112,7 +112,7 @@ class _BinPageState extends State<BinPage> {
                   );
                   if (confirmed == true) {
                     setState(() => _loadedAll = false);
-                    taskProvider.emptyBin();
+                    await taskProvider.emptyBin();
                   }
                 },
               ),

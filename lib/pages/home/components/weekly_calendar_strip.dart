@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/theme_provider.dart';
+import '../../../providers/weather_provider.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../settings/components/settings_category.dart';
 import '../../../utils/task_date_formatter.dart';
@@ -46,7 +47,12 @@ class WeeklyCalendarStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final taskProvider = context.watch<TaskProvider>();
+    final weatherProvider = Provider.of<WeatherProvider?>(context);
     final themeProvider = context.watch<ThemeProvider>();
+    final weather = weatherProvider?.weatherData ?? themeProvider.weatherData;
+    final weatherEnabled = weatherProvider?.weatherEnabled ?? themeProvider.weatherEnabled;
+    final showWeatherInHeader = weatherProvider?.showWeatherInHeader ?? themeProvider.showWeatherInHeader;
+    final effectiveCityName = weather?.cityName ?? weatherProvider?.cityName ?? themeProvider.cityName;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -71,7 +77,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 800;
 
-            final weather = themeProvider.weatherData;
             final tempStr = weather != null
                 ? '${weather.temperature.round()}°C'
                 : '24°C';
@@ -130,14 +135,14 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (themeProvider.weatherEnabled &&
-                    themeProvider.showWeatherInHeader) ...[
+                if (weatherEnabled &&
+                    showWeatherInHeader) ...[
                   const SizedBox(height: 4),
 
                   // Weather Telemetry Below Date (Clickable to open Weather Page)
                   Tooltip(
                     message:
-                        '$conditionStr • ${weather?.cityName ?? themeProvider.cityName}\nClick to open weather settings',
+                        '$conditionStr • $effectiveCityName\nClick to open weather settings',
                     child: InkWell(
                       hoverColor: Colors.transparent,
                       
@@ -204,7 +209,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                         colorScheme.onSurface.withValues(alpha: 0.1),
                       ),
                     ),
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.chevron_left_rounded,
                       fontWeight: FontWeight.bold,
                       size: 40,
@@ -297,7 +302,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                               (!isSelected && !isDayToday)
                                               ? 'GoogleSansFlex'
                                               : 'RobotoMono',
-                                          fontVariations: [
+                                          fontVariations: const [
                                             FontVariation('wdth', 100),
                                             FontVariation('ROND', 100),
                                           ],
@@ -323,7 +328,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                                               (!isSelected && !isDayToday)
                                               ? 'GoogleSansFlex'
                                               : 'RobotoMono',
-                                          fontVariations: [
+                                          fontVariations: const [
                                             FontVariation('wdth', 100),
                                             FontVariation('ROND', 100),
                                           ],
@@ -383,7 +388,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                   child: M3EIconButton(
                     size: M3EIconButtonSize.md,
                     width: M3EIconButtonWidth.narrow,
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.chevron_right_rounded,
                       size: 40,
                       fontWeight: FontWeight.bold,

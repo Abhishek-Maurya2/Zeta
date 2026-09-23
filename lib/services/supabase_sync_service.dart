@@ -4,17 +4,26 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task.dart';
 import '../database/database_provider.dart';
 import 'supabase_service.dart';
+import 'network_service.dart';
 
 /// Service responsible for bi-directional synchronization between local tasks and the
 /// Supabase `public.tasks` table, including real-time change subscriptions.
 class SupabaseSyncService {
   static final SupabaseSyncService _instance = SupabaseSyncService._internal();
   factory SupabaseSyncService() => _instance;
-  SupabaseSyncService._internal();
+  SupabaseSyncService._internal() {
+    _networkSubscription =
+        NetworkService().onConnectivityChanged.listen((isOnline) {
+      if (isOnline) {
+        unawaited(processPendingQueue());
+      }
+    });
+  }
 
   final SupabaseService _supabaseService = SupabaseService();
   final Map<String, Timer> _debounceTimers = {};
   RealtimeChannel? _realtimeChannel;
+  StreamSubscription<bool>? _networkSubscription;
   bool _isSyncing = false;
   DateTime? _lastSyncedAt;
   String? _lastError;
@@ -55,7 +64,7 @@ class SupabaseSyncService {
   /// Pull tasks from Supabase `public.tasks` table.
   /// If [since] is provided, only retrieves tasks updated since that timestamp.
   Future<List<Task>> pullTasks({DateTime? since}) async {
-    if (!_supabaseService.isInitialized) return [];
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return [];
 
     _isSyncing = true;
     _lastError = null;
@@ -99,11 +108,13 @@ class SupabaseSyncService {
       }
 
       _lastSyncedAt = DateTime.now();
+      NetworkService().markOnline();
       debugPrint('SupabaseSyncService: Pulled ${tasks.length} tasks successfully.');
       unawaited(processPendingQueue());
       return tasks;
     } catch (e) {
       _lastError = e.toString();
+      NetworkService().markOffline();
       debugPrint('SupabaseSyncService: pullTasks failed - $e');
       return [];
     } finally {
@@ -124,7 +135,7 @@ class SupabaseSyncService {
   Future<bool> pushTask(Task task) async {
     _debounceTimers[task.id]?.cancel();
     _debounceTimers.remove(task.id);
-    if (!_supabaseService.isInitialized) {
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
       if (!_pendingQueue.any((t) => t.id == task.id)) {
         _pendingQueue.add(task);
       }
@@ -148,12 +159,14 @@ class SupabaseSyncService {
         _pendingQueue.removeWhere((t) => t.id == task.id);
         unawaited(DatabaseProvider.instance.taskDao
             .markTaskSynced(task.id, _lastSyncedAt!));
+        NetworkService().markOnline();
         return true;
       } catch (e) {
         retryCount++;
         debugPrint('SupabaseSyncService: Push attempt $retryCount failed for ${task.id}: $e');
         if (retryCount >= maxRetries) {
           _lastError = e.toString();
+          NetworkService().markOffline();
           if (!_pendingQueue.any((t) => t.id == task.id)) {
             _pendingQueue.add(task);
           }
@@ -167,7 +180,7 @@ class SupabaseSyncService {
 
   /// Soft deletes or permanently deletes a task in Supabase.
   Future<bool> deleteTask(String taskId, {bool soft = true}) async {
-    if (!_supabaseService.isInitialized) return false;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
 
     try {
       if (soft) {
@@ -236,6 +249,7 @@ class SupabaseSyncService {
       timer.cancel();
     }
     _debounceTimers.clear();
+    _networkSubscription?.cancel();
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = null;
   }

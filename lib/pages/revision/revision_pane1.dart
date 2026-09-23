@@ -8,7 +8,7 @@ import 'components/revision_settings_sheet.dart';
 import 'components/revision_subject_card.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
-import '../../widgets/segmented_column.dart';
+import '../../components/segmented_column.dart';
 
 /// Pane 1 of Revision: Subjects overview, summary statistics, and subject selection.
 class RevisionPane1 extends StatelessWidget {
@@ -162,7 +162,7 @@ class RevisionPane1 extends StatelessWidget {
                         'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
                   );
                   if (confirmed == true) {
-                    revProvider.deleteSubject(sub.id, taskProvider);
+                    await revProvider.deleteSubject(sub.id, taskProvider);
                   }
                 },
               );

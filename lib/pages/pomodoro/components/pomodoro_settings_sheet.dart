@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../components/glass_alert_dialog.dart';
-import '../../../widgets/segmented_column.dart';
+import '../../../components/segmented_column.dart';
 import '../../../providers/pomodoro_provider.dart';
 
 class PomodoroSettingsSheet extends StatelessWidget {

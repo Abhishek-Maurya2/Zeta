@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../models/task.dart';
-import '../widgets/segmented_column.dart';
+import 'segmented_column.dart';
 
 /// A reusable, modular subtasks list styled with Material 3 Expressive
 /// [M3ESegmentedColumn], shared across both the Tasks Page and Bin Page.

@@ -8,8 +8,8 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../services/supabase_sync_service.dart';
 import '../services/notification_service.dart';
-import '../database/database_provider.dart';
 import '../database/daos/task_dao.dart';
+import '../repositories/task_repository.dart';
 
 enum TaskFilter { all, completed, pending, revision }
 
@@ -19,8 +19,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _soundEffectsKey = 'zeta_sound_effects';
   static const String _sortByPrefKey = 'zeta_task_sort_by_v1';
 
-  final SupabaseSyncService _syncService = SupabaseSyncService();
-  late final TaskDao _taskDao;
+  final TaskRepository _repository;
+  TaskDao get _taskDao => _repository.taskDao;
+  SupabaseSyncService get _syncService => _repository.syncService;
 
   bool _isSyncing = false;
 
@@ -37,8 +38,15 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  TaskProvider() {
-    _taskDao = DatabaseProvider.instance.taskDao;
+  TaskProvider({
+    TaskRepository? repository,
+    TaskDao? taskDao,
+    SupabaseSyncService? syncService,
+  }) : _repository = repository ??
+            TaskRepository(
+              taskDao: taskDao,
+              syncService: syncService,
+            ) {
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -573,7 +581,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       final prefs = await SharedPreferences.getInstance();
       final soundEnabled = prefs.getBool(_soundEffectsKey) ?? true;
       if (soundEnabled) {
-        SystemSound.play(SystemSoundType.click);
+        await SystemSound.play(SystemSoundType.click);
         ZetaHaptics.light();
       }
     } catch (_) {}
@@ -647,7 +655,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     unawaited(_taskDao.upsertTask(newTask));
     unawaited(_syncService.pushTask(newTask));
     // Schedule a system notification if the task has a due time.
-    NotificationService.instance.scheduleTaskReminder(newTask);
+    unawaited(NotificationService.instance.scheduleTaskReminder(newTask));
     return newTask.id;
   }
 
@@ -780,7 +788,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _binTasks.removeWhere((t) => t.id == id);
     }
     await _taskDao.hardDelete(id);
-    _syncService.deleteTask(id, soft: false);
+    await _syncService.deleteTask(id, soft: false);
     notifyListeners();
   }
 
@@ -791,7 +799,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     for (final task in tasksToDelete) {
-      _syncService.deleteTask(task.id, soft: false);
+      await _syncService.deleteTask(task.id, soft: false);
     }
     await _taskDao.clearBin();
   }

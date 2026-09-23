@@ -136,8 +136,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final taskProvider = context.read<TaskProvider>();
-      taskProvider.addTask(title: 'MultiSelect Task 1');
-      taskProvider.addTask(title: 'MultiSelect Task 2');
+      await taskProvider.addTask(title: 'MultiSelect Task 1');
+      await taskProvider.addTask(title: 'MultiSelect Task 2');
       await tester.pumpAndSettle();
 
       expect(taskProvider.isSelectionMode, isFalse);
@@ -205,7 +205,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final taskProvider = context.read<TaskProvider>();
-      taskProvider.addTask(title: 'Compact Task 1');
+      await taskProvider.addTask(title: 'Compact Task 1');
       await tester.pumpAndSettle();
 
       expect(taskProvider.isSelectionMode, isFalse);
@@ -230,9 +230,13 @@ void main() {
     testWidgets(
         'Selected task card uses native selection style with full border radius and secondaryContainer',
         (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      addTearDown(() {
+        FlutterError.onError = originalOnError;
+      });
       FlutterError.onError = (details) {
         if (details.exceptionAsString().contains('overflowed')) return;
-        FlutterError.dumpErrorToConsole(details);
+        originalOnError?.call(details);
       };
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -244,8 +248,8 @@ void main() {
       await tester.pumpAndSettle();
 
       final taskProvider = context.read<TaskProvider>();
-      taskProvider.addTask(title: 'Task A');
-      taskProvider.addTask(title: 'Task B');
+      await taskProvider.addTask(title: 'Task A');
+      await taskProvider.addTask(title: 'Task B');
       await tester.pumpAndSettle();
 
       final colorScheme = Theme.of(context).colorScheme;
@@ -254,7 +258,9 @@ void main() {
       final taskA =
           taskProvider.allTasks.firstWhere((t) => t.title == 'Task A');
       taskProvider.toggleTaskSelection(taskA.id);
-      await tester.pump(const Duration(seconds: 1));
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(taskProvider.isSelectionMode, isTrue);
       expect(taskProvider.isTaskSelected(taskA.id), isTrue);
@@ -277,9 +283,13 @@ void main() {
     testWidgets(
         'System back navigation returns to Home page from other pages, and only exits from Home',
         (WidgetTester tester) async {
+      final originalOnError = FlutterError.onError;
+      addTearDown(() {
+        FlutterError.onError = originalOnError;
+      });
       FlutterError.onError = (details) {
         if (details.exceptionAsString().contains('overflowed')) return;
-        FlutterError.dumpErrorToConsole(details);
+        originalOnError?.call(details);
       };
       tester.view.physicalSize = const Size(1200, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -326,7 +336,7 @@ void main() {
 
       // 3. Navigate to Tasks page and enter selection mode
       navProvider.setActivePage(PageId.tasks);
-      taskProvider.addTask(title: 'Back test task');
+      await taskProvider.addTask(title: 'Back test task');
       await tester.pumpAndSettle();
 
       final task = taskProvider.allTasks.first;

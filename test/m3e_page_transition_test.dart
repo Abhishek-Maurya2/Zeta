@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/providers/theme_provider.dart';
-import 'package:zeta/widgets/m3e_page_transition.dart';
+import 'package:zeta/components/m3e_page_transition.dart';
 
 void main() {
   testWidgets('M3EPageTransition sharedAxisX maintains correct opacity and transform during transition',

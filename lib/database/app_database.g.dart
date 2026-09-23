@@ -835,8 +835,25 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _lastSyncedAtMsMeta = const VerificationMeta(
+    'lastSyncedAtMs',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, mode, minutes, completedAtMs];
+  late final GeneratedColumn<int> lastSyncedAtMs = GeneratedColumn<int>(
+    'last_synced_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    mode,
+    minutes,
+    completedAtMs,
+    lastSyncedAtMs,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -881,6 +898,15 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
     } else if (isInserting) {
       context.missing(_completedAtMsMeta);
     }
+    if (data.containsKey('last_synced_at_ms')) {
+      context.handle(
+        _lastSyncedAtMsMeta,
+        lastSyncedAtMs.isAcceptableOrUnknown(
+          data['last_synced_at_ms']!,
+          _lastSyncedAtMsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -909,6 +935,10 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
         DriftSqlType.int,
         data['${effectivePrefix}completed_at_ms'],
       )!,
+      lastSyncedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_synced_at_ms'],
+      ),
     );
   }
 
@@ -924,11 +954,13 @@ class PomodoroSessionsTableData extends DataClass
   final String mode;
   final int minutes;
   final int completedAtMs;
+  final int? lastSyncedAtMs;
   const PomodoroSessionsTableData({
     required this.id,
     required this.mode,
     required this.minutes,
     required this.completedAtMs,
+    this.lastSyncedAtMs,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -937,6 +969,9 @@ class PomodoroSessionsTableData extends DataClass
     map['mode'] = Variable<String>(mode);
     map['minutes'] = Variable<int>(minutes);
     map['completed_at_ms'] = Variable<int>(completedAtMs);
+    if (!nullToAbsent || lastSyncedAtMs != null) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs);
+    }
     return map;
   }
 
@@ -946,6 +981,9 @@ class PomodoroSessionsTableData extends DataClass
       mode: Value(mode),
       minutes: Value(minutes),
       completedAtMs: Value(completedAtMs),
+      lastSyncedAtMs: lastSyncedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAtMs),
     );
   }
 
@@ -959,6 +997,7 @@ class PomodoroSessionsTableData extends DataClass
       mode: serializer.fromJson<String>(json['mode']),
       minutes: serializer.fromJson<int>(json['minutes']),
       completedAtMs: serializer.fromJson<int>(json['completedAtMs']),
+      lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
     );
   }
   @override
@@ -969,6 +1008,7 @@ class PomodoroSessionsTableData extends DataClass
       'mode': serializer.toJson<String>(mode),
       'minutes': serializer.toJson<int>(minutes),
       'completedAtMs': serializer.toJson<int>(completedAtMs),
+      'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
     };
   }
 
@@ -977,11 +1017,15 @@ class PomodoroSessionsTableData extends DataClass
     String? mode,
     int? minutes,
     int? completedAtMs,
+    Value<int?> lastSyncedAtMs = const Value.absent(),
   }) => PomodoroSessionsTableData(
     id: id ?? this.id,
     mode: mode ?? this.mode,
     minutes: minutes ?? this.minutes,
     completedAtMs: completedAtMs ?? this.completedAtMs,
+    lastSyncedAtMs: lastSyncedAtMs.present
+        ? lastSyncedAtMs.value
+        : this.lastSyncedAtMs,
   );
   PomodoroSessionsTableData copyWithCompanion(
     PomodoroSessionsTableCompanion data,
@@ -993,6 +1037,9 @@ class PomodoroSessionsTableData extends DataClass
       completedAtMs: data.completedAtMs.present
           ? data.completedAtMs.value
           : this.completedAtMs,
+      lastSyncedAtMs: data.lastSyncedAtMs.present
+          ? data.lastSyncedAtMs.value
+          : this.lastSyncedAtMs,
     );
   }
 
@@ -1002,13 +1049,15 @@ class PomodoroSessionsTableData extends DataClass
           ..write('id: $id, ')
           ..write('mode: $mode, ')
           ..write('minutes: $minutes, ')
-          ..write('completedAtMs: $completedAtMs')
+          ..write('completedAtMs: $completedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, mode, minutes, completedAtMs);
+  int get hashCode =>
+      Object.hash(id, mode, minutes, completedAtMs, lastSyncedAtMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1016,7 +1065,8 @@ class PomodoroSessionsTableData extends DataClass
           other.id == this.id &&
           other.mode == this.mode &&
           other.minutes == this.minutes &&
-          other.completedAtMs == this.completedAtMs);
+          other.completedAtMs == this.completedAtMs &&
+          other.lastSyncedAtMs == this.lastSyncedAtMs);
 }
 
 class PomodoroSessionsTableCompanion
@@ -1025,12 +1075,14 @@ class PomodoroSessionsTableCompanion
   final Value<String> mode;
   final Value<int> minutes;
   final Value<int> completedAtMs;
+  final Value<int?> lastSyncedAtMs;
   final Value<int> rowid;
   const PomodoroSessionsTableCompanion({
     this.id = const Value.absent(),
     this.mode = const Value.absent(),
     this.minutes = const Value.absent(),
     this.completedAtMs = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PomodoroSessionsTableCompanion.insert({
@@ -1038,6 +1090,7 @@ class PomodoroSessionsTableCompanion
     required String mode,
     required int minutes,
     required int completedAtMs,
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        mode = Value(mode),
@@ -1048,6 +1101,7 @@ class PomodoroSessionsTableCompanion
     Expression<String>? mode,
     Expression<int>? minutes,
     Expression<int>? completedAtMs,
+    Expression<int>? lastSyncedAtMs,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1055,6 +1109,7 @@ class PomodoroSessionsTableCompanion
       if (mode != null) 'mode': mode,
       if (minutes != null) 'minutes': minutes,
       if (completedAtMs != null) 'completed_at_ms': completedAtMs,
+      if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1064,6 +1119,7 @@ class PomodoroSessionsTableCompanion
     Value<String>? mode,
     Value<int>? minutes,
     Value<int>? completedAtMs,
+    Value<int?>? lastSyncedAtMs,
     Value<int>? rowid,
   }) {
     return PomodoroSessionsTableCompanion(
@@ -1071,6 +1127,7 @@ class PomodoroSessionsTableCompanion
       mode: mode ?? this.mode,
       minutes: minutes ?? this.minutes,
       completedAtMs: completedAtMs ?? this.completedAtMs,
+      lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1090,6 +1147,9 @@ class PomodoroSessionsTableCompanion
     if (completedAtMs.present) {
       map['completed_at_ms'] = Variable<int>(completedAtMs.value);
     }
+    if (lastSyncedAtMs.present) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1103,6 +1163,7 @@ class PomodoroSessionsTableCompanion
           ..write('mode: $mode, ')
           ..write('minutes: $minutes, ')
           ..write('completedAtMs: $completedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1484,6 +1545,1024 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
   }
 }
 
+class $RevisionSubjectsTableTable extends RevisionSubjectsTable
+    with TableInfo<$RevisionSubjectsTableTable, RevisionSubjectsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RevisionSubjectsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconNameMeta = const VerificationMeta(
+    'iconName',
+  );
+  @override
+  late final GeneratedColumn<String> iconName = GeneratedColumn<String>(
+    'icon_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('menu_book_rounded'),
+  );
+  static const VerificationMeta _colorValueMeta = const VerificationMeta(
+    'colorValue',
+  );
+  @override
+  late final GeneratedColumn<int> colorValue = GeneratedColumn<int>(
+    'color_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0xFF6750A4),
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    iconName,
+    colorValue,
+    createdAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'revision_subjects';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RevisionSubjectsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('icon_name')) {
+      context.handle(
+        _iconNameMeta,
+        iconName.isAcceptableOrUnknown(data['icon_name']!, _iconNameMeta),
+      );
+    }
+    if (data.containsKey('color_value')) {
+      context.handle(
+        _colorValueMeta,
+        colorValue.isAcceptableOrUnknown(data['color_value']!, _colorValueMeta),
+      );
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RevisionSubjectsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RevisionSubjectsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      iconName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icon_name'],
+      )!,
+      colorValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_value'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+    );
+  }
+
+  @override
+  $RevisionSubjectsTableTable createAlias(String alias) {
+    return $RevisionSubjectsTableTable(attachedDatabase, alias);
+  }
+}
+
+class RevisionSubjectsTableData extends DataClass
+    implements Insertable<RevisionSubjectsTableData> {
+  final String id;
+  final String name;
+  final String iconName;
+  final int colorValue;
+  final int createdAtMs;
+  const RevisionSubjectsTableData({
+    required this.id,
+    required this.name,
+    required this.iconName,
+    required this.colorValue,
+    required this.createdAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['icon_name'] = Variable<String>(iconName);
+    map['color_value'] = Variable<int>(colorValue);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    return map;
+  }
+
+  RevisionSubjectsTableCompanion toCompanion(bool nullToAbsent) {
+    return RevisionSubjectsTableCompanion(
+      id: Value(id),
+      name: Value(name),
+      iconName: Value(iconName),
+      colorValue: Value(colorValue),
+      createdAtMs: Value(createdAtMs),
+    );
+  }
+
+  factory RevisionSubjectsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RevisionSubjectsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      iconName: serializer.fromJson<String>(json['iconName']),
+      colorValue: serializer.fromJson<int>(json['colorValue']),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'iconName': serializer.toJson<String>(iconName),
+      'colorValue': serializer.toJson<int>(colorValue),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+    };
+  }
+
+  RevisionSubjectsTableData copyWith({
+    String? id,
+    String? name,
+    String? iconName,
+    int? colorValue,
+    int? createdAtMs,
+  }) => RevisionSubjectsTableData(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    iconName: iconName ?? this.iconName,
+    colorValue: colorValue ?? this.colorValue,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+  );
+  RevisionSubjectsTableData copyWithCompanion(
+    RevisionSubjectsTableCompanion data,
+  ) {
+    return RevisionSubjectsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      iconName: data.iconName.present ? data.iconName.value : this.iconName,
+      colorValue: data.colorValue.present
+          ? data.colorValue.value
+          : this.colorValue,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RevisionSubjectsTableData(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('iconName: $iconName, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('createdAtMs: $createdAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, iconName, colorValue, createdAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RevisionSubjectsTableData &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.iconName == this.iconName &&
+          other.colorValue == this.colorValue &&
+          other.createdAtMs == this.createdAtMs);
+}
+
+class RevisionSubjectsTableCompanion
+    extends UpdateCompanion<RevisionSubjectsTableData> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> iconName;
+  final Value<int> colorValue;
+  final Value<int> createdAtMs;
+  final Value<int> rowid;
+  const RevisionSubjectsTableCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.iconName = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RevisionSubjectsTableCompanion.insert({
+    required String id,
+    required String name,
+    this.iconName = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    required int createdAtMs,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       createdAtMs = Value(createdAtMs);
+  static Insertable<RevisionSubjectsTableData> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? iconName,
+    Expression<int>? colorValue,
+    Expression<int>? createdAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (iconName != null) 'icon_name': iconName,
+      if (colorValue != null) 'color_value': colorValue,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RevisionSubjectsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? iconName,
+    Value<int>? colorValue,
+    Value<int>? createdAtMs,
+    Value<int>? rowid,
+  }) {
+    return RevisionSubjectsTableCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      iconName: iconName ?? this.iconName,
+      colorValue: colorValue ?? this.colorValue,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (iconName.present) {
+      map['icon_name'] = Variable<String>(iconName.value);
+    }
+    if (colorValue.present) {
+      map['color_value'] = Variable<int>(colorValue.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RevisionSubjectsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('iconName: $iconName, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RevisionTopicsTableTable extends RevisionTopicsTable
+    with TableInfo<$RevisionTopicsTableTable, RevisionTopicsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RevisionTopicsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _subjectIdMeta = const VerificationMeta(
+    'subjectId',
+  );
+  @override
+  late final GeneratedColumn<String> subjectId = GeneratedColumn<String>(
+    'subject_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isCompletedMeta = const VerificationMeta(
+    'isCompleted',
+  );
+  @override
+  late final GeneratedColumn<bool> isCompleted = GeneratedColumn<bool>(
+    'is_completed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_completed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _revisionStageMeta = const VerificationMeta(
+    'revisionStage',
+  );
+  @override
+  late final GeneratedColumn<int> revisionStage = GeneratedColumn<int>(
+    'revision_stage',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastRevisedAtMsMeta = const VerificationMeta(
+    'lastRevisedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> lastRevisedAtMs = GeneratedColumn<int>(
+    'last_revised_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _nextRevisionDateMsMeta =
+      const VerificationMeta('nextRevisionDateMs');
+  @override
+  late final GeneratedColumn<int> nextRevisionDateMs = GeneratedColumn<int>(
+    'next_revision_date_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _associatedTaskIdMeta = const VerificationMeta(
+    'associatedTaskId',
+  );
+  @override
+  late final GeneratedColumn<String> associatedTaskId = GeneratedColumn<String>(
+    'associated_task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    subjectId,
+    title,
+    description,
+    isCompleted,
+    revisionStage,
+    lastRevisedAtMs,
+    nextRevisionDateMs,
+    associatedTaskId,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'revision_topics';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RevisionTopicsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('subject_id')) {
+      context.handle(
+        _subjectIdMeta,
+        subjectId.isAcceptableOrUnknown(data['subject_id']!, _subjectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_subjectIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_completed')) {
+      context.handle(
+        _isCompletedMeta,
+        isCompleted.isAcceptableOrUnknown(
+          data['is_completed']!,
+          _isCompletedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('revision_stage')) {
+      context.handle(
+        _revisionStageMeta,
+        revisionStage.isAcceptableOrUnknown(
+          data['revision_stage']!,
+          _revisionStageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_revised_at_ms')) {
+      context.handle(
+        _lastRevisedAtMsMeta,
+        lastRevisedAtMs.isAcceptableOrUnknown(
+          data['last_revised_at_ms']!,
+          _lastRevisedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_revision_date_ms')) {
+      context.handle(
+        _nextRevisionDateMsMeta,
+        nextRevisionDateMs.isAcceptableOrUnknown(
+          data['next_revision_date_ms']!,
+          _nextRevisionDateMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('associated_task_id')) {
+      context.handle(
+        _associatedTaskIdMeta,
+        associatedTaskId.isAcceptableOrUnknown(
+          data['associated_task_id']!,
+          _associatedTaskIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RevisionTopicsTableData map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RevisionTopicsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      subjectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}subject_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+      isCompleted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_completed'],
+      )!,
+      revisionStage: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision_stage'],
+      )!,
+      lastRevisedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_revised_at_ms'],
+      ),
+      nextRevisionDateMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}next_revision_date_ms'],
+      ),
+      associatedTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}associated_task_id'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $RevisionTopicsTableTable createAlias(String alias) {
+    return $RevisionTopicsTableTable(attachedDatabase, alias);
+  }
+}
+
+class RevisionTopicsTableData extends DataClass
+    implements Insertable<RevisionTopicsTableData> {
+  final String id;
+  final String subjectId;
+  final String title;
+  final String? description;
+  final bool isCompleted;
+  final int revisionStage;
+  final int? lastRevisedAtMs;
+  final int? nextRevisionDateMs;
+  final String? associatedTaskId;
+  final int sortOrder;
+  const RevisionTopicsTableData({
+    required this.id,
+    required this.subjectId,
+    required this.title,
+    this.description,
+    required this.isCompleted,
+    required this.revisionStage,
+    this.lastRevisedAtMs,
+    this.nextRevisionDateMs,
+    this.associatedTaskId,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['subject_id'] = Variable<String>(subjectId);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['is_completed'] = Variable<bool>(isCompleted);
+    map['revision_stage'] = Variable<int>(revisionStage);
+    if (!nullToAbsent || lastRevisedAtMs != null) {
+      map['last_revised_at_ms'] = Variable<int>(lastRevisedAtMs);
+    }
+    if (!nullToAbsent || nextRevisionDateMs != null) {
+      map['next_revision_date_ms'] = Variable<int>(nextRevisionDateMs);
+    }
+    if (!nullToAbsent || associatedTaskId != null) {
+      map['associated_task_id'] = Variable<String>(associatedTaskId);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  RevisionTopicsTableCompanion toCompanion(bool nullToAbsent) {
+    return RevisionTopicsTableCompanion(
+      id: Value(id),
+      subjectId: Value(subjectId),
+      title: Value(title),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      isCompleted: Value(isCompleted),
+      revisionStage: Value(revisionStage),
+      lastRevisedAtMs: lastRevisedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastRevisedAtMs),
+      nextRevisionDateMs: nextRevisionDateMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextRevisionDateMs),
+      associatedTaskId: associatedTaskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(associatedTaskId),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory RevisionTopicsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RevisionTopicsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      subjectId: serializer.fromJson<String>(json['subjectId']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String?>(json['description']),
+      isCompleted: serializer.fromJson<bool>(json['isCompleted']),
+      revisionStage: serializer.fromJson<int>(json['revisionStage']),
+      lastRevisedAtMs: serializer.fromJson<int?>(json['lastRevisedAtMs']),
+      nextRevisionDateMs: serializer.fromJson<int?>(json['nextRevisionDateMs']),
+      associatedTaskId: serializer.fromJson<String?>(json['associatedTaskId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'subjectId': serializer.toJson<String>(subjectId),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String?>(description),
+      'isCompleted': serializer.toJson<bool>(isCompleted),
+      'revisionStage': serializer.toJson<int>(revisionStage),
+      'lastRevisedAtMs': serializer.toJson<int?>(lastRevisedAtMs),
+      'nextRevisionDateMs': serializer.toJson<int?>(nextRevisionDateMs),
+      'associatedTaskId': serializer.toJson<String?>(associatedTaskId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  RevisionTopicsTableData copyWith({
+    String? id,
+    String? subjectId,
+    String? title,
+    Value<String?> description = const Value.absent(),
+    bool? isCompleted,
+    int? revisionStage,
+    Value<int?> lastRevisedAtMs = const Value.absent(),
+    Value<int?> nextRevisionDateMs = const Value.absent(),
+    Value<String?> associatedTaskId = const Value.absent(),
+    int? sortOrder,
+  }) => RevisionTopicsTableData(
+    id: id ?? this.id,
+    subjectId: subjectId ?? this.subjectId,
+    title: title ?? this.title,
+    description: description.present ? description.value : this.description,
+    isCompleted: isCompleted ?? this.isCompleted,
+    revisionStage: revisionStage ?? this.revisionStage,
+    lastRevisedAtMs: lastRevisedAtMs.present
+        ? lastRevisedAtMs.value
+        : this.lastRevisedAtMs,
+    nextRevisionDateMs: nextRevisionDateMs.present
+        ? nextRevisionDateMs.value
+        : this.nextRevisionDateMs,
+    associatedTaskId: associatedTaskId.present
+        ? associatedTaskId.value
+        : this.associatedTaskId,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  RevisionTopicsTableData copyWithCompanion(RevisionTopicsTableCompanion data) {
+    return RevisionTopicsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      isCompleted: data.isCompleted.present
+          ? data.isCompleted.value
+          : this.isCompleted,
+      revisionStage: data.revisionStage.present
+          ? data.revisionStage.value
+          : this.revisionStage,
+      lastRevisedAtMs: data.lastRevisedAtMs.present
+          ? data.lastRevisedAtMs.value
+          : this.lastRevisedAtMs,
+      nextRevisionDateMs: data.nextRevisionDateMs.present
+          ? data.nextRevisionDateMs.value
+          : this.nextRevisionDateMs,
+      associatedTaskId: data.associatedTaskId.present
+          ? data.associatedTaskId.value
+          : this.associatedTaskId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RevisionTopicsTableData(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('revisionStage: $revisionStage, ')
+          ..write('lastRevisedAtMs: $lastRevisedAtMs, ')
+          ..write('nextRevisionDateMs: $nextRevisionDateMs, ')
+          ..write('associatedTaskId: $associatedTaskId, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    subjectId,
+    title,
+    description,
+    isCompleted,
+    revisionStage,
+    lastRevisedAtMs,
+    nextRevisionDateMs,
+    associatedTaskId,
+    sortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RevisionTopicsTableData &&
+          other.id == this.id &&
+          other.subjectId == this.subjectId &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.isCompleted == this.isCompleted &&
+          other.revisionStage == this.revisionStage &&
+          other.lastRevisedAtMs == this.lastRevisedAtMs &&
+          other.nextRevisionDateMs == this.nextRevisionDateMs &&
+          other.associatedTaskId == this.associatedTaskId &&
+          other.sortOrder == this.sortOrder);
+}
+
+class RevisionTopicsTableCompanion
+    extends UpdateCompanion<RevisionTopicsTableData> {
+  final Value<String> id;
+  final Value<String> subjectId;
+  final Value<String> title;
+  final Value<String?> description;
+  final Value<bool> isCompleted;
+  final Value<int> revisionStage;
+  final Value<int?> lastRevisedAtMs;
+  final Value<int?> nextRevisionDateMs;
+  final Value<String?> associatedTaskId;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const RevisionTopicsTableCompanion({
+    this.id = const Value.absent(),
+    this.subjectId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.revisionStage = const Value.absent(),
+    this.lastRevisedAtMs = const Value.absent(),
+    this.nextRevisionDateMs = const Value.absent(),
+    this.associatedTaskId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RevisionTopicsTableCompanion.insert({
+    required String id,
+    required String subjectId,
+    required String title,
+    this.description = const Value.absent(),
+    this.isCompleted = const Value.absent(),
+    this.revisionStage = const Value.absent(),
+    this.lastRevisedAtMs = const Value.absent(),
+    this.nextRevisionDateMs = const Value.absent(),
+    this.associatedTaskId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       subjectId = Value(subjectId),
+       title = Value(title);
+  static Insertable<RevisionTopicsTableData> custom({
+    Expression<String>? id,
+    Expression<String>? subjectId,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<bool>? isCompleted,
+    Expression<int>? revisionStage,
+    Expression<int>? lastRevisedAtMs,
+    Expression<int>? nextRevisionDateMs,
+    Expression<String>? associatedTaskId,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subjectId != null) 'subject_id': subjectId,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (isCompleted != null) 'is_completed': isCompleted,
+      if (revisionStage != null) 'revision_stage': revisionStage,
+      if (lastRevisedAtMs != null) 'last_revised_at_ms': lastRevisedAtMs,
+      if (nextRevisionDateMs != null)
+        'next_revision_date_ms': nextRevisionDateMs,
+      if (associatedTaskId != null) 'associated_task_id': associatedTaskId,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RevisionTopicsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? subjectId,
+    Value<String>? title,
+    Value<String?>? description,
+    Value<bool>? isCompleted,
+    Value<int>? revisionStage,
+    Value<int?>? lastRevisedAtMs,
+    Value<int?>? nextRevisionDateMs,
+    Value<String?>? associatedTaskId,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return RevisionTopicsTableCompanion(
+      id: id ?? this.id,
+      subjectId: subjectId ?? this.subjectId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      isCompleted: isCompleted ?? this.isCompleted,
+      revisionStage: revisionStage ?? this.revisionStage,
+      lastRevisedAtMs: lastRevisedAtMs ?? this.lastRevisedAtMs,
+      nextRevisionDateMs: nextRevisionDateMs ?? this.nextRevisionDateMs,
+      associatedTaskId: associatedTaskId ?? this.associatedTaskId,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (subjectId.present) {
+      map['subject_id'] = Variable<String>(subjectId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (isCompleted.present) {
+      map['is_completed'] = Variable<bool>(isCompleted.value);
+    }
+    if (revisionStage.present) {
+      map['revision_stage'] = Variable<int>(revisionStage.value);
+    }
+    if (lastRevisedAtMs.present) {
+      map['last_revised_at_ms'] = Variable<int>(lastRevisedAtMs.value);
+    }
+    if (nextRevisionDateMs.present) {
+      map['next_revision_date_ms'] = Variable<int>(nextRevisionDateMs.value);
+    }
+    if (associatedTaskId.present) {
+      map['associated_task_id'] = Variable<String>(associatedTaskId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RevisionTopicsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('subjectId: $subjectId, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('isCompleted: $isCompleted, ')
+          ..write('revisionStage: $revisionStage, ')
+          ..write('lastRevisedAtMs: $lastRevisedAtMs, ')
+          ..write('nextRevisionDateMs: $nextRevisionDateMs, ')
+          ..write('associatedTaskId: $associatedTaskId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1491,6 +2570,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PomodoroSessionsTableTable pomodoroSessionsTable =
       $PomodoroSessionsTableTable(this);
   late final $ProfilesTableTable profilesTable = $ProfilesTableTable(this);
+  late final $RevisionSubjectsTableTable revisionSubjectsTable =
+      $RevisionSubjectsTableTable(this);
+  late final $RevisionTopicsTableTable revisionTopicsTable =
+      $RevisionTopicsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1499,6 +2582,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tasksTable,
     pomodoroSessionsTable,
     profilesTable,
+    revisionSubjectsTable,
+    revisionTopicsTable,
   ];
 }
 
@@ -1879,6 +2964,7 @@ typedef $$PomodoroSessionsTableTableCreateCompanionBuilder =
       required String mode,
       required int minutes,
       required int completedAtMs,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 typedef $$PomodoroSessionsTableTableUpdateCompanionBuilder =
@@ -1887,6 +2973,7 @@ typedef $$PomodoroSessionsTableTableUpdateCompanionBuilder =
       Value<String> mode,
       Value<int> minutes,
       Value<int> completedAtMs,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 
@@ -1916,6 +3003,11 @@ class $$PomodoroSessionsTableTableFilterComposer
 
   ColumnFilters<int> get completedAtMs => $composableBuilder(
     column: $table.completedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1948,6 +3040,11 @@ class $$PomodoroSessionsTableTableOrderingComposer
     column: $table.completedAtMs,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$PomodoroSessionsTableTableAnnotationComposer
@@ -1970,6 +3067,11 @@ class $$PomodoroSessionsTableTableAnnotationComposer
 
   GeneratedColumn<int> get completedAtMs => $composableBuilder(
     column: $table.completedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => column,
   );
 }
@@ -2024,12 +3126,14 @@ class $$PomodoroSessionsTableTableTableManager
                 Value<String> mode = const Value.absent(),
                 Value<int> minutes = const Value.absent(),
                 Value<int> completedAtMs = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PomodoroSessionsTableCompanion(
                 id: id,
                 mode: mode,
                 minutes: minutes,
                 completedAtMs: completedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2038,12 +3142,14 @@ class $$PomodoroSessionsTableTableTableManager
                 required String mode,
                 required int minutes,
                 required int completedAtMs,
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PomodoroSessionsTableCompanion.insert(
                 id: id,
                 mode: mode,
                 minutes: minutes,
                 completedAtMs: completedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2306,6 +3412,576 @@ typedef $$ProfilesTableTableProcessedTableManager =
       ProfilesTableData,
       PrefetchHooks Function()
     >;
+typedef $$RevisionSubjectsTableTableCreateCompanionBuilder =
+    RevisionSubjectsTableCompanion Function({
+      required String id,
+      required String name,
+      Value<String> iconName,
+      Value<int> colorValue,
+      required int createdAtMs,
+      Value<int> rowid,
+    });
+typedef $$RevisionSubjectsTableTableUpdateCompanionBuilder =
+    RevisionSubjectsTableCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<String> iconName,
+      Value<int> colorValue,
+      Value<int> createdAtMs,
+      Value<int> rowid,
+    });
+
+class $$RevisionSubjectsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RevisionSubjectsTableTable> {
+  $$RevisionSubjectsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RevisionSubjectsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RevisionSubjectsTableTable> {
+  $$RevisionSubjectsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get iconName => $composableBuilder(
+    column: $table.iconName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RevisionSubjectsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RevisionSubjectsTableTable> {
+  $$RevisionSubjectsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get iconName =>
+      $composableBuilder(column: $table.iconName, builder: (column) => column);
+
+  GeneratedColumn<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+}
+
+class $$RevisionSubjectsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RevisionSubjectsTableTable,
+          RevisionSubjectsTableData,
+          $$RevisionSubjectsTableTableFilterComposer,
+          $$RevisionSubjectsTableTableOrderingComposer,
+          $$RevisionSubjectsTableTableAnnotationComposer,
+          $$RevisionSubjectsTableTableCreateCompanionBuilder,
+          $$RevisionSubjectsTableTableUpdateCompanionBuilder,
+          (
+            RevisionSubjectsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $RevisionSubjectsTableTable,
+              RevisionSubjectsTableData
+            >,
+          ),
+          RevisionSubjectsTableData,
+          PrefetchHooks Function()
+        > {
+  $$RevisionSubjectsTableTableTableManager(
+    _$AppDatabase db,
+    $RevisionSubjectsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RevisionSubjectsTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$RevisionSubjectsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RevisionSubjectsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> iconName = const Value.absent(),
+                Value<int> colorValue = const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RevisionSubjectsTableCompanion(
+                id: id,
+                name: name,
+                iconName: iconName,
+                colorValue: colorValue,
+                createdAtMs: createdAtMs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                Value<String> iconName = const Value.absent(),
+                Value<int> colorValue = const Value.absent(),
+                required int createdAtMs,
+                Value<int> rowid = const Value.absent(),
+              }) => RevisionSubjectsTableCompanion.insert(
+                id: id,
+                name: name,
+                iconName: iconName,
+                colorValue: colorValue,
+                createdAtMs: createdAtMs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $RevisionSubjectsTableTable,
+                    RevisionSubjectsTableData
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RevisionSubjectsTableTable,
+                    RevisionSubjectsTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RevisionSubjectsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RevisionSubjectsTableTable,
+      RevisionSubjectsTableData,
+      $$RevisionSubjectsTableTableFilterComposer,
+      $$RevisionSubjectsTableTableOrderingComposer,
+      $$RevisionSubjectsTableTableAnnotationComposer,
+      $$RevisionSubjectsTableTableCreateCompanionBuilder,
+      $$RevisionSubjectsTableTableUpdateCompanionBuilder,
+      (
+        RevisionSubjectsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $RevisionSubjectsTableTable,
+          RevisionSubjectsTableData
+        >,
+      ),
+      RevisionSubjectsTableData,
+      PrefetchHooks Function()
+    >;
+typedef $$RevisionTopicsTableTableCreateCompanionBuilder =
+    RevisionTopicsTableCompanion Function({
+      required String id,
+      required String subjectId,
+      required String title,
+      Value<String?> description,
+      Value<bool> isCompleted,
+      Value<int> revisionStage,
+      Value<int?> lastRevisedAtMs,
+      Value<int?> nextRevisionDateMs,
+      Value<String?> associatedTaskId,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$RevisionTopicsTableTableUpdateCompanionBuilder =
+    RevisionTopicsTableCompanion Function({
+      Value<String> id,
+      Value<String> subjectId,
+      Value<String> title,
+      Value<String?> description,
+      Value<bool> isCompleted,
+      Value<int> revisionStage,
+      Value<int?> lastRevisedAtMs,
+      Value<int?> nextRevisionDateMs,
+      Value<String?> associatedTaskId,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+class $$RevisionTopicsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RevisionTopicsTableTable> {
+  $$RevisionTopicsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get subjectId => $composableBuilder(
+    column: $table.subjectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revisionStage => $composableBuilder(
+    column: $table.revisionStage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastRevisedAtMs => $composableBuilder(
+    column: $table.lastRevisedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get nextRevisionDateMs => $composableBuilder(
+    column: $table.nextRevisionDateMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get associatedTaskId => $composableBuilder(
+    column: $table.associatedTaskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RevisionTopicsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RevisionTopicsTableTable> {
+  $$RevisionTopicsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get subjectId => $composableBuilder(
+    column: $table.subjectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revisionStage => $composableBuilder(
+    column: $table.revisionStage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastRevisedAtMs => $composableBuilder(
+    column: $table.lastRevisedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get nextRevisionDateMs => $composableBuilder(
+    column: $table.nextRevisionDateMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get associatedTaskId => $composableBuilder(
+    column: $table.associatedTaskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RevisionTopicsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RevisionTopicsTableTable> {
+  $$RevisionTopicsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get subjectId =>
+      $composableBuilder(column: $table.subjectId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isCompleted => $composableBuilder(
+    column: $table.isCompleted,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get revisionStage => $composableBuilder(
+    column: $table.revisionStage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastRevisedAtMs => $composableBuilder(
+    column: $table.lastRevisedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get nextRevisionDateMs => $composableBuilder(
+    column: $table.nextRevisionDateMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get associatedTaskId => $composableBuilder(
+    column: $table.associatedTaskId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$RevisionTopicsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RevisionTopicsTableTable,
+          RevisionTopicsTableData,
+          $$RevisionTopicsTableTableFilterComposer,
+          $$RevisionTopicsTableTableOrderingComposer,
+          $$RevisionTopicsTableTableAnnotationComposer,
+          $$RevisionTopicsTableTableCreateCompanionBuilder,
+          $$RevisionTopicsTableTableUpdateCompanionBuilder,
+          (
+            RevisionTopicsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $RevisionTopicsTableTable,
+              RevisionTopicsTableData
+            >,
+          ),
+          RevisionTopicsTableData,
+          PrefetchHooks Function()
+        > {
+  $$RevisionTopicsTableTableTableManager(
+    _$AppDatabase db,
+    $RevisionTopicsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RevisionTopicsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RevisionTopicsTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RevisionTopicsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> subjectId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<int> revisionStage = const Value.absent(),
+                Value<int?> lastRevisedAtMs = const Value.absent(),
+                Value<int?> nextRevisionDateMs = const Value.absent(),
+                Value<String?> associatedTaskId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RevisionTopicsTableCompanion(
+                id: id,
+                subjectId: subjectId,
+                title: title,
+                description: description,
+                isCompleted: isCompleted,
+                revisionStage: revisionStage,
+                lastRevisedAtMs: lastRevisedAtMs,
+                nextRevisionDateMs: nextRevisionDateMs,
+                associatedTaskId: associatedTaskId,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String subjectId,
+                required String title,
+                Value<String?> description = const Value.absent(),
+                Value<bool> isCompleted = const Value.absent(),
+                Value<int> revisionStage = const Value.absent(),
+                Value<int?> lastRevisedAtMs = const Value.absent(),
+                Value<int?> nextRevisionDateMs = const Value.absent(),
+                Value<String?> associatedTaskId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RevisionTopicsTableCompanion.insert(
+                id: id,
+                subjectId: subjectId,
+                title: title,
+                description: description,
+                isCompleted: isCompleted,
+                revisionStage: revisionStage,
+                lastRevisedAtMs: lastRevisedAtMs,
+                nextRevisionDateMs: nextRevisionDateMs,
+                associatedTaskId: associatedTaskId,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $RevisionTopicsTableTable,
+                    RevisionTopicsTableData
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $RevisionTopicsTableTable,
+                    RevisionTopicsTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RevisionTopicsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RevisionTopicsTableTable,
+      RevisionTopicsTableData,
+      $$RevisionTopicsTableTableFilterComposer,
+      $$RevisionTopicsTableTableOrderingComposer,
+      $$RevisionTopicsTableTableAnnotationComposer,
+      $$RevisionTopicsTableTableCreateCompanionBuilder,
+      $$RevisionTopicsTableTableUpdateCompanionBuilder,
+      (
+        RevisionTopicsTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $RevisionTopicsTableTable,
+          RevisionTopicsTableData
+        >,
+      ),
+      RevisionTopicsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2316,4 +3992,8 @@ class $AppDatabaseManager {
       $$PomodoroSessionsTableTableTableManager(_db, _db.pomodoroSessionsTable);
   $$ProfilesTableTableTableManager get profilesTable =>
       $$ProfilesTableTableTableManager(_db, _db.profilesTable);
+  $$RevisionSubjectsTableTableTableManager get revisionSubjectsTable =>
+      $$RevisionSubjectsTableTableTableManager(_db, _db.revisionSubjectsTable);
+  $$RevisionTopicsTableTableTableManager get revisionTopicsTable =>
+      $$RevisionTopicsTableTableTableManager(_db, _db.revisionTopicsTable);
 }

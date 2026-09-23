@@ -189,7 +189,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                                             fontSize: 104,
                                             fontWeight: FontWeight.w500,
                                             letterSpacing: -1.0,
-                                            fontFeatures: [
+                                            fontFeatures: const [
                                               FontFeature.tabularFigures(),
                                             ],
                                           ),

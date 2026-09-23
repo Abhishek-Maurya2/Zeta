@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../utils/haptics.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../theme/breakpoints.dart';
-import '../../widgets/m3e_pane_divider.dart';
+import '../../components/m3e_pane_divider.dart';
 import 'pomodoro_timer_pane.dart';
 import 'pomodoro_queue_pane.dart';
 import 'pomodoro_analysis_pane.dart';
@@ -235,6 +235,15 @@ class _PomodoroPageState extends State<PomodoroPage> {
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
+        if (_isSupportingPaneCollapsed) {
+          return Row(
+            children: [
+              Expanded(child: PomodoroTimerPane(onToggleAod: _enterAodMode)),
+              _buildCollapsedExpandAffordance(colorScheme),
+            ],
+          );
+        }
+
         return Row(
           children: [
             // Left Pane: Primary Focus Pane (Timer)
@@ -328,6 +337,27 @@ class _PomodoroPageState extends State<PomodoroPage> {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 4),
+                          // Collapse Button
+                          IconButton(
+                            icon: const Icon(
+                              Icons.view_sidebar_outlined,
+                              size: 18,
+                            ),
+                            tooltip: 'Collapse supporting pane',
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () => _isSupportingPaneCollapsed = true,
+                              );
+                              _persistPaneSettings();
+                            },
+                          ),
                         ],
                       ),
                     ),
@@ -345,6 +375,44 @@ class _PomodoroPageState extends State<PomodoroPage> {
           ],
         );
       },
+    );
+  }
+
+  /// Compact vertical strip affordance on the edge to re-expand the supporting pane
+  Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
+    return Tooltip(
+      message: 'Expand ${_secondaryTab.label} pane',
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _isSupportingPaneCollapsed = false;
+            if (_supportingPaneWidth < _minSupportingPaneWidth) {
+              _supportingPaneWidth = _defaultSupportingPaneWidth;
+            }
+          });
+          HapticFeedback.lightImpact();
+          _persistPaneSettings();
+        },
+        child: Container(
+          width: 28,
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow,
+            border: Border(
+              left: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Center(
+            child: Icon(
+              Icons.chevron_left_rounded,
+              size: 20,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -7,6 +7,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/theme_provider.dart';
+import 'providers/profile_provider.dart';
+import 'providers/weather_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/task_provider.dart';
 import 'providers/pomodoro_provider.dart';
@@ -18,6 +20,8 @@ import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
+import 'services/network_service.dart';
+import 'services/preferences_service.dart';
 import 'database/database_provider.dart';
 import 'database/migration_service.dart';
 import 'services/quick_actions_service.dart';
@@ -37,7 +41,8 @@ void main([List<String> args = const <String>[]]) async {
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
-  // Initialize the local SQLite database synchronously — providers depend on it.
+  // Initialize preferences & local SQLite database
+  await PreferencesService.instance.init();
   DatabaseProvider.instance.init();
 
   // Await the one-time SharedPreferences → SQLite migration.
@@ -45,7 +50,8 @@ void main([List<String> args = const <String>[]]) async {
   // On subsequent launches this is a near-instant no-op (flag already set).
   await MigrationService(DatabaseProvider.instance.db).runIfNeeded();
 
-  // Asynchronously initialize Supabase without blocking the initial frame
+  // Asynchronously initialize services without blocking the initial frame
+  unawaited(NetworkService().checkConnectivity());
   unawaited(SupabaseService().init());
   unawaited(NotificationService.instance.init());
   runApp(const ZetaApp());
@@ -63,7 +69,12 @@ class ZetaApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => WeatherProvider()),
+        ChangeNotifierProvider(create: (ctx) => ThemeProvider(
+          profileProvider: ctx.read<ProfileProvider>(),
+          weatherProvider: ctx.read<WeatherProvider>(),
+        )),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),

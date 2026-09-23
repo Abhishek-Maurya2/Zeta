@@ -2,18 +2,28 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/pomodoro.dart';
+import '../database/database_provider.dart';
 import 'supabase_service.dart';
+import 'network_service.dart';
 
 /// Service responsible for bi-directional synchronization between local Pomodoro
 /// sessions and Supabase `public.pomodoro_sessions` table, including real-time change subscriptions.
 class PomodoroSyncService {
   static final PomodoroSyncService _instance = PomodoroSyncService._internal();
   factory PomodoroSyncService() => _instance;
-  PomodoroSyncService._internal();
+  PomodoroSyncService._internal() {
+    _networkSubscription =
+        NetworkService().onConnectivityChanged.listen((isOnline) {
+      if (isOnline) {
+        unawaited(processPendingQueue());
+      }
+    });
+  }
 
   final SupabaseService _supabaseService = SupabaseService();
   final Map<String, Timer> _debounceTimers = {};
   RealtimeChannel? _sessionsRealtimeChannel;
+  StreamSubscription<bool>? _networkSubscription;
   bool _isSyncing = false;
   DateTime? _lastSyncedAt;
   String? _lastError;
@@ -22,7 +32,8 @@ class PomodoroSyncService {
   DateTime? get lastSyncedAt => _lastSyncedAt;
   String? get lastError => _lastError;
 
-  void Function(PomodoroSessionLog session, String eventType)? onRemoteSessionChange;
+  void Function(PomodoroSessionLog session, String eventType)?
+      onRemoteSessionChange;
 
   final List<PomodoroSessionLog> _pendingQueue = [];
 
@@ -34,22 +45,43 @@ class PomodoroSyncService {
       try {
         await _supabaseService.init();
       } catch (e) {
-        debugPrint('PomodoroSyncService: Failed to initialize SupabaseService: $e');
+        debugPrint(
+            'PomodoroSyncService: Failed to initialize SupabaseService: $e');
       }
     }
   }
 
-  /// Processes any queued offline sessions that previously failed to push.
+  /// Processes any queued offline sessions that previously failed to push,
+  /// loading unsynced sessions directly from SQLite.
   Future<void> processPendingQueue() async {
     await _ensureInitialized();
-    if (_pendingQueue.isEmpty || !_supabaseService.isInitialized) return;
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return;
+
+    try {
+      final unsynced =
+          await DatabaseProvider.instance.sessionDao.getUnsyncedSessions();
+      for (final s in unsynced) {
+        if (!_pendingQueue.any((p) => p.id == s.id)) {
+          _pendingQueue.add(s);
+        }
+      }
+    } catch (_) {}
+
+    if (_pendingQueue.isEmpty) return;
     final toProcess = List<PomodoroSessionLog>.from(_pendingQueue);
     _pendingQueue.clear();
+    final syncedIds = <String>[];
     for (final session in toProcess) {
       final success = await pushSession(session);
-      if (!success && !_pendingQueue.any((s) => s.id == session.id)) {
+      if (success) {
+        syncedIds.add(session.id);
+      } else if (!_pendingQueue.any((s) => s.id == session.id)) {
         _pendingQueue.add(session);
       }
+    }
+    if (syncedIds.isNotEmpty) {
+      unawaited(DatabaseProvider.instance.sessionDao
+          .markSessionsSynced(syncedIds, DateTime.now()));
     }
   }
 
@@ -63,7 +95,7 @@ class PomodoroSyncService {
     DateTime? since,
   }) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) return [];
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return [];
 
     _isSyncing = true;
     _lastError = null;
@@ -99,6 +131,7 @@ class PomodoroSyncService {
       }
 
       _lastSyncedAt = DateTime.now();
+      NetworkService().markOnline();
       debugPrint(
         'PomodoroSyncService: Pulled ${sessions.length} sessions '
         '(since=${since?.toIso8601String() ?? "all"}).',
@@ -107,6 +140,7 @@ class PomodoroSyncService {
       return sessions;
     } catch (e) {
       _lastError = e.toString();
+      NetworkService().markOffline();
       debugPrint('PomodoroSyncService: pullSessions failed - $e');
       return [];
     } finally {
@@ -117,7 +151,7 @@ class PomodoroSyncService {
   /// Push a single session to Supabase with retries and offline fallback.
   Future<bool> pushSession(PomodoroSessionLog session) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized) {
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
       if (!_pendingQueue.any((s) => s.id == session.id)) {
         _pendingQueue.add(session);
       }
@@ -141,6 +175,9 @@ class PomodoroSyncService {
         );
         _lastSyncedAt = DateTime.now();
         _pendingQueue.removeWhere((s) => s.id == session.id);
+        unawaited(DatabaseProvider.instance.sessionDao
+            .markSessionSynced(session.id, _lastSyncedAt!));
+        NetworkService().markOnline();
         return true;
       } catch (e) {
         retryCount++;
@@ -149,6 +186,7 @@ class PomodoroSyncService {
         );
         if (retryCount >= maxRetries) {
           _lastError = e.toString();
+          NetworkService().markOffline();
           if (!_pendingQueue.any((s) => s.id == session.id)) {
             _pendingQueue.add(session);
           }
@@ -163,7 +201,11 @@ class PomodoroSyncService {
   /// Batch push a list of sessions (e.g. for initial local-to-cloud migration).
   Future<int> batchPushSessions(List<PomodoroSessionLog> sessions) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || sessions.isEmpty) return 0;
+    if (!_supabaseService.isInitialized ||
+        !NetworkService().isOnline ||
+        sessions.isEmpty) {
+      return 0;
+    }
 
     final userId = _supabaseService.effectiveUserId;
     final rows =
@@ -175,10 +217,14 @@ class PomodoroSyncService {
           .upsert(rows)
           .timeout(const Duration(seconds: 25));
       debugPrint('PomodoroSyncService: Batch upserted ${rows.length} sessions.');
+      unawaited(DatabaseProvider.instance.sessionDao
+          .markSessionsSynced(sessions.map((s) => s.id), DateTime.now()));
+      NetworkService().markOnline();
       return rows.length;
     } catch (e) {
       debugPrint('PomodoroSyncService: batchPushSessions failed - $e');
       _lastError = e.toString();
+      NetworkService().markOffline();
       return 0;
     }
   }
@@ -276,6 +322,8 @@ class PomodoroSyncService {
 
   /// Clean up resources on disposal.
   void dispose() {
+    _networkSubscription?.cancel();
+    _networkSubscription = null;
     for (final timer in _debounceTimers.values) {
       timer.cancel();
     }

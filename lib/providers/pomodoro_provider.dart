@@ -8,15 +8,16 @@ import '../models/pomodoro.dart';
 import '../services/pomodoro_sync_service.dart';
 import '../services/notification_service.dart';
 import '../utils/haptics.dart';
-import '../database/database_provider.dart';
 import '../database/daos/session_dao.dart';
+import '../repositories/pomodoro_repository.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _settingsKey = 'zeta_pomodoro_settings_v1';
   static const int _maxLogEntries = 1000;
 
-  final PomodoroSyncService _syncService = PomodoroSyncService();
-  late final SessionDao _sessionDao;
+  final PomodoroRepository _repository;
+  SessionDao get _sessionDao => _repository.sessionDao;
+  PomodoroSyncService get _syncService => _repository.syncService;
 
   PomodoroSettings _settings = const PomodoroSettings();
   List<PomodoroSessionItem> _queue = [];
@@ -28,9 +29,17 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? _targetEndTime;
 
   Timer? _timer;
+  bool _isDisposed = false;
 
-  PomodoroProvider() {
-    _sessionDao = DatabaseProvider.instance.sessionDao;
+  PomodoroProvider({
+    PomodoroRepository? repository,
+    SessionDao? sessionDao,
+    PomodoroSyncService? syncService,
+  }) : _repository = repository ??
+            PomodoroRepository(
+              sessionDao: sessionDao,
+              syncService: syncService,
+            ) {
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -121,7 +130,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
         }
         _saveSessionLog();
-        notifyListeners();
+        if (!_isDisposed) notifyListeners();
       },
     );
   }
@@ -170,7 +179,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
 
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('PomodoroProvider: Cloud sync note: $e');
     }
@@ -198,7 +207,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       _queue = generateQueue(_settings);
       _activeQueueIndex = 0;
       _syncWithCurrentQueueItem();
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('PomodoroProvider: _loadFromStorage error - $e');
     }
@@ -453,6 +462,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _isDisposed = true;
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}

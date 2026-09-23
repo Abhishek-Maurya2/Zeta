@@ -37,6 +37,8 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool get pomodoroAlertsEnabled => _pomodoroAlertsEnabled;
   bool get pomodoroLiveEnabled => _pomodoroLiveEnabled;
 
+  bool _isDisposed = false;
+
   NotificationProvider() {
     try {
       WidgetsBinding.instance.addObserver(this);
@@ -48,13 +50,14 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _loadPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (_isDisposed) return;
       _notificationsEnabled = prefs.getBool(_prefKeyMaster) ?? true;
       _taskRemindersEnabled = prefs.getBool(_prefKeyTaskReminders) ?? true;
       _overdueAlertsEnabled = prefs.getBool(_prefKeyOverdue) ?? true;
       _pomodoroAlertsEnabled = prefs.getBool(_prefKeyPomodoro) ?? true;
       _pomodoroLiveEnabled = prefs.getBool(_prefKeyPomodoroLive) ?? true;
       _syncService();
-      notifyListeners();
+      if (!_isDisposed) notifyListeners();
     } catch (_) {}
   }
 
@@ -77,12 +80,12 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_notificationsEnabled == value) return;
     _notificationsEnabled = value;
     _syncService();
+    if (!_isDisposed) notifyListeners();
     if (!value) {
-      NotificationService.instance.cancelAll();
+      await NotificationService.instance.cancelAll();
     } else {
       _rescheduleAllTasks();
     }
-    notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyMaster, value);
@@ -93,14 +96,14 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_taskRemindersEnabled == value) return;
     _taskRemindersEnabled = value;
     _syncService();
+    if (!_isDisposed) notifyListeners();
     if (!value) {
       for (final task in _tasks) {
-        NotificationService.instance.cancelTaskReminder(task.id);
+        await NotificationService.instance.cancelTaskReminder(task.id);
       }
     } else if (_notificationsEnabled) {
       _rescheduleAllTasks();
     }
-    notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyTaskReminders, value);
@@ -111,7 +114,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_overdueAlertsEnabled == value) return;
     _overdueAlertsEnabled = value;
     _syncService();
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyOverdue, value);
@@ -122,7 +125,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_pomodoroAlertsEnabled == value) return;
     _pomodoroAlertsEnabled = value;
     _syncService();
-    notifyListeners();
+    if (!_isDisposed) notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyPomodoro, value);
@@ -133,10 +136,10 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_pomodoroLiveEnabled == value) return;
     _pomodoroLiveEnabled = value;
     _syncService();
+    if (!_isDisposed) notifyListeners();
     if (!value) {
-      NotificationService.instance.cancelPomodoroProgress();
+      await NotificationService.instance.cancelPomodoroProgress();
     }
-    notifyListeners();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_prefKeyPomodoroLive, value);
@@ -232,6 +235,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _pollingTimer?.cancel();
     try {
       WidgetsBinding.instance.removeObserver(this);

@@ -6,8 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../widgets/segmented_column.dart';
-import '../../../widgets/user_avatar.dart';
+import '../../../components/segmented_column.dart';
+import '../../../components/user_avatar.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/haptics.dart';
@@ -346,8 +346,8 @@ class _ProfileSectionState extends State<ProfileSection> {
                           },
                           actions: [
                             M3EButtonGroupAction(
-                              icon: Icon(Icons.file_upload_outlined, size: 16),
-                              label: Text('Upload'),
+                              icon: const Icon(Icons.file_upload_outlined, size: 16),
+                              label: const Text('Upload'),
                               tooltip: 'Upload image from local storage',
                               decoration: M3EToggleButtonDecoration.styleFrom(
                                 backgroundColor: colorScheme.secondaryContainer,
@@ -356,8 +356,8 @@ class _ProfileSectionState extends State<ProfileSection> {
                               ),
                             ),
                             M3EButtonGroupAction(
-                              icon: Icon(Icons.link_rounded, size: 16),
-                              label: Text('URL'),
+                              icon: const Icon(Icons.link_rounded, size: 16),
+                              label: const Text('URL'),
                               tooltip: 'Set avatar image from URL',
                               decoration: M3EToggleButtonDecoration.styleFrom(
                                 backgroundColor: colorScheme.secondaryContainer,
@@ -367,11 +367,11 @@ class _ProfileSectionState extends State<ProfileSection> {
                             ),
                             if (hasPhoto)
                               M3EButtonGroupAction(
-                                icon: Icon(
+                                icon: const Icon(
                                   Icons.delete_outline_rounded,
                                   size: 16,
                                 ),
-                                label: Text('Remove'),
+                                label: const Text('Remove'),
                                 tooltip: 'Remove custom photo',
                                 decoration: M3EToggleButtonDecoration.styleFrom(
                                   backgroundColor: colorScheme.errorContainer,

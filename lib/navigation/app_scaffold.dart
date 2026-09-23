@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../services/quick_actions_service.dart';
 import '../utils/app_snackbar.dart';
@@ -17,16 +15,14 @@ import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/revision_provider.dart';
 import '../providers/theme_provider.dart';
-import '../pages/home_page.dart';
-import '../pages/tasks_page.dart';
-import '../pages/revision_page.dart';
-import '../pages/pomodoro_page.dart';
-import '../pages/bin_page.dart';
-import '../pages/settings_page.dart';
+import 'components/body_pane.dart';
+import 'components/floating_bottom_nav.dart';
+import 'components/navigation_rail_widget.dart';
+import 'components/pull_to_refresh_container.dart';
+import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../widgets/m3e_page_transition.dart';
-import '../widgets/m3e_pane_divider.dart';
+import '../components/m3e_pane_divider.dart';
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
@@ -341,7 +337,7 @@ class _AppScaffoldState extends State<AppScaffold>
     }
 
     // For all other shortcuts: only fire when NO text field or form input is focused.
-    if (_isTyping()) return false;
+    if (GlobalShortcutsHandler.isTyping()) return false;
 
     final isCtrlOrCmd =
         HardwareKeyboard.instance.isControlPressed ||
@@ -382,28 +378,6 @@ class _AppScaffoldState extends State<AppScaffold>
         context.read<PomodoroProvider>().toggleTimer();
         return true;
       }
-    }
-
-    return false;
-  }
-
-  /// Checks whether focus is currently on an editable text input or form field.
-  bool _isTyping() {
-    final focus = FocusManager.instance.primaryFocus;
-    if (focus == null) return false;
-
-    // 1. Direct label check (Flutter sets debugLabel: 'EditableText')
-    final label = focus.debugLabel;
-    if (label != null && label.contains('EditableText')) return true;
-
-    // 2. Element tree traversal check
-    final ctx = focus.context;
-    if (ctx != null && ctx.mounted) {
-      if (ctx.widget is EditableText) return true;
-      if (ctx.findAncestorWidgetOfExactType<EditableText>() != null) {
-        return true;
-      }
-      if (ctx.findAncestorStateOfType<EditableTextState>() != null) return true;
     }
 
     return false;
@@ -529,51 +503,11 @@ class _AppScaffoldState extends State<AppScaffold>
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
                   // 2. Expandable Stretchable Refresh Container below topappbar
-                  if (navProvider.activePage != PageId.settings &&
-                      _refreshHeight > 0.001)
-                    ClipRect(
-                      child: SizedBox(
-                        height: _refreshHeight,
-                        child: Builder(
-                          builder: (context) {
-                            final pullRatio = (_refreshHeight / _targetHeight)
-                                .clamp(0.0, 1.0);
-                            final expressiveRatio = M3MotionEasing.emphasized
-                                .transform(pullRatio);
-
-                            return Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal:
-                                    16.0 * (1.0 - expressiveRatio * 0.35),
-                                vertical: 4.0,
-                              ),
-                              child: AnimatedContainer(
-                                duration: M3MotionDuration.short3,
-                                curve: M3MotionEasing.emphasized,
-                                width: double.infinity,
-                                alignment: Alignment.center,
-                                child: Opacity(
-                                  opacity: pullRatio,
-                                  child: Transform.rotate(
-                                    angle: _isRefreshing
-                                        ? 0.0
-                                        : (pullRatio * 1.5 * math.pi),
-                                    child: Transform.scale(
-                                      scale: (0.55 + 0.45 * expressiveRatio)
-                                          .clamp(0.55, 1.1),
-                                      child: const M3ELoadingIndicator(
-                                        variant: M3ELoadingIndicatorVariant
-                                            .contained,
-                                        elevation: 0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                  if (navProvider.activePage != PageId.settings)
+                    PullToRefreshContainer(
+                      refreshHeight: _refreshHeight,
+                      targetHeight: _targetHeight,
+                      isRefreshing: _isRefreshing,
                     ),
 
                   // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
@@ -596,7 +530,7 @@ class _AppScaffoldState extends State<AppScaffold>
                             ? Stack(
                                 children: [
                                   Positioned.fill(
-                                    child: _BodyPane(
+                                    child: BodyPane(
                                       activePage: navProvider.activePage,
                                     ),
                                   ),
@@ -621,7 +555,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                         child: IgnorePointer(
                                           ignoring: isSelectionMode,
                                           child: Center(
-                                            child: _FloatingBottomNav(
+                                            child: FloatingBottomNav(
                                               navProvider: navProvider,
                                             ),
                                           ),
@@ -665,7 +599,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   // M3E Navigation Rail from material_3_expressive (no internal toggle button)
-                                  _NavigationRailWidget(
+                                  NavigationRailWidget(
                                     isExpanded: navProvider.isRailExpanded,
                                     navProvider: navProvider,
                                   ),
@@ -680,7 +614,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                 CrossAxisAlignment.stretch,
                                             children: [
                                               Expanded(
-                                                child: _BodyPane(
+                                                child: BodyPane(
                                                   activePage:
                                                       navProvider.activePage,
                                                 ),
@@ -819,355 +753,3 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 }
 
-// ─── Navigation Rail (from material_3_expressive) ───────────────────────────
-
-class _NavigationRailWidget extends StatelessWidget {
-  final bool isExpanded;
-  final NavigationProvider navProvider;
-
-  const _NavigationRailWidget({
-    required this.isExpanded,
-    required this.navProvider,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final selectedIndex = kNavDestinations.indexWhere(
-      (d) => d.id == navProvider.activePage,
-    );
-    final m3eTheme = M3ETheme.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final railBgColor = isDark
-        ? colorScheme.surfaceContainer
-        : colorScheme.surface;
-
-    return M3ETheme(
-      data: m3eTheme.copyWith(
-        navigationRailTheme: m3eTheme.navigationRailTheme.copyWith(
-          containerColor: railBgColor,
-          itemExpandedHeight: 52.0, // Increased height from default 40.0
-          indicatorLeading:
-              18.0, // Decreased inner start padding from default 16.0
-          indicatorTrailing:
-              10.0, // Decreased inner end padding from default 16.0
-          itemVerticalGap:
-              2.0, // Decreased vertical padding between items from default 4.0
-        ),
-      ),
-      child: M3ENavigationRail(
-        background: railBgColor,
-        // Toggle button is in the AppBar; rail does not show its own toggle button
-        type: isExpanded
-            ? M3ENavigationRailType.alwaysExpand
-            : M3ENavigationRailType.alwaysCollapse,
-        selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
-        onDestinationSelected: (index) {
-          ZetaHaptics.selection();
-          context.read<TaskProvider>().clearSelection();
-          final target = kNavDestinations[index].id;
-          if (navProvider.activePage == PageId.revision &&
-              target != PageId.revision) {
-            context.read<RevisionProvider>().selectSubject(null);
-          }
-          navProvider.setActivePage(target);
-        },
-        fab: M3ENavigationRailFabSlot(
-          icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
-          label: 'New Task',
-          color: M3EFabColor.primary,
-          onPressed: () {
-            ZetaHaptics.medium();
-            TaskEditPane.show(context);
-          },
-        ),
-        sections: [
-          M3ENavigationRailSection(
-            destinations: kNavDestinations
-                .map(
-                  (d) => M3ENavigationRailDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selectedIcon),
-                    label: d.label,
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Floating Bottom Navigation Toolbar (from material_3_expressive) ─────────
-
-class _FloatingBottomNav extends StatelessWidget {
-  final NavigationProvider navProvider;
-  const _FloatingBottomNav({required this.navProvider});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final baseM3ETheme = M3ETheme.of(context);
-
-    final isTasksPage = navProvider.activePage == PageId.tasks;
-
-    final glassColorScheme = baseM3ETheme.colorScheme.copyWith(
-      primaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
-      secondaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
-      tertiaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.70),
-      surfaceContainerHigh: colorScheme.primaryContainer.withValues(
-        alpha: 0.70,
-      ),
-      primary: colorScheme.primaryContainer.withValues(alpha: 0.70),
-      onPrimaryContainer: colorScheme.onPrimaryContainer,
-      onSecondaryContainer: colorScheme.onPrimaryContainer,
-      onTertiaryContainer: colorScheme.onPrimaryContainer,
-      onPrimary: colorScheme.onPrimaryContainer,
-    );
-
-    final navToolbar = M3ETheme(
-      data: baseM3ETheme.copyWith(
-        colorScheme: glassColorScheme,
-        toolbarTheme: baseM3ETheme.toolbarTheme.copyWith(containerSize: 65),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: M3EToolbar(
-            backgroundColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.70,
-            ),
-            size: M3EToolbarSize.large,
-            padding: const EdgeInsets.symmetric(horizontal: 1),
-            actions: [
-              M3EToolbarWidget(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: kNavDestinations
-                      .where(
-                        (dest) =>
-                            dest.id != PageId.settings && dest.id != PageId.bin,
-                      )
-                      .map((dest) {
-                        final isSelected = dest.id == navProvider.activePage;
-
-                        return _ToolbarNavItem(
-                          destination: dest,
-                          isSelected: isSelected,
-                          onTap: () {
-                            ZetaHaptics.selection();
-                            context.read<TaskProvider>().clearSelection();
-
-                            if (navProvider.activePage == PageId.revision &&
-                                dest.id != PageId.revision) {
-                              context.read<RevisionProvider>().selectSubject(
-                                null,
-                              );
-                            }
-
-                            navProvider.setActivePage(dest.id);
-                          },
-                        );
-                      })
-                      .toList(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    final fabButton = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.70),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
-                ZetaHaptics.medium();
-                TaskEditPane.show(context);
-              },
-              child: Tooltip(
-                message: 'New Task',
-                child: Center(
-                  child: Icon(
-                    Icons.add_rounded,
-                    size: 26,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    return Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          IntrinsicWidth(child: navToolbar),
-          if (isTasksPage) ...[const SizedBox(width: 8), fabButton],
-        ],
-      ),
-    );
-  }
-}
-
-class _ToolbarNavItem extends StatelessWidget {
-  final NavDestination destination;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ToolbarNavItem({
-    required this.destination,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final content = Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(
-          isSelected ? destination.selectedIcon : destination.icon,
-          size: isSelected ? 26 : 24,
-          color: isSelected
-              ? colorScheme.onSurface
-              : colorScheme.onPrimaryContainer,
-        ),
-        if (isSelected) ...[
-          const SizedBox(width: 8),
-          Text(
-            destination.label,
-            style: TextStyle(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ],
-      ],
-    );
-
-    final navItem = AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      constraints: BoxConstraints(minWidth: isSelected ? 40 : 35),
-      padding: EdgeInsets.symmetric(
-        horizontal: isSelected ? 15 : 4,
-        vertical: 12,
-      ),
-      decoration: BoxDecoration(
-        color: isSelected
-            ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(88),
-      ),
-      child: content,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: Tooltip(
-        message: destination.label,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(80),
-          onTap: onTap,
-          child: isSelected
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(80),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                    child: navItem,
-                  ),
-                )
-              : navItem,
-        ),
-      ),
-    );
-  }
-}
-// ─── Body Pane (Page Router) ────────────────────────────────────────────────
-
-class _BodyPane extends StatefulWidget {
-  final PageId activePage;
-  const _BodyPane({required this.activePage});
-
-  @override
-  State<_BodyPane> createState() => _BodyPaneState();
-}
-
-class _BodyPaneState extends State<_BodyPane> {
-  int _currentIndex = 0;
-  int _previousIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = _getPageIndex(widget.activePage);
-    _previousIndex = _currentIndex;
-  }
-
-  @override
-  void didUpdateWidget(covariant _BodyPane oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.activePage != widget.activePage) {
-      setState(() {
-        _previousIndex = _getPageIndex(oldWidget.activePage);
-        _currentIndex = _getPageIndex(widget.activePage);
-      });
-    }
-  }
-
-  int _getPageIndex(PageId page) {
-    final idx = kNavDestinations.indexWhere((d) => d.id == page);
-    return idx >= 0 ? idx : 0;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return M3EPageTransition(
-      currentIndex: _currentIndex,
-      previousIndex: _previousIndex,
-      transitionType: M3EPageTransitionType.sharedAxisX,
-      duration: const Duration(milliseconds: 580),
-      child: _buildPage(widget.activePage),
-    );
-  }
-
-  Widget _buildPage(PageId page) {
-    switch (page) {
-      case PageId.home:
-        return const HomePage(key: ValueKey('home'));
-      case PageId.tasks:
-        return const TasksPage(key: ValueKey('tasks'));
-      case PageId.revision:
-        return const RevisionPage(key: ValueKey('revision'));
-      case PageId.pomodoro:
-        return const PomodoroPage(key: ValueKey('pomodoro'));
-      case PageId.bin:
-        return const BinPage(key: ValueKey('bin'));
-      case PageId.settings:
-        return const SettingsPage(key: ValueKey('settings'));
-    }
-  }
-}

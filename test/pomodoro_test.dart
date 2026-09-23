@@ -11,8 +11,8 @@ import 'package:zeta/pages/pomodoro_page.dart';
 import 'package:zeta/pages/pomodoro/components/pomodoro_settings_sheet.dart';
 import 'package:zeta/pages/pomodoro/components/pomodoro_timer_display.dart';
 import 'package:zeta/pages/pomodoro/components/pomodoro_chart_canvas.dart';
-import 'package:zeta/widgets/m3e_pane_divider.dart';
-import 'package:zeta/widgets/segmented_column.dart';
+import 'package:zeta/components/m3e_pane_divider.dart';
+import 'package:zeta/components/segmented_column.dart';
 import 'package:zeta/services/ambient_mode_service.dart';
 import 'package:flutter/services.dart';
 
@@ -298,7 +298,7 @@ void main() {
     expect(segmentedWidget.children.isNotEmpty, isTrue);
 
     // Verify empty state when logs are cleared
-    provider.clearSessionLog();
+    await provider.clearSessionLog();
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('No sessions recorded yet'), findsOneWidget);
   });

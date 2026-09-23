@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/theme_provider.dart';
+import '../providers/profile_provider.dart';
 
 /// Renders the user's avatar.
 /// If a photo is set, displays the photo without blinking or refreshing.
@@ -55,12 +56,15 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final accentColor = themeProvider.currentAvatarColor;
+    final profileProvider = Provider.of<ProfileProvider?>(context);
+    final themeProvider = profileProvider == null ? Provider.of<ThemeProvider?>(context) : null;
+    final accentColor = profileProvider?.currentAvatarColor ?? themeProvider?.currentAvatarColor ?? const Color(0xFF10B981);
     final effectiveRingColor = ringColor ?? accentColor;
     final diameter = radius * 2;
-    final initial = themeProvider.avatarInitial;
+    final initial = profileProvider?.avatarInitial ?? themeProvider?.avatarInitial ?? 'A';
     final effectiveFontSize = fontSize ?? (radius * 0.85);
+    final hasPhoto = profileProvider?.hasAvatarPhoto ?? themeProvider?.hasAvatarPhoto ?? false;
+    final photo = profileProvider?.avatarPhoto ?? themeProvider?.avatarPhoto;
 
     Widget fallbackInitial() {
       return Center(
@@ -76,8 +80,7 @@ class UserAvatar extends StatelessWidget {
     }
 
     Widget avatarContent() {
-      if (themeProvider.hasAvatarPhoto) {
-        final photo = themeProvider.avatarPhoto!;
+      if (hasPhoto && photo != null) {
         if (photo.startsWith('http://') || photo.startsWith('https://')) {
           return Image.network(
             photo,
@@ -108,7 +111,7 @@ class UserAvatar extends StatelessWidget {
       return fallbackInitial();
     }
 
-    Widget content = AnimatedContainer(
+    final Widget content = AnimatedContainer(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
       width: diameter + (showRing ? (ringWidth * 2 + 4) : 0),

@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../widgets/segmented_column.dart';
+import 'segmented_column.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
@@ -386,7 +386,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     final inputWidget = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: isCompact
-          ? BoxDecoration(
+          ? const BoxDecoration(
               // color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.35),
               // borderRadius: BorderRadius.circular(16),
               // border: Border.all(
@@ -608,8 +608,8 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2),
                         child: Icon(Icons.notes_rounded, size: 20),
                       ),
                       const SizedBox(width: 10),

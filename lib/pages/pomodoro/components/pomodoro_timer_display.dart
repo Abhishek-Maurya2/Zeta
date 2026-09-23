@@ -61,7 +61,7 @@ class PomodoroTimerDisplay extends StatelessWidget {
                     fontVariations: [
                       FontVariation('wght', isRunning ? 900 : 600),
                       FontVariation('wdth', isRunning ? 80 : 180),
-                      FontVariation('ROND', 100),
+                      const FontVariation('ROND', 100),
                     ],
                   ),
                 ),

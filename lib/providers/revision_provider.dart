@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +8,8 @@ import '../models/revision.dart';
 import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
 import '../services/revision_sync_service.dart';
+import '../database/daos/revision_dao.dart';
+import '../repositories/revision_repository.dart';
 
 /// Persisted configuration for the Revision spaced-repetition system.
 class RevisionSettings {
@@ -67,11 +70,11 @@ class RevisionSettings {
 }
 
 class RevisionProvider with ChangeNotifier {
-  static const String _subjectsKey = 'zeta_revision_subjects_v2';
-  static const String _topicsKey = 'zeta_revision_topics_v2';
   static const String _settingsKey = 'zeta_revision_settings_v1';
   final Uuid _uuid = const Uuid();
-  final RevisionSyncService _syncService = RevisionSyncService();
+  final RevisionRepository _repository;
+  RevisionDao get _revisionDao => _repository.revisionDao;
+  RevisionSyncService get _syncService => _repository.syncService;
 
   List<Subject> _subjects = [];
   List<ChapterTopic> _topics = [];
@@ -79,7 +82,15 @@ class RevisionProvider with ChangeNotifier {
   bool _isLoading = true;
   RevisionSettings _settings = const RevisionSettings();
 
-  RevisionProvider() {
+  RevisionProvider({
+    RevisionRepository? repository,
+    RevisionDao? revisionDao,
+    RevisionSyncService? syncService,
+  }) : _repository = repository ??
+            RevisionRepository(
+              revisionDao: revisionDao,
+              syncService: syncService,
+            ) {
     _loadData();
   }
 
@@ -126,8 +137,6 @@ class RevisionProvider with ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final subjectsRaw = prefs.getString(_subjectsKey);
-      final topicsRaw = prefs.getString(_topicsKey);
       final settingsRaw = prefs.getString(_settingsKey);
 
       if (settingsRaw != null && settingsRaw.isNotEmpty) {
@@ -136,30 +145,30 @@ class RevisionProvider with ChangeNotifier {
         );
       }
 
-      if (subjectsRaw != null && subjectsRaw.isNotEmpty) {
-        final List<dynamic> list = jsonDecode(subjectsRaw);
-        _subjects = list.map((e) => Subject.fromJson(e as Map<String, dynamic>)).toList();
-      }
+      // ── Load from local SQLite first (instant) ──────────────────────────
+      final localSubjects = await _revisionDao.getAllSubjects();
+      final localTopics = await _revisionDao.getAllTopics();
 
-      if (topicsRaw != null && topicsRaw.isNotEmpty) {
-        final List<dynamic> list = jsonDecode(topicsRaw);
-        _topics = list.map((e) => ChapterTopic.fromJson(e as Map<String, dynamic>)).toList();
-      }
-
-      // If cached data was loaded, render immediately
-      if (_subjects.isNotEmpty) {
+      if (localSubjects.isNotEmpty) {
+        _subjects = localSubjects;
+        _topics = localTopics;
         _isLoading = false;
         notifyListeners();
       }
 
-      // Fetch dynamic data from Supabase
+      // ── Fetch dynamic data from Supabase ────────────────────────────────
       final remoteSubjects = await _syncService.pullSubjects();
       final remoteTopics = await _syncService.pullTopics();
 
-      if (remoteSubjects.isNotEmpty) {
-        _subjects = remoteSubjects;
-        _topics = remoteTopics;
-        await _saveData();
+      if (remoteSubjects.isNotEmpty || remoteTopics.isNotEmpty) {
+        if (remoteSubjects.isNotEmpty) {
+          _subjects = remoteSubjects;
+          await _revisionDao.upsertAllSubjects(remoteSubjects);
+        }
+        if (remoteTopics.isNotEmpty) {
+          _topics = remoteTopics;
+          await _revisionDao.upsertAllTopics(remoteTopics);
+        }
       }
     } catch (e) {
       debugPrint('Error loading Revision data: $e');
@@ -178,12 +187,13 @@ class RevisionProvider with ChangeNotifier {
       if (_syncService.lastError == null) {
         if (remoteSubjects.isNotEmpty) {
           _subjects = remoteSubjects;
+          await _revisionDao.upsertAllSubjects(remoteSubjects);
         }
         if (remoteTopics.isNotEmpty) {
           _topics = remoteTopics;
+          await _revisionDao.upsertAllTopics(remoteTopics);
         }
         if (remoteSubjects.isNotEmpty || remoteTopics.isNotEmpty) {
-          await _saveData();
           notifyListeners();
         }
       }
@@ -192,17 +202,12 @@ class RevisionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> _saveData() async {
+  Future<void> _saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final subjectsJson = jsonEncode(_subjects.map((s) => s.toJson()).toList());
-      final topicsJson = jsonEncode(_topics.map((t) => t.toJson()).toList());
-
-      await prefs.setString(_subjectsKey, subjectsJson);
-      await prefs.setString(_topicsKey, topicsJson);
       await prefs.setString(_settingsKey, jsonEncode(_settings.toJson()));
     } catch (e) {
-      debugPrint('Error saving Revision data: $e');
+      debugPrint('Error saving Revision settings: $e');
     }
   }
 
@@ -211,18 +216,20 @@ class RevisionProvider with ChangeNotifier {
   Future<void> updateSettings(RevisionSettings newSettings) async {
     _settings = newSettings;
     notifyListeners();
-    await _saveData();
+    await _saveSettings();
   }
 
   void resetToDefaultSettings() {
     _settings = const RevisionSettings();
     notifyListeners();
-    _saveData();
+    _saveSettings();
   }
 
   // ─── CRUD Operations ────────────────────────────────────────────────────────
 
-  Future<void> addSubject(String name, {String iconName = 'menu_book_rounded', int colorValue = 0xFF6750A4}) async {
+  Future<void> addSubject(String name,
+      {String iconName = 'menu_book_rounded',
+      int colorValue = 0xFF6750A4}) async {
     final newSubject = Subject(
       id: _uuid.v4(),
       name: name,
@@ -231,24 +238,26 @@ class RevisionProvider with ChangeNotifier {
     );
     _subjects.add(newSubject);
     _selectedSubjectId = newSubject.id;
-    await _saveData();
     notifyListeners();
-    _syncService.pushSubject(newSubject);
+    unawaited(_revisionDao.upsertSubject(newSubject));
+    unawaited(_syncService.pushSubject(newSubject));
   }
 
   Future<void> updateSubject(Subject subject) async {
     final index = _subjects.indexWhere((s) => s.id == subject.id);
     if (index != -1) {
       _subjects[index] = subject;
-      await _saveData();
       notifyListeners();
-      _syncService.pushSubject(subject);
+      unawaited(_revisionDao.upsertSubject(subject));
+      unawaited(_syncService.pushSubject(subject));
     }
   }
 
-  Future<void> deleteSubject(String subjectId, TaskProvider taskProvider) async {
+  Future<void> deleteSubject(
+      String subjectId, TaskProvider taskProvider) async {
     // Cascade: delete all revision tasks linked to topics of this subject
-    final subjectTopics = _topics.where((t) => t.subjectId == subjectId).toList();
+    final subjectTopics =
+        _topics.where((t) => t.subjectId == subjectId).toList();
     for (final topic in subjectTopics) {
       final taskId = topic.associatedTaskId;
       if (taskId != null) {
@@ -260,13 +269,15 @@ class RevisionProvider with ChangeNotifier {
     if (_selectedSubjectId == subjectId) {
       _selectedSubjectId = null;
     }
-    await _saveData();
     notifyListeners();
-    _syncService.deleteSubject(subjectId);
+    unawaited(_revisionDao.deleteSubject(subjectId));
+    unawaited(_syncService.deleteSubject(subjectId));
   }
 
-  Future<void> addTopic(String subjectId, String title, {String? description}) async {
-    final subjectTopics = _topics.where((t) => t.subjectId == subjectId).toList();
+  Future<void> addTopic(String subjectId, String title,
+      {String? description}) async {
+    final subjectTopics =
+        _topics.where((t) => t.subjectId == subjectId).toList();
     final nextSortOrder = subjectTopics.isEmpty
         ? 0
         : subjectTopics
@@ -282,18 +293,18 @@ class RevisionProvider with ChangeNotifier {
       sortOrder: nextSortOrder,
     );
     _topics.add(newTopic);
-    await _saveData();
     notifyListeners();
-    _syncService.pushTopic(newTopic);
+    unawaited(_revisionDao.upsertTopic(newTopic));
+    unawaited(_syncService.pushTopic(newTopic));
   }
 
   Future<void> updateTopic(ChapterTopic topic) async {
     final index = _topics.indexWhere((t) => t.id == topic.id);
     if (index != -1) {
       _topics[index] = topic;
-      await _saveData();
       notifyListeners();
-      _syncService.pushTopic(topic);
+      unawaited(_revisionDao.upsertTopic(topic));
+      unawaited(_syncService.pushTopic(topic));
     }
   }
 
@@ -307,14 +318,15 @@ class RevisionProvider with ChangeNotifier {
       }
     }
     _topics.removeWhere((t) => t.id == topicId);
-    await _saveData();
     notifyListeners();
-    _syncService.deleteTopic(topicId);
+    unawaited(_revisionDao.deleteTopic(topicId));
+    unawaited(_syncService.deleteTopic(topicId));
   }
 
   /// Reorders a topic within a subject from [oldIndex] to [newIndex]
   /// and updates sort orders locally and in Supabase.
-  Future<void> reorderTopic(String subjectId, int oldIndex, int newIndex) async {
+  Future<void> reorderTopic(
+      String subjectId, int oldIndex, int newIndex) async {
     if (oldIndex == newIndex) return;
 
     final subjectTopics = topicsForSelectedSubject;
@@ -339,17 +351,17 @@ class RevisionProvider with ChangeNotifier {
       }
     }
 
-    await _saveData();
     notifyListeners();
-
-    _syncService.pushTopics(updatedTopics);
+    unawaited(_revisionDao.upsertAllTopics(updatedTopics));
+    unawaited(_syncService.pushTopics(updatedTopics));
   }
 
   // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────
 
   /// Marks a topic complete or advances its revision stage.
   /// Schedules next revision date and creates a revision task in [TaskProvider].
-  Future<void> completeTopic(String topicId, TaskProvider taskProvider) async {
+  Future<void> completeTopic(
+      String topicId, TaskProvider taskProvider) async {
     final index = _topics.indexWhere((t) => t.id == topicId);
     if (index == -1) return;
 
@@ -397,13 +409,14 @@ class RevisionProvider with ChangeNotifier {
       associatedTaskId: createdTaskId,
     );
 
-    await _saveData();
     notifyListeners();
-    _syncService.pushTopic(_topics[index]);
+    unawaited(_revisionDao.upsertTopic(_topics[index]));
+    unawaited(_syncService.pushTopic(_topics[index]));
   }
 
   /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].
-  Future<void> syncFromTaskCompletion(String taskId, TaskProvider taskProvider) async {
+  Future<void> syncFromTaskCompletion(
+      String taskId, TaskProvider taskProvider) async {
     final index = _topics.indexWhere((t) => t.associatedTaskId == taskId);
     if (index == -1) return;
 

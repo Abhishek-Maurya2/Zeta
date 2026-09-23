@@ -34,10 +34,10 @@ void main() {
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
     final taskProvider = context.read<TaskProvider>();
-    taskProvider.addTask(title: 'Task Alpha');
-    taskProvider.addTask(title: 'Task Beta');
-    taskProvider.addTask(title: 'Task Gamma');
-    taskProvider.addTask(title: 'Task Delta');
+    await taskProvider.addTask(title: 'Task Alpha');
+    await taskProvider.addTask(title: 'Task Beta');
+    await taskProvider.addTask(title: 'Task Gamma');
+    await taskProvider.addTask(title: 'Task Delta');
     final gammaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Gamma').id;
     final deltaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Delta').id;
     taskProvider.toggleTask(gammaId);
@@ -82,8 +82,8 @@ void main() {
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
     final taskProvider = context.read<TaskProvider>();
-    taskProvider.addTask(title: 'Task Alpha');
-    taskProvider.addTask(title: 'Task Gamma');
+    await taskProvider.addTask(title: 'Task Alpha');
+    await taskProvider.addTask(title: 'Task Gamma');
     final gammaId = taskProvider.allTasks.firstWhere((t) => t.title == 'Task Gamma').id;
     taskProvider.toggleTask(gammaId);
 
@@ -176,8 +176,8 @@ void main() {
 
     final BuildContext context = tester.element(find.byType(AppScaffold));
     final taskProvider = context.read<TaskProvider>();
-    taskProvider.addTask(title: 'Bin Task Alpha');
-    taskProvider.addTask(title: 'Bin Task Beta');
+    await taskProvider.addTask(title: 'Bin Task Alpha');
+    await taskProvider.addTask(title: 'Bin Task Beta');
     final alphaId =
         taskProvider.allTasks.firstWhere((t) => t.title == 'Bin Task Alpha').id;
     final betaId =

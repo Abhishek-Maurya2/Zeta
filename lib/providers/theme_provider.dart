@@ -1,12 +1,15 @@
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../theme/color_variant.dart';
 import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
-import '../services/profile_service.dart';
 import '../utils/haptics.dart';
+import 'profile_provider.dart';
+import 'weather_provider.dart';
 
 /// Seed color preset matching Sharva's design system.
 class SeedPreset {
@@ -93,14 +96,6 @@ class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyTypographyTitles = 'zeta_typo_titles';
   static const String _prefKeyTypographyBody = 'zeta_typo_body';
   static const String _prefKeyTypographyLabels = 'zeta_typo_labels';
-  static const String _prefKeyUserName = 'zeta_user_name';
-  static const String _prefKeyUserEmail = 'zeta_user_email';
-  static const String _prefKeyAvatarPhoto = 'zeta_avatar_photo';
-  static const String _prefKeyAvatarColorIndex = 'zeta_avatar_color_index';
-  static const String _prefKeyCityName = 'zeta_city_name';
-  static const String _prefKeyWeatherCache = 'zeta_weather_cache';
-  static const String _prefKeyWeatherEnabled = 'zeta_weather_enabled';
-  static const String _prefKeyShowWeatherInHeader = 'zeta_show_weather_in_header';
   static const String _prefKeyNotifications = 'zeta_notifications';
   static const String _prefKeySoundEffects = 'zeta_sound_effects';
   static const String _prefKeyAutoSave = 'zeta_auto_save';
@@ -117,7 +112,19 @@ class ThemeProvider extends ChangeNotifier {
     Color(0xFF0D9488), // Glacier Teal
   ];
 
-  ThemeProvider() {
+  final ProfileProvider _profile;
+  final WeatherProvider _weather;
+
+  ProfileProvider get profile => _profile;
+  WeatherProvider get weather => _weather;
+
+  ThemeProvider({
+    ProfileProvider? profileProvider,
+    WeatherProvider? weatherProvider,
+  }) : _profile = profileProvider ?? ProfileProvider(),
+       _weather = weatherProvider ?? WeatherProvider() {
+    _profile.addListener(notifyListeners);
+    _weather.addListener(notifyListeners);
     _loadSettings();
   }
 
@@ -143,6 +150,21 @@ class ThemeProvider extends ChangeNotifier {
     final next = isDark ? ThemeMode.light : ThemeMode.dark;
     setThemeMode(next);
   }
+
+  // ─── Navigation Colors ──────────────────────────────────────────────────
+  /// Navigation rail background color matching the rest of the application.
+  /// In dark mode, matches the surface canvas instead of an elevated container.
+  Color navRailColor(BuildContext context) {
+    final isDark = isDarkMode(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    return isDark ? colorScheme.surfaceContainer : colorScheme.surface;
+  }
+
+  /// Alias for [navRailColor].
+  Color navRailBackgroundColor(BuildContext context) => navRailColor(context);
+
+  /// Navigation rail background color fallback for dark mode.
+  Color get darkNavRailColor => const Color(0xFF141218);
 
   // ─── Seed Color ─────────────────────────────────────────────────────────
   Color _seedColor = const Color(0xFF6750A4);
@@ -230,7 +252,8 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   // ─── Variable Typography Roles ──────────────────────────────────────────
-  RoleTypographyConfig _headingsTypography = RoleTypographyConfig.defaultHeadings;
+  RoleTypographyConfig _headingsTypography =
+      RoleTypographyConfig.defaultHeadings;
   RoleTypographyConfig get headingsTypography => _headingsTypography;
 
   RoleTypographyConfig _titlesTypography = RoleTypographyConfig.defaultTitles;
@@ -299,7 +322,10 @@ class ThemeProvider extends ChangeNotifier {
     _titlesTypography = preset.titles;
     _bodyTypography = preset.body;
     _labelsTypography = preset.labels;
-    _saveSetting(_prefKeyTypographyHeadings, jsonEncode(preset.headings.toJson()));
+    _saveSetting(
+      _prefKeyTypographyHeadings,
+      jsonEncode(preset.headings.toJson()),
+    );
     _saveSetting(_prefKeyTypographyTitles, jsonEncode(preset.titles.toJson()));
     _saveSetting(_prefKeyTypographyBody, jsonEncode(preset.body.toJson()));
     _saveSetting(_prefKeyTypographyLabels, jsonEncode(preset.labels.toJson()));
@@ -311,216 +337,51 @@ class ThemeProvider extends ChangeNotifier {
     _titlesTypography = RoleTypographyConfig.defaultTitles;
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
-    _saveSetting(_prefKeyTypographyHeadings, jsonEncode(_headingsTypography.toJson()));
-    _saveSetting(_prefKeyTypographyTitles, jsonEncode(_titlesTypography.toJson()));
+    _saveSetting(
+      _prefKeyTypographyHeadings,
+      jsonEncode(_headingsTypography.toJson()),
+    );
+    _saveSetting(
+      _prefKeyTypographyTitles,
+      jsonEncode(_titlesTypography.toJson()),
+    );
     _saveSetting(_prefKeyTypographyBody, jsonEncode(_bodyTypography.toJson()));
-    _saveSetting(_prefKeyTypographyLabels, jsonEncode(_labelsTypography.toJson()));
-    notifyListeners();
-  }
-
-  // ─── Profile (Photo avatar with first-alphabet fallback) ────────────────
-  String _userName = 'Abhishek';
-  String get userName => _userName;
-
-  String? _avatarPhoto;
-  String? get avatarPhoto => _avatarPhoto;
-  bool get hasAvatarPhoto => _avatarPhoto != null && _avatarPhoto!.trim().isNotEmpty;
-
-  void setAvatarPhoto(String? photo) {
-    final cleaned = photo?.trim();
-    _avatarPhoto = (cleaned != null && cleaned.isNotEmpty) ? cleaned : null;
-    notifyListeners();
-    _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
-    ProfileService().saveProfile(
-      displayName: _userName,
-      email: _userEmail,
-      avatarImage: _avatarPhoto,
+    _saveSetting(
+      _prefKeyTypographyLabels,
+      jsonEncode(_labelsTypography.toJson()),
     );
-  }
-
-  void clearAvatarPhoto() {
-    setAvatarPhoto(null);
-  }
-
-  /// When no photo is set, avatar defaults strictly to the first alphabet of user's name
-  String get avatarInitial {
-    final trimmed = _userName.trim();
-    if (trimmed.isEmpty) return 'U';
-    return trimmed[0].toUpperCase();
-  }
-
-  String get userInitials => avatarInitial;
-
-  int _avatarColorIndex = 0;
-  int get avatarColorIndex => _avatarColorIndex;
-  Color get currentAvatarColor =>
-      avatarColors[_avatarColorIndex.clamp(0, avatarColors.length - 1)];
-
-  void setAvatarColorIndex(int index) {
-    if (index < 0 || index >= avatarColors.length || _avatarColorIndex == index) return;
-    _avatarColorIndex = index;
     notifyListeners();
-    _saveSetting(_prefKeyAvatarColorIndex, index);
   }
 
-  String _userEmail = '';
-  String get userEmail => _userEmail;
+  // ─── Profile Delegations ────────────────────────────────────────────────
+  String get userName => _profile.userName;
+  void setUserName(String name) => _profile.setUserName(name);
+  String get userEmail => _profile.userEmail;
+  void setUserEmail(String email) => _profile.setUserEmail(email);
+  String? get avatarPhoto => _profile.avatarPhoto;
+  void setAvatarPhoto(String? photo) => _profile.setAvatarPhoto(photo);
+  void clearAvatarPhoto() => _profile.setAvatarPhoto(null);
+  bool get hasAvatarPhoto => _profile.hasAvatarPhoto;
+  String get avatarInitial => _profile.avatarInitial;
+  String get userInitials => _profile.userInitials;
+  int get avatarColorIndex => _profile.avatarColorIndex;
+  void setAvatarColorIndex(int index) => _profile.setAvatarColorIndex(index);
+  Color get currentAvatarColor => _profile.currentAvatarColor;
+  Future<void> syncProfileWithDb() => _profile.syncProfileWithDb();
 
-  void setUserEmail(String email) {
-    final trimmed = email.trim();
-    if (_userEmail == trimmed) return;
-    _userEmail = trimmed;
-    notifyListeners();
-    _saveSetting(_prefKeyUserEmail, trimmed);
-    ProfileService().saveProfile(
-      displayName: _userName,
-      email: _userEmail,
-      avatarImage: _avatarPhoto,
-    );
-  }
-
-  void setUserName(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty || _userName == trimmed) return;
-    _userName = trimmed;
-    notifyListeners();
-    _saveSetting(_prefKeyUserName, trimmed);
-    ProfileService().saveProfile(
-      displayName: _userName,
-      email: _userEmail,
-      avatarImage: _avatarPhoto,
-    );
-  }
-
-  /// Synchronizes profile details (display_name, email, avatar_image) from Supabase profiles table.
-  Future<void> syncProfileWithDb() async {
-    try {
-      final data = await ProfileService().fetchProfile();
-      if (data != null) {
-        final name = data['display_name'] as String?;
-        final email = data['email'] as String?;
-        final photo = data['avatar_image'] as String?;
-        bool changed = false;
-        if (name != null && name.trim().isNotEmpty && name != _userName) {
-          _userName = name.trim();
-          _saveSetting(_prefKeyUserName, _userName);
-          changed = true;
-        }
-        if (email != null && email != _userEmail) {
-          _userEmail = email.trim();
-          _saveSetting(_prefKeyUserEmail, _userEmail);
-          changed = true;
-        }
-        if (photo != null && photo != _avatarPhoto) {
-          _avatarPhoto = photo.isEmpty ? null : photo;
-          _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
-          changed = true;
-        }
-        if (changed) {
-          notifyListeners();
-        }
-      }
-    } catch (_) {}
-  }
-
-  // ─── Weather Location (Celsius Only) ────────────────────────────────────
-  bool _weatherEnabled = true;
-  bool get weatherEnabled => _weatherEnabled;
-
-  void setWeatherEnabled(bool val) {
-    if (_weatherEnabled == val) return;
-    _weatherEnabled = val;
-    notifyListeners();
-    _saveSetting(_prefKeyWeatherEnabled, val);
-    if (val) {
-      refreshWeather();
-    }
-  }
-
-  bool _showWeatherInHeader = true;
-  bool get showWeatherInHeader => _showWeatherInHeader;
-
-  void setShowWeatherInHeader(bool val) {
-    if (_showWeatherInHeader == val) return;
-    _showWeatherInHeader = val;
-    notifyListeners();
-    _saveSetting(_prefKeyShowWeatherInHeader, val);
-  }
-
-  String _cityName = 'San Francisco, US';
-  String get cityName => _cityName;
-
-  WeatherData? _weatherData;
-  WeatherData? get weatherData => _weatherData;
-
-  bool _isWeatherLoading = false;
-  bool get isWeatherLoading => _isWeatherLoading;
-
-  void setCityName(String city) {
-    final trimmed = city.trim();
-    if (trimmed.isEmpty) return;
-    _cityName = trimmed;
-    notifyListeners();
-    _saveSetting(_prefKeyCityName, trimmed);
-    if (_weatherEnabled) {
-      refreshWeather();
-    }
-  }
-
-  Future<void> refreshWeather() async {
-    if (!_weatherEnabled) return;
-    _isWeatherLoading = true;
-    notifyListeners();
-    try {
-      if (_cityName == 'San Francisco, US') {
-        final loc = await WeatherService.detectLocation();
-        if (loc != null) {
-          final city = loc['city'] as String;
-          final lat = loc['lat'] as double;
-          final lon = loc['lon'] as double;
-          _cityName = city;
-          _saveSetting(_prefKeyCityName, _cityName);
-          final data =
-              await WeatherService.fetchWeatherByCoordinates(lat, lon, city);
-          _weatherData = data;
-          _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
-          return;
-        }
-      }
-      final data = await WeatherService.fetchWeather(_cityName);
-      _weatherData = data;
-      _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
-    } catch (_) {
-      // Keep previous or fallback
-    } finally {
-      _isWeatherLoading = false;
-      notifyListeners();
-    }
-  }
-
-  /// Detects the user's location via device/IP geolocation and refreshes weather
+  // ─── Weather Delegations ────────────────────────────────────────────────
+  bool get weatherEnabled => _weather.weatherEnabled;
+  void setWeatherEnabled(bool val) => _weather.setWeatherEnabled(val);
+  bool get showWeatherInHeader => _weather.showWeatherInHeader;
+  void setShowWeatherInHeader(bool val) => _weather.setShowWeatherInHeader(val);
+  String get cityName => _weather.cityName;
+  void setCityName(String city) => _weather.setCityName(city);
+  WeatherData? get weatherData => _weather.weatherData;
+  bool get isWeatherLoading => _weather.isWeatherLoading;
+  Future<void> refreshWeather() => _weather.refreshWeather();
   Future<bool> detectUserLocation() async {
-    _isWeatherLoading = true;
-    notifyListeners();
-    try {
-      final loc = await WeatherService.detectLocation();
-      if (loc != null) {
-        final city = loc['city'] as String;
-        final lat = loc['lat'] as double;
-        final lon = loc['lon'] as double;
-        _cityName = city;
-        _saveSetting(_prefKeyCityName, _cityName);
-        final data = await WeatherService.fetchWeatherByCoordinates(lat, lon, city);
-        _weatherData = data;
-        _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
-        _isWeatherLoading = false;
-        notifyListeners();
-        return true;
-      }
-    } catch (_) {}
-    _isWeatherLoading = false;
-    notifyListeners();
-    return false;
+    await _weather.refreshWeather();
+    return true;
   }
 
   // ─── Cross-Platform Sound & Notifications ────────────────────────────────
@@ -601,10 +462,13 @@ class ThemeProvider extends ChangeNotifier {
       'timestamp': _lastCloudSyncTime!.toIso8601String(),
       'taskCount': taskCount,
       'pomodoroCount': pomodoroCount,
-      'userName': _userName,
+      'userName': userName,
       'themeMode': _themeMode.name,
     };
-    await _saveSetting(_prefKeyCloudLastSync, _lastCloudSyncTime!.toIso8601String());
+    await _saveSetting(
+      _prefKeyCloudLastSync,
+      _lastCloudSyncTime!.toIso8601String(),
+    );
     await _saveSetting(_prefKeyCloudRecordsCount, _cloudSyncRecordsCount);
     await _saveSetting('zeta_cloud_snapshot_payload', jsonEncode(snapshot));
   }
@@ -640,11 +504,7 @@ class ThemeProvider extends ChangeNotifier {
         'keysCount': keys.length,
       };
     } catch (_) {
-      return {
-        'totalBytes': 12400,
-        'formatted': '12.4 KB',
-        'keysCount': 12,
-      };
+      return {'totalBytes': 12400, 'formatted': '12.4 KB', 'keysCount': 12};
     }
   }
 
@@ -652,7 +512,8 @@ class ThemeProvider extends ChangeNotifier {
   Future<bool> importConfiguration(Map<String, dynamic> json) async {
     try {
       if (json['userName'] is String) setUserName(json['userName'] as String);
-      if (json['userEmail'] is String) setUserEmail(json['userEmail'] as String);
+      if (json['userEmail'] is String)
+        setUserEmail(json['userEmail'] as String);
       if (json.containsKey('avatarPhoto')) {
         setAvatarPhoto(json['avatarPhoto'] as String?);
       }
@@ -680,13 +541,16 @@ class ThemeProvider extends ChangeNotifier {
         );
         setVariant(v);
       }
-      if (json['highContrast'] is bool) setHighContrast(json['highContrast'] as bool);
+      if (json['highContrast'] is bool)
+        setHighContrast(json['highContrast'] as bool);
       if (json['animations'] is bool) setAnimations(json['animations'] as bool);
       if (json['compactDensity'] is bool) {
         setCompactDensity(json['compactDensity'] as bool);
       }
-      if (json['fontScale'] is String) setFontScale(json['fontScale'] as String);
-      if (json['cornerStyle'] is String) setCornerStyle(json['cornerStyle'] as String);
+      if (json['fontScale'] is String)
+        setFontScale(json['fontScale'] as String);
+      if (json['cornerStyle'] is String)
+        setCornerStyle(json['cornerStyle'] as String);
       if (json['typography'] is Map<String, dynamic>) {
         final typo = json['typography'] as Map<String, dynamic>;
         if (typo['headings'] is Map<String, dynamic>) {
@@ -744,11 +608,8 @@ class ThemeProvider extends ChangeNotifier {
     _titlesTypography = RoleTypographyConfig.defaultTitles;
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
-    _userName = 'Abhishek';
-    _userEmail = '';
-    _avatarPhoto = null;
-    _avatarColorIndex = 0;
-    _cityName = 'San Francisco, US';
+    _profile.resetProfile();
+    _weather.setCityName('San Francisco, US');
     _notifications = true;
     _soundEffects = true;
     _autoSave = true;
@@ -757,7 +618,7 @@ class ThemeProvider extends ChangeNotifier {
     _cloudSyncRecordsCount = 0;
     notifyListeners();
     _clearSettings();
-    refreshWeather();
+    _weather.refreshWeather();
   }
 
   // ─── Persistence ────────────────────────────────────────────────────────
@@ -779,7 +640,8 @@ class ThemeProvider extends ChangeNotifier {
         if (parsed != null) _seedColor = Color(parsed);
       }
 
-      _useSystemColor = prefs.getBool(_prefKeyUseSystemColor) ?? _useSystemColor;
+      _useSystemColor =
+          prefs.getBool(_prefKeyUseSystemColor) ?? _useSystemColor;
 
       final variantStr = prefs.getString(_prefKeyVariant);
       if (variantStr != null) {
@@ -791,7 +653,8 @@ class ThemeProvider extends ChangeNotifier {
 
       _highContrast = prefs.getBool(_prefKeyHighContrast) ?? _highContrast;
       _animations = prefs.getBool(_prefKeyAnimations) ?? _animations;
-      _compactDensity = prefs.getBool(_prefKeyCompactDensity) ?? _compactDensity;
+      _compactDensity =
+          prefs.getBool(_prefKeyCompactDensity) ?? _compactDensity;
       _fontScale = prefs.getString(_prefKeyFontScale) ?? _fontScale;
       _cornerStyle = prefs.getString(_prefKeyCornerStyle) ?? _cornerStyle;
 
@@ -831,14 +694,6 @@ class ThemeProvider extends ChangeNotifier {
           );
         } catch (_) {}
       }
-      _userName = prefs.getString(_prefKeyUserName) ?? _userName;
-      _userEmail = prefs.getString(_prefKeyUserEmail) ?? _userEmail;
-      final savedPhoto = prefs.getString(_prefKeyAvatarPhoto);
-      _avatarPhoto = (savedPhoto != null && savedPhoto.isNotEmpty) ? savedPhoto : null;
-      _avatarColorIndex = prefs.getInt(_prefKeyAvatarColorIndex) ?? _avatarColorIndex;
-      _cityName = prefs.getString(_prefKeyCityName) ?? _cityName;
-      _weatherEnabled = prefs.getBool(_prefKeyWeatherEnabled) ?? _weatherEnabled;
-      _showWeatherInHeader = prefs.getBool(_prefKeyShowWeatherInHeader) ?? _showWeatherInHeader;
       _notifications = prefs.getBool(_prefKeyNotifications) ?? _notifications;
       _soundEffects = prefs.getBool(_prefKeySoundEffects) ?? _soundEffects;
       _autoSave = prefs.getBool(_prefKeyAutoSave) ?? _autoSave;
@@ -850,48 +705,9 @@ class ThemeProvider extends ChangeNotifier {
       }
       _cloudSyncRecordsCount = prefs.getInt(_prefKeyCloudRecordsCount) ?? 0;
 
-      final cachedWeather = prefs.getString(_prefKeyWeatherCache);
-      if (cachedWeather != null) {
-        try {
-          _weatherData = WeatherData.fromJson(
-            jsonDecode(cachedWeather) as Map<String, dynamic>,
-          );
-        } catch (_) {}
-      }
-
       notifyListeners();
 
       // Refresh live weather telemetry and sync DB profile in the background
-      refreshWeather();
-      syncProfileWithDb();
-
-      // Subscribe to live Realtime profile mutations
-      ProfileService().subscribeToRealtime(
-        onProfileChange: (data) {
-          final name = data['display_name'] as String?;
-          final email = data['email'] as String?;
-          final photo = data['avatar_image'] as String?;
-          bool changed = false;
-          if (name != null && name.trim().isNotEmpty && name != _userName) {
-            _userName = name.trim();
-            _saveSetting(_prefKeyUserName, _userName);
-            changed = true;
-          }
-          if (email != null && email != _userEmail) {
-            _userEmail = email.trim();
-            _saveSetting(_prefKeyUserEmail, _userEmail);
-            changed = true;
-          }
-          if (photo != null && photo != _avatarPhoto) {
-            _avatarPhoto = photo.isEmpty ? null : photo;
-            _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
-            changed = true;
-          }
-          if (changed) {
-            notifyListeners();
-          }
-        },
-      );
     } catch (_) {}
   }
 
@@ -917,4 +733,3 @@ class ThemeProvider extends ChangeNotifier {
     } catch (_) {}
   }
 }
-

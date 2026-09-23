@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
+import '../models/revision.dart';
 import 'connection/connection.dart';
 import 'tables.dart';
 
@@ -12,12 +13,18 @@ part 'app_database.g.dart';
 /// Replaces the SharedPreferences JSON-blob approach with a proper relational
 /// store, enabling incremental reads, partial writes, and indexed queries
 /// instead of re-serializing the entire task list on every mutation.
-@DriftDatabase(tables: [TasksTable, PomodoroSessionsTable, ProfilesTable])
+@DriftDatabase(tables: [
+  TasksTable,
+  PomodoroSessionsTable,
+  ProfilesTable,
+  RevisionSubjectsTable,
+  RevisionTopicsTable,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -28,6 +35,9 @@ class AppDatabase extends _$AppDatabase {
           );
           await customStatement(
             'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
           );
         },
         onUpgrade: (m, from, to) async {
@@ -40,6 +50,15 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+            );
+          }
+          if (from < 4) {
+            await m.createTable(revisionSubjectsTable);
+            await m.createTable(revisionTopicsTable);
+            await m.addColumn(
+                pomodoroSessionsTable, pomodoroSessionsTable.lastSyncedAtMs);
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
             );
           }
         },
@@ -103,12 +122,69 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  static PomodoroSessionsTableCompanion sessionToCompanion(PomodoroSessionLog s) {
+  static PomodoroSessionsTableCompanion sessionToCompanion(
+      PomodoroSessionLog s) {
     return PomodoroSessionsTableCompanion(
       id: Value(s.id),
       mode: Value(s.mode.toJsonString()),
       minutes: Value(s.minutes),
       completedAtMs: Value(s.completedAt),
+    );
+  }
+
+  // ─── Revision helpers ───────────────────────────────────────────────────────
+
+  static Subject rowToSubject(RevisionSubjectsTableData row) {
+    return Subject(
+      id: row.id,
+      name: row.name,
+      iconName: row.iconName,
+      colorValue: row.colorValue,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtMs),
+    );
+  }
+
+  static RevisionSubjectsTableCompanion subjectToCompanion(Subject s) {
+    return RevisionSubjectsTableCompanion(
+      id: Value(s.id),
+      name: Value(s.name),
+      iconName: Value(s.iconName),
+      colorValue: Value(s.colorValue),
+      createdAtMs: Value(s.createdAt.millisecondsSinceEpoch),
+    );
+  }
+
+  static ChapterTopic rowToTopic(RevisionTopicsTableData row) {
+    return ChapterTopic(
+      id: row.id,
+      subjectId: row.subjectId,
+      title: row.title,
+      description: row.description,
+      isCompleted: row.isCompleted,
+      revisionStage: row.revisionStage,
+      lastRevisedAt: row.lastRevisedAtMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(row.lastRevisedAtMs!)
+          : null,
+      nextRevisionDate: row.nextRevisionDateMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(row.nextRevisionDateMs!)
+          : null,
+      associatedTaskId: row.associatedTaskId,
+      sortOrder: row.sortOrder,
+    );
+  }
+
+  static RevisionTopicsTableCompanion topicToCompanion(ChapterTopic t) {
+    return RevisionTopicsTableCompanion(
+      id: Value(t.id),
+      subjectId: Value(t.subjectId),
+      title: Value(t.title),
+      description: Value(t.description),
+      isCompleted: Value(t.isCompleted),
+      revisionStage: Value(t.revisionStage),
+      lastRevisedAtMs: Value(t.lastRevisedAt?.millisecondsSinceEpoch),
+      nextRevisionDateMs: Value(t.nextRevisionDate?.millisecondsSinceEpoch),
+      associatedTaskId: Value(t.associatedTaskId),
+      sortOrder: Value(t.sortOrder),
     );
   }
 }

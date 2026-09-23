@@ -139,7 +139,7 @@ class ChapterTopic {
     this.sortOrder = 0,
   });
 
-  bool get isMastered => revisionStage >= 5;
+  bool get isMastered => revisionStage >= 4;
 
   RevisionStatus get status {
     if (isMastered) return RevisionStatus.mastered;

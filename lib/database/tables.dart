@@ -32,6 +32,7 @@ class PomodoroSessionsTable extends Table {
   TextColumn get mode => text()();
   IntColumn get minutes => integer()();
   IntColumn get completedAtMs => integer()();
+  IntColumn get lastSyncedAtMs => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -47,6 +48,45 @@ class ProfilesTable extends Table {
   TextColumn get email => text().withDefault(const Constant(''))();
   TextColumn get avatarImage => text().nullable()();
   IntColumn get updatedAtMs => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// SQLite table for Revision Subjects.
+class RevisionSubjectsTable extends Table {
+  @override
+  String get tableName => 'revision_subjects';
+
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get iconName =>
+      text().withDefault(const Constant('menu_book_rounded'))();
+  IntColumn get colorValue =>
+      integer().withDefault(const Constant(0xFF6750A4))();
+  IntColumn get createdAtMs => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// SQLite table for Revision Topics.
+class RevisionTopicsTable extends Table {
+  @override
+  String get tableName => 'revision_topics';
+
+  TextColumn get id => text()();
+  TextColumn get subjectId => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
+  BoolColumn get isCompleted =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get revisionStage =>
+      integer().withDefault(const Constant(0))();
+  IntColumn get lastRevisedAtMs => integer().nullable()();
+  IntColumn get nextRevisionDateMs => integer().nullable()();
+  TextColumn get associatedTaskId => text().nullable()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};

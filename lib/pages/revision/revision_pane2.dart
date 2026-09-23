@@ -6,7 +6,7 @@ import '../../providers/task_provider.dart';
 import 'components/revision_topic_tile.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
-import '../../widgets/segmented_column.dart';
+import '../../components/segmented_column.dart';
 
 /// Pane 2 of Revision: Topics list for the selected subject and review actions.
 class RevisionPane2 extends StatelessWidget {
@@ -110,7 +110,7 @@ class RevisionPane2 extends StatelessWidget {
                         'Are you sure you want to delete "${topic.title}"? This cannot be undone.',
                   );
                   if (confirmed == true) {
-                    revProvider.deleteTopic(topic.id, taskProvider);
+                    await revProvider.deleteTopic(topic.id, taskProvider);
                   }
                 },
               ),

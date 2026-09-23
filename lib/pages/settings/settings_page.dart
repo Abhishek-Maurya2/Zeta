@@ -2,12 +2,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../widgets/segmented_column.dart';
-import '../../widgets/m3e_pane_divider.dart';
+import '../../components/segmented_column.dart';
+import '../../components/m3e_pane_divider.dart';
 import '../../utils/haptics.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/update_provider.dart';
-import '../../widgets/m3e_page_transition.dart';
+import '../../components/m3e_page_transition.dart';
 import '../../theme/motion_tokens.dart';
 import '../../theme/breakpoints.dart';
 
@@ -307,8 +307,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ZetaHaptics.light();
                         navProvider.clearSettingsCategory();
                       },
-                            tooltip: 'Back',
-
+                      tooltip: 'Back',
                     ),
                     title: Text(activeCategoryMeta?.label ?? 'Settings'),
                   ),
@@ -345,6 +344,7 @@ class _SettingsPageState extends State<SettingsPage> {
           maxAllowedWidth,
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final textTheme = Theme.of(context).textTheme;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,7 +363,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       automaticallyImplyLeading: false,
                       scrolledUnderElevation: 2,
                       shape: _appBarShape,
-                      title: const Text('Settings'),
+                      title: Text('Settings', style: textTheme.displaySmall),
                     ),
                     SliverPadding(
                       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -415,7 +415,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             ? colorScheme.surfaceContainerHigh
                             : colorScheme.surfaceContainer,
                         scrolledUnderElevation: 2,
-                        title: Text(activeCategoryMeta?.label ?? 'Settings'),
+                        title: Text(
+                          activeCategoryMeta?.label ?? 'Settings',
+                          style: textTheme.displaySmall,
+                        ),
                       ),
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
