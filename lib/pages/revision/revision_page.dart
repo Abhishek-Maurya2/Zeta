@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/revision_provider.dart';
-import 'components/revision_settings_sheet.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../theme/breakpoints.dart';
 import '../../theme/motion_tokens.dart';

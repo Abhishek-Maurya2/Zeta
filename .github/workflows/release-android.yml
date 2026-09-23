@@ -2,14 +2,16 @@ name: Release Android APK
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g. 1.0.1)'
-        required: true
-        default: '1.0.1'
+        description: 'Version to release (leave blank to auto-detect from pubspec.yaml)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -21,6 +23,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Java Development Kit (JDK 17)
         uses: actions/setup-java@v4
@@ -37,17 +41,31 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Determine Version Tag
+      - name: Determine Version Tag & Changelog
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-            echo "TAG_NAME=v${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
+          # 1. Determine Version
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION_RAW="${GITHUB_REF#refs/tags/v}"
-            echo "VERSION=${VERSION_RAW}" >> $GITHUB_ENV
-            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            VERSION="${VERSION_RAW#refs/tags/}"
+          else
+            # Auto-detect from pubspec.yaml
+            VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '[:space:]')
           fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "TAG_NAME=v${VERSION}" >> $GITHUB_ENV
+          echo "Releasing version: ${VERSION} with tag: v${VERSION}"
+
+          # 2. Extract commit message as changelog
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [ -z "$COMMIT_MSG" ]; then
+            COMMIT_MSG="Zeta v${VERSION} update"
+          fi
+          echo "$COMMIT_MSG" > release_notes.md
+          echo "Changelog extracted from commit message:"
+          cat release_notes.md
 
       - name: Accept Android Licenses
         run: yes | flutter doctor --android-licenses || true
@@ -80,16 +98,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Ensure release exists (create if not present, otherwise ensure published)
+          # 1. Ensure release exists with commit message as changelog
           if ! gh release view "$TAG_NAME" > /dev/null 2>&1; then
-            echo "Creating release $TAG_NAME..."
+            echo "Creating release $TAG_NAME with commit message as changelog..."
             gh release create "$TAG_NAME" \
               --title "Zeta $TAG_NAME" \
-              --generate-notes \
+              --notes-file release_notes.md \
               --target "$GITHUB_SHA" || true
           else
-            echo "Release $TAG_NAME already exists. Ensuring draft is false..."
-            gh release edit "$TAG_NAME" --title "Zeta $TAG_NAME" --draft=false || true
+            echo "Release $TAG_NAME already exists. Updating notes with commit message..."
+            gh release edit "$TAG_NAME" \
+              --title "Zeta $TAG_NAME" \
+              --notes-file release_notes.md \
+              --draft=false || true
           fi
 
           # 2. Upload APK asset with retry

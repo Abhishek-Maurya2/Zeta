@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../services/quick_actions_service.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/haptics.dart';
 import '../utils/windows_title_bar.dart';
 
@@ -57,12 +58,9 @@ class _AppScaffoldState extends State<AppScaffold>
   late Animation<double> _refreshAnimation;
   double _dragOffset = 0.0;
   bool _isRefreshing = false;
-  bool _hasHapticFired = false;
   bool _isUserPulling = false;
 
   static const double _targetHeight = 80.0;
-  static const double _maxStretchHeight = 100.0;
-  static const double _triggerThreshold = 70.0;
 
   double get _refreshHeight {
     if (_refreshController.isAnimating) {
@@ -110,9 +108,11 @@ class _AppScaffoldState extends State<AppScaffold>
     final nav = context.read<NavigationProvider>();
     if (nav.activePage == PageId.settings) return;
 
+    final initialOffset = _dragOffset;
     setState(() {
       _isRefreshing = true;
       _isUserPulling = false;
+      _dragOffset = _targetHeight;
     });
     ZetaHaptics.medium();
 
@@ -121,17 +121,21 @@ class _AppScaffoldState extends State<AppScaffold>
     final themeProvider = context.read<ThemeProvider>();
     final revisionProvider = context.read<RevisionProvider>();
 
-    _refreshAnimation =
-        Tween<double>(
-          begin: _dragOffset > 0 ? _dragOffset : 0.0,
-          end: _targetHeight,
-        ).animate(
-          CurvedAnimation(
-            parent: _refreshController,
-            curve: M3MotionEasing.emphasizedDecelerate,
-          ),
-        );
-    await _refreshController.forward(from: 0.0);
+    if (initialOffset < _targetHeight) {
+      _refreshAnimation =
+          Tween<double>(
+            begin: initialOffset > 0 ? initialOffset : 0.0,
+            end: _targetHeight,
+          ).animate(
+            CurvedAnimation(
+              parent: _refreshController,
+              curve: M3MotionEasing.emphasizedDecelerate,
+            ),
+          );
+      await _refreshController.forward(from: 0.0);
+    } else {
+      _refreshController.value = 1.0;
+    }
 
     try {
       final minDelay = Future.delayed(const Duration(milliseconds: 1400));
@@ -162,6 +166,11 @@ class _AppScaffoldState extends State<AppScaffold>
         _isRefreshing = false;
         _dragOffset = 0.0;
       });
+      AppSnackbar.show(
+        context,
+        message: 'Refreshed',
+        duration: const Duration(seconds: 2),
+      );
     }
   }
 
@@ -208,51 +217,49 @@ class _AppScaffoldState extends State<AppScaffold>
 
     // 3. OverscrollNotification: fired when pulling past boundary (e.g. ClampingScrollPhysics)
     if (notification is OverscrollNotification) {
-      if (_isUserPulling &&
-          notification.dragDetails != null &&
-          notification.overscroll < 0) {
-        final newDrag = (_dragOffset - notification.overscroll * 0.5).clamp(
-          0.0,
-          _maxStretchHeight,
-        );
-        setState(() {
-          _dragOffset = newDrag;
-        });
-        if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
-          _hasHapticFired = true;
-          ZetaHaptics.selection();
+      if (notification.dragDetails != null && notification.overscroll < 0) {
+        _isUserPulling = true;
+        final newDrag = _dragOffset - notification.overscroll * 0.5;
+        if (newDrag >= _targetHeight) {
+          _dragOffset = _targetHeight;
+          setState(() {});
+          _triggerRefresh();
+        } else {
+          setState(() {
+            _dragOffset = newDrag.clamp(0.0, _targetHeight);
+          });
         }
       }
     }
     // 4. ScrollUpdateNotification: fired during scroll (e.g. BouncingScrollPhysics)
     else if (notification is ScrollUpdateNotification) {
-      if (notification.dragDetails != null && _isUserPulling) {
+      if (notification.dragDetails != null) {
         if (notification.metrics.pixels <= 0 &&
             (notification.scrollDelta ?? 0) < 0) {
+          _isUserPulling = true;
+          final newDrag = _dragOffset - (notification.scrollDelta ?? 0) * 0.5;
+          if (newDrag >= _targetHeight) {
+            _dragOffset = _targetHeight;
+            setState(() {});
+            _triggerRefresh();
+          } else {
+            setState(() {
+              _dragOffset = newDrag.clamp(0.0, _targetHeight);
+            });
+          }
+        } else if (_isUserPulling &&
+            _dragOffset > 0 &&
+            (notification.scrollDelta ?? 0) > 0) {
           final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-              .clamp(0.0, _maxStretchHeight);
+              .clamp(0.0, _targetHeight);
           setState(() {
             _dragOffset = newDrag;
           });
-          if (_dragOffset >= _triggerThreshold && !_hasHapticFired) {
-            _hasHapticFired = true;
-            ZetaHaptics.selection();
-          }
-        } else if (_dragOffset > 0 && (notification.scrollDelta ?? 0) > 0) {
-          final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-              .clamp(0.0, _maxStretchHeight);
-          setState(() {
-            _dragOffset = newDrag;
-          });
-          if (_dragOffset < _triggerThreshold) {
-            _hasHapticFired = false;
-          }
         }
       } else if (notification.dragDetails == null) {
         // Non-drag event (mouse wheel tick, trackpad scroll, ballistic fling, or window resize)
         if (_isUserPulling || _dragOffset > 0) {
           _isUserPulling = false;
-          _hasHapticFired = false;
           if (_dragOffset > 0) {
             _snapBackToZero();
           }
@@ -263,12 +270,13 @@ class _AppScaffoldState extends State<AppScaffold>
     else if (notification is ScrollEndNotification) {
       final wasPulling = _isUserPulling;
       _isUserPulling = false;
-      _hasHapticFired = false;
 
-      if (wasPulling && _dragOffset >= _triggerThreshold) {
-        _triggerRefresh();
-      } else if (_dragOffset > 0) {
-        _snapBackToZero();
+      if (!_isRefreshing) {
+        if (wasPulling && _dragOffset >= _targetHeight) {
+          _triggerRefresh();
+        } else if (_dragOffset > 0) {
+          _snapBackToZero();
+        }
       }
     }
     // 6. UserScrollNotification: if scroll direction becomes idle
@@ -277,7 +285,6 @@ class _AppScaffoldState extends State<AppScaffold>
           !_isRefreshing &&
           _dragOffset > 0) {
         _isUserPulling = false;
-        _hasHapticFired = false;
         _snapBackToZero();
       }
     }
@@ -315,12 +322,8 @@ class _AppScaffoldState extends State<AppScaffold>
       return false;
     }
 
-    // Never trigger shortcuts if modifier keys (Ctrl, Alt, Meta) are held.
-    final hasModifier =
-        HardwareKeyboard.instance.isControlPressed ||
-        HardwareKeyboard.instance.isAltPressed ||
-        HardwareKeyboard.instance.isMetaPressed;
-    if (hasModifier) return false;
+    // Never trigger shortcuts if Alt modifier key is held.
+    if (HardwareKeyboard.instance.isAltPressed) return false;
 
     // Only fire shortcuts when the scaffold itself is the active, top-most route.
     // If a modal bottom sheet, dialog (e.g. TaskEditPane), or popup is showing,
@@ -344,7 +347,7 @@ class _AppScaffoldState extends State<AppScaffold>
         HardwareKeyboard.instance.isMetaPressed;
 
     // ── / or Ctrl+F : open search ───────────────────────────────────────────
-    if (logical == LogicalKeyboardKey.slash ||
+    if ((logical == LogicalKeyboardKey.slash && !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyF)) {
       _topBarKey.currentState?.openSearch();
       return true;
@@ -352,7 +355,8 @@ class _AppScaffoldState extends State<AppScaffold>
 
     // ── N or Ctrl+N : new task ───────────────────────────────────────────────
     if ((logical == LogicalKeyboardKey.keyN &&
-            !HardwareKeyboard.instance.isShiftPressed) ||
+            !HardwareKeyboard.instance.isShiftPressed &&
+            !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyN)) {
       TaskEditPane.show(context);
       return true;
@@ -360,7 +364,8 @@ class _AppScaffoldState extends State<AppScaffold>
 
     // ── R or Ctrl+R : refresh / sync ────────────────────────────────────────
     if ((logical == LogicalKeyboardKey.keyR &&
-            !HardwareKeyboard.instance.isShiftPressed) ||
+            !HardwareKeyboard.instance.isShiftPressed &&
+            !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       final nav = context.read<NavigationProvider>();
       if (nav.activePage != PageId.settings) {
@@ -370,7 +375,7 @@ class _AppScaffoldState extends State<AppScaffold>
     }
 
     // ── Space : toggle Pomodoro timer when on Pomodoro page ─────────────────
-    if (logical == LogicalKeyboardKey.space) {
+    if (logical == LogicalKeyboardKey.space && !isCtrlOrCmd) {
       final nav = context.read<NavigationProvider>();
       if (nav.activePage == PageId.pomodoro) {
         context.read<PomodoroProvider>().toggleTimer();

@@ -52,6 +52,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startGooglePollingTimer();
   }
 
+  final Completer<void> _loadCompleter = Completer<void>();
+  Future<void> get loadFuture => _loadCompleter.future;
+
   final List<Task> _tasks = [];
   final List<Task> _binTasks = [];
 
@@ -290,6 +293,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (a.completed != b.completed) {
         return a.completed ? 1 : -1;
       }
+      if (a.completed && b.completed) {
+        // By default, completed tasks are sorted newest first (most recently completed/updated, then created)
+        final updateComp = b.updatedAt.compareTo(a.updatedAt);
+        if (updateComp != 0) return updateComp;
+        return b.createdAt.compareTo(a.createdAt);
+      }
       switch (_sortBy) {
         case TaskSortOption.creationDesc:
           return b.createdAt.compareTo(a.createdAt);
@@ -419,7 +428,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _syncService.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
     // Initial background cloud sync (incremental — only fetches delta)
-    syncWithCloud();
+    await syncWithCloud();
+    if (!_loadCompleter.isCompleted) {
+      _loadCompleter.complete();
+    }
   }
 
   void _handleRemoteTaskChange(Task remoteTask, String eventType) {
@@ -476,6 +488,47 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       final remoteTasks = await _syncService.pullTasks(since: since);
       remoteTasks.removeWhere((t) => t.title.trim().isEmpty);
 
+      final isFullPull = since == null;
+      if (isFullPull) {
+        final remoteIds = remoteTasks.map((t) => t.id).toSet();
+
+        // 1. Reconcile Bin tasks:
+        // Any local bin task absent from the remote DB was permanently deleted in Supabase.
+        // It must be pruned from _binTasks and hard-deleted from SQLite.
+        final binTasksToPrune =
+            _binTasks.where((t) => !remoteIds.contains(t.id)).toList();
+        if (binTasksToPrune.isNotEmpty) {
+          final pruneIds = binTasksToPrune.map((t) => t.id).toSet();
+          _binTasks.removeWhere((t) => pruneIds.contains(t.id));
+          await _taskDao.hardDeleteMany(pruneIds);
+          debugPrint(
+            'TaskProvider: Pruned ${pruneIds.length} bin tasks absent from remote DB.',
+          );
+        }
+
+        // 2. Reconcile Active tasks:
+        // Any active task that was already synced previously (lastSyncedAt != null)
+        // but no longer exists in remote DB was deleted remotely.
+        final activeTasksToPrune = _tasks
+            .where((t) => t.lastSyncedAt != null && !remoteIds.contains(t.id))
+            .toList();
+        if (activeTasksToPrune.isNotEmpty) {
+          final pruneIds = activeTasksToPrune.map((t) => t.id).toSet();
+          _tasks.removeWhere((t) => pruneIds.contains(t.id));
+          await _taskDao.hardDeleteMany(pruneIds);
+          debugPrint(
+            'TaskProvider: Pruned ${pruneIds.length} active tasks absent from remote DB.',
+          );
+        }
+
+        // 3. Push any offline newly-created tasks (lastSyncedAt == null)
+        for (final local in _tasks) {
+          if (local.lastSyncedAt == null && local.title.trim().isNotEmpty) {
+            _syncService.pushTask(local);
+          }
+        }
+      }
+
       if (remoteTasks.isNotEmpty) {
         for (final remote in remoteTasks) {
           if (remote.deletedAt != null) {
@@ -498,6 +551,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
         // Persist merged remote tasks to local SQLite
         await _taskDao.upsertAll(remoteTasks);
+        await saveTasks();
+      } else if (isFullPull) {
         await saveTasks();
       }
 
@@ -1041,26 +1096,30 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Permanently removes task from bin
-  void permanentlyDeleteTask(String id) {
+  Future<void> permanentlyDeleteTask(String id) async {
     final taskIndex = _binTasks.indexWhere((t) => t.id == id);
     if (taskIndex != -1) {
       final task = _binTasks.removeAt(taskIndex);
       // If task still had google IDs, make sure they are cleaned up
       _deleteFromGoogleServices(task);
     }
+    await _taskDao.hardDelete(id);
     _syncService.deleteTask(id, soft: false);
     notifyListeners();
     _autoSaveTasksIfEnabled();
   }
 
   /// Permanently removes all tasks from bin
-  void emptyBin() {
-    for (final task in _binTasks) {
+  Future<void> emptyBin() async {
+    final tasksToDelete = List<Task>.from(_binTasks);
+    _binTasks.clear();
+    notifyListeners();
+
+    for (final task in tasksToDelete) {
       _deleteFromGoogleServices(task);
       _syncService.deleteTask(task.id, soft: false);
     }
-    _binTasks.clear();
-    notifyListeners();
+    await _taskDao.clearBin();
     _autoSaveTasksIfEnabled();
   }
 

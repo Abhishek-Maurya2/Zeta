@@ -20,9 +20,9 @@ class DatabaseProvider {
   bool _initialized = false;
 
   /// Must be called once before any DAO is accessed (call from main.dart).
-  void init() {
-    if (_initialized) return;
-    _db = AppDatabase();
+  void init([AppDatabase? customDb]) {
+    if (_initialized && customDb == null) return;
+    _db = customDb ?? AppDatabase();
     _taskDao = TaskDao(_db!);
     _sessionDao = SessionDao(_db!);
     _initialized = true;

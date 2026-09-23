@@ -2,14 +2,16 @@ name: Release Windows App
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g. 1.0.1)'
-        required: true
-        default: '1.0.1'
+        description: 'Version to release (leave blank to auto-detect from pubspec.yaml)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -21,6 +23,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -28,20 +32,33 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Determine Version Tag
+      - name: Determine Version Tag & Changelog
         id: get_version
         shell: pwsh
         run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+          # 1. Determine Version
+          if ("${{ github.event_name }}" -eq "workflow_dispatch" -and "${{ github.event.inputs.version }}" -ne "") {
             $ver = "${{ github.event.inputs.version }}"
-            echo "VERSION=$ver" >> $env:GITHUB_ENV
-            echo "TAG_NAME=v$ver" >> $env:GITHUB_ENV
-          } else {
+          } elseif ("${{ github.ref }}".StartsWith("refs/tags/")) {
             $ref = "${{ github.ref }}"
             $ver = $ref.Replace("refs/tags/v", "").Replace("refs/tags/", "")
-            echo "VERSION=$ver" >> $env:GITHUB_ENV
-            echo "TAG_NAME=v$ver" >> $env:GITHUB_ENV
+          } else {
+            # Auto-detect from pubspec.yaml
+            $line = (Get-Content pubspec.yaml | Select-String '^version:').ToString().Trim()
+            $ver = ($line -replace '^version:\s*', '').Split('+')[0].Trim()
           }
+          echo "VERSION=$ver" >> $env:GITHUB_ENV
+          echo "TAG_NAME=v$ver" >> $env:GITHUB_ENV
+          Write-Host "Releasing version: $ver with tag: v$ver"
+
+          # 2. Extract commit message as changelog
+          $commitMsg = git log -1 --pretty=%B
+          if (-not $commitMsg -or $commitMsg.Trim() -eq "") {
+            $commitMsg = "Zeta v$ver update"
+          }
+          $commitMsg.Trim() | Out-File -FilePath release_notes.md -Encoding utf8
+          Write-Host "Changelog extracted from commit message:"
+          Get-Content release_notes.md
 
       - name: Install dependencies
         run: flutter pub get
@@ -95,14 +112,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Continue"
 
-          # 1. Ensure release exists (create if not present, otherwise ensure published)
+          # 1. Ensure release exists with commit message as changelog
           $viewOutput = gh release view "$env:TAG_NAME" 2>&1
           if ($LASTEXITCODE -ne 0) {
-            Write-Host "Creating release $env:TAG_NAME..."
-            gh release create "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --generate-notes --target "$env:GITHUB_SHA"
+            Write-Host "Creating release $env:TAG_NAME with commit message as changelog..."
+            gh release create "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --notes-file release_notes.md --target "$env:GITHUB_SHA"
           } else {
-            Write-Host "Release $env:TAG_NAME already exists. Ensuring draft is false..."
-            gh release edit "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --draft=false
+            Write-Host "Release $env:TAG_NAME already exists. Updating notes with commit message..."
+            gh release edit "$env:TAG_NAME" --title "Zeta $env:TAG_NAME" --notes-file release_notes.md --draft=false
           }
 
           # 2. Upload assets sequentially with retries

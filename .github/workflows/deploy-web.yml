@@ -2,14 +2,16 @@ name: Deploy Web to Vercel
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to deploy (e.g. 1.0.1)'
-        required: true
-        default: '1.0.1'
+        description: 'Version to deploy (leave blank to auto-detect from pubspec.yaml)'
+        required: false
+        default: ''
 
 jobs:
   deploy-web:
@@ -30,14 +32,19 @@ jobs:
       - name: Determine Version Tag
         id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-            echo "TAG_NAME=v${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          else
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG_NAME="v${{ github.event.inputs.version }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             VERSION_RAW="${GITHUB_REF#refs/tags/v}"
-            echo "VERSION=${VERSION_RAW}" >> $GITHUB_ENV
-            echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+            VERSION="${VERSION_RAW#refs/tags/}"
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '[:space:]')
+            TAG_NAME="v${VERSION}"
           fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: flutter pub get
@@ -58,23 +65,27 @@ jobs:
           success=0
           for i in 1 2 3; do
             echo "Installing Vercel CLI (attempt $i)..."
-            if npm install -g vercel@latest; then
+            if npm install --global vercel@latest; then
               success=1
               break
+            else
+              echo "Installation failed, retrying in 5 seconds..."
+              sleep 5
             fi
-            echo "Install failed. Retrying in 15 seconds..."
-            sleep 15
           done
-          if [ $success -ne 1 ]; then
-            echo "Installing pinned fallback version vercel@59.17.0..."
-            npm install -g vercel@59.17.0
+          if [ $success -eq 0 ]; then
+            echo "Failed to install Vercel CLI after 3 attempts."
+            exit 1
           fi
 
-      - name: Deploy to Vercel
+      - name: Pull Vercel Environment Information
         if: ${{ env.VERCEL_TOKEN != '' }}
-        run: |
-          cp vercel.json build/web/vercel.json || true
-          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --cwd ./build/web --yes
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts for Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}

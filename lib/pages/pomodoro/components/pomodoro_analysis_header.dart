@@ -125,7 +125,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 14),
+        const SizedBox(height: 25),
 
         // ─── Period Title & Navigation Buttons ──
         Row(
@@ -135,9 +135,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 _formatPeriodTitle(now),
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.3,
+                style: textTheme.displaySmall?.copyWith(
                   color: colorScheme.onSurface,
                 ),
               ),
@@ -146,6 +144,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
             M3EButtonGroup(
               type: M3EButtonGroupType.standard,
               size: M3EButtonSize.md,
+              density: M3EButtonGroupDensity.compact,
               selectedIndex: null,
               onSelectedIndexChanged: (idx) {
                 ZetaHaptics.light();
@@ -162,13 +161,18 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 }
               },
               actions: [
-                const M3EButtonGroupAction(
-                  icon: Icon(Icons.chevron_left_rounded, size: 25),
+                M3EButtonGroupAction(
+                  icon: Icon(
+                    Icons.chevron_left_rounded,
+                    size: 25,
+                    fontWeight: FontWeight.w600,
+                  ),
                   tooltip: 'Previous period',
                 ),
                 M3EButtonGroupAction(
                   icon: Icon(
                     Icons.chevron_right_rounded,
+                    fontWeight: FontWeight.w600,
                     size: 25,
                     color: offset < 0
                         ? null
@@ -179,6 +183,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 M3EButtonGroupAction(
                   icon: Icon(
                     Icons.history_rounded,
+                    fontWeight: FontWeight.w600,
                     size: 25,
                     color: offset != 0
                         ? null

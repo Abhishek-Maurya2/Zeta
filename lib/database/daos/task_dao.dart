@@ -60,6 +60,21 @@ class TaskDao {
         .go();
   }
 
+  /// Hard-deletes multiple task rows by ID.
+  Future<int> hardDeleteMany(Iterable<String> taskIds) async {
+    if (taskIds.isEmpty) return 0;
+    return (_db.delete(_db.tasksTable)
+          ..where((t) => t.id.isIn(taskIds)))
+        .go();
+  }
+
+  /// Hard-deletes all tasks currently in the bin (deleted_at_ms IS NOT NULL).
+  Future<int> clearBin() async {
+    return (_db.delete(_db.tasksTable)
+          ..where((t) => t.deletedAtMs.isNotNull()))
+        .go();
+  }
+
   /// Evicts bin tasks older than [retentionDays] days (local 90-day purge).
   Future<int> evictOldBinTasks({int retentionDays = 90}) async {
     final cutoff = DateTime.now()

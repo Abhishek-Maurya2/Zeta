@@ -222,7 +222,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             },
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
           // ─── Hero Stat Section ────────────────────────────────────
           PomodoroHeroStat(
@@ -231,7 +231,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
             sessionLog: sessionLog,
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 25),
 
           // ─── Visual Chart Card ────────────────────────────────────
           _buildChartCard(context, provider, colorScheme, textTheme),
@@ -241,7 +241,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           // ─── Summary Stat Cards Grid ──────────────────────────────
           PomodoroSummaryCards(sessionLog: sessionLog),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 25),
 
           // ─── Completed Session Log List ───────────────────────────
           const PomodoroSessionList(),

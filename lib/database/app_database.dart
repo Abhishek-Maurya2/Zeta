@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/widgets.dart' hide Table;
 import 'package:drift/drift.dart';
+import 'package:drift/native.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
@@ -14,7 +16,7 @@ part 'app_database.g.dart';
 /// instead of re-serializing the entire task list on every mutation.
 @DriftDatabase(tables: [TasksTable, PomodoroSessionsTable])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 1;
@@ -93,8 +95,14 @@ class AppDatabase extends _$AppDatabase {
   }
 }
 
-/// Opens the SQLite connection using drift_flutter's default path resolution.
+/// Opens the SQLite connection using drift_flutter's default path resolution,
+/// or an in-memory database when running in Flutter test environments.
 QueryExecutor _openConnection() {
+  final isTest =
+      WidgetsBinding.instance.runtimeType.toString().contains('Test');
+  if (isTest) {
+    return NativeDatabase.memory();
+  }
   return driftDatabase(
     name: 'zeta_app_db',
     web: DriftWebOptions(
