@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -8,9 +8,10 @@ import 'package:provider/provider.dart';
 
 import '../../../components/segmented_column.dart';
 import '../../../components/user_avatar.dart';
-import '../../../providers/theme_provider.dart';
+import '../../../providers/profile_provider.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/haptics.dart';
+import '../../../features/auth/presentation/auth_provider.dart';
 
 class ProfileSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -25,65 +26,53 @@ class _ProfileSectionState extends State<ProfileSection> {
   final SupabaseService _supabase = SupabaseService();
 
   bool _isEditingName = false;
-  bool _isEditingEmail = false;
   bool _isSyncing = false;
 
   late TextEditingController _nameController;
-  late TextEditingController _emailController;
 
   @override
   void initState() {
     super.initState();
-    final themeProvider = context.read<ThemeProvider>();
-    _nameController = TextEditingController(text: themeProvider.userName);
-    _emailController = TextEditingController(text: themeProvider.userEmail);
+    final profileProvider = context.read<ProfileProvider>();
+    _nameController = TextEditingController(text: profileProvider.userName);
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
-  void _saveName(ThemeProvider themeProvider) {
+  Future<void> _saveName(ProfileProvider profileProvider) async {
     final trimmed = _nameController.text.trim();
     if (trimmed.isEmpty) {
       widget.onToast?.call('Display name cannot be empty');
       return;
     }
     ZetaHaptics.light();
-    themeProvider.setUserName(trimmed);
-    setState(() => _isEditingName = false);
-    widget.onToast?.call('Name updated and saved to database');
-  }
-
-  void _saveEmail(ThemeProvider themeProvider) {
-    final trimmed = _emailController.text.trim();
-    if (trimmed.isNotEmpty && !trimmed.contains('@')) {
-      widget.onToast?.call('Please enter a valid email address');
-      return;
+    try {
+      await profileProvider.setUserName(trimmed);
+      if (!mounted) return;
+      setState(() => _isEditingName = false);
+      widget.onToast?.call('Name saved');
+    } catch (error) {
+      if (mounted) widget.onToast?.call('Could not save name: $error');
     }
-    ZetaHaptics.light();
-    themeProvider.setUserEmail(trimmed);
-    setState(() => _isEditingEmail = false);
-    widget.onToast?.call(
-      trimmed.isEmpty
-          ? 'Email removed from database'
-          : 'Email saved to database',
-    );
   }
 
-  Future<void> _handleDbSync(ThemeProvider themeProvider) async {
+  Future<void> _handleDbSync(ProfileProvider profileProvider) async {
     ZetaHaptics.light();
     setState(() => _isSyncing = true);
     widget.onToast?.call('Syncing profile with database...');
     try {
-      await themeProvider.syncProfileWithDb();
+      await profileProvider.syncProfileWithDb();
       if (!mounted) return;
-      _nameController.text = themeProvider.userName;
-      _emailController.text = themeProvider.userEmail;
-      widget.onToast?.call('Profile synchronized with database successfully');
+      _nameController.text = profileProvider.userName;
+      widget.onToast?.call(
+        profileProvider.syncError == null
+            ? 'Profile synchronized successfully'
+            : 'Profile saved locally; sync will retry when connected',
+      );
     } catch (e) {
       if (!mounted) return;
       widget.onToast?.call('Could not sync with database: $e');
@@ -92,7 +81,7 @@ class _ProfileSectionState extends State<ProfileSection> {
     }
   }
 
-  Future<void> _pickImageFile(ThemeProvider themeProvider) async {
+  Future<void> _pickImageFile(ProfileProvider profileProvider) async {
     ZetaHaptics.light();
     try {
       final picked = await FilePicker.pickFile(type: FileType.image);
@@ -100,25 +89,49 @@ class _ProfileSectionState extends State<ProfileSection> {
         final bytes = await picked.readAsBytes();
         if (bytes.isNotEmpty) {
           final processedBytes = await _resizeImageBytes(bytes);
-          final encoded = 'data:image/png;base64,${base64Encode(processedBytes)}';
-          themeProvider.setAvatarPhoto(encoded);
-          widget.onToast?.call('Profile photo updated and saved to database.');
+          await profileProvider.uploadAvatar(processedBytes, extension: 'png');
+          if (mounted) {
+            widget.onToast?.call(
+              profileProvider.syncError == null ? 'Profile photo saved' : 'Profile photo saved locally; sync will retry when connected',
+            );
+          }
         }
       }
     } catch (e) {
-      widget.onToast?.call('Could not pick image: $e');
+      if (mounted) widget.onToast?.call('Could not save profile photo: $e');
     }
   }
 
-  Future<Uint8List> _resizeImageBytes(Uint8List bytes, {int maxDimension = 512}) async {
+  Future<void> _clearAvatar(ProfileProvider profileProvider) async {
+    try {
+      await profileProvider.clearAvatarPhoto();
+      if (mounted) {
+        widget.onToast?.call(
+          profileProvider.syncError == null
+              ? 'Photo removed. Using initial "${profileProvider.avatarInitial}".'
+              : 'Photo removed locally; sync will retry when connected',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        widget.onToast?.call('Could not remove profile photo: $error');
+      }
+    }
+  }
+
+  Future<Uint8List> _resizeImageBytes(
+    Uint8List bytes, {
+    int maxDimension = 512,
+  }) async {
     try {
       final codec = await ui.instantiateImageCodec(
         bytes,
         targetWidth: maxDimension,
       );
       final frame = await codec.getNextFrame();
-      final byteData =
-          await frame.image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await frame.image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       if (byteData != null) {
         return byteData.buffer.asUint8List();
       }
@@ -126,83 +139,30 @@ class _ProfileSectionState extends State<ProfileSection> {
     return bytes;
   }
 
-  void _showImageUrlDialog(BuildContext context, ThemeProvider themeProvider) {
-    ZetaHaptics.light();
-    final urlController = TextEditingController(
-      text:
-          (themeProvider.avatarPhoto != null &&
-              themeProvider.avatarPhoto!.startsWith('http'))
-          ? themeProvider.avatarPhoto!
-          : '',
-    );
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final colorScheme = Theme.of(dialogContext).colorScheme;
-        final textTheme = Theme.of(dialogContext).textTheme;
-
-        return AlertDialog(
-          title: Text(
-            'Photo Web URL',
-            style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Enter link to your avatar image:',
-                style: textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'https://...',
-                  prefixIcon: const Icon(Icons.link_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final trimmed = urlController.text.trim();
-                if (trimmed.isNotEmpty) {
-                  themeProvider.setAvatarPhoto(trimmed);
-                  widget.onToast?.call('Profile photo saved to database.');
-                }
-                Navigator.of(dialogContext).pop();
-              },
-              child: const Text('Save Photo'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final hasPhoto = themeProvider.hasAvatarPhoto;
+    final hasPhoto = profileProvider.hasAvatarPhoto;
     final isConnected = _supabase.isAuthenticated;
+    final profileSyncColor = profileProvider.syncError != null
+        ? colorScheme.error
+        : profileProvider.isSyncing
+        ? const Color(0xFFF59E0B)
+        : profileProvider.lastSyncedAt != null
+        ? const Color(0xFF10B981)
+        : const Color(0xFFF59E0B);
+    final profileSyncLabel = profileProvider.syncError != null
+        ? 'ERROR'
+        : profileProvider.isSyncing
+        ? 'SYNCING'
+        : profileProvider.lastSyncedAt != null
+        ? 'SYNCED'
+        : 'LOCAL';
 
-    final displayEmail = themeProvider.userEmail;
+    final displayEmail = profileProvider.userEmail;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -232,10 +192,14 @@ class _ProfileSectionState extends State<ProfileSection> {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const UserAvatar(
+                          UserAvatar(
                             radius: 36,
                             showRing: true,
                             ringWidth: 3.0,
+                            ringColor: profileSyncColor,
+                            tooltip: profileProvider.syncError != null
+                                ? 'Sync Error: ${profileProvider.syncError}'
+                                : 'Sync Status: $profileSyncLabel',
                           ),
                           const SizedBox(width: 18),
                           Expanded(
@@ -246,7 +210,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        themeProvider.userName,
+                                        profileProvider.userName,
                                         style: textTheme.headlineSmall
                                             ?.copyWith(
                                               fontWeight: FontWeight.w800,
@@ -257,44 +221,47 @@ class _ProfileSectionState extends State<ProfileSection> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: isConnected
-                                            ? const Color(0xFF10B981)
-                                                  .withValues(alpha: 0.15)
-                                            : colorScheme.surfaceContainerHigh,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            isConnected
-                                                ? Icons.cloud_done_rounded
-                                                : Icons.shield_outlined,
-                                            size: 11,
-                                            color: isConnected
-                                                ? const Color(0xFF10B981)
-                                                : colorScheme.onSurfaceVariant,
+                                    Tooltip(
+                                      message: profileProvider.syncError != null
+                                          ? 'Sync Error: ${profileProvider.syncError}'
+                                          : 'Sync Status: $profileSyncLabel',
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: profileSyncColor.withValues(
+                                            alpha: 0.15,
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            isConnected ? 'SYNCED' : 'LOCAL',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.3,
-                                              color: isConnected
-                                                  ? const Color(0xFF10B981)
-                                                  : colorScheme
-                                                        .onSurfaceVariant,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              profileSyncLabel == 'ERROR'
+                                                  ? Icons.cloud_off_rounded
+                                                  : profileProvider.isSyncing
+                                                  ? Icons.sync_rounded
+                                                  : isConnected
+                                                  ? Icons.cloud_done_rounded
+                                                  : Icons.shield_outlined,
+                                              size: 11,
+                                              color: profileSyncColor,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              profileSyncLabel,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.3,
+                                                color: profileSyncColor,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -333,32 +300,20 @@ class _ProfileSectionState extends State<ProfileSection> {
                           selectedIndex: null,
                           onSelectedIndexChanged: (index) {
                             if (index == 0) {
-                              _pickImageFile(themeProvider);
-                            } else if (index == 1) {
-                              _showImageUrlDialog(context, themeProvider);
-                            } else if (index == 2 && hasPhoto) {
+                              _pickImageFile(profileProvider);
+                            } else if (index == 1 && hasPhoto) {
                               ZetaHaptics.light();
-                              themeProvider.clearAvatarPhoto();
-                              widget.onToast?.call(
-                                'Photo removed from database. Using initial "${themeProvider.avatarInitial}".',
-                              );
+                              unawaited(_clearAvatar(profileProvider));
                             }
                           },
                           actions: [
                             M3EButtonGroupAction(
-                              icon: const Icon(Icons.file_upload_outlined, size: 16),
+                              icon: const Icon(
+                                Icons.file_upload_outlined,
+                                size: 16,
+                              ),
                               label: const Text('Upload'),
                               tooltip: 'Upload image from local storage',
-                              decoration: M3EToggleButtonDecoration.styleFrom(
-                                backgroundColor: colorScheme.secondaryContainer,
-                                foregroundColor:
-                                    colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                            M3EButtonGroupAction(
-                              icon: const Icon(Icons.link_rounded, size: 16),
-                              label: const Text('URL'),
-                              tooltip: 'Set avatar image from URL',
                               decoration: M3EToggleButtonDecoration.styleFrom(
                                 backgroundColor: colorScheme.secondaryContainer,
                                 foregroundColor:
@@ -441,7 +396,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                 if (!_isEditingName) ...[
                                   const SizedBox(height: 2),
                                   Text(
-                                    themeProvider.userName,
+                                    profileProvider.userName,
                                     style: textTheme.bodySmall?.copyWith(
                                       color: colorScheme.primary,
                                       fontWeight: FontWeight.w600,
@@ -465,7 +420,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                             size: M3EButtonSize.sm,
                             onPressed: () {
                               ZetaHaptics.light();
-                              _nameController.text = themeProvider.userName;
+                              _nameController.text = profileProvider.userName;
                               setState(() => _isEditingName = !_isEditingName);
                             },
                           ),
@@ -492,7 +447,8 @@ class _ProfileSectionState extends State<ProfileSection> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onSubmitted: (_) => _saveName(themeProvider),
+                                  onSubmitted: (_) =>
+                                      _saveName(profileProvider),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -501,7 +457,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                 label: const Text('Save'),
                                 style: M3EButtonStyle.filled,
                                 size: M3EButtonSize.sm,
-                                onPressed: () => _saveName(themeProvider),
+                                onPressed: () => _saveName(profileProvider),
                               ),
                             ],
                           ),
@@ -511,127 +467,49 @@ class _ProfileSectionState extends State<ProfileSection> {
                   ),
                 ),
 
-                // Item 2: Email Address
+                // The login email is managed by Supabase Auth.
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.alternate_email_rounded,
-                            size: 22,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Email Address',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                if (!_isEditingEmail) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    themeProvider.userEmail.isNotEmpty
-                                        ? themeProvider.userEmail
-                                        : 'Not configured (tap to add)',
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          M3EButton.icon(
-                            icon: Icon(
-                              _isEditingEmail
-                                  ? Icons.close_rounded
-                                  : (themeProvider.userEmail.isNotEmpty
-                                        ? Icons.edit_rounded
-                                        : Icons.add_rounded),
-                              size: 15,
-                            ),
-                            label: Text(
-                              _isEditingEmail
-                                  ? 'Cancel'
-                                  : (themeProvider.userEmail.isNotEmpty
-                                        ? 'Edit'
-                                        : 'Add'),
-                            ),
-                            style: _isEditingEmail
-                                ? M3EButtonStyle.outlined
-                                : M3EButtonStyle.tonal,
-                            size: M3EButtonSize.sm,
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              _emailController.text = themeProvider.userEmail;
-                              setState(
-                                () => _isEditingEmail = !_isEditingEmail,
-                              );
-                            },
-                          ),
-                        ],
+                      Icon(
+                        Icons.alternate_email_rounded,
+                        size: 22,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      if (_isEditingEmail) ...[
-                        const SizedBox(height: 12),
-                        Material(
-                          color: Colors.transparent,
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _emailController,
-                                  autofocus: true,
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter your email address',
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onSubmitted: (_) => _saveEmail(themeProvider),
-                                ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Account email',
+                              style: textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurface,
                               ),
-                              const SizedBox(width: 8),
-                              M3EButton.icon(
-                                icon: const Icon(Icons.check_rounded, size: 16),
-                                label: const Text('Save'),
-                                style: M3EButtonStyle.filled,
-                                size: M3EButtonSize.sm,
-                                onPressed: () => _saveEmail(themeProvider),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              profileProvider.userEmail.isNotEmpty
+                                  ? profileProvider.userEmail
+                                  : 'Unavailable',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                              if (themeProvider.userEmail.isNotEmpty) ...[
-                                const SizedBox(width: 6),
-                                M3EButton(
-                                  style: M3EButtonStyle.outlined,
-                                  size: M3EButtonSize.sm,
-                                  onPressed: () {
-                                    _emailController.clear();
-                                    _saveEmail(themeProvider);
-                                  },
-                                  child: const Text('Clear'),
-                                ),
-                              ],
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+                      Text(
+                        'Managed by account',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -719,12 +597,22 @@ class _ProfileSectionState extends State<ProfileSection> {
                         size: M3EButtonSize.sm,
                         onPressed: _isSyncing
                             ? null
-                            : () => _handleDbSync(themeProvider),
+                            : () => _handleDbSync(profileProvider),
                       ),
                     ],
                   ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 24),
+
+            OutlinedButton.icon(
+              onPressed: context.watch<AuthProvider>().isBusy
+                  ? null
+                  : () => context.read<AuthProvider>().signOut(),
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Sign out'),
             ),
 
             const SizedBox(height: 24),

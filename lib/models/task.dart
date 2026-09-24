@@ -5,29 +5,21 @@ class Subtask {
   String title;
   bool completed;
 
-  Subtask({
-    required this.id,
-    required this.title,
-    this.completed = false,
-  });
+  Subtask({required this.id, required this.title, this.completed = false});
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'completed': completed,
-      };
+    'id': id,
+    'title': title,
+    'completed': completed,
+  };
 
   factory Subtask.fromJson(Map<String, dynamic> json) => Subtask(
-        id: json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        completed: json['completed'] as bool? ?? false,
-      );
+    id: json['id'] as String? ?? '',
+    title: json['title'] as String? ?? '',
+    completed: json['completed'] as bool? ?? false,
+  );
 
-  Subtask copyWith({
-    String? id,
-    String? title,
-    bool? completed,
-  }) {
+  Subtask copyWith({String? id, String? title, bool? completed}) {
     return Subtask(
       id: id ?? this.id,
       title: title ?? this.title,
@@ -65,10 +57,10 @@ class Task {
     DateTime? updatedAt,
     this.deletedAt,
     this.lastSyncedAt,
-  })  : description = sanitizeDescription(description),
-        subtasks = subtasks ?? [],
-        createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? (createdAt ?? DateTime.now());
+  }) : description = sanitizeDescription(description),
+       subtasks = subtasks ?? [],
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? (createdAt ?? DateTime.now());
 
   static final RegExp _subtasksDescriptionRegex = RegExp(
     r'(?:\r?\n)*Subtasks:\s*(?:\r?\n\s*\[[ x✓]?\].*)+',
@@ -94,51 +86,51 @@ class Task {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'title': title,
-        'description': description,
-        'completed': completed,
-        'dueDate': dueDate,
-        'hasTime': hasTime,
-        'dueTime': dueTime,
-        'subtasks': subtasks.map((s) => s.toJson()).toList(),
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-        'deletedAt': deletedAt?.toIso8601String(),
-        'lastSyncedAt': lastSyncedAt?.toIso8601String(),
-      };
+    'id': id,
+    'userId': userId,
+    'title': title,
+    'description': description,
+    'completed': completed,
+    'dueDate': dueDate,
+    'hasTime': hasTime,
+    'dueTime': dueTime,
+    'subtasks': subtasks.map((s) => s.toJson()).toList(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+    'deletedAt': deletedAt?.toIso8601String(),
+    'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+  };
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
-        id: json['id'] as String? ?? '',
-        userId: json['userId'] as String?,
-        title: json['title'] as String? ?? '',
-        description: json['description'] as String?,
-        completed: json['completed'] as bool? ?? false,
-        dueDate: json['dueDate'] as String?,
-        hasTime: json['hasTime'] as bool? ?? false,
-        dueTime: json['dueTime'] as String?,
-        subtasks: (json['subtasks'] as List<dynamic>?)
-            ?.map((s) => Subtask.fromJson(s as Map<String, dynamic>))
-            .toList(),
-        createdAt: json['createdAt'] != null
-            ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
-            : DateTime.now(),
-        updatedAt: json['updatedAt'] != null
-            ? DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now()
-            : (json['createdAt'] != null
-                ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
-                : DateTime.now()),
-        deletedAt: json['deletedAt'] != null
-            ? DateTime.tryParse(json['deletedAt'] as String)
-            : null,
-        lastSyncedAt: json['lastSyncedAt'] != null
-            ? DateTime.tryParse(json['lastSyncedAt'] as String)
-            : null,
-      );
+    id: json['id'] as String? ?? '',
+    userId: json['userId'] as String?,
+    title: json['title'] as String? ?? '',
+    description: json['description'] as String?,
+    completed: json['completed'] as bool? ?? false,
+    dueDate: json['dueDate'] as String?,
+    hasTime: json['hasTime'] as bool? ?? false,
+    dueTime: json['dueTime'] as String?,
+    subtasks: (json['subtasks'] as List<dynamic>?)
+        ?.map((s) => Subtask.fromJson(s as Map<String, dynamic>))
+        .toList(),
+    createdAt: json['createdAt'] != null
+        ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    updatedAt: json['updatedAt'] != null
+        ? DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now()
+        : (json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+              : DateTime.now()),
+    deletedAt: json['deletedAt'] != null
+        ? DateTime.tryParse(json['deletedAt'] as String)
+        : null,
+    lastSyncedAt: json['lastSyncedAt'] != null
+        ? DateTime.tryParse(json['lastSyncedAt'] as String)
+        : null,
+  );
 
   /// Converts the task to a PostgreSQL row for the Supabase `public.tasks` table.
-  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+  Map<String, dynamic> toSupabaseRow({required String userId}) {
     DateTime? parsedDueDate;
     final effectiveHasTime =
         hasTime || (dueTime != null && dueTime!.trim().isNotEmpty);
@@ -159,28 +151,35 @@ class Task {
             final period = match.group(3)?.toUpperCase();
             if (period == 'PM' && h < 12) h += 12;
             if (period == 'AM' && h == 12) h = 0;
-            parsedDueDate = DateTime(localBase.year, localBase.month, localBase.day, h, m);
+            parsedDueDate = DateTime(
+              localBase.year,
+              localBase.month,
+              localBase.day,
+              h,
+              m,
+            );
           } else {
             parsedDueDate = localBase;
           }
         } else {
           // Store pure date at noon UTC so timezone conversions anywhere in the world keep the exact same day
-          parsedDueDate = DateTime.utc(localBase.year, localBase.month, localBase.day, 12, 0, 0);
+          parsedDueDate = DateTime.utc(
+            localBase.year,
+            localBase.month,
+            localBase.day,
+            12,
+            0,
+            0,
+          );
         }
       }
     }
 
     // Ensure id is a valid UUID for PostgreSQL uuid column
-    String supabaseId = id;
-    if (!_uuidRegex.hasMatch(supabaseId)) {
-      // Deterministically create UUID from legacy ID
-      final padded = id.replaceAll(_nonHexRegex, '').padRight(32, '0').substring(0, 32);
-      supabaseId = '${padded.substring(0, 8)}-${padded.substring(8, 12)}-4${padded.substring(13, 16)}-8${padded.substring(17, 20)}-${padded.substring(20, 32)}';
-    }
-
+    final supabaseId = supabaseIdFor(id);
     return {
       'id': supabaseId,
-      'user_id': userId ?? defaultUserId ?? 'singleton',
+      'user_id': userId,
       'title': title,
       'description': description ?? '',
       'completed': completed,
@@ -192,6 +191,21 @@ class Task {
       'updated_at': DateTime.now().toUtc().toIso8601String(),
       'last_synced_at': DateTime.now().toUtc().toIso8601String(),
     };
+  }
+
+  static String supabaseIdFor(String id) {
+    var supabaseId = id;
+    if (!_uuidRegex.hasMatch(supabaseId)) {
+      // Deterministically create UUID from legacy ID
+      final padded = id
+          .replaceAll(_nonHexRegex, '')
+          .padRight(32, '0')
+          .substring(0, 32);
+      supabaseId =
+          '${padded.substring(0, 8)}-${padded.substring(8, 12)}-4${padded.substring(13, 16)}-8${padded.substring(17, 20)}-${padded.substring(20, 32)}';
+    }
+
+    return supabaseId;
   }
 
   /// Reconstructs a task from a Supabase PostgreSQL row.
@@ -206,7 +220,8 @@ class Task {
         final local = parsed.toLocal();
         localDueDate = TaskDateFormatter.format(local);
 
-        final isNoonUtcPlaceholder = parsed.isUtc && parsed.hour == 12 && parsed.minute == 0;
+        final isNoonUtcPlaceholder =
+            parsed.isUtc && parsed.hour == 12 && parsed.minute == 0;
         final hasNonMidnightTime = local.hour != 0 || local.minute != 0;
 
         if (hasTime || (!isNoonUtcPlaceholder && hasNonMidnightTime)) {
@@ -216,12 +231,14 @@ class Task {
               : (local.hour == 0 ? 12 : local.hour);
           final period = local.hour >= 12 ? 'PM' : 'AM';
           final minuteStr = local.minute.toString().padLeft(2, '0');
-          localDueTime = '${hour.toString().padLeft(2, '0')}:$minuteStr $period';
+          localDueTime =
+              '${hour.toString().padLeft(2, '0')}:$minuteStr $period';
         }
       }
     }
 
-    final subtasksList = (row['subtasks'] as List<dynamic>?)
+    final subtasksList =
+        (row['subtasks'] as List<dynamic>?)
             ?.map((s) => Subtask.fromJson(s as Map<String, dynamic>))
             .toList() ??
         [];
@@ -240,11 +257,11 @@ class Task {
       subtasks: subtasksList,
       createdAt: row['created_at'] != null
           ? DateTime.tryParse(row['created_at'].toString())?.toLocal() ??
-              DateTime.now()
+                DateTime.now()
           : DateTime.now(),
       updatedAt: row['updated_at'] != null
           ? DateTime.tryParse(row['updated_at'].toString())?.toLocal() ??
-              DateTime.now()
+                DateTime.now()
           : DateTime.now(),
       deletedAt: row['deleted_at'] != null
           ? DateTime.tryParse(row['deleted_at'].toString())?.toLocal()
@@ -287,4 +304,3 @@ class Task {
     );
   }
 }
-

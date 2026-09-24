@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
+import '../../../providers/profile_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../providers/revision_provider.dart';
@@ -59,11 +60,16 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       final pomodoroFuture = context.read<PomodoroProvider>().syncWithCloud(
         force: true,
       );
-      final profileFuture = context.read<ThemeProvider>().syncProfileWithDb();
+      final profileFuture = context.read<ProfileProvider>().syncProfileWithDb();
       final revisionFuture = context.read<RevisionProvider>().syncWithCloud(
         force: true,
       );
-      await Future.wait([taskFuture, pomodoroFuture, profileFuture, revisionFuture]);
+      await Future.wait([
+        taskFuture,
+        pomodoroFuture,
+        profileFuture,
+        revisionFuture,
+      ]);
       if (!mounted) return;
       widget.onToast?.call('Cloud sync completed successfully!');
     } catch (e) {
@@ -88,9 +94,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       'version': '1.0.0',
       'exportedAt': DateTime.now().toIso8601String(),
       'preferences': {
-        'userName': themeProvider.userName,
-        'userEmail': themeProvider.userEmail,
-        'avatarPhoto': themeProvider.avatarPhoto,
         'themeMode': themeProvider.themeMode.name,
         'seedColor':
             '#${themeProvider.seedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
@@ -119,9 +122,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       'revisionSubjects': revisionProvider.subjects
           .map((s) => s.toJson())
           .toList(),
-      'revisionTopics': revisionProvider.topics
-          .map((t) => t.toJson())
-          .toList(),
+      'revisionTopics': revisionProvider.topics.map((t) => t.toJson()).toList(),
     };
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(fullBackup);
@@ -153,7 +154,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                 maxLines: 6,
                 style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
                 decoration: InputDecoration(
-                  hintText: '{\n  "userName": "...",\n  "themeMode": "dark",\n  ...\n}',
+                  hintText: '{\n  "themeMode": "dark",\n  ...\n}',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -249,7 +250,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final revisionProvider = context.watch<RevisionProvider>();
 
     final isSyncBusy =
-        _isSyncing || taskProvider.isSyncing || pomodoroProvider.isSyncing || revisionProvider.isLoading;
+        _isSyncing ||
+        taskProvider.isSyncing ||
+        pomodoroProvider.isSyncing ||
+        revisionProvider.isLoading;
 
     return Align(
       alignment: Alignment.topCenter,

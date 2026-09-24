@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
+
 import '../models/revision.dart';
+import '../database/database_provider.dart';
 import 'supabase_service.dart';
 import 'network_service.dart';
-import 'preferences_service.dart';
 
 /// Service responsible for bi-directional synchronization between local Revision
 /// data and Supabase `public.revision_subjects` and `public.revision_topics` tables.
@@ -11,8 +13,9 @@ class RevisionSyncService {
   static final RevisionSyncService _instance = RevisionSyncService._internal();
   factory RevisionSyncService() => _instance;
   RevisionSyncService._internal() {
-    _networkSubscription =
-        NetworkService().onConnectivityChanged.listen((isOnline) {
+    _networkSubscription = NetworkService().onConnectivityChanged.listen((
+      isOnline,
+    ) {
       if (isOnline) {
         unawaited(processPendingQueue());
       }
@@ -20,6 +23,7 @@ class RevisionSyncService {
   }
 
   final SupabaseService _supabaseService = SupabaseService();
+  final _outbox = DatabaseProvider.instance.syncOutboxDao;
   StreamSubscription<bool>? _networkSubscription;
   bool _isSyncing = false;
   bool _isProcessingPendingQueue = false;
@@ -29,194 +33,99 @@ class RevisionSyncService {
   bool get isSyncing => _isSyncing;
   DateTime? get lastSyncedAt => _lastSyncedAt;
   String? get lastError => _lastError;
-  bool hasPendingSubject(String id) =>
-      _pendingIds(_pendingSubjectUpsertsKey).contains(id);
-  bool hasPendingTopic(String id) =>
-      _pendingIds(_pendingTopicUpsertsKey).contains(id);
+  Future<bool> hasPendingSubject(String id) => _outbox.hasPending(
+    userId: _supabaseService.effectiveUserId,
+    feature: 'revisions',
+    entityType: 'subject',
+    entityId: id,
+  );
+  Future<bool> hasPendingTopic(String id) => _outbox.hasPending(
+    userId: _supabaseService.effectiveUserId,
+    feature: 'revisions',
+    entityType: 'topic',
+    entityId: id,
+  );
   Future<Subject?> Function(String id)? getSubjectForSync;
   Future<ChapterTopic?> Function(String id)? getTopicForSync;
 
-  static const _pendingSubjectUpsertsKey =
-      PreferencesService.keyPendingRevisionSubjectUpserts;
-  static const _pendingTopicUpsertsKey =
-      PreferencesService.keyPendingRevisionTopicUpserts;
-
-  Set<String> _pendingIds(String key) =>
-      Set<String>.from(PreferencesService.instance.getStringList(key) ?? const []);
-
-  Future<void> _savePendingIds(String key, Set<String> ids) async {
-    if (ids.isEmpty) {
-      await PreferencesService.instance.remove(key);
-    } else {
-      await PreferencesService.instance.setStringList(key, ids.toList());
-    }
-  }
-
-  Future<void> _removePendingId(String key, String id) async {
-    final current = _pendingIds(key);
-    if (current.remove(id)) await _savePendingIds(key, current);
+  void endAccountSession() {
+    getSubjectForSync = null;
+    getTopicForSync = null;
+    _isSyncing = false;
   }
 
   Future<void> enqueueSubjectDeletion(String id) async {
-    final upserts = _pendingIds(_pendingSubjectUpsertsKey)..remove(id);
-    await _savePendingIds(_pendingSubjectUpsertsKey, upserts);
-    final deletes = _getPendingSubjectDeletions()..add(id);
-    await _savePendingSubjectDeletions(deletes);
+    await _enqueueRevision(id, 'subject', 'delete');
     unawaited(processPendingQueue());
   }
 
   Future<void> enqueueTopicDeletion(String id) async {
-    final upserts = _pendingIds(_pendingTopicUpsertsKey)..remove(id);
-    await _savePendingIds(_pendingTopicUpsertsKey, upserts);
-    final deletes = _getPendingTopicDeletions()..add(id);
-    await _savePendingTopicDeletions(deletes);
+    await _enqueueRevision(id, 'topic', 'delete');
     unawaited(processPendingQueue());
   }
 
-  /// Persist local changes as an outbox entry before attempting network I/O.
-  Future<void> enqueueSubjectUpsert(Subject subject) async {
-    final pending = _pendingIds(_pendingSubjectUpsertsKey)..add(subject.id);
-    await _savePendingIds(_pendingSubjectUpsertsKey, pending);
-    unawaited(processPendingQueue());
-  }
-
-  Future<void> enqueueTopicUpsert(ChapterTopic topic) async {
-    final pending = _pendingIds(_pendingTopicUpsertsKey)..add(topic.id);
-    await _savePendingIds(_pendingTopicUpsertsKey, pending);
-    unawaited(processPendingQueue());
-  }
-
-  Future<void> enqueueTopicsUpsert(List<ChapterTopic> topics) async {
-    if (topics.isEmpty) return;
-    final pending = _pendingIds(_pendingTopicUpsertsKey)
-      ..addAll(topics.map((topic) => topic.id));
-    await _savePendingIds(_pendingTopicUpsertsKey, pending);
-    unawaited(processPendingQueue());
-  }
-
-  Set<String> _getPendingSubjectDeletions() {
-    final list = PreferencesService.instance
-        .getStringList(PreferencesService.keyPendingSubjectDeletions);
-    return list != null ? Set<String>.from(list) : <String>{};
-  }
-
-  Future<void> _savePendingSubjectDeletions(Set<String> set) async {
-    await PreferencesService.instance.setStringList(
-        PreferencesService.keyPendingSubjectDeletions, set.toList());
-  }
-
-  void _enqueuePendingSubjectDeletion(String id) {
-    final set = _getPendingSubjectDeletions();
-    set.add(id);
-    unawaited(_savePendingSubjectDeletions(set));
-  }
-
-  void _removePendingSubjectDeletion(String id) {
-    final set = _getPendingSubjectDeletions();
-    if (set.remove(id)) {
-      unawaited(_savePendingSubjectDeletions(set));
-    }
-  }
-
-  Set<String> _getPendingTopicDeletions() {
-    final list = PreferencesService.instance
-        .getStringList(PreferencesService.keyPendingTopicDeletions);
-    return list != null ? Set<String>.from(list) : <String>{};
-  }
-
-  Future<void> _savePendingTopicDeletions(Set<String> set) async {
-    await PreferencesService.instance.setStringList(
-        PreferencesService.keyPendingTopicDeletions, set.toList());
-  }
-
-  void _enqueuePendingTopicDeletion(String id) {
-    final set = _getPendingTopicDeletions();
-    set.add(id);
-    unawaited(_savePendingTopicDeletions(set));
-  }
-
-  void _removePendingTopicDeletion(String id) {
-    final set = _getPendingTopicDeletions();
-    if (set.remove(id)) {
-      unawaited(_savePendingTopicDeletions(set));
-    }
-  }
+  Future<void> _enqueueRevision(String id, String entity, String operation) =>
+      _outbox.enqueue(
+        userId: _supabaseService.effectiveUserId,
+        feature: 'revisions',
+        entityType: entity,
+        entityId: id,
+        operation: operation,
+      );
 
   Future<void> processPendingQueue() async {
     if (_isProcessingPendingQueue) return;
     _isProcessingPendingQueue = true;
     try {
       await _ensureInitialized();
-      if (!_supabaseService.isInitialized || !NetworkService().isOnline) return;
-
-      // Upserts are replayed from SQLite, the canonical local store. Keep IDs
-      // in the outbox until Supabase confirms each write.
-      final loadSubject = getSubjectForSync;
-      if (loadSubject != null) {
-        for (final id in _pendingIds(_pendingSubjectUpsertsKey).toList()) {
-          final subject = await loadSubject(id);
-          if (subject == null) {
-            await _removePendingId(_pendingSubjectUpsertsKey, id);
-          } else if (await _pushSubjectNow(subject)) {
-            await _removePendingId(_pendingSubjectUpsertsKey, id);
-          }
-        }
+      if (!_supabaseService.isInitialized ||
+          !_supabaseService.isAuthenticated ||
+          !NetworkService().isOnline) {
+        return;
       }
 
-      final loadTopic = getTopicForSync;
-      if (loadTopic != null) {
-        for (final id in _pendingIds(_pendingTopicUpsertsKey).toList()) {
-          final topic = await loadTopic(id);
-          if (topic == null) {
-            await _removePendingId(_pendingTopicUpsertsKey, id);
-          } else if (await _pushTopicNow(topic)) {
-            await _removePendingId(_pendingTopicUpsertsKey, id);
-          }
-        }
-      }
-
-      // 1. Process pending topic deletions
-      final pendingTopics = _getPendingTopicDeletions();
-      if (pendingTopics.isNotEmpty) {
-        final toRemove = <String>[];
-        for (final id in pendingTopics) {
-          try {
+      for (final item in await _outbox.pendingForAccount(
+        _supabaseService.effectiveUserId,
+        feature: 'revisions',
+      )) {
+        try {
+          bool succeeded;
+          if (item.operation == 'upsert' && item.entityType == 'subject') {
+            final loader = getSubjectForSync;
+            if (loader == null) continue;
+            final subject = await loader(item.entityId);
+            succeeded = subject == null || await _pushSubjectNow(subject);
+          } else if (item.operation == 'upsert' && item.entityType == 'topic') {
+            final loader = getTopicForSync;
+            if (loader == null) continue;
+            final topic = await loader(item.entityId);
+            succeeded = topic == null || await _pushTopicNow(topic);
+          } else if (item.operation == 'delete' && item.entityType == 'topic') {
             await _supabaseService.client
                 .from('revision_topics')
                 .delete()
-                .eq('id', id)
+                .eq('id', item.entityId)
                 .timeout(const Duration(seconds: 15));
-            toRemove.add(id);
-          } catch (_) {}
-        }
-        if (toRemove.isNotEmpty) {
-          final remaining = _getPendingTopicDeletions()..removeAll(toRemove);
-          await _savePendingTopicDeletions(remaining);
-        }
-      }
-
-      // 2. Process pending subject deletions
-      final pendingSubjects = _getPendingSubjectDeletions();
-      if (pendingSubjects.isNotEmpty) {
-        final toRemove = <String>[];
-        for (final id in pendingSubjects) {
-          try {
+            succeeded = true;
+          } else if (item.operation == 'delete' &&
+              item.entityType == 'subject') {
             await _supabaseService.client
                 .from('revision_topics')
                 .delete()
-                .eq('subject_id', id)
+                .eq('subject_id', item.entityId)
                 .timeout(const Duration(seconds: 15));
             await _supabaseService.client
                 .from('revision_subjects')
                 .delete()
-                .eq('id', id)
+                .eq('id', item.entityId)
                 .timeout(const Duration(seconds: 15));
-            toRemove.add(id);
-          } catch (_) {}
-        }
-        if (toRemove.isNotEmpty) {
-          final remaining = _getPendingSubjectDeletions()..removeAll(toRemove);
-          await _savePendingSubjectDeletions(remaining);
+            succeeded = true;
+          } else {
+            succeeded = true;
+          }
+          if (succeeded) await _outbox.complete(item.id, item.createdAtMs);
+        } catch (error) {
+          await _outbox.recordFailure(item.id, item.createdAtMs, error);
         }
       }
     } finally {
@@ -225,14 +134,17 @@ class RevisionSyncService {
   }
 
   Future<void> _ensureInitialized() async {
-    final isTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains(
+      'Test',
+    );
     if (isTest) return;
     if (!_supabaseService.isInitialized) {
       try {
         await _supabaseService.init();
       } catch (e) {
-        debugPrint('RevisionSyncService: Failed to initialize SupabaseService: $e');
+        debugPrint(
+          'RevisionSyncService: Failed to initialize SupabaseService: $e',
+        );
       }
     }
   }
@@ -240,7 +152,9 @@ class RevisionSyncService {
   /// Pull subjects from Supabase `public.revision_subjects` table.
   Future<List<Subject>> pullSubjects() async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
       _lastError = 'Supabase is unavailable or the device is offline.';
       return [];
     }
@@ -257,7 +171,7 @@ class RevisionSyncService {
         final response = await _supabaseService.client
             .from('revision_subjects')
             .select()
-            .or('user_id.eq.$userId,user_id.eq.singleton')
+            .eq('user_id', userId)
             .order('created_at', ascending: true)
             .range(offset, offset + pageSize - 1);
         final rows = response as List<dynamic>;
@@ -269,7 +183,14 @@ class RevisionSyncService {
       }
       NetworkService().markOnline();
       _lastSyncedAt = DateTime.now();
-      final pendingDeletes = _getPendingSubjectDeletions();
+      final pendingDeletes =
+          (await _outbox.pendingForAccount(userId, feature: 'revisions'))
+              .where(
+                (item) =>
+                    item.entityType == 'subject' && item.operation == 'delete',
+              )
+              .map((item) => item.entityId)
+              .toSet();
       final filtered = pendingDeletes.isEmpty
           ? subjects
           : subjects.where((s) => !pendingDeletes.contains(s.id)).toList();
@@ -290,7 +211,9 @@ class RevisionSyncService {
   /// Pull topics from Supabase `public.revision_topics` table.
   Future<List<ChapterTopic>> pullTopics() async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
       _lastError = 'Supabase is unavailable or the device is offline.';
       return [];
     }
@@ -307,7 +230,7 @@ class RevisionSyncService {
         final response = await _supabaseService.client
             .from('revision_topics')
             .select()
-            .or('user_id.eq.$userId,user_id.eq.singleton')
+            .eq('user_id', userId)
             .order('sort_order', ascending: true)
             .order('created_at', ascending: true)
             .range(offset, offset + pageSize - 1);
@@ -320,7 +243,14 @@ class RevisionSyncService {
       }
       NetworkService().markOnline();
       _lastSyncedAt = DateTime.now();
-      final pendingDeletes = _getPendingTopicDeletions();
+      final pendingDeletes =
+          (await _outbox.pendingForAccount(userId, feature: 'revisions'))
+              .where(
+                (item) =>
+                    item.entityType == 'topic' && item.operation == 'delete',
+              )
+              .map((item) => item.entityId)
+              .toSet();
       final filtered = pendingDeletes.isEmpty
           ? topics
           : topics.where((t) => !pendingDeletes.contains(t.id)).toList();
@@ -345,17 +275,21 @@ class RevisionSyncService {
 
   Future<bool> _pushSubjectNow(Subject subject) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
+      return false;
+    }
 
     try {
       final userId = _supabaseService.effectiveUserId;
-      final row = subject.toSupabaseRow(defaultUserId: userId);
+      final row = subject.toSupabaseRow(userId: userId);
       await _supabaseService.client.from('revision_subjects').upsert(row);
       NetworkService().markOnline();
       return true;
-      } catch (e) {
-        _lastError = e.toString();
-        debugPrint('RevisionSyncService: pushSubject error - $e');
+    } catch (e) {
+      _lastError = e.toString();
+      debugPrint('RevisionSyncService: pushSubject error - $e');
       if (e.toString().contains('SocketException') ||
           e.toString().contains('TimeoutException')) {
         NetworkService().markOffline();
@@ -366,35 +300,9 @@ class RevisionSyncService {
 
   /// Deletes a subject and its associated topics from Supabase.
   Future<bool> deleteSubject(String subjectId) async {
-    await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
-      _enqueuePendingSubjectDeletion(subjectId);
-      return false;
-    }
-
-    try {
-      await _supabaseService.client
-          .from('revision_topics')
-          .delete()
-          .eq('subject_id', subjectId)
-          .timeout(const Duration(seconds: 15));
-      await _supabaseService.client
-          .from('revision_subjects')
-          .delete()
-          .eq('id', subjectId)
-          .timeout(const Duration(seconds: 15));
-      _removePendingSubjectDeletion(subjectId);
-      NetworkService().markOnline();
-      return true;
-    } catch (e) {
-      debugPrint('RevisionSyncService: deleteSubject error - $e');
-      _enqueuePendingSubjectDeletion(subjectId);
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('TimeoutException')) {
-        NetworkService().markOffline();
-      }
-      return false;
-    }
+    await enqueueSubjectDeletion(subjectId);
+    await processPendingQueue();
+    return !await hasPendingSubject(subjectId);
   }
 
   /// Pushes a topic to Supabase.
@@ -404,17 +312,21 @@ class RevisionSyncService {
 
   Future<bool> _pushTopicNow(ChapterTopic topic) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
+      return false;
+    }
 
     try {
       final userId = _supabaseService.effectiveUserId;
-      final row = topic.toSupabaseRow(defaultUserId: userId);
+      final row = topic.toSupabaseRow(userId: userId);
       await _supabaseService.client.from('revision_topics').upsert(row);
       NetworkService().markOnline();
       return true;
-      } catch (e) {
-        _lastError = e.toString();
-        debugPrint('RevisionSyncService: pushTopic error - $e');
+    } catch (e) {
+      _lastError = e.toString();
+      debugPrint('RevisionSyncService: pushTopic error - $e');
       if (e.toString().contains('SocketException') ||
           e.toString().contains('TimeoutException')) {
         NetworkService().markOffline();
@@ -426,12 +338,16 @@ class RevisionSyncService {
   /// Pushes a batch of topics to Supabase (e.g. after reordering).
   Future<bool> pushTopics(List<ChapterTopic> topics) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline || topics.isEmpty) return false;
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline ||
+        topics.isEmpty) {
+      return false;
+    }
 
     try {
       final userId = _supabaseService.effectiveUserId;
-      final rows =
-          topics.map((t) => t.toSupabaseRow(defaultUserId: userId)).toList();
+      final rows = topics.map((t) => t.toSupabaseRow(userId: userId)).toList();
       await _supabaseService.client.from('revision_topics').upsert(rows);
       NetworkService().markOnline();
       return true;
@@ -447,30 +363,9 @@ class RevisionSyncService {
 
   /// Deletes a topic from Supabase.
   Future<bool> deleteTopic(String topicId) async {
-    await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
-      _enqueuePendingTopicDeletion(topicId);
-      return false;
-    }
-
-    try {
-      await _supabaseService.client
-          .from('revision_topics')
-          .delete()
-          .eq('id', topicId)
-          .timeout(const Duration(seconds: 15));
-      _removePendingTopicDeletion(topicId);
-      NetworkService().markOnline();
-      return true;
-    } catch (e) {
-      debugPrint('RevisionSyncService: deleteTopic error - $e');
-      _enqueuePendingTopicDeletion(topicId);
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('TimeoutException')) {
-        NetworkService().markOffline();
-      }
-      return false;
-    }
+    await enqueueTopicDeletion(topicId);
+    await processPendingQueue();
+    return !await hasPendingTopic(topicId);
   }
 
   void dispose() {

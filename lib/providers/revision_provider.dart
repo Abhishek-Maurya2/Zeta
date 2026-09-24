@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -16,8 +17,10 @@ class RevisionSettings {
   final int stage2Days;
   final int stage3Days;
   final int stage4Days;
+
   /// Whether to automatically create revision reminder tasks on the Task Page.
   final bool autoCreateTasks;
+
   /// Whether to provide haptic feedback when updating revisions.
   final bool hapticFeedback;
 
@@ -37,15 +40,14 @@ class RevisionSettings {
     int? stage4Days,
     bool? autoCreateTasks,
     bool? hapticFeedback,
-  }) =>
-      RevisionSettings(
-        stage1Days: stage1Days ?? this.stage1Days,
-        stage2Days: stage2Days ?? this.stage2Days,
-        stage3Days: stage3Days ?? this.stage3Days,
-        stage4Days: stage4Days ?? this.stage4Days,
-        autoCreateTasks: autoCreateTasks ?? this.autoCreateTasks,
-        hapticFeedback: hapticFeedback ?? this.hapticFeedback,
-      );
+  }) => RevisionSettings(
+    stage1Days: stage1Days ?? this.stage1Days,
+    stage2Days: stage2Days ?? this.stage2Days,
+    stage3Days: stage3Days ?? this.stage3Days,
+    stage4Days: stage4Days ?? this.stage4Days,
+    autoCreateTasks: autoCreateTasks ?? this.autoCreateTasks,
+    hapticFeedback: hapticFeedback ?? this.hapticFeedback,
+  );
 
   Map<String, dynamic> toJson() => {
     'stage1Days': stage1Days,
@@ -79,9 +81,8 @@ class RevisionProvider with ChangeNotifier {
   bool _isCloudSyncing = false;
   RevisionSettings _settings = const RevisionSettings();
 
-  RevisionProvider({
-    RevisionRepository? repository,
-  }) : _repository = repository ?? RevisionRepository() {
+  RevisionProvider({RevisionRepository? repository})
+    : _repository = repository ?? RevisionRepository() {
     _loadData();
   }
 
@@ -90,6 +91,9 @@ class RevisionProvider with ChangeNotifier {
   String? get selectedSubjectId => _selectedSubjectId;
   bool get isLoading => _isLoading;
   RevisionSettings get settings => _settings;
+  bool get isSyncing => _isCloudSyncing || _repository.isSyncing;
+  DateTime? get lastSyncedAt => _repository.lastSyncedAt;
+  String? get syncError => _repository.syncError;
 
   Subject? get selectedSubject {
     if (_selectedSubjectId == null) return null;
@@ -105,14 +109,24 @@ class RevisionProvider with ChangeNotifier {
   }
 
   int get totalTopicsCount => _topics.length;
-  int get completedTopicsCount => _topics.where((t) => t.isCompleted || t.isMastered).length;
+  int get completedTopicsCount =>
+      _topics.where((t) => t.isCompleted || t.isMastered).length;
   int get masteredTopicsCount => _topics.where((t) => t.isMastered).length;
-  int get dueRevisionsCount => _topics.where((t) => t.status == RevisionStatus.overdue || (t.status == RevisionStatus.scheduled && _isDueToday(t.nextRevisionDate))).length;
+  int get dueRevisionsCount => _topics
+      .where(
+        (t) =>
+            t.status == RevisionStatus.overdue ||
+            (t.status == RevisionStatus.scheduled &&
+                _isDueToday(t.nextRevisionDate)),
+      )
+      .length;
 
   static bool _isDueToday(DateTime? date) {
     if (date == null) return false;
     final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
   }
 
   void selectSubject(String? subjectId) {
@@ -149,7 +163,8 @@ class RevisionProvider with ChangeNotifier {
 
       // ── Fetch dynamic data from Supabase if master sync is enabled ──────
       final masterSync =
-          PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
+          PreferencesService.instance.getBool('zeta_master_sync_enabled') ??
+          true;
       if (masterSync) {
         await syncWithCloud();
       }
@@ -210,9 +225,11 @@ class RevisionProvider with ChangeNotifier {
 
   // ─── CRUD Operations ────────────────────────────────────────────────────────
 
-  Future<void> addSubject(String name,
-      {String iconName = 'menu_book_rounded',
-      int colorValue = 0xFF6750A4}) async {
+  Future<void> addSubject(
+    String name, {
+    String iconName = 'menu_book_rounded',
+    int colorValue = 0xFF6750A4,
+  }) async {
     final newSubject = Subject(
       id: _uuid.v4(),
       name: name,
@@ -235,10 +252,13 @@ class RevisionProvider with ChangeNotifier {
   }
 
   Future<void> deleteSubject(
-      String subjectId, TaskProvider taskProvider) async {
+    String subjectId,
+    TaskProvider taskProvider,
+  ) async {
     // Cascade: delete all revision tasks linked to topics of this subject
-    final subjectTopics =
-        _topics.where((t) => t.subjectId == subjectId).toList();
+    final subjectTopics = _topics
+        .where((t) => t.subjectId == subjectId)
+        .toList();
     for (final topic in subjectTopics) {
       final taskId = topic.associatedTaskId;
       if (taskId != null) {
@@ -254,16 +274,20 @@ class RevisionProvider with ChangeNotifier {
     unawaited(_repository.deleteSubject(subjectId));
   }
 
-  Future<void> addTopic(String subjectId, String title,
-      {String? description}) async {
-    final subjectTopics =
-        _topics.where((t) => t.subjectId == subjectId).toList();
+  Future<void> addTopic(
+    String subjectId,
+    String title, {
+    String? description,
+  }) async {
+    final subjectTopics = _topics
+        .where((t) => t.subjectId == subjectId)
+        .toList();
     final nextSortOrder = subjectTopics.isEmpty
         ? 0
         : subjectTopics
-                .map((t) => t.sortOrder)
-                .fold<int>(0, (prev, curr) => curr > prev ? curr : prev) +
-            1;
+                  .map((t) => t.sortOrder)
+                  .fold<int>(0, (prev, curr) => curr > prev ? curr : prev) +
+              1;
 
     final newTopic = ChapterTopic(
       id: _uuid.v4(),
@@ -303,7 +327,10 @@ class RevisionProvider with ChangeNotifier {
   /// Reorders a topic within a subject from [oldIndex] to [newIndex]
   /// and updates sort orders locally and in Supabase.
   Future<void> reorderTopic(
-      String subjectId, int oldIndex, int newIndex) async {
+    String subjectId,
+    int oldIndex,
+    int newIndex,
+  ) async {
     if (oldIndex == newIndex) return;
 
     final subjectTopics = topicsForSelectedSubject;
@@ -336,8 +363,7 @@ class RevisionProvider with ChangeNotifier {
 
   /// Marks a topic complete or advances its revision stage.
   /// Schedules next revision date and creates a revision task in [TaskProvider].
-  Future<void> completeTopic(
-      String topicId, TaskProvider taskProvider) async {
+  Future<void> completeTopic(String topicId, TaskProvider taskProvider) async {
     final index = _topics.indexWhere((t) => t.id == topicId);
     if (index == -1) return;
 
@@ -391,17 +417,14 @@ class RevisionProvider with ChangeNotifier {
 
   /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].
   Future<void> syncFromTaskCompletion(
-      String taskId, TaskProvider taskProvider) async {
+    String taskId,
+    TaskProvider taskProvider,
+  ) async {
     final index = _topics.indexWhere((t) => t.associatedTaskId == taskId);
     if (index == -1) return;
 
     final topic = _topics[index];
     // Automatically complete topic to advance to next stage
     await completeTopic(topic.id, taskProvider);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }

@@ -1,10 +1,13 @@
 import 'dart:convert';
+
 import 'package:drift/drift.dart';
+
 import '../models/task.dart';
 import '../models/pomodoro.dart';
 import '../models/revision.dart';
 import 'connection/connection.dart';
 import 'tables.dart';
+import 'account_scope.dart';
 
 part 'app_database.g.dart';
 
@@ -13,56 +16,87 @@ part 'app_database.g.dart';
 /// Replaces the SharedPreferences JSON-blob approach with a proper relational
 /// store, enabling incremental reads, partial writes, and indexed queries
 /// instead of re-serializing the entire task list on every mutation.
-@DriftDatabase(tables: [
-  TasksTable,
-  PomodoroSessionsTable,
-  ProfilesTable,
-  RevisionSubjectsTable,
-  RevisionTopicsTable,
-])
+@DriftDatabase(
+  tables: [
+    TasksTable,
+    PomodoroSessionsTable,
+    ProfilesTable,
+    RevisionSubjectsTable,
+    RevisionTopicsTable,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
-          );
-          await customStatement(
-            'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
-          );
-        },
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(profilesTable);
-          }
-          if (from < 3) {
-            await customStatement(
-              'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
-            );
-            await customStatement(
-              'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
-            );
-          }
-          if (from < 4) {
-            await m.createTable(revisionSubjectsTable);
-            await m.createTable(revisionTopicsTable);
-            await m.addColumn(
-                pomodoroSessionsTable, pomodoroSessionsTable.lastSyncedAtMs);
-            await customStatement(
-              'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
-            );
-          }
-        },
+    onCreate: (m) async {
+      await m.createAll();
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS sync_outbox (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, feature TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, operation TEXT NOT NULL, created_at_ms INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT NULL);',
       );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_sync_outbox_account_order ON sync_outbox (user_id, created_at_ms);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
+      );
+    },
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(profilesTable);
+      }
+      if (from < 3) {
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+        );
+      }
+      if (from < 4) {
+        await m.createTable(revisionSubjectsTable);
+        await m.createTable(revisionTopicsTable);
+        await m.addColumn(
+          pomodoroSessionsTable,
+          pomodoroSessionsTable.lastSyncedAtMs,
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
+        );
+      }
+      if (from < 5) {
+        await m.addColumn(pomodoroSessionsTable, pomodoroSessionsTable.userId);
+        if (from >= 4) {
+          await m.addColumn(
+            revisionSubjectsTable,
+            revisionSubjectsTable.userId,
+          );
+          await m.addColumn(revisionTopicsTable, revisionTopicsTable.userId);
+        }
+      }
+      if (from >= 2 && from < 6) {
+        await m.addColumn(profilesTable, profilesTable.lastSyncedAtMs);
+      }
+      if (from < 7) {
+        await customStatement(
+          'CREATE TABLE IF NOT EXISTS sync_outbox (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, feature TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, operation TEXT NOT NULL, created_at_ms INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT NULL);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_sync_outbox_account_order ON sync_outbox (user_id, created_at_ms);',
+        );
+      }
+    },
+  );
 
   // ─── Task helpers ───────────────────────────────────────────────────────────
 
@@ -96,14 +130,16 @@ class AppDatabase extends _$AppDatabase {
   static TasksTableCompanion taskToCompanion(Task t) {
     return TasksTableCompanion(
       id: Value(t.id),
-      userId: Value(t.userId),
+      userId: Value(AccountScope.userId ?? t.userId),
       title: Value(t.title),
       description: Value(t.description),
       completed: Value(t.completed),
       dueDate: Value(t.dueDate),
       hasTime: Value(t.hasTime),
       dueTime: Value(t.dueTime),
-      subtasksJson: Value(jsonEncode(t.subtasks.map((s) => s.toJson()).toList())),
+      subtasksJson: Value(
+        jsonEncode(t.subtasks.map((s) => s.toJson()).toList()),
+      ),
       createdAtMs: Value(t.createdAt.millisecondsSinceEpoch),
       updatedAtMs: Value(t.updatedAt.millisecondsSinceEpoch),
       deletedAtMs: Value(t.deletedAt?.millisecondsSinceEpoch),
@@ -126,9 +162,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   static PomodoroSessionsTableCompanion sessionToCompanion(
-      PomodoroSessionLog s) {
+    PomodoroSessionLog s,
+  ) {
     return PomodoroSessionsTableCompanion(
       id: Value(s.id),
+      userId: Value(AccountScope.userId),
       mode: Value(s.mode.toJsonString()),
       minutes: Value(s.minutes),
       completedAtMs: Value(s.completedAt),
@@ -153,6 +191,7 @@ class AppDatabase extends _$AppDatabase {
   static RevisionSubjectsTableCompanion subjectToCompanion(Subject s) {
     return RevisionSubjectsTableCompanion(
       id: Value(s.id),
+      userId: Value(AccountScope.userId),
       name: Value(s.name),
       iconName: Value(s.iconName),
       colorValue: Value(s.colorValue),
@@ -182,6 +221,7 @@ class AppDatabase extends _$AppDatabase {
   static RevisionTopicsTableCompanion topicToCompanion(ChapterTopic t) {
     return RevisionTopicsTableCompanion(
       id: Value(t.id),
+      userId: Value(AccountScope.userId),
       subjectId: Value(t.subjectId),
       title: Value(t.title),
       description: Value(t.description),

@@ -415,7 +415,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     // Subscribe to real-time changes from other clients
-    _repository.setRemoteChangeListener(_handleRemoteTaskChange);
+    _repository.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
     // Initial background cloud sync (full, paginated reconciliation)
     await syncWithCloud();
@@ -461,6 +461,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> syncWithCloud({bool force = false}) async {
     final masterSync = PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
     if (!masterSync && !force) return;
+
+    _repository.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
     if (_isSyncing) return;
     _isSyncing = true;

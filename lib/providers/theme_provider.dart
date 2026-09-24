@@ -8,7 +8,6 @@ import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/haptics.dart';
-import 'profile_provider.dart';
 import 'weather_provider.dart';
 
 /// Seed color preset matching Sharva's design system.
@@ -80,8 +79,7 @@ const List<SeedPreset> kSeedPresets = [
   ),
 ];
 
-/// Mirrors Sharva's useThemeStore — manages theme mode, seed color, typography,
-/// display flags, user profile, live weather, and system preferences.
+/// Manages device theme, display, and weather preferences.
 class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyThemeMode = 'zeta_theme_mode';
   static const String _prefKeySeedColor = 'zeta_seed_color';
@@ -120,27 +118,12 @@ class ThemeProvider extends ChangeNotifier {
     _prefKeyTelemetry,
   ];
 
-  static const List<Color> avatarColors = [
-    Color(0xFF10B981), // Emerald Green
-    Color(0xFF6750A4), // Iris Violet
-    Color(0xFF006494), // Ocean Sapphire
-    Color(0xFFD97706), // Warm Amber
-    Color(0xFFE11D48), // Berry Rose
-    Color(0xFF0D9488), // Glacier Teal
-  ];
-
-  final ProfileProvider _profile;
   final WeatherProvider _weather;
 
-  ProfileProvider get profile => _profile;
   WeatherProvider get weather => _weather;
 
-  ThemeProvider({
-    ProfileProvider? profileProvider,
-    WeatherProvider? weatherProvider,
-  }) : _profile = profileProvider ?? ProfileProvider(),
-       _weather = weatherProvider ?? WeatherProvider() {
-    _profile.addListener(notifyListeners);
+  ThemeProvider({WeatherProvider? weatherProvider})
+    : _weather = weatherProvider ?? WeatherProvider() {
     _weather.addListener(notifyListeners);
     _loadSettings();
   }
@@ -370,22 +353,6 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Profile Delegations ────────────────────────────────────────────────
-  String get userName => _profile.userName;
-  void setUserName(String name) => _profile.setUserName(name);
-  String get userEmail => _profile.userEmail;
-  void setUserEmail(String email) => _profile.setUserEmail(email);
-  String? get avatarPhoto => _profile.avatarPhoto;
-  void setAvatarPhoto(String? photo) => _profile.setAvatarPhoto(photo);
-  void clearAvatarPhoto() => _profile.setAvatarPhoto(null);
-  bool get hasAvatarPhoto => _profile.hasAvatarPhoto;
-  String get avatarInitial => _profile.avatarInitial;
-  String get userInitials => _profile.userInitials;
-  int get avatarColorIndex => _profile.avatarColorIndex;
-  void setAvatarColorIndex(int index) => _profile.setAvatarColorIndex(index);
-  Color get currentAvatarColor => _profile.currentAvatarColor;
-  Future<void> syncProfileWithDb() => _profile.syncProfileWithDb();
-
   // ─── Weather Delegations ────────────────────────────────────────────────
   bool get weatherEnabled => _weather.weatherEnabled;
   void setWeatherEnabled(bool val) => _weather.setWeatherEnabled(val);
@@ -501,12 +468,6 @@ class ThemeProvider extends ChangeNotifier {
   // ─── Import Configuration ───────────────────────────────────────────────
   Future<bool> importConfiguration(Map<String, dynamic> json) async {
     try {
-      if (json['userName'] is String) setUserName(json['userName'] as String);
-      if (json['userEmail'] is String)
-        setUserEmail(json['userEmail'] as String);
-      if (json.containsKey('avatarPhoto')) {
-        setAvatarPhoto(json['avatarPhoto'] as String?);
-      }
       if (json['themeMode'] is String) {
         final mode = ThemeMode.values.firstWhere(
           (m) => m.name == json['themeMode'],
@@ -531,16 +492,21 @@ class ThemeProvider extends ChangeNotifier {
         );
         setVariant(v);
       }
-      if (json['highContrast'] is bool)
+      if (json['highContrast'] is bool) {
         setHighContrast(json['highContrast'] as bool);
-      if (json['animations'] is bool) setAnimations(json['animations'] as bool);
+      }
+      if (json['animations'] is bool) {
+        setAnimations(json['animations'] as bool);
+      }
       if (json['compactDensity'] is bool) {
         setCompactDensity(json['compactDensity'] as bool);
       }
-      if (json['fontScale'] is String)
+      if (json['fontScale'] is String) {
         setFontScale(json['fontScale'] as String);
-      if (json['cornerStyle'] is String)
+      }
+      if (json['cornerStyle'] is String) {
         setCornerStyle(json['cornerStyle'] as String);
+      }
       if (json['typography'] is Map<String, dynamic>) {
         final typo = json['typography'] as Map<String, dynamic>;
         if (typo['headings'] is Map<String, dynamic>) {
@@ -598,7 +564,6 @@ class ThemeProvider extends ChangeNotifier {
     _titlesTypography = RoleTypographyConfig.defaultTitles;
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
-    _profile.resetProfile();
     _weather.setCityName('San Francisco, US');
     _notifications = true;
     _soundEffects = true;

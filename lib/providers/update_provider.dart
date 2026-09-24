@@ -46,9 +46,6 @@ class UpdateProvider extends ChangeNotifier {
 
   String get owner => _service.owner;
   String get repo => _service.repo;
-  bool get hasToken => _service.hasToken;
-  String? get token => _service.effectiveToken;
-  bool get useSupabaseProxy => _service.useSupabaseProxy;
   bool get autoCheck => _service.autoCheck;
 
   UpdateProvider() {
@@ -186,17 +183,9 @@ class UpdateProvider extends ChangeNotifier {
   Future<void> saveSettings({
     String? owner,
     String? repo,
-    String? token,
-    bool? useSupabaseProxy,
     bool? autoCheck,
   }) async {
-    await _service.saveSettings(
-      owner: owner,
-      repo: repo,
-      token: token,
-      useSupabaseProxy: useSupabaseProxy,
-      autoCheck: autoCheck,
-    );
+    await _service.saveSettings(owner: owner, repo: repo, autoCheck: autoCheck);
     notifyListeners();
   }
 

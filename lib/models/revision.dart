@@ -77,11 +77,11 @@ class Subject {
     );
   }
 
-  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+  Map<String, dynamic> toSupabaseRow({required String userId}) {
     final hex = colorValue.toRadixString(16).padLeft(8, '0').substring(2);
     return {
       'id': id,
-      'user_id': defaultUserId ?? 'singleton',
+      'user_id': userId,
       'name': name,
       'color': '#$hex',
       'icon': iconName.replaceAll('_rounded', ''),
@@ -230,7 +230,8 @@ class ChapterTopic {
               }
             }
           } else if (nextRevision == null && s['dueDate'] != null) {
-            nextRevision = DateTime.tryParse(s['dueDate'].toString())?.toLocal();
+            nextRevision = DateTime.tryParse(s['dueDate'].toString())
+                ?.toLocal();
           }
         }
       }
@@ -253,10 +254,10 @@ class ChapterTopic {
     );
   }
 
-  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+  Map<String, dynamic> toSupabaseRow({required String userId}) {
     return {
       'id': id,
-      'user_id': defaultUserId ?? 'singleton',
+      'user_id': userId,
       'subject_id': subjectId,
       'title': title,
       'notes': description,
@@ -276,7 +277,7 @@ class ChapterTopic {
               'completedAt': lastRevisedAt!.toUtc().toIso8601String(),
             if (i == revisionStage && nextRevisionDate != null)
               'dueDate': nextRevisionDate!.toUtc().toIso8601String(),
-          }
+          },
       ],
       'sort_order': sortOrder,
       'updated_at': DateTime.now().toUtc().toIso8601String(),

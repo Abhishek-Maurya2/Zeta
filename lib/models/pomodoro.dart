@@ -147,7 +147,8 @@ class PomodoroSettings {
       skipBreaks: json['skipBreaks'] as bool? ?? false,
       soundNotification: json['soundNotification'] as bool? ?? true,
       toastNotification: json['toastNotification'] as bool? ?? true,
-      dailyGoalMinutes: json['dailyGoalMinutes'] as int? ??
+      dailyGoalMinutes:
+          json['dailyGoalMinutes'] as int? ??
           json['weekDailyGoalMinutes'] as int? ??
           60,
       countUp: json['countUp'] as bool? ?? false,
@@ -208,14 +209,14 @@ class PomodoroSessionLog {
   }
 
   /// Converts the session log to a PostgreSQL row for the Supabase `public.pomodoro_sessions` table.
-  Map<String, dynamic> toSupabaseRow({String? defaultUserId}) {
+  Map<String, dynamic> toSupabaseRow({required String userId}) {
     final completedUtc = DateTime.fromMillisecondsSinceEpoch(
       completedAt,
       isUtc: true,
     );
     return {
       'id': id,
-      'user_id': defaultUserId ?? 'singleton',
+      'user_id': userId,
       'mode': mode.toJsonString(),
       'minutes': minutes,
       'completed_at': completedUtc.toIso8601String(),

@@ -1,20 +1,22 @@
 import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/pomodoro.dart';
+import '../database/database_provider.dart';
 import 'supabase_service.dart';
 import 'network_service.dart';
-import 'preferences_service.dart';
 
 /// Service responsible for bi-directional synchronization between local Pomodoro
 /// sessions and Supabase `public.pomodoro_sessions` table, including real-time change subscriptions.
 class PomodoroSyncService {
-  static const _pendingClearKey = PreferencesService.keyPendingPomodoroClear;
   static final PomodoroSyncService _instance = PomodoroSyncService._internal();
   factory PomodoroSyncService() => _instance;
   PomodoroSyncService._internal() {
-    _networkSubscription =
-        NetworkService().onConnectivityChanged.listen((isOnline) {
+    _networkSubscription = NetworkService().onConnectivityChanged.listen((
+      isOnline,
+    ) {
       if (isOnline) {
         final reconnect = onNetworkReconnect;
         unawaited(reconnect != null ? reconnect() : processPendingQueue());
@@ -23,6 +25,7 @@ class PomodoroSyncService {
   }
 
   final SupabaseService _supabaseService = SupabaseService();
+  final _outbox = DatabaseProvider.instance.syncOutboxDao;
   final Map<String, Timer> _debounceTimers = {};
   RealtimeChannel? _sessionsRealtimeChannel;
   StreamSubscription<bool>? _networkSubscription;
@@ -35,23 +38,41 @@ class PomodoroSyncService {
   String? get lastError => _lastError;
 
   void Function(PomodoroSessionLog session, String eventType)?
-      onRemoteSessionChange;
+  onRemoteSessionChange;
   Future<void> Function(PomodoroSessionLog session, DateTime syncedAt)?
-      onSessionSynced;
+  onSessionSynced;
+  Future<PomodoroSessionLog?> Function(String sessionId)? getSessionForSync;
   Future<void> Function()? onNetworkReconnect;
 
   final List<PomodoroSessionLog> _pendingQueue = [];
 
+  void endAccountSession() {
+    _pendingQueue.clear();
+    onRemoteSessionChange = null;
+    onSessionSynced = null;
+    getSessionForSync = null;
+    onNetworkReconnect = null;
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
+    _sessionsRealtimeChannel?.unsubscribe();
+    _sessionsRealtimeChannel = null;
+    _isSyncing = false;
+  }
+
   Future<void> _ensureInitialized() async {
-    final isTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains(
+      'Test',
+    );
     if (isTest) return;
     if (!_supabaseService.isInitialized) {
       try {
         await _supabaseService.init();
       } catch (e) {
         debugPrint(
-            'PomodoroSyncService: Failed to initialize SupabaseService: $e');
+          'PomodoroSyncService: Failed to initialize SupabaseService: $e',
+        );
       }
     }
   }
@@ -60,9 +81,20 @@ class PomodoroSyncService {
   /// The repository loads durable unsynced sessions from SQLite.
   Future<void> processPendingQueue() async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return;
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
+      return;
+    }
 
-    if (PreferencesService.instance.getBool(_pendingClearKey) == true) {
+    final pending = await _outbox.pendingForAccount(
+      _supabaseService.effectiveUserId,
+      feature: 'pomodoro',
+    );
+    final pendingClear = pending.where(
+      (entry) => entry.operation == 'clear' && entry.entityType == 'session',
+    );
+    if (pendingClear.isNotEmpty) {
       try {
         final userId = _supabaseService.effectiveUserId;
         await _supabaseService.client
@@ -70,13 +102,47 @@ class PomodoroSyncService {
             .delete()
             .eq('user_id', userId)
             .timeout(const Duration(seconds: 15));
-        await PreferencesService.instance.remove(_pendingClearKey);
+        for (final entry in pendingClear) {
+          await _outbox.complete(entry.id, entry.createdAtMs);
+        }
         // Clearing is a barrier: never replay a stale local session in the
         // same queue pass.
         return;
       } catch (e) {
         _lastError = e.toString();
         return;
+      }
+    }
+
+    for (final entry in pending.where((item) => item.operation == 'delete')) {
+      try {
+        await _supabaseService.client
+            .from('pomodoro_sessions')
+            .delete()
+            .eq('id', entry.entityId)
+            .timeout(const Duration(seconds: 15));
+        await _outbox.complete(entry.id, entry.createdAtMs);
+      } catch (error) {
+        await _outbox.recordFailure(entry.id, entry.createdAtMs, error);
+      }
+    }
+
+    for (final entry in pending.where((item) => item.operation == 'upsert')) {
+      try {
+        final session = await getSessionForSync?.call(entry.entityId);
+        if (session == null) {
+          await _outbox.complete(entry.id, entry.createdAtMs);
+        } else if (await pushSession(session)) {
+          await _outbox.complete(entry.id, entry.createdAtMs);
+        } else {
+          await _outbox.recordFailure(
+            entry.id,
+            entry.createdAtMs,
+            _lastError ?? 'Pomodoro session push failed.',
+          );
+        }
+      } catch (error) {
+        await _outbox.recordFailure(entry.id, entry.createdAtMs, error);
       }
     }
 
@@ -101,13 +167,16 @@ class PomodoroSyncService {
     DateTime? since,
   }) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
       _lastError = 'Supabase is unavailable or the device is offline.';
       return [];
     }
-    if (PreferencesService.instance.getBool(_pendingClearKey) == true) {
+    final hasPendingClear = await _hasPendingClear();
+    if (hasPendingClear) {
       await processPendingQueue();
-      if (PreferencesService.instance.getBool(_pendingClearKey) == true) {
+      if (await _hasPendingClear()) {
         _lastError = 'Pending Pomodoro history clear has not synced yet.';
         return [];
       }
@@ -127,10 +196,7 @@ class PomodoroSyncService {
             .select()
             .eq('user_id', userId);
         if (since != null) {
-          query = query.gte(
-            'completed_at',
-            since.toUtc().toIso8601String(),
-          );
+          query = query.gte('completed_at', since.toUtc().toIso8601String());
         }
         final response = await query
             .order('completed_at', ascending: false)
@@ -168,7 +234,9 @@ class PomodoroSyncService {
   /// Push a single session to Supabase with retries and offline fallback.
   Future<bool> pushSession(PomodoroSessionLog session) async {
     await _ensureInitialized();
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+    if (!_supabaseService.isInitialized ||
+        !_supabaseService.isAuthenticated ||
+        !NetworkService().isOnline) {
       if (!_pendingQueue.any((s) => s.id == session.id)) {
         _pendingQueue.add(session);
       }
@@ -176,7 +244,7 @@ class PomodoroSyncService {
     }
 
     final userId = _supabaseService.effectiveUserId;
-    final row = session.toSupabaseRow(defaultUserId: userId);
+    final row = session.toSupabaseRow(userId: userId);
 
     int retryCount = 0;
     const maxRetries = 3;
@@ -224,15 +292,16 @@ class PomodoroSyncService {
     }
 
     final userId = _supabaseService.effectiveUserId;
-    final rows =
-        sessions.map((s) => s.toSupabaseRow(defaultUserId: userId)).toList();
+    final rows = sessions.map((s) => s.toSupabaseRow(userId: userId)).toList();
 
     try {
       await _supabaseService.client
           .from('pomodoro_sessions')
           .upsert(rows)
           .timeout(const Duration(seconds: 25));
-      debugPrint('PomodoroSyncService: Batch upserted ${rows.length} sessions.');
+      debugPrint(
+        'PomodoroSyncService: Batch upserted ${rows.length} sessions.',
+      );
       final syncedAt = DateTime.now();
       for (final session in sessions) {
         await onSessionSynced?.call(session, syncedAt);
@@ -249,43 +318,65 @@ class PomodoroSyncService {
 
   /// Delete a single session record from Supabase.
   Future<bool> deleteSession(String sessionId) async {
-    if (!_supabaseService.isInitialized) return false;
+    await enqueueSessionDeletion(sessionId);
+    await processPendingQueue();
+    final userId = _supabaseService.effectiveUserId;
+    final stillPending = await _outbox.hasPending(
+      userId: userId,
+      feature: 'pomodoro',
+      entityType: 'session',
+      entityId: sessionId,
+    );
+    return !stillPending;
+  }
 
-    try {
-      await _supabaseService.client
-          .from('pomodoro_sessions')
-          .delete()
-          .eq('id', sessionId);
-      debugPrint('PomodoroSyncService: Deleted session $sessionId');
-      return true;
-    } catch (e) {
-      debugPrint('PomodoroSyncService: deleteSession failed for $sessionId - $e');
-      _lastError = e.toString();
-      return false;
-    }
+  Future<void> enqueueSessionDeletion(String sessionId) async {
+    final userId = _supabaseService.effectiveUserId;
+    await _outbox.enqueue(
+      userId: userId,
+      feature: 'pomodoro',
+      entityType: 'session',
+      entityId: sessionId,
+      operation: 'delete',
+    );
   }
 
   /// Clears all pomodoro sessions for current user in Supabase.
   Future<bool> clearSessions() async {
     await enqueueClearSessions();
     await processPendingQueue();
-    return PreferencesService.instance.getBool(_pendingClearKey) != true;
+    return !await _hasPendingClear();
   }
 
   Future<void> enqueueClearSessions() async {
-    await PreferencesService.instance.setBool(_pendingClearKey, true);
-    unawaited(processPendingQueue());
+    await _outbox.enqueue(
+      userId: _supabaseService.effectiveUserId,
+      feature: 'pomodoro',
+      entityType: 'session',
+      entityId: '_all',
+      operation: 'clear',
+    );
   }
+
+  Future<bool> _hasPendingClear() async =>
+      (await _outbox.pendingForAccount(
+        _supabaseService.effectiveUserId,
+        feature: 'pomodoro',
+      )).any(
+        (entry) => entry.operation == 'clear' && entry.entityType == 'session',
+      );
 
   /// Subscribes to Realtime PostgreSQL changes on `public.pomodoro_sessions`.
   ///
   /// Applies a server-side `user_id` row filter so only changes belonging to
   /// the current user are delivered.
   void subscribeToRealtime({
-    void Function(PomodoroSessionLog session, String eventType)? onSessionChange,
+    void Function(PomodoroSessionLog session, String eventType)?
+    onSessionChange,
   }) {
-    final isTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains(
+      'Test',
+    );
     if (isTest || !_supabaseService.isInitialized) return;
     if (onSessionChange != null) onRemoteSessionChange = onSessionChange;
 
@@ -309,12 +400,14 @@ class PomodoroSyncService {
             try {
               final eventType = payload.eventType.name;
               if (payload.newRecord.isNotEmpty) {
-                final session =
-                    PomodoroSessionLog.fromSupabaseRow(payload.newRecord);
+                final session = PomodoroSessionLog.fromSupabaseRow(
+                  payload.newRecord,
+                );
                 onRemoteSessionChange?.call(session, eventType);
               } else if (payload.oldRecord.isNotEmpty) {
-                final session =
-                    PomodoroSessionLog.fromSupabaseRow(payload.oldRecord);
+                final session = PomodoroSessionLog.fromSupabaseRow(
+                  payload.oldRecord,
+                );
                 onRemoteSessionChange?.call(session, eventType);
               }
             } catch (e) {
@@ -339,8 +432,9 @@ class PomodoroSyncService {
       timer.cancel();
     }
     _debounceTimers.clear();
-    final isTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains(
+      'Test',
+    );
     if (!isTest && _supabaseService.isInitialized) {
       try {
         _sessionsRealtimeChannel?.unsubscribe();

@@ -1,10 +1,9 @@
-import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Central Supabase service managing client initialization, authentication lifecycle,
-/// and OAuth login with Google Calendar & Google Tasks scopes.
+/// Owns Supabase client initialization and exposes the active authenticated user.
 class SupabaseService {
   static final SupabaseService _instance = SupabaseService._internal();
   factory SupabaseService() => _instance;
@@ -19,19 +18,27 @@ class SupabaseService {
 
   SupabaseClient get client {
     if (!_isInitialized) {
-      throw StateError('SupabaseService has not been initialized. Call init() first.');
+      throw StateError(
+        'SupabaseService has not been initialized. Call init() first.',
+      );
     }
     return Supabase.instance.client;
   }
 
   User? get currentUser => _isInitialized ? client.auth.currentUser : null;
-  Session? get currentSession => _isInitialized ? client.auth.currentSession : null;
+  Session? get currentSession =>
+      _isInitialized ? client.auth.currentSession : null;
 
-  /// In zero-auth single-user mode, all cloud operations map directly to the 'singleton' workspace.
-  String get effectiveUserId => 'singleton';
+  /// Current account id for row ownership. Cloud data access requires a session.
+  String get effectiveUserId {
+    final id = currentUser?.id;
+    if (id == null) {
+      throw StateError('A signed-in user is required for cloud data access.');
+    }
+    return id;
+  }
 
-  /// In zero-auth mode, the connection is active as long as Supabase client is initialized.
-  bool get isAuthenticated => _isInitialized;
+  bool get isAuthenticated => currentUser != null;
 
   Stream<AuthState>? get authStateChanges =>
       _isInitialized ? client.auth.onAuthStateChange : null;

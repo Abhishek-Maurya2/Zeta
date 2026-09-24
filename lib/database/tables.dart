@@ -29,6 +29,7 @@ class PomodoroSessionsTable extends Table {
   String get tableName => 'pomodoro_sessions';
 
   TextColumn get id => text()();
+  TextColumn get userId => text().nullable()();
   TextColumn get mode => text()();
   IntColumn get minutes => integer()();
   IntColumn get completedAtMs => integer()();
@@ -48,6 +49,7 @@ class ProfilesTable extends Table {
   TextColumn get email => text().withDefault(const Constant(''))();
   TextColumn get avatarImage => text().nullable()();
   IntColumn get updatedAtMs => integer().nullable()();
+  IntColumn get lastSyncedAtMs => integer().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -59,6 +61,7 @@ class RevisionSubjectsTable extends Table {
   String get tableName => 'revision_subjects';
 
   TextColumn get id => text()();
+  TextColumn get userId => text().nullable()();
   TextColumn get name => text()();
   TextColumn get iconName =>
       text().withDefault(const Constant('menu_book_rounded'))();
@@ -76,13 +79,12 @@ class RevisionTopicsTable extends Table {
   String get tableName => 'revision_topics';
 
   TextColumn get id => text()();
+  TextColumn get userId => text().nullable()();
   TextColumn get subjectId => text()();
   TextColumn get title => text()();
   TextColumn get description => text().nullable()();
-  BoolColumn get isCompleted =>
-      boolean().withDefault(const Constant(false))();
-  IntColumn get revisionStage =>
-      integer().withDefault(const Constant(0))();
+  BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
+  IntColumn get revisionStage => integer().withDefault(const Constant(0))();
   IntColumn get lastRevisedAtMs => integer().nullable()();
   IntColumn get nextRevisionDateMs => integer().nullable()();
   TextColumn get associatedTaskId => text().nullable()();

@@ -18,13 +18,14 @@ import 'providers/revision_provider.dart';
 import 'theme/app_theme.dart';
 import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
-import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
 import 'services/network_service.dart';
 import 'services/preferences_service.dart';
 import 'database/database_provider.dart';
 import 'database/migration_service.dart';
 import 'services/quick_actions_service.dart';
+import 'features/auth/presentation/auth_provider.dart';
+import 'features/auth/presentation/auth_gate.dart';
 
 bool get _isTestMode =>
     WidgetsBinding.instance.runtimeType.toString().contains('Test');
@@ -52,7 +53,6 @@ void main([List<String> args = const <String>[]]) async {
 
   // Asynchronously initialize services without blocking the initial frame
   unawaited(NetworkService().checkConnectivity());
-  unawaited(SupabaseService().init());
   unawaited(NotificationService.instance.init());
   runApp(const ZetaApp());
 }
@@ -66,15 +66,31 @@ class ZetaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveShowSplash = showSplash ?? !_isTestMode;
 
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: AuthGate(
+        authenticatedBuilder: (_) =>
+            _AuthenticatedApp(showSplash: effectiveShowSplash),
+        bypassAuth: _isTestMode,
+      ),
+    );
+  }
+}
+
+class _AuthenticatedApp extends StatelessWidget {
+  final bool showSplash;
+
+  const _AuthenticatedApp({required this.showSplash});
+
+  @override
+  Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(
-          create: (ctx) => ThemeProvider(
-            profileProvider: ctx.read<ProfileProvider>(),
-            weatherProvider: ctx.read<WeatherProvider>(),
-          ),
+          create: (ctx) =>
+              ThemeProvider(weatherProvider: ctx.read<WeatherProvider>()),
         ),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
@@ -99,7 +115,7 @@ class ZetaApp extends StatelessWidget {
           },
         ),
       ],
-      child: _ZetaAppView(showSplash: effectiveShowSplash),
+      child: _ZetaAppView(showSplash: showSplash),
     );
   }
 }

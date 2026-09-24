@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../services/quick_actions_service.dart';
+import '../services/android_tasks_widget_service.dart';
 import '../utils/app_snackbar.dart';
 import '../utils/haptics.dart';
 import '../utils/windows_title_bar.dart';
@@ -15,6 +16,7 @@ import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/revision_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/profile_provider.dart';
 import 'components/body_pane.dart';
 import 'components/floating_bottom_nav.dart';
 import 'components/navigation_rail_widget.dart';
@@ -87,12 +89,14 @@ class _AppScaffoldState extends State<AppScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         QuickActionsService.instance.init(context.read<NavigationProvider>());
+        unawaited(AndroidTasksWidgetService.instance.initialize(context));
       }
     });
   }
 
   @override
   void dispose() {
+    AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
@@ -114,6 +118,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final taskProvider = context.read<TaskProvider>();
     final pomodoroProvider = context.read<PomodoroProvider>();
+    final profileProvider = context.read<ProfileProvider>();
     final themeProvider = context.read<ThemeProvider>();
     final revisionProvider = context.read<RevisionProvider>();
 
@@ -138,7 +143,7 @@ class _AppScaffoldState extends State<AppScaffold>
       await Future.wait([
         taskProvider.syncWithCloud(force: true),
         pomodoroProvider.syncWithCloud(force: true),
-        themeProvider.syncProfileWithDb(),
+        profileProvider.syncProfileWithDb(),
         themeProvider.refreshWeather(),
         revisionProvider.refreshData(),
         minDelay,
@@ -752,4 +757,3 @@ class _AppScaffoldState extends State<AppScaffold>
     );
   }
 }
-

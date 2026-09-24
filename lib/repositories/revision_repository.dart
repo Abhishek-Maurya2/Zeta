@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../models/revision.dart';
 import '../database/daos/revision_dao.dart';
 import '../database/database_provider.dart';
@@ -12,8 +14,8 @@ class RevisionRepository {
   RevisionRepository({
     RevisionDao? revisionDao,
     RevisionSyncService? syncService,
-  })  : _revisionDao = revisionDao ?? DatabaseProvider.instance.revisionDao,
-        _syncService = syncService ?? RevisionSyncService() {
+  }) : _revisionDao = revisionDao ?? DatabaseProvider.instance.revisionDao,
+       _syncService = syncService ?? RevisionSyncService() {
     _syncService.getSubjectForSync = _revisionDao.getSubject;
     _syncService.getTopicForSync = _revisionDao.getTopic;
   }
@@ -33,37 +35,53 @@ class RevisionRepository {
   Future<List<ChapterTopic>> getAllTopics() => _revisionDao.getAllTopics();
 
   Future<void> saveSubject(Subject subject, {bool pushToCloud = true}) async {
-    await _revisionDao.upsertSubject(subject);
     if (pushToCloud) {
-      await _syncService.enqueueSubjectUpsert(subject);
+      await _revisionDao.upsertSubjectAndQueue(subject);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _revisionDao.upsertSubject(subject);
     }
   }
 
   Future<void> saveTopic(ChapterTopic topic, {bool pushToCloud = true}) async {
-    await _revisionDao.upsertTopic(topic);
     if (pushToCloud) {
-      await _syncService.enqueueTopicUpsert(topic);
+      await _revisionDao.upsertTopicAndQueue(topic);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _revisionDao.upsertTopic(topic);
     }
   }
 
-  Future<void> saveTopicsBatch(List<ChapterTopic> topics, {bool pushToCloud = true}) async {
-    await _revisionDao.upsertAllTopics(topics);
+  Future<void> saveTopicsBatch(
+    List<ChapterTopic> topics, {
+    bool pushToCloud = true,
+  }) async {
     if (pushToCloud) {
-      await _syncService.enqueueTopicsUpsert(topics);
+      await _revisionDao.upsertAllTopicsAndQueue(topics);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _revisionDao.upsertAllTopics(topics);
     }
   }
 
-  Future<void> deleteSubject(String subjectId, {bool pushToCloud = true}) async {
-    await _revisionDao.deleteSubject(subjectId);
+  Future<void> deleteSubject(
+    String subjectId, {
+    bool pushToCloud = true,
+  }) async {
     if (pushToCloud) {
-      await _syncService.enqueueSubjectDeletion(subjectId);
+      await _revisionDao.deleteSubjectAndQueue(subjectId);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _revisionDao.deleteSubject(subjectId);
     }
   }
 
   Future<void> deleteTopic(String topicId, {bool pushToCloud = true}) async {
-    await _revisionDao.deleteTopic(topicId);
     if (pushToCloud) {
-      await _syncService.enqueueTopicDeletion(topicId);
+      await _revisionDao.deleteTopicAndQueue(topicId);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _revisionDao.deleteTopic(topicId);
     }
   }
 
@@ -80,36 +98,46 @@ class RevisionRepository {
       if (subjectPullFailed || topicPullFailed) return;
 
       final remoteSubIds = remoteSubjects.map((s) => s.id).toSet();
-      final subjectsToApply = remoteSubjects
-          .where((s) => !_syncService.hasPendingSubject(s.id))
-          .toList();
+      final subjectsToApply = <Subject>[];
+      for (final subject in remoteSubjects) {
+        if (!await _syncService.hasPendingSubject(subject.id)) {
+          subjectsToApply.add(subject);
+        }
+      }
       if (subjectsToApply.isNotEmpty) {
         await _revisionDao.upsertAllSubjects(subjectsToApply);
       }
       final localSubjects = await _revisionDao.getAllSubjects();
       for (final local in localSubjects) {
         if (!remoteSubIds.contains(local.id) &&
-            !_syncService.hasPendingSubject(local.id)) {
+            !await _syncService.hasPendingSubject(local.id)) {
           await _revisionDao.deleteSubject(local.id);
         }
       }
 
       final remoteTopicIds = remoteTopics.map((t) => t.id).toSet();
-      final topicsToApply = remoteTopics
-          .where((t) => !_syncService.hasPendingTopic(t.id))
-          .toList();
+      final topicsToApply = <ChapterTopic>[];
+      for (final topic in remoteTopics) {
+        if (!await _syncService.hasPendingTopic(topic.id)) {
+          topicsToApply.add(topic);
+        }
+      }
       if (topicsToApply.isNotEmpty) {
         await _revisionDao.upsertAllTopics(topicsToApply);
       }
       final localTopics = await _revisionDao.getAllTopics();
       for (final local in localTopics) {
         if (!remoteTopicIds.contains(local.id) &&
-            !_syncService.hasPendingTopic(local.id)) {
+            !await _syncService.hasPendingTopic(local.id)) {
           await _revisionDao.deleteTopic(local.id);
         }
       }
     } catch (e, st) {
-      AppLogger.error('RevisionRepository sync failed', error: e, stackTrace: st);
+      AppLogger.error(
+        'RevisionRepository sync failed',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }

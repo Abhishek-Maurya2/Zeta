@@ -1,213 +1,150 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
 import '../repositories/profile_repository.dart';
-import '../services/preferences_service.dart';
+import '../services/network_service.dart';
 import '../utils/app_logger.dart';
 
-/// Provider responsible strictly for User Profile, Avatar, and Profile Sync state.
+/// UI state for an account profile; writes are local-first and sync is retriable.
 class ProfileProvider extends ChangeNotifier {
-  static const String _prefKeyUserName = PreferencesService.keyUserName;
-  static const String _prefKeyUserEmail = PreferencesService.keyUserEmail;
-  static const String _prefKeyAvatarPhoto = PreferencesService.keyAvatarPhoto;
-  static const String _prefKeyAvatarColorIndex = PreferencesService.keyAvatarColorIndex;
-
-  static const List<Color> avatarColors = [
-    Color(0xFF10B981), // Emerald Green
-    Color(0xFF6750A4), // Iris Violet
-    Color(0xFF006494), // Ocean Sapphire
-    Color(0xFFD97706), // Warm Amber
-    Color(0xFFE11D48), // Berry Rose
-    Color(0xFF0D9488), // Glacier Teal
-  ];
-
   final ProfileRepository _repository;
+  StreamSubscription<bool>? _networkSubscription;
 
-  String _userName = 'Abhishek';
+  String _userName = '';
   String _userEmail = '';
   String? _avatarPhoto;
-  int _avatarColorIndex = 0;
+  bool _isSyncing = false;
+  String? _syncError;
+  DateTime? _lastSyncedAt;
+  bool _syncRequestedDuringRun = false;
 
   ProfileProvider({ProfileRepository? repository})
-      : _repository = repository ?? ProfileRepository() {
-    _loadSettings();
+    : _repository = repository ?? ProfileRepository() {
+    _networkSubscription = NetworkService().onConnectivityChanged.listen((
+      online,
+    ) {
+      if (online) unawaited(syncProfileWithDb());
+    });
+    unawaited(_loadProfile());
   }
 
-  // ─── Getters ───────────────────────────────────────────────────────────────
   String get userName => _userName;
   String get userEmail => _userEmail;
   String? get avatarPhoto => _avatarPhoto;
   bool get hasAvatarPhoto => _avatarPhoto != null && _avatarPhoto!.isNotEmpty;
-  int get avatarColorIndex => _avatarColorIndex;
-
-  Color get currentAvatarColor =>
-      avatarColors[_avatarColorIndex.clamp(0, avatarColors.length - 1)];
-
-  String get avatarInitial {
-    final trimmed = _userName.trim();
-    if (trimmed.isEmpty) return 'A';
-    return trimmed[0].toUpperCase();
-  }
-
+  String get avatarInitial =>
+      _userName.trim().isEmpty ? 'A' : _userName.trim()[0].toUpperCase();
   String get userInitials => avatarInitial;
+  bool get isSyncing => _isSyncing;
+  String? get syncError => _syncError;
+  DateTime? get lastSyncedAt => _lastSyncedAt;
 
-  // ─── Mutators ──────────────────────────────────────────────────────────────
-  void setUserName(String name) {
+  Future<void> setUserName(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty || _userName == trimmed) return;
     _userName = trimmed;
     notifyListeners();
-    unawaited(_saveSetting(_prefKeyUserName, trimmed));
-    unawaited(
-      _repository.saveProfile(
-        displayName: _userName,
-        email: _userEmail,
-        avatarImage: _avatarPhoto,
-      ),
-    );
+    await _persistAndSync();
   }
 
-  void setUserEmail(String email) {
-    final trimmed = email.trim();
-    if (_userEmail == trimmed) return;
-    _userEmail = trimmed;
+  Future<void> uploadAvatar(Uint8List bytes, {String extension = 'png'}) async {
+    if (bytes.isEmpty) return;
+    final contentType = switch (extension.toLowerCase()) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'webp' => 'image/webp',
+      'gif' => 'image/gif',
+      _ => 'image/png',
+    };
+    _avatarPhoto = 'data:$contentType;base64,${base64Encode(bytes)}';
     notifyListeners();
-    unawaited(_saveSetting(_prefKeyUserEmail, trimmed));
-    unawaited(
-      _repository.saveProfile(
-        displayName: _userName,
-        email: _userEmail,
-        avatarImage: _avatarPhoto,
-      ),
-    );
+    await _persistAndSync();
   }
 
-  void setAvatarPhoto(String? base64Photo) {
-    if (_avatarPhoto == base64Photo) return;
-    _avatarPhoto = base64Photo;
+  Future<void> clearAvatarPhoto() async {
+    if (!hasAvatarPhoto) return;
+    _avatarPhoto = null;
     notifyListeners();
-    unawaited(_saveSetting(_prefKeyAvatarPhoto, base64Photo ?? ''));
-    unawaited(
-      _repository.saveProfile(
-        displayName: _userName,
-        email: _userEmail,
-        avatarImage: _avatarPhoto,
-      ),
-    );
+    await _persistAndSync();
   }
 
-  void setAvatarColorIndex(int index) {
-    if (index < 0 || index >= avatarColors.length || _avatarColorIndex == index) return;
-    _avatarColorIndex = index;
-    notifyListeners();
-    unawaited(_saveSetting(_prefKeyAvatarColorIndex, index));
-  }
-
-  // ─── Cloud & Local Sync ────────────────────────────────────────────────────
   Future<void> syncProfileWithDb() async {
+    if (_isSyncing) {
+      _syncRequestedDuringRun = true;
+      return;
+    }
+    _isSyncing = true;
+    _syncError = null;
+    notifyListeners();
     try {
       final data = await _repository.syncProfileFromCloud();
-      if (data != null) {
-        final name = data['display_name'] as String?;
-        final email = data['email'] as String?;
-        final photo = data['avatar_image'] as String?;
-        var changed = false;
-
-        if (name != null && name.trim().isNotEmpty && name != _userName) {
-          _userName = name.trim();
-          await _saveSetting(_prefKeyUserName, _userName);
-          changed = true;
-        }
-        if (email != null && email != _userEmail) {
-          _userEmail = email.trim();
-          await _saveSetting(_prefKeyUserEmail, _userEmail);
-          changed = true;
-        }
-        if (photo != null && photo != _avatarPhoto) {
-          _avatarPhoto = photo.isEmpty ? null : photo;
-          await _saveSetting(_prefKeyAvatarPhoto, _avatarPhoto ?? '');
-          changed = true;
-        }
-        if (changed) {
-          notifyListeners();
-        }
-      }
-    } catch (e, st) {
-      AppLogger.error('Failed to sync profile', error: e, stackTrace: st);
-    }
-  }
-
-  void resetProfile() {
-    _userName = 'Abhishek';
-    _userEmail = '';
-    _avatarPhoto = null;
-    _avatarColorIndex = 0;
-    notifyListeners();
-    unawaited(_saveSetting(_prefKeyUserName, _userName));
-    unawaited(_saveSetting(_prefKeyUserEmail, _userEmail));
-    unawaited(_saveSetting(_prefKeyAvatarPhoto, ''));
-    unawaited(_saveSetting(_prefKeyAvatarColorIndex, 0));
-  }
-
-  // ─── Private Helpers ───────────────────────────────────────────────────────
-  void _loadSettings() {
-    try {
-      final prefs = PreferencesService.instance;
-      _userName = prefs.getString(_prefKeyUserName) ?? 'Abhishek';
-      _userEmail = prefs.getString(_prefKeyUserEmail) ?? '';
-      final photo = prefs.getString(_prefKeyAvatarPhoto);
-      _avatarPhoto = (photo != null && photo.isNotEmpty) ? photo : null;
-      _avatarColorIndex = prefs.getInt(_prefKeyAvatarColorIndex) ?? 0;
+      if (data != null) _apply(data);
+      _lastSyncedAt = DateTime.now();
+    } catch (error, stackTrace) {
+      _syncError = error.toString();
+      AppLogger.error(
+        'Profile synchronization failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      _isSyncing = false;
       notifyListeners();
-
-      _loadFallbackFromDb();
-    } catch (e, st) {
-      AppLogger.warning('Failed to load profile settings', error: e, stackTrace: st);
+      if (_syncRequestedDuringRun) {
+        _syncRequestedDuringRun = false;
+        unawaited(syncProfileWithDb());
+      }
     }
   }
 
-  Future<void> _loadFallbackFromDb() async {
+  Future<void> _loadProfile() async {
     try {
       final local = await _repository.getLocalProfile();
-      if (local != null) {
-        var changed = false;
-        final name = local['display_name'] as String?;
-        final email = local['email'] as String?;
-        final photo = local['avatar_image'] as String?;
-
-        if (name != null && name.trim().isNotEmpty && _userName == 'Abhishek') {
-          _userName = name.trim();
-          await _saveSetting(_prefKeyUserName, _userName);
-          changed = true;
-        }
-        if (email != null && email.trim().isNotEmpty && _userEmail.isEmpty) {
-          _userEmail = email.trim();
-          await _saveSetting(_prefKeyUserEmail, _userEmail);
-          changed = true;
-        }
-        if (photo != null && photo.isNotEmpty && _avatarPhoto == null) {
-          _avatarPhoto = photo;
-          await _saveSetting(_prefKeyAvatarPhoto, photo);
-          changed = true;
-        }
-        if (changed) {
-          notifyListeners();
-        }
-      }
-    } catch (e, st) {
-      AppLogger.warning('Failed to load local DB profile fallback', error: e, stackTrace: st);
+      if (local != null) _apply(local);
+    } catch (error, stackTrace) {
+      AppLogger.warning(
+        'Could not load local profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
     }
+    notifyListeners();
+    await syncProfileWithDb();
   }
 
-  Future<void> _saveSetting(String key, dynamic value) async {
+  Future<void> _persistAndSync() async {
     try {
-      final prefs = PreferencesService.instance;
-      if (value is String) {
-        await prefs.setString(key, value);
-      } else if (value is int) {
-        await prefs.setInt(key, value);
-      }
-    } catch (e, st) {
-      AppLogger.warning('Failed to save profile setting $key', error: e, stackTrace: st);
+      await _repository.saveLocalProfile(
+        displayName: _userName,
+        email: _userEmail,
+        avatarImage: _avatarPhoto,
+      );
+    } catch (error, stackTrace) {
+      _syncError = error.toString();
+      AppLogger.error(
+        'Could not save local profile',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      notifyListeners();
+      rethrow;
     }
+    await syncProfileWithDb();
+  }
+
+  void _apply(Map<String, dynamic> data) {
+    final name = data['display_name'] as String?;
+    final email = data['email'] as String?;
+    final photo = data['avatar_image'] as String?;
+    if (name != null) _userName = name;
+    if (email != null) _userEmail = email;
+    _avatarPhoto = photo?.isEmpty == true ? null : photo;
+  }
+
+  @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    super.dispose();
   }
 }

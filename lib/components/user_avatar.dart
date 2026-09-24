@@ -4,16 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/theme_provider.dart';
 import '../providers/profile_provider.dart';
 
 /// Renders the user's avatar.
 /// If a photo is set, displays the photo without blinking or refreshing.
 /// If no photo is set, displays the first letter of the user's name.
 ///
-/// [ringColor] overrides the ring and glow color — e.g. pass a sync-status
-/// color from [TaskProvider] to reflect sync state in the ring.
-/// When null the avatar accent color from [ThemeProvider] is used.
+/// [ringColor] can show the account sync state. Avatar appearance itself uses
+/// the active Material theme and has no per-profile color customization.
 class UserAvatar extends StatelessWidget {
   final double radius;
   final bool showRing;
@@ -21,8 +19,11 @@ class UserAvatar extends StatelessWidget {
   final double? fontSize;
   final VoidCallback? onTap;
 
-  /// Optional ring + glow color override. Null = use accent color from ThemeProvider.
+  /// Optional sync-status ring color. Defaults to the active theme primary.
   final Color? ringColor;
+
+  /// Optional tooltip message to display on hover/long-press.
+  final String? tooltip;
 
   const UserAvatar({
     super.key,
@@ -32,6 +33,7 @@ class UserAvatar extends StatelessWidget {
     this.fontSize,
     this.onTap,
     this.ringColor,
+    this.tooltip,
   });
 
   // In-memory cache for decoded base64 avatar bytes to avoid re-allocating
@@ -56,15 +58,14 @@ class UserAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profileProvider = Provider.of<ProfileProvider?>(context);
-    final themeProvider = profileProvider == null ? Provider.of<ThemeProvider?>(context) : null;
-    final accentColor = profileProvider?.currentAvatarColor ?? themeProvider?.currentAvatarColor ?? const Color(0xFF10B981);
+    final profileProvider = context.watch<ProfileProvider>();
+    final accentColor = Theme.of(context).colorScheme.primary;
     final effectiveRingColor = ringColor ?? accentColor;
     final diameter = radius * 2;
-    final initial = profileProvider?.avatarInitial ?? themeProvider?.avatarInitial ?? 'A';
+    final initial = profileProvider.avatarInitial;
     final effectiveFontSize = fontSize ?? (radius * 0.85);
-    final hasPhoto = profileProvider?.hasAvatarPhoto ?? themeProvider?.hasAvatarPhoto ?? false;
-    final photo = profileProvider?.avatarPhoto ?? themeProvider?.avatarPhoto;
+    final hasPhoto = profileProvider.hasAvatarPhoto;
+    final photo = profileProvider.avatarPhoto;
 
     Widget fallbackInitial() {
       return Center(
@@ -135,14 +136,18 @@ class UserAvatar extends StatelessWidget {
       ),
     );
 
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(radius * 2),
-        child: content,
-      );
+    final Widget interactiveWidget = onTap != null
+        ? InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radius * 2),
+            child: content,
+          )
+        : content;
+
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      return Tooltip(message: tooltip!, child: interactiveWidget);
     }
 
-    return content;
+    return interactiveWidget;
   }
 }

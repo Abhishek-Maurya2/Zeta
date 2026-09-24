@@ -8,6 +8,9 @@ import '../utils/haptics.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/profile_provider.dart';
+import '../providers/pomodoro_provider.dart';
+import '../providers/revision_provider.dart';
 import '../components/zeta_logo.dart';
 import '../components/user_avatar.dart';
 import '../components/segmented_column.dart';
@@ -65,7 +68,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final themeProvider = context.watch<ThemeProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
     final taskProvider = context.watch<TaskProvider>();
+    final pomodoroProvider = context.watch<PomodoroProvider>();
+    final revisionProvider = context.watch<RevisionProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
@@ -310,26 +316,38 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             builder: (context) {
               // Map sync state → ring color
               final Color syncRingColor;
-              final String syncLabel;
-              if (taskProvider.isSyncing) {
+              final syncError =
+                  taskProvider.syncError ??
+                  pomodoroProvider.syncError ??
+                  revisionProvider.syncError ??
+                  profileProvider.syncError;
+              final isSyncing =
+                  taskProvider.isSyncing ||
+                  pomodoroProvider.isSyncing ||
+                  revisionProvider.isSyncing ||
+                  profileProvider.isSyncing;
+              final allSynced =
+                  taskProvider.lastSyncedAt != null &&
+                  pomodoroProvider.lastSyncedAt != null &&
+                  revisionProvider.lastSyncedAt != null &&
+                  profileProvider.lastSyncedAt != null;
+              final String tooltipMessage;
+              if (syncError != null) {
+                syncRingColor = Theme.of(context).colorScheme.error;
+                tooltipMessage = '${profileProvider.userName} • Sync Error: $syncError';
+              } else if (isSyncing) {
                 syncRingColor = const Color(0xFFF59E0B); // amber — syncing
-                syncLabel = 'Syncing…';
-              } else if (taskProvider.syncError != null) {
-                syncRingColor = Theme.of(context)
-                    .colorScheme
-                    .error; // red — error
-                syncLabel = 'Sync error';
-              } else if (taskProvider.lastSyncedAt != null) {
+                tooltipMessage = '${profileProvider.userName} • Syncing…';
+              } else if (allSynced) {
                 syncRingColor = const Color(0xFF10B981); // green — synced
-                syncLabel = 'Synced';
+                tooltipMessage = '${profileProvider.userName} • Synced';
               } else {
-                syncRingColor =
-                    themeProvider.currentAvatarColor; // accent — never synced
-                syncLabel = 'Not synced';
+                syncRingColor = const Color(0xFFF59E0B); // amber — pending sync
+                tooltipMessage = '${profileProvider.userName} • Waiting to sync';
               }
 
               return Tooltip(
-                message: '${themeProvider.userName} • $syncLabel',
+                message: tooltipMessage,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
                   onTap: () {

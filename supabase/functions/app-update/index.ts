@@ -20,13 +20,43 @@ serve(async (req: Request) => {
     const repo = url.searchParams.get("repo") || "Zeta";
     const assetId = url.searchParams.get("asset_id");
 
-    // Secret stored in Supabase Project Settings -> Edge Functions -> Secrets
-    const githubToken = Deno.env.get("GITHUB_RELEASE_TOKEN") || Deno.env.get("GITHUB_TOKEN");
+    // Keep the private token scoped to this app's configured release repository.
+    const allowedOwner = Deno.env.get("GITHUB_RELEASE_OWNER") || "Abhishek-Maurya2";
+    const allowedRepo = Deno.env.get("GITHUB_RELEASE_REPO") || "Zeta";
+    if (owner !== allowedOwner || repo !== allowedRepo) {
+      return new Response(JSON.stringify({ error: "Repository is not allowed." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Read the token server-side only. app_config must not be client-readable.
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("Supabase server credentials are unavailable.");
+    }
+    const configResponse = await fetch(
+        `${supabaseUrl}/rest/v1/app_config?select=value&key=eq.github_update_pat`,
+        {
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+        },
+    );
+    if (!configResponse.ok) {
+      throw new Error(`Could not read the updater token from app_config (${configResponse.status}).`);
+    }
+    const configRows = await configResponse.json();
+    const githubToken = Array.isArray(configRows) && typeof configRows[0]?.value === "string"
+      ? configRows[0].value.trim()
+      : "";
 
     if (!githubToken) {
       return new Response(
         JSON.stringify({
-          error: "GITHUB_RELEASE_TOKEN is not configured in Supabase environment secrets.",
+          error: "github_update_pat is not configured in app_config.",
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

@@ -804,6 +804,15 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _modeMeta = const VerificationMeta('mode');
   @override
   late final GeneratedColumn<String> mode = GeneratedColumn<String>(
@@ -849,6 +858,7 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     mode,
     minutes,
     completedAtMs,
@@ -870,6 +880,12 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('mode')) {
       context.handle(
@@ -923,6 +939,10 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
       mode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}mode'],
@@ -951,12 +971,14 @@ class $PomodoroSessionsTableTable extends PomodoroSessionsTable
 class PomodoroSessionsTableData extends DataClass
     implements Insertable<PomodoroSessionsTableData> {
   final String id;
+  final String? userId;
   final String mode;
   final int minutes;
   final int completedAtMs;
   final int? lastSyncedAtMs;
   const PomodoroSessionsTableData({
     required this.id,
+    this.userId,
     required this.mode,
     required this.minutes,
     required this.completedAtMs,
@@ -966,6 +988,9 @@ class PomodoroSessionsTableData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
     map['mode'] = Variable<String>(mode);
     map['minutes'] = Variable<int>(minutes);
     map['completed_at_ms'] = Variable<int>(completedAtMs);
@@ -978,6 +1003,9 @@ class PomodoroSessionsTableData extends DataClass
   PomodoroSessionsTableCompanion toCompanion(bool nullToAbsent) {
     return PomodoroSessionsTableCompanion(
       id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
       mode: Value(mode),
       minutes: Value(minutes),
       completedAtMs: Value(completedAtMs),
@@ -994,6 +1022,7 @@ class PomodoroSessionsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return PomodoroSessionsTableData(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
       mode: serializer.fromJson<String>(json['mode']),
       minutes: serializer.fromJson<int>(json['minutes']),
       completedAtMs: serializer.fromJson<int>(json['completedAtMs']),
@@ -1005,6 +1034,7 @@ class PomodoroSessionsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
       'mode': serializer.toJson<String>(mode),
       'minutes': serializer.toJson<int>(minutes),
       'completedAtMs': serializer.toJson<int>(completedAtMs),
@@ -1014,12 +1044,14 @@ class PomodoroSessionsTableData extends DataClass
 
   PomodoroSessionsTableData copyWith({
     String? id,
+    Value<String?> userId = const Value.absent(),
     String? mode,
     int? minutes,
     int? completedAtMs,
     Value<int?> lastSyncedAtMs = const Value.absent(),
   }) => PomodoroSessionsTableData(
     id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
     mode: mode ?? this.mode,
     minutes: minutes ?? this.minutes,
     completedAtMs: completedAtMs ?? this.completedAtMs,
@@ -1032,6 +1064,7 @@ class PomodoroSessionsTableData extends DataClass
   ) {
     return PomodoroSessionsTableData(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       mode: data.mode.present ? data.mode.value : this.mode,
       minutes: data.minutes.present ? data.minutes.value : this.minutes,
       completedAtMs: data.completedAtMs.present
@@ -1047,6 +1080,7 @@ class PomodoroSessionsTableData extends DataClass
   String toString() {
     return (StringBuffer('PomodoroSessionsTableData(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('mode: $mode, ')
           ..write('minutes: $minutes, ')
           ..write('completedAtMs: $completedAtMs, ')
@@ -1057,12 +1091,13 @@ class PomodoroSessionsTableData extends DataClass
 
   @override
   int get hashCode =>
-      Object.hash(id, mode, minutes, completedAtMs, lastSyncedAtMs);
+      Object.hash(id, userId, mode, minutes, completedAtMs, lastSyncedAtMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PomodoroSessionsTableData &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.mode == this.mode &&
           other.minutes == this.minutes &&
           other.completedAtMs == this.completedAtMs &&
@@ -1072,6 +1107,7 @@ class PomodoroSessionsTableData extends DataClass
 class PomodoroSessionsTableCompanion
     extends UpdateCompanion<PomodoroSessionsTableData> {
   final Value<String> id;
+  final Value<String?> userId;
   final Value<String> mode;
   final Value<int> minutes;
   final Value<int> completedAtMs;
@@ -1079,6 +1115,7 @@ class PomodoroSessionsTableCompanion
   final Value<int> rowid;
   const PomodoroSessionsTableCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.mode = const Value.absent(),
     this.minutes = const Value.absent(),
     this.completedAtMs = const Value.absent(),
@@ -1087,6 +1124,7 @@ class PomodoroSessionsTableCompanion
   });
   PomodoroSessionsTableCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     required String mode,
     required int minutes,
     required int completedAtMs,
@@ -1098,6 +1136,7 @@ class PomodoroSessionsTableCompanion
        completedAtMs = Value(completedAtMs);
   static Insertable<PomodoroSessionsTableData> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? mode,
     Expression<int>? minutes,
     Expression<int>? completedAtMs,
@@ -1106,6 +1145,7 @@ class PomodoroSessionsTableCompanion
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (mode != null) 'mode': mode,
       if (minutes != null) 'minutes': minutes,
       if (completedAtMs != null) 'completed_at_ms': completedAtMs,
@@ -1116,6 +1156,7 @@ class PomodoroSessionsTableCompanion
 
   PomodoroSessionsTableCompanion copyWith({
     Value<String>? id,
+    Value<String?>? userId,
     Value<String>? mode,
     Value<int>? minutes,
     Value<int>? completedAtMs,
@@ -1124,6 +1165,7 @@ class PomodoroSessionsTableCompanion
   }) {
     return PomodoroSessionsTableCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       mode: mode ?? this.mode,
       minutes: minutes ?? this.minutes,
       completedAtMs: completedAtMs ?? this.completedAtMs,
@@ -1137,6 +1179,9 @@ class PomodoroSessionsTableCompanion
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (mode.present) {
       map['mode'] = Variable<String>(mode.value);
@@ -1160,6 +1205,7 @@ class PomodoroSessionsTableCompanion
   String toString() {
     return (StringBuffer('PomodoroSessionsTableCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('mode: $mode, ')
           ..write('minutes: $minutes, ')
           ..write('completedAtMs: $completedAtMs, ')
@@ -1229,6 +1275,17 @@ class $ProfilesTableTable extends ProfilesTable
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _lastSyncedAtMsMeta = const VerificationMeta(
+    'lastSyncedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncedAtMs = GeneratedColumn<int>(
+    'last_synced_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1236,6 +1293,7 @@ class $ProfilesTableTable extends ProfilesTable
     email,
     avatarImage,
     updatedAtMs,
+    lastSyncedAtMs,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1287,6 +1345,15 @@ class $ProfilesTableTable extends ProfilesTable
         ),
       );
     }
+    if (data.containsKey('last_synced_at_ms')) {
+      context.handle(
+        _lastSyncedAtMsMeta,
+        lastSyncedAtMs.isAcceptableOrUnknown(
+          data['last_synced_at_ms']!,
+          _lastSyncedAtMsMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1316,6 +1383,10 @@ class $ProfilesTableTable extends ProfilesTable
         DriftSqlType.int,
         data['${effectivePrefix}updated_at_ms'],
       ),
+      lastSyncedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_synced_at_ms'],
+      ),
     );
   }
 
@@ -1332,12 +1403,14 @@ class ProfilesTableData extends DataClass
   final String email;
   final String? avatarImage;
   final int? updatedAtMs;
+  final int? lastSyncedAtMs;
   const ProfilesTableData({
     required this.id,
     required this.displayName,
     required this.email,
     this.avatarImage,
     this.updatedAtMs,
+    this.lastSyncedAtMs,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1350,6 +1423,9 @@ class ProfilesTableData extends DataClass
     }
     if (!nullToAbsent || updatedAtMs != null) {
       map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    }
+    if (!nullToAbsent || lastSyncedAtMs != null) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs);
     }
     return map;
   }
@@ -1365,6 +1441,9 @@ class ProfilesTableData extends DataClass
       updatedAtMs: updatedAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(updatedAtMs),
+      lastSyncedAtMs: lastSyncedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAtMs),
     );
   }
 
@@ -1379,6 +1458,7 @@ class ProfilesTableData extends DataClass
       email: serializer.fromJson<String>(json['email']),
       avatarImage: serializer.fromJson<String?>(json['avatarImage']),
       updatedAtMs: serializer.fromJson<int?>(json['updatedAtMs']),
+      lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
     );
   }
   @override
@@ -1390,6 +1470,7 @@ class ProfilesTableData extends DataClass
       'email': serializer.toJson<String>(email),
       'avatarImage': serializer.toJson<String?>(avatarImage),
       'updatedAtMs': serializer.toJson<int?>(updatedAtMs),
+      'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
     };
   }
 
@@ -1399,12 +1480,16 @@ class ProfilesTableData extends DataClass
     String? email,
     Value<String?> avatarImage = const Value.absent(),
     Value<int?> updatedAtMs = const Value.absent(),
+    Value<int?> lastSyncedAtMs = const Value.absent(),
   }) => ProfilesTableData(
     id: id ?? this.id,
     displayName: displayName ?? this.displayName,
     email: email ?? this.email,
     avatarImage: avatarImage.present ? avatarImage.value : this.avatarImage,
     updatedAtMs: updatedAtMs.present ? updatedAtMs.value : this.updatedAtMs,
+    lastSyncedAtMs: lastSyncedAtMs.present
+        ? lastSyncedAtMs.value
+        : this.lastSyncedAtMs,
   );
   ProfilesTableData copyWithCompanion(ProfilesTableCompanion data) {
     return ProfilesTableData(
@@ -1419,6 +1504,9 @@ class ProfilesTableData extends DataClass
       updatedAtMs: data.updatedAtMs.present
           ? data.updatedAtMs.value
           : this.updatedAtMs,
+      lastSyncedAtMs: data.lastSyncedAtMs.present
+          ? data.lastSyncedAtMs.value
+          : this.lastSyncedAtMs,
     );
   }
 
@@ -1429,14 +1517,21 @@ class ProfilesTableData extends DataClass
           ..write('displayName: $displayName, ')
           ..write('email: $email, ')
           ..write('avatarImage: $avatarImage, ')
-          ..write('updatedAtMs: $updatedAtMs')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, displayName, email, avatarImage, updatedAtMs);
+  int get hashCode => Object.hash(
+    id,
+    displayName,
+    email,
+    avatarImage,
+    updatedAtMs,
+    lastSyncedAtMs,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1445,7 +1540,8 @@ class ProfilesTableData extends DataClass
           other.displayName == this.displayName &&
           other.email == this.email &&
           other.avatarImage == this.avatarImage &&
-          other.updatedAtMs == this.updatedAtMs);
+          other.updatedAtMs == this.updatedAtMs &&
+          other.lastSyncedAtMs == this.lastSyncedAtMs);
 }
 
 class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
@@ -1454,6 +1550,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
   final Value<String> email;
   final Value<String?> avatarImage;
   final Value<int?> updatedAtMs;
+  final Value<int?> lastSyncedAtMs;
   final Value<int> rowid;
   const ProfilesTableCompanion({
     this.id = const Value.absent(),
@@ -1461,6 +1558,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
     this.email = const Value.absent(),
     this.avatarImage = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProfilesTableCompanion.insert({
@@ -1469,6 +1567,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
     this.email = const Value.absent(),
     this.avatarImage = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<ProfilesTableData> custom({
@@ -1477,6 +1576,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
     Expression<String>? email,
     Expression<String>? avatarImage,
     Expression<int>? updatedAtMs,
+    Expression<int>? lastSyncedAtMs,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1485,6 +1585,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
       if (email != null) 'email': email,
       if (avatarImage != null) 'avatar_image': avatarImage,
       if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1495,6 +1596,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
     Value<String>? email,
     Value<String?>? avatarImage,
     Value<int?>? updatedAtMs,
+    Value<int?>? lastSyncedAtMs,
     Value<int>? rowid,
   }) {
     return ProfilesTableCompanion(
@@ -1503,6 +1605,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
       email: email ?? this.email,
       avatarImage: avatarImage ?? this.avatarImage,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1525,6 +1628,9 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
     if (updatedAtMs.present) {
       map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
     }
+    if (lastSyncedAtMs.present) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1539,6 +1645,7 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
           ..write('email: $email, ')
           ..write('avatarImage: $avatarImage, ')
           ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1559,6 +1666,15 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _nameMeta = const VerificationMeta('name');
   @override
@@ -1607,6 +1723,7 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     name,
     iconName,
     colorValue,
@@ -1628,6 +1745,12 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('name')) {
       context.handle(
@@ -1676,6 +1799,10 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
       name: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}name'],
@@ -1704,12 +1831,14 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
 class RevisionSubjectsTableData extends DataClass
     implements Insertable<RevisionSubjectsTableData> {
   final String id;
+  final String? userId;
   final String name;
   final String iconName;
   final int colorValue;
   final int createdAtMs;
   const RevisionSubjectsTableData({
     required this.id,
+    this.userId,
     required this.name,
     required this.iconName,
     required this.colorValue,
@@ -1719,6 +1848,9 @@ class RevisionSubjectsTableData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
     map['name'] = Variable<String>(name);
     map['icon_name'] = Variable<String>(iconName);
     map['color_value'] = Variable<int>(colorValue);
@@ -1729,6 +1861,9 @@ class RevisionSubjectsTableData extends DataClass
   RevisionSubjectsTableCompanion toCompanion(bool nullToAbsent) {
     return RevisionSubjectsTableCompanion(
       id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
       name: Value(name),
       iconName: Value(iconName),
       colorValue: Value(colorValue),
@@ -1743,6 +1878,7 @@ class RevisionSubjectsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RevisionSubjectsTableData(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
       name: serializer.fromJson<String>(json['name']),
       iconName: serializer.fromJson<String>(json['iconName']),
       colorValue: serializer.fromJson<int>(json['colorValue']),
@@ -1754,6 +1890,7 @@ class RevisionSubjectsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
       'name': serializer.toJson<String>(name),
       'iconName': serializer.toJson<String>(iconName),
       'colorValue': serializer.toJson<int>(colorValue),
@@ -1763,12 +1900,14 @@ class RevisionSubjectsTableData extends DataClass
 
   RevisionSubjectsTableData copyWith({
     String? id,
+    Value<String?> userId = const Value.absent(),
     String? name,
     String? iconName,
     int? colorValue,
     int? createdAtMs,
   }) => RevisionSubjectsTableData(
     id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
     name: name ?? this.name,
     iconName: iconName ?? this.iconName,
     colorValue: colorValue ?? this.colorValue,
@@ -1779,6 +1918,7 @@ class RevisionSubjectsTableData extends DataClass
   ) {
     return RevisionSubjectsTableData(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       name: data.name.present ? data.name.value : this.name,
       iconName: data.iconName.present ? data.iconName.value : this.iconName,
       colorValue: data.colorValue.present
@@ -1794,6 +1934,7 @@ class RevisionSubjectsTableData extends DataClass
   String toString() {
     return (StringBuffer('RevisionSubjectsTableData(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('name: $name, ')
           ..write('iconName: $iconName, ')
           ..write('colorValue: $colorValue, ')
@@ -1803,12 +1944,14 @@ class RevisionSubjectsTableData extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(id, name, iconName, colorValue, createdAtMs);
+  int get hashCode =>
+      Object.hash(id, userId, name, iconName, colorValue, createdAtMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is RevisionSubjectsTableData &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.name == this.name &&
           other.iconName == this.iconName &&
           other.colorValue == this.colorValue &&
@@ -1818,6 +1961,7 @@ class RevisionSubjectsTableData extends DataClass
 class RevisionSubjectsTableCompanion
     extends UpdateCompanion<RevisionSubjectsTableData> {
   final Value<String> id;
+  final Value<String?> userId;
   final Value<String> name;
   final Value<String> iconName;
   final Value<int> colorValue;
@@ -1825,6 +1969,7 @@ class RevisionSubjectsTableCompanion
   final Value<int> rowid;
   const RevisionSubjectsTableCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.name = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorValue = const Value.absent(),
@@ -1833,6 +1978,7 @@ class RevisionSubjectsTableCompanion
   });
   RevisionSubjectsTableCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     required String name,
     this.iconName = const Value.absent(),
     this.colorValue = const Value.absent(),
@@ -1843,6 +1989,7 @@ class RevisionSubjectsTableCompanion
        createdAtMs = Value(createdAtMs);
   static Insertable<RevisionSubjectsTableData> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? name,
     Expression<String>? iconName,
     Expression<int>? colorValue,
@@ -1851,6 +1998,7 @@ class RevisionSubjectsTableCompanion
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (name != null) 'name': name,
       if (iconName != null) 'icon_name': iconName,
       if (colorValue != null) 'color_value': colorValue,
@@ -1861,6 +2009,7 @@ class RevisionSubjectsTableCompanion
 
   RevisionSubjectsTableCompanion copyWith({
     Value<String>? id,
+    Value<String?>? userId,
     Value<String>? name,
     Value<String>? iconName,
     Value<int>? colorValue,
@@ -1869,6 +2018,7 @@ class RevisionSubjectsTableCompanion
   }) {
     return RevisionSubjectsTableCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       iconName: iconName ?? this.iconName,
       colorValue: colorValue ?? this.colorValue,
@@ -1882,6 +2032,9 @@ class RevisionSubjectsTableCompanion
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
@@ -1905,6 +2058,7 @@ class RevisionSubjectsTableCompanion
   String toString() {
     return (StringBuffer('RevisionSubjectsTableCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('name: $name, ')
           ..write('iconName: $iconName, ')
           ..write('colorValue: $colorValue, ')
@@ -1929,6 +2083,15 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _subjectIdMeta = const VerificationMeta(
     'subjectId',
@@ -2035,6 +2198,7 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    userId,
     subjectId,
     title,
     description,
@@ -2061,6 +2225,12 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
     }
     if (data.containsKey('subject_id')) {
       context.handle(
@@ -2154,6 +2324,10 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
       subjectId: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}subject_id'],
@@ -2202,6 +2376,7 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
 class RevisionTopicsTableData extends DataClass
     implements Insertable<RevisionTopicsTableData> {
   final String id;
+  final String? userId;
   final String subjectId;
   final String title;
   final String? description;
@@ -2213,6 +2388,7 @@ class RevisionTopicsTableData extends DataClass
   final int sortOrder;
   const RevisionTopicsTableData({
     required this.id,
+    this.userId,
     required this.subjectId,
     required this.title,
     this.description,
@@ -2227,6 +2403,9 @@ class RevisionTopicsTableData extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
     map['subject_id'] = Variable<String>(subjectId);
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || description != null) {
@@ -2250,6 +2429,9 @@ class RevisionTopicsTableData extends DataClass
   RevisionTopicsTableCompanion toCompanion(bool nullToAbsent) {
     return RevisionTopicsTableCompanion(
       id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
       subjectId: Value(subjectId),
       title: Value(title),
       description: description == null && nullToAbsent
@@ -2277,6 +2459,7 @@ class RevisionTopicsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return RevisionTopicsTableData(
       id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
       subjectId: serializer.fromJson<String>(json['subjectId']),
       title: serializer.fromJson<String>(json['title']),
       description: serializer.fromJson<String?>(json['description']),
@@ -2293,6 +2476,7 @@ class RevisionTopicsTableData extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
       'subjectId': serializer.toJson<String>(subjectId),
       'title': serializer.toJson<String>(title),
       'description': serializer.toJson<String?>(description),
@@ -2307,6 +2491,7 @@ class RevisionTopicsTableData extends DataClass
 
   RevisionTopicsTableData copyWith({
     String? id,
+    Value<String?> userId = const Value.absent(),
     String? subjectId,
     String? title,
     Value<String?> description = const Value.absent(),
@@ -2318,6 +2503,7 @@ class RevisionTopicsTableData extends DataClass
     int? sortOrder,
   }) => RevisionTopicsTableData(
     id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
     subjectId: subjectId ?? this.subjectId,
     title: title ?? this.title,
     description: description.present ? description.value : this.description,
@@ -2337,6 +2523,7 @@ class RevisionTopicsTableData extends DataClass
   RevisionTopicsTableData copyWithCompanion(RevisionTopicsTableCompanion data) {
     return RevisionTopicsTableData(
       id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
       subjectId: data.subjectId.present ? data.subjectId.value : this.subjectId,
       title: data.title.present ? data.title.value : this.title,
       description: data.description.present
@@ -2365,6 +2552,7 @@ class RevisionTopicsTableData extends DataClass
   String toString() {
     return (StringBuffer('RevisionTopicsTableData(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('subjectId: $subjectId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
@@ -2381,6 +2569,7 @@ class RevisionTopicsTableData extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    userId,
     subjectId,
     title,
     description,
@@ -2396,6 +2585,7 @@ class RevisionTopicsTableData extends DataClass
       identical(this, other) ||
       (other is RevisionTopicsTableData &&
           other.id == this.id &&
+          other.userId == this.userId &&
           other.subjectId == this.subjectId &&
           other.title == this.title &&
           other.description == this.description &&
@@ -2410,6 +2600,7 @@ class RevisionTopicsTableData extends DataClass
 class RevisionTopicsTableCompanion
     extends UpdateCompanion<RevisionTopicsTableData> {
   final Value<String> id;
+  final Value<String?> userId;
   final Value<String> subjectId;
   final Value<String> title;
   final Value<String?> description;
@@ -2422,6 +2613,7 @@ class RevisionTopicsTableCompanion
   final Value<int> rowid;
   const RevisionTopicsTableCompanion({
     this.id = const Value.absent(),
+    this.userId = const Value.absent(),
     this.subjectId = const Value.absent(),
     this.title = const Value.absent(),
     this.description = const Value.absent(),
@@ -2435,6 +2627,7 @@ class RevisionTopicsTableCompanion
   });
   RevisionTopicsTableCompanion.insert({
     required String id,
+    this.userId = const Value.absent(),
     required String subjectId,
     required String title,
     this.description = const Value.absent(),
@@ -2450,6 +2643,7 @@ class RevisionTopicsTableCompanion
        title = Value(title);
   static Insertable<RevisionTopicsTableData> custom({
     Expression<String>? id,
+    Expression<String>? userId,
     Expression<String>? subjectId,
     Expression<String>? title,
     Expression<String>? description,
@@ -2463,6 +2657,7 @@ class RevisionTopicsTableCompanion
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
       if (subjectId != null) 'subject_id': subjectId,
       if (title != null) 'title': title,
       if (description != null) 'description': description,
@@ -2479,6 +2674,7 @@ class RevisionTopicsTableCompanion
 
   RevisionTopicsTableCompanion copyWith({
     Value<String>? id,
+    Value<String?>? userId,
     Value<String>? subjectId,
     Value<String>? title,
     Value<String?>? description,
@@ -2492,6 +2688,7 @@ class RevisionTopicsTableCompanion
   }) {
     return RevisionTopicsTableCompanion(
       id: id ?? this.id,
+      userId: userId ?? this.userId,
       subjectId: subjectId ?? this.subjectId,
       title: title ?? this.title,
       description: description ?? this.description,
@@ -2510,6 +2707,9 @@ class RevisionTopicsTableCompanion
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
     }
     if (subjectId.present) {
       map['subject_id'] = Variable<String>(subjectId.value);
@@ -2548,6 +2748,7 @@ class RevisionTopicsTableCompanion
   String toString() {
     return (StringBuffer('RevisionTopicsTableCompanion(')
           ..write('id: $id, ')
+          ..write('userId: $userId, ')
           ..write('subjectId: $subjectId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
@@ -2961,6 +3162,7 @@ typedef $$TasksTableTableProcessedTableManager =
 typedef $$PomodoroSessionsTableTableCreateCompanionBuilder =
     PomodoroSessionsTableCompanion Function({
       required String id,
+      Value<String?> userId,
       required String mode,
       required int minutes,
       required int completedAtMs,
@@ -2970,6 +3172,7 @@ typedef $$PomodoroSessionsTableTableCreateCompanionBuilder =
 typedef $$PomodoroSessionsTableTableUpdateCompanionBuilder =
     PomodoroSessionsTableCompanion Function({
       Value<String> id,
+      Value<String?> userId,
       Value<String> mode,
       Value<int> minutes,
       Value<int> completedAtMs,
@@ -2988,6 +3191,11 @@ class $$PomodoroSessionsTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3026,6 +3234,11 @@ class $$PomodoroSessionsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get mode => $composableBuilder(
     column: $table.mode,
     builder: (column) => ColumnOrderings(column),
@@ -3058,6 +3271,9 @@ class $$PomodoroSessionsTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get mode =>
       $composableBuilder(column: $table.mode, builder: (column) => column);
@@ -3123,6 +3339,7 @@ class $$PomodoroSessionsTableTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
                 Value<String> mode = const Value.absent(),
                 Value<int> minutes = const Value.absent(),
                 Value<int> completedAtMs = const Value.absent(),
@@ -3130,6 +3347,7 @@ class $$PomodoroSessionsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => PomodoroSessionsTableCompanion(
                 id: id,
+                userId: userId,
                 mode: mode,
                 minutes: minutes,
                 completedAtMs: completedAtMs,
@@ -3139,6 +3357,7 @@ class $$PomodoroSessionsTableTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> userId = const Value.absent(),
                 required String mode,
                 required int minutes,
                 required int completedAtMs,
@@ -3146,6 +3365,7 @@ class $$PomodoroSessionsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => PomodoroSessionsTableCompanion.insert(
                 id: id,
+                userId: userId,
                 mode: mode,
                 minutes: minutes,
                 completedAtMs: completedAtMs,
@@ -3200,6 +3420,7 @@ typedef $$ProfilesTableTableCreateCompanionBuilder =
       Value<String> email,
       Value<String?> avatarImage,
       Value<int?> updatedAtMs,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 typedef $$ProfilesTableTableUpdateCompanionBuilder =
@@ -3209,6 +3430,7 @@ typedef $$ProfilesTableTableUpdateCompanionBuilder =
       Value<String> email,
       Value<String?> avatarImage,
       Value<int?> updatedAtMs,
+      Value<int?> lastSyncedAtMs,
       Value<int> rowid,
     });
 
@@ -3243,6 +3465,11 @@ class $$ProfilesTableTableFilterComposer
 
   ColumnFilters<int> get updatedAtMs => $composableBuilder(
     column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3280,6 +3507,11 @@ class $$ProfilesTableTableOrderingComposer
     column: $table.updatedAtMs,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProfilesTableTableAnnotationComposer
@@ -3309,6 +3541,11 @@ class $$ProfilesTableTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAtMs => $composableBuilder(
     column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
     builder: (column) => column,
   );
 }
@@ -3353,6 +3590,7 @@ class $$ProfilesTableTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String?> avatarImage = const Value.absent(),
                 Value<int?> updatedAtMs = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProfilesTableCompanion(
                 id: id,
@@ -3360,6 +3598,7 @@ class $$ProfilesTableTableTableManager
                 email: email,
                 avatarImage: avatarImage,
                 updatedAtMs: updatedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3369,6 +3608,7 @@ class $$ProfilesTableTableTableManager
                 Value<String> email = const Value.absent(),
                 Value<String?> avatarImage = const Value.absent(),
                 Value<int?> updatedAtMs = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProfilesTableCompanion.insert(
                 id: id,
@@ -3376,6 +3616,7 @@ class $$ProfilesTableTableTableManager
                 email: email,
                 avatarImage: avatarImage,
                 updatedAtMs: updatedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3415,6 +3656,7 @@ typedef $$ProfilesTableTableProcessedTableManager =
 typedef $$RevisionSubjectsTableTableCreateCompanionBuilder =
     RevisionSubjectsTableCompanion Function({
       required String id,
+      Value<String?> userId,
       required String name,
       Value<String> iconName,
       Value<int> colorValue,
@@ -3424,6 +3666,7 @@ typedef $$RevisionSubjectsTableTableCreateCompanionBuilder =
 typedef $$RevisionSubjectsTableTableUpdateCompanionBuilder =
     RevisionSubjectsTableCompanion Function({
       Value<String> id,
+      Value<String?> userId,
       Value<String> name,
       Value<String> iconName,
       Value<int> colorValue,
@@ -3442,6 +3685,11 @@ class $$RevisionSubjectsTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3480,6 +3728,11 @@ class $$RevisionSubjectsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get name => $composableBuilder(
     column: $table.name,
     builder: (column) => ColumnOrderings(column),
@@ -3512,6 +3765,9 @@ class $$RevisionSubjectsTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
@@ -3577,6 +3833,7 @@ class $$RevisionSubjectsTableTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> iconName = const Value.absent(),
                 Value<int> colorValue = const Value.absent(),
@@ -3584,6 +3841,7 @@ class $$RevisionSubjectsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RevisionSubjectsTableCompanion(
                 id: id,
+                userId: userId,
                 name: name,
                 iconName: iconName,
                 colorValue: colorValue,
@@ -3593,6 +3851,7 @@ class $$RevisionSubjectsTableTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> userId = const Value.absent(),
                 required String name,
                 Value<String> iconName = const Value.absent(),
                 Value<int> colorValue = const Value.absent(),
@@ -3600,6 +3859,7 @@ class $$RevisionSubjectsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RevisionSubjectsTableCompanion.insert(
                 id: id,
+                userId: userId,
                 name: name,
                 iconName: iconName,
                 colorValue: colorValue,
@@ -3650,6 +3910,7 @@ typedef $$RevisionSubjectsTableTableProcessedTableManager =
 typedef $$RevisionTopicsTableTableCreateCompanionBuilder =
     RevisionTopicsTableCompanion Function({
       required String id,
+      Value<String?> userId,
       required String subjectId,
       required String title,
       Value<String?> description,
@@ -3664,6 +3925,7 @@ typedef $$RevisionTopicsTableTableCreateCompanionBuilder =
 typedef $$RevisionTopicsTableTableUpdateCompanionBuilder =
     RevisionTopicsTableCompanion Function({
       Value<String> id,
+      Value<String?> userId,
       Value<String> subjectId,
       Value<String> title,
       Value<String?> description,
@@ -3687,6 +3949,11 @@ class $$RevisionTopicsTableTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3750,6 +4017,11 @@ class $$RevisionTopicsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get subjectId => $composableBuilder(
     column: $table.subjectId,
     builder: (column) => ColumnOrderings(column),
@@ -3807,6 +4079,9 @@ class $$RevisionTopicsTableTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
 
   GeneratedColumn<String> get subjectId =>
       $composableBuilder(column: $table.subjectId, builder: (column) => column);
@@ -3892,6 +4167,7 @@ class $$RevisionTopicsTableTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
                 Value<String> subjectId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> description = const Value.absent(),
@@ -3904,6 +4180,7 @@ class $$RevisionTopicsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RevisionTopicsTableCompanion(
                 id: id,
+                userId: userId,
                 subjectId: subjectId,
                 title: title,
                 description: description,
@@ -3918,6 +4195,7 @@ class $$RevisionTopicsTableTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String?> userId = const Value.absent(),
                 required String subjectId,
                 required String title,
                 Value<String?> description = const Value.absent(),
@@ -3930,6 +4208,7 @@ class $$RevisionTopicsTableTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => RevisionTopicsTableCompanion.insert(
                 id: id,
+                userId: userId,
                 subjectId: subjectId,
                 title: title,
                 description: description,

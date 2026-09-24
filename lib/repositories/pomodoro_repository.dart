@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import '../models/pomodoro.dart';
 import '../database/daos/session_dao.dart';
 import '../database/database_provider.dart';
+import '../database/account_scope.dart';
 import '../services/pomodoro_sync_service.dart';
 import '../utils/app_logger.dart';
 
@@ -10,12 +12,11 @@ class PomodoroRepository {
   final SessionDao _sessionDao;
   final PomodoroSyncService _syncService;
 
-  PomodoroRepository({
-    SessionDao? sessionDao,
-    PomodoroSyncService? syncService,
-  })  : _sessionDao = sessionDao ?? DatabaseProvider.instance.sessionDao,
-        _syncService = syncService ?? PomodoroSyncService() {
+  PomodoroRepository({SessionDao? sessionDao, PomodoroSyncService? syncService})
+    : _sessionDao = sessionDao ?? DatabaseProvider.instance.sessionDao,
+      _syncService = syncService ?? PomodoroSyncService() {
     _syncService.onSessionSynced = _markSessionSynced;
+    _syncService.getSessionForSync = _sessionDao.getSession;
     _syncService.onNetworkReconnect = processPendingSync;
   }
 
@@ -37,38 +38,54 @@ class PomodoroRepository {
     return _sessionDao.getSessions(limit: limit);
   }
 
-  Future<void> saveSession(PomodoroSessionLog session, {bool pushToCloud = true}) async {
-    await _sessionDao.upsertSession(session);
+  Future<void> saveSession(
+    PomodoroSessionLog session, {
+    bool pushToCloud = true,
+  }) async {
     if (pushToCloud) {
-      unawaited(_syncService.pushSession(session));
+      await _sessionDao.upsertSessionAndQueue(session);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _sessionDao.upsertSession(session);
     }
   }
 
-  Future<void> saveSessionsBatch(List<PomodoroSessionLog> sessions, {bool pushToCloud = true}) async {
-    await _sessionDao.upsertAll(sessions);
+  Future<void> saveSessionsBatch(
+    List<PomodoroSessionLog> sessions, {
+    bool pushToCloud = true,
+  }) async {
     if (pushToCloud) {
-      for (final s in sessions) {
-        unawaited(_syncService.pushSession(s));
-      }
+      await _sessionDao.upsertAllAndQueue(sessions);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _sessionDao.upsertAll(sessions);
     }
   }
 
-  Future<void> deleteSession(String sessionId, {bool pushToCloud = true}) async {
-    await _sessionDao.deleteSession(sessionId);
-    if (pushToCloud) unawaited(_syncService.deleteSession(sessionId));
+  Future<void> deleteSession(
+    String sessionId, {
+    bool pushToCloud = true,
+  }) async {
+    if (pushToCloud) {
+      await _sessionDao.deleteSessionAndQueue(sessionId);
+      unawaited(_syncService.processPendingQueue());
+    } else {
+      await _sessionDao.deleteSession(sessionId);
+    }
   }
 
   Future<void> clearSessions({bool clearCloud = true}) async {
     if (clearCloud) {
-      // Persist the cloud deletion intent before clearing the local source of
-      // truth so an offline clear cannot be undone by the next pull.
-      await _syncService.enqueueClearSessions();
+      await _sessionDao.clearAllAndQueue();
+    } else {
+      await _sessionDao.clearAll();
     }
-    await _sessionDao.clearAll();
+    if (clearCloud) unawaited(_syncService.processPendingQueue());
   }
 
   void subscribeToRealtime({
-    required void Function(PomodoroSessionLog session, String eventType) onSessionChange,
+    required void Function(PomodoroSessionLog session, String eventType)
+    onSessionChange,
   }) {
     _syncService.subscribeToRealtime(onSessionChange: onSessionChange);
   }
@@ -91,7 +108,11 @@ class PomodoroRepository {
         await _sessionDao.upsertAll(remote);
       }
     } catch (e, st) {
-      AppLogger.error('PomodoroRepository sync failed', error: e, stackTrace: st);
+      AppLogger.error(
+        'PomodoroRepository sync failed',
+        error: e,
+        stackTrace: st,
+      );
       rethrow;
     }
   }
@@ -99,8 +120,21 @@ class PomodoroRepository {
   Future<void> processPendingSync() async {
     await _syncService.processPendingQueue();
     final unsynced = await _sessionDao.getUnsyncedSessions();
-    if (unsynced.isNotEmpty) {
-      await _syncService.batchPushSessions(unsynced);
+    final userId = AccountScope.userId;
+    final legacyUnsynced = <PomodoroSessionLog>[];
+    for (final session in unsynced) {
+      final queued =
+          userId != null &&
+          await DatabaseProvider.instance.syncOutboxDao.hasPending(
+            userId: userId,
+            feature: 'pomodoro',
+            entityType: 'session',
+            entityId: session.id,
+          );
+      if (!queued) legacyUnsynced.add(session);
+    }
+    if (legacyUnsynced.isNotEmpty) {
+      await _syncService.batchPushSessions(legacyUnsynced);
     }
   }
 
