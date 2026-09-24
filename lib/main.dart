@@ -152,11 +152,12 @@ class _ZetaAppShell extends StatelessWidget {
             Locale('en', ''),
           ],
           builder: (context, child) {
-            return MediaQuery(
+            final mediaQuery = MediaQuery(
               data: MediaQuery.of(context)
                   .copyWith(textScaler: TextScaler.linear(textScaleFactor)),
               child: child ?? const SizedBox.shrink(),
             );
+            return _AuthenticatedProvidersWrapper(child: mediaQuery);
           },
           theme: AppTheme.light(
             effectiveLightSeed,
@@ -216,7 +217,7 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
       fit: StackFit.expand,
       children: [
         AuthGate(
-          authenticatedBuilder: (_) => const _AuthenticatedApp(),
+          authenticatedBuilder: (_) => const AppScaffold(),
           bypassAuth: _isTestMode,
         ),
         if (_displaySplash)
@@ -235,12 +236,22 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
   }
 }
 
-class _AuthenticatedApp extends StatelessWidget {
-  const _AuthenticatedApp();
+class _AuthenticatedProvidersWrapper extends StatelessWidget {
+  final Widget child;
+
+  const _AuthenticatedProvidersWrapper({required this.child});
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final isAuthenticated = _isTestMode || auth.status == AuthStatus.signedIn;
+
+    if (!isAuthenticated) {
+      return child;
+    }
+
     return MultiProvider(
+      key: ValueKey(auth.user?.id ?? 'authenticated_session'),
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
@@ -266,7 +277,7 @@ class _AuthenticatedApp extends StatelessWidget {
           },
         ),
       ],
-      child: const AppScaffold(),
+      child: child,
     );
   }
 }

@@ -137,7 +137,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      ZetaLogo(size: isCompact ? 32 : 45),
+                      ZetaLogo(size: isCompact ? 37 : 45),
                       if (showBrandText) ...[
                         const SizedBox(width: 15),
                         Text(
@@ -199,6 +199,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                     builder:
                         (BuildContext context, M3ESearchController controller) {
                           return M3ESearchBar(
+                            // constraints: const BoxConstraints(minHeight: 70),
                             controller: controller,
                             leading: isCompact
                                 ? null
@@ -240,7 +241,6 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                                   child: IconButton(
                                     icon: const Icon(
                                       Icons.close_rounded,
-                                      fontWeight: FontWeight.bold,
                                       size: 18,
                                     ),
                                     color: colorScheme.onSurfaceVariant,
@@ -270,7 +270,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                                     '/',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      fontFamily: 'monospace',
+                                      fontFamily: 'RobotoMono',
                                       color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
@@ -334,7 +334,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               final String tooltipMessage;
               if (syncError != null) {
                 syncRingColor = Theme.of(context).colorScheme.error;
-                tooltipMessage = '${profileProvider.userName} • Sync Error: $syncError';
+                tooltipMessage =
+                    '${profileProvider.userName} • Sync Error: $syncError';
               } else if (isSyncing) {
                 syncRingColor = const Color(0xFFF59E0B); // amber — syncing
                 tooltipMessage = '${profileProvider.userName} • Syncing…';
@@ -343,7 +344,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 tooltipMessage = '${profileProvider.userName} • Synced';
               } else {
                 syncRingColor = const Color(0xFFF59E0B); // amber — pending sync
-                tooltipMessage = '${profileProvider.userName} • Waiting to sync';
+                tooltipMessage =
+                    '${profileProvider.userName} • Waiting to sync';
               }
 
               return Tooltip(
@@ -357,7 +359,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   child: Padding(
                     padding: const EdgeInsets.all(4),
                     child: UserAvatar(
-                      radius: isCompact ? 15 : 17,
+                      radius: 20,
                       ringWidth: 2,
                       ringColor: syncRingColor,
                     ),

@@ -33,34 +33,37 @@ private class TasksWidgetFactory(private val context: TasksWidgetRemoteViewsServ
         val views = RemoteViews(context.packageName, R.layout.tasks_widget_row)
 
         views.setTextViewText(R.id.widget_task_title, row.title)
-        views.setTextColor(R.id.widget_task_title, palette.foreground)
+        views.setTextColor(R.id.widget_task_title, palette.onSecondaryContainer)
         if (row.due.isBlank()) {
-            views.setViewVisibility(R.id.widget_task_due, View.GONE)
+            views.setViewVisibility(R.id.widget_due_container, View.GONE)
         } else {
             views.setTextViewText(R.id.widget_task_due, row.due)
-            views.setTextColor(R.id.widget_task_due, (palette.foreground and 0x00FFFFFF) or (0xD9 shl 24))
-            views.setViewVisibility(R.id.widget_task_due, View.VISIBLE)
+            views.setTextColor(R.id.widget_task_due, palette.primary)
+            views.setInt(R.id.widget_due_icon, "setColorFilter", palette.primary)
+            views.setViewVisibility(R.id.widget_due_container, View.VISIBLE)
         }
 
         if (row.completed) {
             views.setImageViewResource(R.id.widget_checkbox, R.drawable.widget_checkbox_filled)
-            views.setInt(R.id.widget_checkbox, "setColorFilter", palette.accent)
-            views.setTextViewText(R.id.widget_checkbox_check, "✓")
-            views.setTextColor(R.id.widget_checkbox_check, palette.accentForeground)
+            views.setInt(R.id.widget_checkbox, "setColorFilter", palette.primary)
+            views.setImageViewResource(R.id.widget_checkbox_check, R.drawable.widget_check_icon)
+            views.setInt(R.id.widget_checkbox_check, "setColorFilter", palette.onPrimary)
             views.setViewVisibility(R.id.widget_checkbox_check, View.VISIBLE)
         } else {
             views.setImageViewResource(R.id.widget_checkbox, R.drawable.widget_checkbox_outline)
-            views.setInt(R.id.widget_checkbox, "setColorFilter", palette.foreground)
+            views.setInt(R.id.widget_checkbox, "setColorFilter", palette.onSecondaryContainer)
             views.setViewVisibility(R.id.widget_checkbox_check, View.GONE)
         }
 
-        views.setOnClickFillInIntent(
-            R.id.widget_task_row,
-            TasksWidgetProvider.fillInIntent(TasksWidgetContract.ACTION_EDIT, row.id),
-        )
+        // Checkbox: toggle action (handled as broadcast, no app launch)
         views.setOnClickFillInIntent(
             R.id.widget_checkbox_touch,
             TasksWidgetProvider.fillInIntent(TasksWidgetContract.ACTION_TOGGLE, row.id),
+        )
+        // Title area: edit action (opens the app with task edit sheet)
+        views.setOnClickFillInIntent(
+            R.id.widget_title_touch,
+            TasksWidgetProvider.fillInIntent(TasksWidgetContract.ACTION_EDIT, row.id),
         )
         return views
     }

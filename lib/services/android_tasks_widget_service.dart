@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
@@ -10,11 +10,10 @@ import '../components/task_edit_pane.dart';
 import '../models/task.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
-import '../providers/theme_provider.dart';
 import '../utils/task_date_formatter.dart';
 
 /// Keeps Android's native home-screen widget in sync with Flutter task data.
-class AndroidTasksWidgetService {
+class AndroidTasksWidgetService with WidgetsBindingObserver {
   AndroidTasksWidgetService._();
 
   static final AndroidTasksWidgetService instance =
@@ -23,7 +22,6 @@ class AndroidTasksWidgetService {
 
   BuildContext? _context;
   TaskProvider? _taskProvider;
-  ThemeProvider? _themeProvider;
   bool _initialized = false;
   bool _publishing = false;
   bool _publishAgain = false;
@@ -33,12 +31,11 @@ class AndroidTasksWidgetService {
 
     _context = context;
     _taskProvider = context.read<TaskProvider>();
-    _themeProvider = context.read<ThemeProvider>();
     if (!_initialized) {
       _initialized = true;
       _taskProvider!.addListener(_onProviderChanged);
-      _themeProvider!.addListener(_onProviderChanged);
       _channel.setMethodCallHandler(_handleNativeCall);
+      WidgetsBinding.instance.addObserver(this);
     }
 
     unawaited(_publishWidgetState());
@@ -63,6 +60,11 @@ class AndroidTasksWidgetService {
   }
 
   void _onProviderChanged() {
+    unawaited(_publishWidgetState());
+  }
+
+  @override
+  void didChangePlatformBrightness() {
     unawaited(_publishWidgetState());
   }
 
@@ -100,6 +102,9 @@ class AndroidTasksWidgetService {
     await TaskEditPane.show(context, task: task);
   }
 
+  /// Public method to force an immediate widget update (e.g. when theme changes).
+  Future<void> refresh() => _publishWidgetState();
+
   Future<void> _publishWidgetState() async {
     if (!_initialized) return;
     if (_publishing) {
@@ -128,23 +133,29 @@ class AndroidTasksWidgetService {
 
       final systemAccentValue = await _readDeviceAccentColor();
       if (!context.mounted) return;
-      final currentScheme = Theme.of(context).colorScheme;
-      final seedColor = systemAccentValue == null
-          ? (_themeProvider?.useSystemColor == true
-                ? currentScheme.primary
-                : _themeProvider?.seedColor ?? currentScheme.primary)
-          : Color(systemAccentValue);
+
+      // Always follow the system seed / accent colour (fallback to primary seed if device has none).
+      final seedColor = systemAccentValue != null
+          ? Color(systemAccentValue)
+          : const Color(0xFF6750A4);
+
+      // Follow the system platform brightness (system dark / light mode).
+      final systemBrightness =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
       final scheme = ColorScheme.fromSeed(
         seedColor: seedColor,
-        brightness: Brightness.light,
-        dynamicSchemeVariant: DynamicSchemeVariant.vibrant,
+        brightness: systemBrightness,
+        dynamicSchemeVariant: DynamicSchemeVariant.expressive,
       );
+
       final payload = <String, Object>{
         'tasks': jsonEncode(taskRows),
-        'background': scheme.primary.toARGB32(),
-        'foreground': scheme.onPrimary.toARGB32(),
-        'accent': scheme.primaryContainer.toARGB32(),
-        'accentForeground': scheme.onPrimaryContainer.toARGB32(),
+        'secondaryContainer': scheme.secondaryContainer.toARGB32(),
+        'onSecondaryContainer': scheme.onSecondaryContainer.toARGB32(),
+        'primary': scheme.primary.toARGB32(),
+        'onPrimary': scheme.onPrimary.toARGB32(),
+        'onSurface': scheme.onSurface.toARGB32(),
       };
       await _channel.invokeMethod<void>('updateWidget', payload);
     } on MissingPluginException {
@@ -174,11 +185,17 @@ class AndroidTasksWidgetService {
     final hasDueDate = task.dueDate?.trim().isNotEmpty == true;
     final dueTime = task.dueTime?.trim();
     final hasDueTime = dueTime?.isNotEmpty == true;
-    if (hasDueDate) {
-      final date = TaskDateFormatter.formatString(task.dueDate!);
-      return hasDueTime ? '$date · $dueTime' : date;
+    if (!hasDueDate) {
+      // No date — show time alone if present.
+      return hasDueTime ? dueTime! : '';
     }
-    return hasDueTime ? dueTime! : '';
+    final isDueToday = TaskDateFormatter.isToday(task.dueDate);
+    if (isDueToday) {
+      // Due today: show time if present, else 'Today'.
+      return hasDueTime ? dueTime! : 'Today';
+    }
+    // Not today: show date label (Yesterday / Tomorrow / 13, Sep).
+    return TaskDateFormatter.formatString(task.dueDate!);
   }
 
   int _compareTasksForWidget(Task a, Task b) {
@@ -198,12 +215,11 @@ class AndroidTasksWidgetService {
   void dispose() {
     if (_initialized) {
       _taskProvider?.removeListener(_onProviderChanged);
-      _themeProvider?.removeListener(_onProviderChanged);
+      WidgetsBinding.instance.removeObserver(this);
       _channel.setMethodCallHandler(null);
     }
     _initialized = false;
     _context = null;
     _taskProvider = null;
-    _themeProvider = null;
   }
 }

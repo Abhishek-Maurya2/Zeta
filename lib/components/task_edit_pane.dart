@@ -30,9 +30,11 @@ class TaskEditPane {
     final isCompact = sizeClass.isCompact;
 
     if (isCompact) {
+      final taskProvider = context.read<TaskProvider>();
       // Docked Bottom Sheet on Compact (< 600dp)
       return showModalBottomSheet(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: Colors.transparent,
@@ -41,60 +43,63 @@ class TaskEditPane {
         builder: (ctx) {
           final colorScheme = Theme.of(ctx).colorScheme;
 
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
+          return ChangeNotifierProvider.value(
+            value: taskProvider,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer.withValues(alpha: 0.45),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Drag Handle
-                      Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 12),
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.40,
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Drag Handle
+                        Center(
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.40,
+                              ),
+                              borderRadius: BorderRadius.circular(2),
                             ),
-                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+                          ),
+                          child: TaskEditFormContent(
+                            task: task,
+                            initialTitle: initialTitle,
+                            onClose: () => Navigator.of(ctx).pop(),
+                          ),
                         ),
-                        child: TaskEditFormContent(
-                          task: task,
-                          initialTitle: initialTitle,
-                          onClose: () => Navigator.of(ctx).pop(),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

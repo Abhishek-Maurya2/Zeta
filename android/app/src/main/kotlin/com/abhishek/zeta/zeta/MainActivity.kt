@@ -78,6 +78,7 @@ class MainActivity : FlutterActivity() {
         }
 
         widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL)
+        activeWidgetChannel = widgetChannel
         widgetChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getDeviceAccentColor" -> result.success(TasksWidgetProvider.deviceAccentColor(this))
@@ -92,12 +93,19 @@ class MainActivity : FlutterActivity() {
                     } else {
                         val tasks = args["tasks"]?.toString() ?: "[]"
                         val prefs = getSharedPreferences(TasksWidgetContract.PREFERENCES, MODE_PRIVATE)
+                        val secContainer = (args["secondaryContainer"] as? Number)?.toInt()
+                            ?: (args["tertiaryContainer"] as? Number)?.toInt()
+                            ?: 0xFF7D5260.toInt()
+                        val onSecContainer = (args["onSecondaryContainer"] as? Number)?.toInt()
+                            ?: (args["onTertiaryContainer"] as? Number)?.toInt()
+                            ?: 0xFFFFFFFF.toInt()
                         prefs.edit()
                             .putString(TasksWidgetContract.KEY_TASKS, tasks)
-                            .putInt(TasksWidgetContract.KEY_BACKGROUND, (args["background"] as? Number)?.toInt() ?: 0xFF6750A4.toInt())
-                            .putInt(TasksWidgetContract.KEY_FOREGROUND, (args["foreground"] as? Number)?.toInt() ?: 0xFFFFFFFF.toInt())
-                            .putInt(TasksWidgetContract.KEY_ACCENT, (args["accent"] as? Number)?.toInt() ?: 0xFFD0BCFF.toInt())
-                            .putInt(TasksWidgetContract.KEY_ACCENT_FOREGROUND, (args["accentForeground"] as? Number)?.toInt() ?: 0xFF381E72.toInt())
+                            .putInt(TasksWidgetContract.KEY_SECONDARY_CONTAINER, secContainer)
+                            .putInt(TasksWidgetContract.KEY_ON_SECONDARY_CONTAINER, onSecContainer)
+                            .putInt(TasksWidgetContract.KEY_PRIMARY, (args["primary"] as? Number)?.toInt() ?: 0xFF6750A4.toInt())
+                            .putInt(TasksWidgetContract.KEY_ON_PRIMARY, (args["onPrimary"] as? Number)?.toInt() ?: 0xFFFFFFFF.toInt())
+                            .putInt(TasksWidgetContract.KEY_ON_SURFACE, (args["onSurface"] as? Number)?.toInt() ?: 0xFF1D1B20.toInt())
                             .apply()
                         TasksWidgetProvider.refreshAll(this)
                         result.success(null)
@@ -111,5 +119,18 @@ class MainActivity : FlutterActivity() {
         if (initialShortcut != null) {
             channel?.invokeMethod("onShortcut", initialShortcut)
         }
+    }
+
+    override fun onDestroy() {
+        if (activeWidgetChannel == widgetChannel) {
+            activeWidgetChannel = null
+        }
+        super.onDestroy()
+    }
+
+    companion object {
+        /** Accessible from [TasksWidgetProvider] to forward toggle actions to Flutter when the engine is live. */
+        @Volatile
+        internal var activeWidgetChannel: MethodChannel? = null
     }
 }

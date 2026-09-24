@@ -2,47 +2,50 @@
     android:id="@+id/widget_task_row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:minHeight="60dp"
+    android:gravity="top"
+    android:minHeight="40dp"
     android:orientation="horizontal"
-    android:paddingTop="9dp"
-    android:paddingBottom="9dp">
+    android:paddingTop="4dp"
+    android:paddingBottom="8dp">
 
     <FrameLayout
         android:id="@+id/widget_checkbox_touch"
-        android:layout_width="40dp"
-        android:layout_height="48dp"
+        android:layout_width="36dp"
+        android:layout_height="32dp"
         android:clickable="true"
         android:contentDescription="Complete task"
         android:focusable="true">
 
         <ImageView
             android:id="@+id/widget_checkbox"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="1dp"
             android:contentDescription=""
             android:src="@drawable/widget_checkbox_outline" />
 
-        <TextView
+        <ImageView
             android:id="@+id/widget_checkbox_check"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:text="✓"
-            android:textColor="#FF381E72"
-            android:textSize="16sp"
-            android:textStyle="bold"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="5dp"
+            android:contentDescription=""
+            android:src="@drawable/widget_check_icon"
             android:visibility="gone" />
     </FrameLayout>
 
     <LinearLayout
+        android:id="@+id/widget_title_touch"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="top"
         android:orientation="vertical"
-        android:paddingStart="8dp"
+        android:paddingStart="4dp"
         android:paddingEnd="0dp">
 
         <TextView
@@ -50,20 +53,37 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:fontFamily="sans"
+            android:fontFamily="@font/google_sans_flex"
             android:maxLines="1"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@android:color/white"
             android:textSize="15sp" />
 
-        <TextView
-            android:id="@+id/widget_task_due"
+        <LinearLayout
+            android:id="@+id/widget_due_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:fontFamily="sans"
-            android:maxLines="1"
-            android:paddingTop="3dp"
-            android:textColor="#DFFFFFFF"
-            android:textSize="11sp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingTop="3dp">
+
+            <ImageView
+                android:id="@+id/widget_due_icon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="4dp"
+                android:contentDescription=""
+                android:src="@drawable/ic_clock_rounded" />
+
+            <TextView
+                android:id="@+id/widget_task_due"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:fontFamily="@font/google_sans_flex"
+                android:maxLines="1"
+                android:textColor="@android:color/white"
+                android:textSize="13sp" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>
