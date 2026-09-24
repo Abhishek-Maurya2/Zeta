@@ -1,9 +1,11 @@
+import 'package:geolocator/geolocator.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../components/segmented_column.dart';
-import '../../../providers/theme_provider.dart';
+import '../../../providers/weather_provider.dart';
 import '../../../components/weather_icon.dart';
+import '../../../utils/app_snackbar.dart';
 import '../../../utils/haptics.dart';
 
 class WeatherSection extends StatefulWidget {
@@ -32,8 +34,8 @@ class _WeatherSectionState extends State<WeatherSection> {
   @override
   void initState() {
     super.initState();
-    final themeProvider = context.read<ThemeProvider>();
-    _cityController = TextEditingController(text: themeProvider.cityName);
+    final weatherProvider = context.read<WeatherProvider>();
+    _cityController = TextEditingController(text: weatherProvider.cityName);
   }
 
   @override
@@ -42,56 +44,199 @@ class _WeatherSectionState extends State<WeatherSection> {
     super.dispose();
   }
 
-  Future<void> _handleSetCity(ThemeProvider themeProvider) async {
+  void _showSnackbar(
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
+    if (!mounted) return;
+    if (actionLabel != null && onAction != null) {
+      AppSnackbar.show(
+        context,
+        message: message,
+        actionLabel: actionLabel,
+        onAction: onAction,
+      );
+    } else if (widget.onToast != null) {
+      widget.onToast!(message);
+    } else {
+      AppSnackbar.show(context, message: message);
+    }
+  }
+
+  Future<void> _handleSetCity(WeatherProvider weatherProvider) async {
     final nextCity = _cityController.text.trim();
     if (nextCity.isEmpty) return;
 
     ZetaHaptics.light();
-    themeProvider.setCityName(nextCity);
+    weatherProvider.setCityName(nextCity);
     setState(() => _isEditing = false);
-    widget.onToast?.call('Fetching live weather for $nextCity...');
+    _showSnackbar('Fetching live weather for $nextCity...');
   }
 
-  void _selectCity(ThemeProvider themeProvider, String city) {
+  void _selectCity(WeatherProvider weatherProvider, String city) {
     ZetaHaptics.light();
     _cityController.text = city;
-    themeProvider.setCityName(city);
-    widget.onToast?.call('Fetching live weather for $city...');
+    weatherProvider.setCityName(city);
+    _showSnackbar('Fetching live weather for $city...');
   }
 
-  Future<void> _handleRefresh(ThemeProvider themeProvider) async {
+  Future<void> _handleRefresh(WeatherProvider weatherProvider) async {
     ZetaHaptics.light();
-    await themeProvider.refreshWeather();
+    await weatherProvider.refreshWeather();
     if (!mounted) return;
-    widget.onToast?.call(
-      'Weather telemetry refreshed for ${themeProvider.cityName}',
+    _showSnackbar(
+      'Weather telemetry refreshed for ${weatherProvider.cityName}',
     );
   }
 
-  Future<void> _handleDetectLocation(ThemeProvider themeProvider) async {
+  Future<void> _handleDetectLocation(WeatherProvider weatherProvider) async {
     ZetaHaptics.light();
-    widget.onToast?.call('Detecting device location...');
-    final success = await themeProvider.detectUserLocation();
-    if (!mounted) return;
-    if (success) {
-      _cityController.text = themeProvider.cityName;
-      widget.onToast?.call('Location updated to ${themeProvider.cityName}');
-    } else {
-      widget.onToast?.call(
-        'Could not detect location. Please search manually.',
+
+    // 1. Check if GPS / Location Service is enabled on device
+    bool serviceEnabled = false;
+    try {
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    } catch (_) {
+      serviceEnabled = false;
+    }
+
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      final shouldTurnOn = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.location_off_rounded, size: 28),
+          title: const Text('Turn on GPS'),
+          content: const Text(
+            'Location services (GPS) are currently turned off. Please turn on GPS to detect your device location.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Turn on GPS'),
+            ),
+          ],
+        ),
       );
+
+      if (shouldTurnOn == true) {
+        await Geolocator.openLocationSettings();
+      }
+
+      // If user declined or opened settings, do not proceed and show snackbar
+      if (!mounted) return;
+      _showSnackbar(
+        'Please turn on GPS or give permission for GPS.',
+        actionLabel: 'Settings',
+        onAction: () => Geolocator.openLocationSettings(),
+      );
+      return;
+    }
+
+    // 2. Check and request Location Permission
+    LocationPermission permission;
+    try {
+      permission = await Geolocator.checkPermission();
+    } catch (_) {
+      permission = LocationPermission.denied;
+    }
+
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
+      final shouldOpenSettings = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.location_disabled_rounded, size: 28),
+          title: const Text('Permission Required'),
+          content: const Text(
+            'Location permission is permanently denied. Please grant location permission in app settings to use your device location.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldOpenSettings == true) {
+        await Geolocator.openAppSettings();
+      }
+
+      if (!mounted) return;
+      _showSnackbar(
+        'Please turn on GPS or give permission for GPS.',
+        actionLabel: 'Settings',
+        onAction: () => Geolocator.openAppSettings(),
+      );
+      return;
+    }
+
+    if (permission != LocationPermission.whileInUse &&
+        permission != LocationPermission.always) {
+      if (!mounted) return;
+      _showSnackbar(
+        'Please turn on GPS or give permission for GPS.',
+        actionLabel: 'Settings',
+        onAction: () => Geolocator.openAppSettings(),
+      );
+      return;
+    }
+
+    // 3. GPS is turned on AND permission is granted -> strictly use GPS
+    _showSnackbar('Detecting device location via GPS...');
+    try {
+      final success = await weatherProvider.detectDeviceLocationFromGps();
+      if (!mounted) return;
+      if (success) {
+        _cityController.text = weatherProvider.cityName;
+        _showSnackbar('Location updated to ${weatherProvider.cityName}');
+      } else {
+        _showSnackbar('Could not detect GPS location. Please try again.');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      if (e is LocationServiceDisabledException) {
+        _showSnackbar(
+          'Please turn on GPS or give permission for GPS.',
+          actionLabel: 'Settings',
+          onAction: () => Geolocator.openLocationSettings(),
+        );
+      } else if (e is PermissionDeniedException) {
+        _showSnackbar(
+          'Please turn on GPS or give permission for GPS.',
+          actionLabel: 'Settings',
+          onAction: () => Geolocator.openAppSettings(),
+        );
+      } else {
+        _showSnackbar('Could not detect GPS location. Please try again.');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    final weatherProvider = context.watch<WeatherProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final isMasterOn = themeProvider.weatherEnabled;
-    final weather = themeProvider.weatherData;
-    final isLoading = themeProvider.isWeatherLoading;
+    final isMasterOn = weatherProvider.weatherEnabled;
+    final weather = weatherProvider.weatherData;
+    final isLoading = weatherProvider.isWeatherLoading;
 
     final tempDisplay = weather != null
         ? '${weather.temperature.round()}°C'
@@ -125,7 +270,7 @@ class _WeatherSectionState extends State<WeatherSection> {
               onTap: (_) {
                 ZetaHaptics.light();
                 final newVal = !isMasterOn;
-                themeProvider.setWeatherEnabled(newVal);
+                weatherProvider.setWeatherEnabled(newVal);
                 widget.onToast?.call(
                   newVal
                       ? 'Weather telemetry turned on'
@@ -164,7 +309,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                         ),
                         onChanged: (val) {
                           ZetaHaptics.light();
-                          themeProvider.setWeatherEnabled(val);
+                          weatherProvider.setWeatherEnabled(val);
                           widget.onToast?.call(
                             val
                                 ? 'Weather telemetry turned on'
@@ -268,7 +413,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                                     Flexible(
                                       child: Text(
                                         weather?.cityName ??
-                                            themeProvider.cityName,
+                                            weatherProvider.cityName,
                                         style: textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.w700,
                                           color: isMasterOn
@@ -428,7 +573,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                         style: M3EButtonStyle.tonal,
                         size: M3EButtonSize.sm,
                         onPressed: isMasterOn && !isLoading
-                            ? () => _handleDetectLocation(themeProvider)
+                            ? () => _handleDetectLocation(weatherProvider)
                             : null,
                       ),
                       M3EButton.icon(
@@ -445,7 +590,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                         style: M3EButtonStyle.outlined,
                         size: M3EButtonSize.sm,
                         onPressed: isMasterOn && !isLoading
-                            ? () => _handleRefresh(themeProvider)
+                            ? () => _handleRefresh(weatherProvider)
                             : null,
                       ),
                     ],
@@ -510,7 +655,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              weather?.cityName ?? themeProvider.cityName,
+                              weather?.cityName ?? weatherProvider.cityName,
                               style: textTheme.bodySmall?.copyWith(
                                 color: isMasterOn
                                     ? colorScheme.onSurfaceVariant
@@ -625,7 +770,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                                   ),
                                   onChanged: (_) => setState(() {}),
                                   onSubmitted: (_) =>
-                                      _handleSetCity(themeProvider),
+                                      _handleSetCity(weatherProvider),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -633,7 +778,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                                 style: M3EButtonStyle.filled,
                                 size: M3EButtonSize.sm,
                                 onPressed: isMasterOn
-                                    ? () => _handleSetCity(themeProvider)
+                                    ? () => _handleSetCity(weatherProvider)
                                     : null,
                                 child: const Text('Update'),
                               ),
@@ -655,7 +800,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                             runSpacing: 8,
                             children: _popularCities.map((city) {
                               final currentCity =
-                                  weather?.cityName ?? themeProvider.cityName;
+                                  weather?.cityName ?? weatherProvider.cityName;
                               final isCurrent = currentCity
                                   .toLowerCase()
                                   .contains(
@@ -664,7 +809,7 @@ class _WeatherSectionState extends State<WeatherSection> {
 
                               return InkWell(
                                 onTap: isMasterOn
-                                    ? () => _selectCity(themeProvider, city)
+                                    ? () => _selectCity(weatherProvider, city)
                                     : null,
                                 borderRadius: BorderRadius.circular(20),
                                 child: AnimatedContainer(
@@ -766,13 +911,13 @@ class _WeatherSectionState extends State<WeatherSection> {
                   context,
                   title: 'Show weather on Home screen',
                   subtitle: 'Display live temperature and weather badge on the weekly calendar strip',
-                  value: themeProvider.showWeatherInHeader,
+                  value: weatherProvider.showWeatherInHeader,
                   enabled: isMasterOn,
                   selectedIcon: const Icon(Icons.home_rounded, size: 16),
                   unselectedIcon: const Icon(Icons.home_outlined, size: 16),
                   onChanged: (val) {
                     ZetaHaptics.light();
-                    themeProvider.setShowWeatherInHeader(val);
+                    weatherProvider.setShowWeatherInHeader(val);
                     widget.onToast?.call(
                       val
                           ? 'Weather header enabled on Home screen'

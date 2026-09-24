@@ -363,10 +363,7 @@ class ThemeProvider extends ChangeNotifier {
   WeatherData? get weatherData => _weather.weatherData;
   bool get isWeatherLoading => _weather.isWeatherLoading;
   Future<void> refreshWeather() => _weather.refreshWeather();
-  Future<bool> detectUserLocation() async {
-    await _weather.refreshWeather();
-    return true;
-  }
+  Future<bool> detectUserLocation() => _weather.detectDeviceLocationFromGps();
 
   // ─── Cross-Platform Sound & Notifications ────────────────────────────────
   bool _notifications = true;

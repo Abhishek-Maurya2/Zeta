@@ -157,7 +157,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             ],
           ),
 
-          SizedBox(width: isCompact ? 6 : 10),
+          SizedBox(width: isCompact ? 1 : 10),
 
           // ─── Center Section: M3E Search Bar with Theme Switch in Trailing ─
           Expanded(
@@ -199,7 +199,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                     builder:
                         (BuildContext context, M3ESearchController controller) {
                           return M3ESearchBar(
-                            // constraints: const BoxConstraints(minHeight: 70),
+                            constraints: const BoxConstraints(minHeight: 90),
                             controller: controller,
                             leading: isCompact
                                 ? null
@@ -254,8 +254,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                               else if (!isCompact)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
+                                    horizontal: 5,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
                                     color: colorScheme.surfaceContainerHighest,
@@ -309,7 +309,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
             ),
           ),
 
-          SizedBox(width: isCompact ? 6 : 10),
+          SizedBox(width: isCompact ? 1 : 10),
 
           // ─── Trailing Section: Profile Avatar with Sync-Status Ring ─────
           Builder(

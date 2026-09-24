@@ -58,6 +58,43 @@ class WeatherProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateLocationFromCoordinates(
+    double lat,
+    double lon,
+    String city,
+  ) async {
+    if (!_weatherEnabled) return false;
+    _isWeatherLoading = true;
+    _cityName = city;
+    notifyListeners();
+    try {
+      await _saveSetting(_prefKeyCityName, _cityName);
+      final data = await WeatherService.fetchWeatherByCoordinates(lat, lon, city);
+      _weatherData = data;
+      await _saveSetting(_prefKeyWeatherCache, jsonEncode(data.toJson()));
+      return true;
+    } catch (e, st) {
+      AppLogger.warning('Weather update for coordinates failed', error: e, stackTrace: st);
+      return false;
+    } finally {
+      _isWeatherLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Detects the device location strictly using hardware GPS, updates the city name,
+  /// and fetches fresh weather data.
+  Future<bool> detectDeviceLocationFromGps() async {
+    final loc = await WeatherService.detectLocationFromGps();
+    if (loc != null) {
+      final city = loc['city'] as String;
+      final lat = loc['lat'] as double;
+      final lon = loc['lon'] as double;
+      return updateLocationFromCoordinates(lat, lon, city);
+    }
+    return false;
+  }
+
   Future<void> refreshWeather() async {
     if (!_weatherEnabled) return;
     _isWeatherLoading = true;

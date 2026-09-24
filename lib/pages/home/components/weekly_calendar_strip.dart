@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
-import '../../../providers/theme_provider.dart';
 import '../../../providers/weather_provider.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../settings/components/settings_category.dart';
@@ -47,12 +46,11 @@ class WeeklyCalendarStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final taskProvider = context.watch<TaskProvider>();
-    final weatherProvider = Provider.of<WeatherProvider?>(context);
-    final themeProvider = context.watch<ThemeProvider>();
-    final weather = weatherProvider?.weatherData ?? themeProvider.weatherData;
-    final weatherEnabled = weatherProvider?.weatherEnabled ?? themeProvider.weatherEnabled;
-    final showWeatherInHeader = weatherProvider?.showWeatherInHeader ?? themeProvider.showWeatherInHeader;
-    final effectiveCityName = weather?.cityName ?? weatherProvider?.cityName ?? themeProvider.cityName;
+    final weatherProvider = context.watch<WeatherProvider>();
+    final weather = weatherProvider.weatherData;
+    final weatherEnabled = weatherProvider.weatherEnabled;
+    final showWeatherInHeader = weatherProvider.showWeatherInHeader;
+    final effectiveCityName = weather?.cityName ?? weatherProvider.cityName;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);

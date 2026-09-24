@@ -407,6 +407,60 @@ class WeatherService {
     return fetchWeather(cityName);
   }
 
+  /// Detects the device location strictly using GPS hardware without IP fallback.
+  static Future<Map<String, dynamic>?> detectLocationFromGps() async {
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      ),
+    );
+
+    final lat = position.latitude;
+    final lon = position.longitude;
+
+    // Reverse geocode lat/lon to city name via BigDataCloud API
+    try {
+      final revUrl = Uri.parse(
+        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lon&localityLanguage=en',
+      );
+      final revRes = await http
+          .get(revUrl)
+          .timeout(const Duration(seconds: 5));
+      if (revRes.statusCode == 200) {
+        final revData = jsonDecode(revRes.body) as Map<String, dynamic>;
+        final city =
+            revData['city'] as String? ??
+            revData['locality'] as String? ??
+            revData['principalSubdivision'] as String? ??
+            '';
+        final country =
+            revData['countryCode'] as String? ??
+            revData['countryName'] as String? ??
+            '';
+        final displayName = country.isNotEmpty && city.isNotEmpty
+            ? '$city, $country'
+            : city;
+
+        return {
+          'city': displayName.isNotEmpty
+              ? displayName
+              : '${lat.toStringAsFixed(2)}, ${lon.toStringAsFixed(2)}',
+          'lat': lat,
+          'lon': lon,
+          'country': country,
+        };
+      }
+    } catch (_) {}
+
+    return {
+      'city': '${lat.toStringAsFixed(2)}, ${lon.toStringAsFixed(2)}',
+      'lat': lat,
+      'lon': lon,
+      'country': '',
+    };
+  }
+
   /// Detects the device location using hardware GPS permissions across Android, iOS, Web, Windows, macOS.
   /// Prompts user for system location permission. Falls back to IP Geolocation if permissions are denied.
   static Future<Map<String, dynamic>?> detectLocation() async {
