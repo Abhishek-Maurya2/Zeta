@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task.dart';
-import '../database/database_provider.dart';
 import 'supabase_service.dart';
 import 'network_service.dart';
+import 'preferences_service.dart';
 
 /// Service responsible for bi-directional synchronization between local tasks and the
 /// Supabase `public.tasks` table, including real-time change subscriptions.
@@ -15,7 +15,8 @@ class SupabaseSyncService {
     _networkSubscription =
         NetworkService().onConnectivityChanged.listen((isOnline) {
       if (isOnline) {
-        unawaited(processPendingQueue());
+        final reconnect = onNetworkReconnect;
+        unawaited(reconnect != null ? reconnect() : processPendingQueue());
       }
     });
   }
@@ -25,6 +26,7 @@ class SupabaseSyncService {
   RealtimeChannel? _realtimeChannel;
   StreamSubscription<bool>? _networkSubscription;
   bool _isSyncing = false;
+  bool _isProcessingPendingQueue = false;
   DateTime? _lastSyncedAt;
   String? _lastError;
 
@@ -33,38 +35,76 @@ class SupabaseSyncService {
   String? get lastError => _lastError;
 
   void Function(Task task, String eventType)? onRemoteChange;
+  Future<void> Function(Task task, DateTime syncedAt)? onTaskSynced;
+  Future<void> Function()? onNetworkReconnect;
 
   final List<Task> _pendingQueue = [];
 
+  Set<String> _getPendingPermanentDeletions() {
+    final list = PreferencesService.instance.getStringList(PreferencesService.keyPendingPermanentDeletions);
+    return list != null ? Set<String>.from(list) : <String>{};
+  }
+
+  Future<void> _savePendingPermanentDeletions(Set<String> set) async {
+    await PreferencesService.instance.setStringList(PreferencesService.keyPendingPermanentDeletions, set.toList());
+  }
+
+  Future<void> queuePermanentDeletions(Iterable<String> taskIds) async {
+    final pending = _getPendingPermanentDeletions()..addAll(taskIds);
+    await _savePendingPermanentDeletions(pending);
+    unawaited(processPendingQueue());
+  }
+
   /// Processes any queued offline tasks that previously failed to push,
-  /// including tasks modified offline stored in SQLite.
+  /// including tasks modified offline stored in SQLite and pending permanent deletions.
   Future<void> processPendingQueue() async {
-    if (!_supabaseService.isInitialized) return;
+    if (!_supabaseService.isInitialized || _isProcessingPendingQueue) return;
+    _isProcessingPendingQueue = true;
     try {
-      final unsynced =
-          await DatabaseProvider.instance.taskDao.getUnsyncedTasks();
-      for (final t in unsynced) {
-        if (!_pendingQueue.any((p) => p.id == t.id)) {
-          _pendingQueue.add(t);
+      // 1. Process pending permanent deletions
+      final pendingDeletions = _getPendingPermanentDeletions();
+      if (pendingDeletions.isNotEmpty) {
+        final toRemove = <String>[];
+        for (final id in pendingDeletions) {
+          try {
+            await _supabaseService.client
+                .from('tasks')
+                .delete()
+                .eq('id', id)
+                .timeout(const Duration(seconds: 15));
+            toRemove.add(id);
+            debugPrint('SupabaseSyncService: Successfully flushed pending permanent delete for $id');
+          } catch (_) {}
+        }
+        if (toRemove.isNotEmpty) {
+          final remaining = _getPendingPermanentDeletions()..removeAll(toRemove);
+          await _savePendingPermanentDeletions(remaining);
         }
       }
-    } catch (_) {}
 
-    if (_pendingQueue.isEmpty) return;
-    final toProcess = List<Task>.from(_pendingQueue);
-    _pendingQueue.clear();
-    for (final task in toProcess) {
-      final success = await pushTask(task);
-      if (!success && !_pendingQueue.any((t) => t.id == task.id)) {
-        _pendingQueue.add(task);
+      // 2. Process in-memory retries. Durable unsynced rows are loaded by the
+      // repository, which owns the local database boundary.
+      if (_pendingQueue.isEmpty) return;
+      final toProcess = List<Task>.from(_pendingQueue);
+      _pendingQueue.clear();
+      for (final task in toProcess) {
+        final success = await pushTask(task);
+        if (!success && !_pendingQueue.any((t) => t.id == task.id)) {
+          _pendingQueue.add(task);
+        }
       }
+    } finally {
+      _isProcessingPendingQueue = false;
     }
   }
 
   /// Pull tasks from Supabase `public.tasks` table.
   /// If [since] is provided, only retrieves tasks updated since that timestamp.
   Future<List<Task>> pullTasks({DateTime? since}) async {
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return [];
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+      _lastError = 'Supabase is unavailable or the device is offline.';
+      return [];
+    }
 
     _isSyncing = true;
     _lastError = null;
@@ -93,11 +133,7 @@ class SupabaseSyncService {
 
         final rows = response as List<dynamic>;
         for (final row in rows) {
-          try {
-            tasks.add(Task.fromSupabaseRow(row as Map<String, dynamic>));
-          } catch (e) {
-            debugPrint('SupabaseSyncService: Error parsing task row - $e');
-          }
+          tasks.add(Task.fromSupabaseRow(row as Map<String, dynamic>));
         }
 
         if (rows.length < pageSize) {
@@ -109,9 +145,12 @@ class SupabaseSyncService {
 
       _lastSyncedAt = DateTime.now();
       NetworkService().markOnline();
-      debugPrint('SupabaseSyncService: Pulled ${tasks.length} tasks successfully.');
-      unawaited(processPendingQueue());
-      return tasks;
+      final pendingDeletions = _getPendingPermanentDeletions();
+      final filteredTasks = pendingDeletions.isEmpty
+          ? tasks
+          : tasks.where((t) => !pendingDeletions.contains(t.id)).toList();
+      debugPrint('SupabaseSyncService: Pulled ${filteredTasks.length} tasks successfully (filtered ${tasks.length - filteredTasks.length} pending deletes).');
+      return filteredTasks;
     } catch (e) {
       _lastError = e.toString();
       NetworkService().markOffline();
@@ -157,8 +196,8 @@ class SupabaseSyncService {
         debugPrint('SupabaseSyncService: Upserted task "${task.title}" (${task.id})');
         _lastSyncedAt = DateTime.now();
         _pendingQueue.removeWhere((t) => t.id == task.id);
-        unawaited(DatabaseProvider.instance.taskDao
-            .markTaskSynced(task.id, _lastSyncedAt!));
+        await onTaskSynced?.call(task, _lastSyncedAt!);
+        task.lastSyncedAt = _lastSyncedAt;
         NetworkService().markOnline();
         return true;
       } catch (e) {
@@ -180,19 +219,20 @@ class SupabaseSyncService {
 
   /// Soft deletes or permanently deletes a task in Supabase.
   Future<bool> deleteTask(String taskId, {bool soft = true}) async {
-    if (!_supabaseService.isInitialized || !NetworkService().isOnline) return false;
+    if (!soft) {
+      await queuePermanentDeletions([taskId]);
+      return false;
+    }
+    if (!_supabaseService.isInitialized || !NetworkService().isOnline) {
+      return false;
+    }
 
     try {
-      if (soft) {
-        await _supabaseService.client.from('tasks').update({
-          'deleted_at': DateTime.now().toUtc().toIso8601String(),
-          'updated_at': DateTime.now().toUtc().toIso8601String(),
-        }).eq('id', taskId);
-        debugPrint('SupabaseSyncService: Soft-deleted task $taskId');
-      } else {
-        await _supabaseService.client.from('tasks').delete().eq('id', taskId);
-        debugPrint('SupabaseSyncService: Permanently deleted task $taskId');
-      }
+      await _supabaseService.client.from('tasks').update({
+        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', taskId).timeout(const Duration(seconds: 15));
+      debugPrint('SupabaseSyncService: Soft-deleted task $taskId');
       return true;
     } catch (e) {
       debugPrint('SupabaseSyncService: deleteTask failed for $taskId - $e');

@@ -2,10 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/task.dart';
 import '../services/notification_service.dart';
+import '../services/preferences_service.dart';
 
 /// Provider that drives periodic reminders and overdue task scans.
 ///
@@ -47,9 +46,9 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _startPolling();
   }
 
-  Future<void> _loadPreferences() async {
+  void _loadPreferences() {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       if (_isDisposed) return;
       _notificationsEnabled = prefs.getBool(_prefKeyMaster) ?? true;
       _taskRemindersEnabled = prefs.getBool(_prefKeyTaskReminders) ?? true;
@@ -87,7 +86,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       _rescheduleAllTasks();
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyMaster, value);
     } catch (_) {}
   }
@@ -105,7 +104,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       _rescheduleAllTasks();
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyTaskReminders, value);
     } catch (_) {}
   }
@@ -116,7 +115,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _syncService();
     if (!_isDisposed) notifyListeners();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyOverdue, value);
     } catch (_) {}
   }
@@ -127,7 +126,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _syncService();
     if (!_isDisposed) notifyListeners();
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyPomodoro, value);
     } catch (_) {}
   }
@@ -141,7 +140,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       await NotificationService.instance.cancelPomodoroProgress();
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyPomodoroLive, value);
     } catch (_) {}
   }

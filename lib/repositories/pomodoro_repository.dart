@@ -14,7 +14,17 @@ class PomodoroRepository {
     SessionDao? sessionDao,
     PomodoroSyncService? syncService,
   })  : _sessionDao = sessionDao ?? DatabaseProvider.instance.sessionDao,
-        _syncService = syncService ?? PomodoroSyncService();
+        _syncService = syncService ?? PomodoroSyncService() {
+    _syncService.onSessionSynced = _markSessionSynced;
+    _syncService.onNetworkReconnect = processPendingSync;
+  }
+
+  Future<void> _markSessionSynced(
+    PomodoroSessionLog session,
+    DateTime syncedAt,
+  ) async {
+    await _sessionDao.markSessionSynced(session.id, syncedAt);
+  }
 
   SessionDao get sessionDao => _sessionDao;
   PomodoroSyncService get syncService => _syncService;
@@ -43,10 +53,40 @@ class PomodoroRepository {
     }
   }
 
+  Future<void> deleteSession(String sessionId, {bool pushToCloud = true}) async {
+    await _sessionDao.deleteSession(sessionId);
+    if (pushToCloud) unawaited(_syncService.deleteSession(sessionId));
+  }
+
+  Future<void> clearSessions({bool clearCloud = true}) async {
+    if (clearCloud) {
+      // Persist the cloud deletion intent before clearing the local source of
+      // truth so an offline clear cannot be undone by the next pull.
+      await _syncService.enqueueClearSessions();
+    }
+    await _sessionDao.clearAll();
+  }
+
+  void subscribeToRealtime({
+    required void Function(PomodoroSessionLog session, String eventType) onSessionChange,
+  }) {
+    _syncService.subscribeToRealtime(onSessionChange: onSessionChange);
+  }
+
   Future<void> syncWithCloud({bool force = false}) async {
     try {
-      await _syncService.processPendingQueue();
-      final remote = await _syncService.pullSessions();
+      await processPendingSync();
+      // Completion timestamps are not a safe change cursor: another device can
+      // add a backdated session. Pull a complete paginated snapshot instead.
+      final remote = await _syncService.pullSessions(limit: 0);
+      if (_syncService.lastError != null) return;
+      final remoteIds = remote.map((session) => session.id).toSet();
+      final local = await _sessionDao.getAllSessions();
+      for (final session in local) {
+        if (session.lastSyncedAt != null && !remoteIds.contains(session.id)) {
+          await _sessionDao.deleteSession(session.id);
+        }
+      }
       if (remote.isNotEmpty) {
         await _sessionDao.upsertAll(remote);
       }
@@ -54,5 +94,17 @@ class PomodoroRepository {
       AppLogger.error('PomodoroRepository sync failed', error: e, stackTrace: st);
       rethrow;
     }
+  }
+
+  Future<void> processPendingSync() async {
+    await _syncService.processPendingQueue();
+    final unsynced = await _sessionDao.getUnsyncedSessions();
+    if (unsynced.isNotEmpty) {
+      await _syncService.batchPushSessions(unsynced);
+    }
+  }
+
+  void dispose() {
+    _syncService.dispose();
   }
 }

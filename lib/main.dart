@@ -57,7 +57,6 @@ void main([List<String> args = const <String>[]]) async {
   runApp(const ZetaApp());
 }
 
-
 class ZetaApp extends StatelessWidget {
   final bool? showSplash;
 
@@ -71,10 +70,12 @@ class ZetaApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
-        ChangeNotifierProvider(create: (ctx) => ThemeProvider(
-          profileProvider: ctx.read<ProfileProvider>(),
-          weatherProvider: ctx.read<WeatherProvider>(),
-        )),
+        ChangeNotifierProvider(
+          create: (ctx) => ThemeProvider(
+            profileProvider: ctx.read<ProfileProvider>(),
+            weatherProvider: ctx.read<WeatherProvider>(),
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
         ChangeNotifierProvider(create: (_) => PomodoroProvider()),

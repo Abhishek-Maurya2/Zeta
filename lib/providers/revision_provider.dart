@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/revision.dart';
 import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
-import '../services/revision_sync_service.dart';
-import '../database/daos/revision_dao.dart';
+import '../services/preferences_service.dart';
 import '../repositories/revision_repository.dart';
 
 /// Persisted configuration for the Revision spaced-repetition system.
@@ -73,24 +71,17 @@ class RevisionProvider with ChangeNotifier {
   static const String _settingsKey = 'zeta_revision_settings_v1';
   final Uuid _uuid = const Uuid();
   final RevisionRepository _repository;
-  RevisionDao get _revisionDao => _repository.revisionDao;
-  RevisionSyncService get _syncService => _repository.syncService;
 
   List<Subject> _subjects = [];
   List<ChapterTopic> _topics = [];
   String? _selectedSubjectId;
   bool _isLoading = true;
+  bool _isCloudSyncing = false;
   RevisionSettings _settings = const RevisionSettings();
 
   RevisionProvider({
     RevisionRepository? repository,
-    RevisionDao? revisionDao,
-    RevisionSyncService? syncService,
-  }) : _repository = repository ??
-            RevisionRepository(
-              revisionDao: revisionDao,
-              syncService: syncService,
-            ) {
+  }) : _repository = repository ?? RevisionRepository() {
     _loadData();
   }
 
@@ -136,7 +127,7 @@ class RevisionProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       final settingsRaw = prefs.getString(_settingsKey);
 
       if (settingsRaw != null && settingsRaw.isNotEmpty) {
@@ -146,8 +137,8 @@ class RevisionProvider with ChangeNotifier {
       }
 
       // ── Load from local SQLite first (instant) ──────────────────────────
-      final localSubjects = await _revisionDao.getAllSubjects();
-      final localTopics = await _revisionDao.getAllTopics();
+      final localSubjects = await _repository.getSubjects();
+      final localTopics = await _repository.getAllTopics();
 
       if (localSubjects.isNotEmpty) {
         _subjects = localSubjects;
@@ -156,19 +147,11 @@ class RevisionProvider with ChangeNotifier {
         notifyListeners();
       }
 
-      // ── Fetch dynamic data from Supabase ────────────────────────────────
-      final remoteSubjects = await _syncService.pullSubjects();
-      final remoteTopics = await _syncService.pullTopics();
-
-      if (remoteSubjects.isNotEmpty || remoteTopics.isNotEmpty) {
-        if (remoteSubjects.isNotEmpty) {
-          _subjects = remoteSubjects;
-          await _revisionDao.upsertAllSubjects(remoteSubjects);
-        }
-        if (remoteTopics.isNotEmpty) {
-          _topics = remoteTopics;
-          await _revisionDao.upsertAllTopics(remoteTopics);
-        }
+      // ── Fetch dynamic data from Supabase if master sync is enabled ──────
+      final masterSync =
+          PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
+      if (masterSync) {
+        await syncWithCloud();
       }
     } catch (e) {
       debugPrint('Error loading Revision data: $e');
@@ -180,31 +163,31 @@ class RevisionProvider with ChangeNotifier {
 
   /// Pulls the latest revision subjects and topics from Supabase.
   Future<void> refreshData() async {
-    try {
-      final remoteSubjects = await _syncService.pullSubjects();
-      final remoteTopics = await _syncService.pullTopics();
+    await syncWithCloud(force: true);
+  }
 
-      if (_syncService.lastError == null) {
-        if (remoteSubjects.isNotEmpty) {
-          _subjects = remoteSubjects;
-          await _revisionDao.upsertAllSubjects(remoteSubjects);
-        }
-        if (remoteTopics.isNotEmpty) {
-          _topics = remoteTopics;
-          await _revisionDao.upsertAllTopics(remoteTopics);
-        }
-        if (remoteSubjects.isNotEmpty || remoteTopics.isNotEmpty) {
-          notifyListeners();
-        }
-      }
+  Future<void> syncWithCloud({bool force = false}) async {
+    if (_isCloudSyncing) return;
+    final masterSync =
+        PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
+    if (!masterSync && !force) return;
+
+    _isCloudSyncing = true;
+    try {
+      await _repository.syncWithCloud(force: force);
+      _subjects = await _repository.getSubjects();
+      _topics = await _repository.getAllTopics();
+      notifyListeners();
     } catch (e) {
-      debugPrint('RevisionProvider: refreshData error - $e');
+      debugPrint('RevisionProvider: syncWithCloud error - $e');
+    } finally {
+      _isCloudSyncing = false;
     }
   }
 
   Future<void> _saveSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setString(_settingsKey, jsonEncode(_settings.toJson()));
     } catch (e) {
       debugPrint('Error saving Revision settings: $e');
@@ -239,8 +222,7 @@ class RevisionProvider with ChangeNotifier {
     _subjects.add(newSubject);
     _selectedSubjectId = newSubject.id;
     notifyListeners();
-    unawaited(_revisionDao.upsertSubject(newSubject));
-    unawaited(_syncService.pushSubject(newSubject));
+    unawaited(_repository.saveSubject(newSubject));
   }
 
   Future<void> updateSubject(Subject subject) async {
@@ -248,8 +230,7 @@ class RevisionProvider with ChangeNotifier {
     if (index != -1) {
       _subjects[index] = subject;
       notifyListeners();
-      unawaited(_revisionDao.upsertSubject(subject));
-      unawaited(_syncService.pushSubject(subject));
+      unawaited(_repository.saveSubject(subject));
     }
   }
 
@@ -270,8 +251,7 @@ class RevisionProvider with ChangeNotifier {
       _selectedSubjectId = null;
     }
     notifyListeners();
-    unawaited(_revisionDao.deleteSubject(subjectId));
-    unawaited(_syncService.deleteSubject(subjectId));
+    unawaited(_repository.deleteSubject(subjectId));
   }
 
   Future<void> addTopic(String subjectId, String title,
@@ -294,8 +274,7 @@ class RevisionProvider with ChangeNotifier {
     );
     _topics.add(newTopic);
     notifyListeners();
-    unawaited(_revisionDao.upsertTopic(newTopic));
-    unawaited(_syncService.pushTopic(newTopic));
+    unawaited(_repository.saveTopic(newTopic));
   }
 
   Future<void> updateTopic(ChapterTopic topic) async {
@@ -303,8 +282,7 @@ class RevisionProvider with ChangeNotifier {
     if (index != -1) {
       _topics[index] = topic;
       notifyListeners();
-      unawaited(_revisionDao.upsertTopic(topic));
-      unawaited(_syncService.pushTopic(topic));
+      unawaited(_repository.saveTopic(topic));
     }
   }
 
@@ -319,8 +297,7 @@ class RevisionProvider with ChangeNotifier {
     }
     _topics.removeWhere((t) => t.id == topicId);
     notifyListeners();
-    unawaited(_revisionDao.deleteTopic(topicId));
-    unawaited(_syncService.deleteTopic(topicId));
+    unawaited(_repository.deleteTopic(topicId));
   }
 
   /// Reorders a topic within a subject from [oldIndex] to [newIndex]
@@ -352,8 +329,7 @@ class RevisionProvider with ChangeNotifier {
     }
 
     notifyListeners();
-    unawaited(_revisionDao.upsertAllTopics(updatedTopics));
-    unawaited(_syncService.pushTopics(updatedTopics));
+    unawaited(_repository.saveTopicsBatch(updatedTopics));
   }
 
   // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────
@@ -410,8 +386,7 @@ class RevisionProvider with ChangeNotifier {
     );
 
     notifyListeners();
-    unawaited(_revisionDao.upsertTopic(_topics[index]));
-    unawaited(_syncService.pushTopic(_topics[index]));
+    unawaited(_repository.saveTopic(_topics[index]));
   }
 
   /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].
@@ -423,5 +398,10 @@ class RevisionProvider with ChangeNotifier {
     final topic = _topics[index];
     // Automatically complete topic to advance to next stage
     await completeTopic(topic.id, taskProvider);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

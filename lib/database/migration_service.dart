@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
 import '../models/revision.dart';
+import '../services/preferences_service.dart';
 import 'app_database.dart';
 import 'daos/task_dao.dart';
 import 'daos/session_dao.dart';
@@ -36,7 +36,7 @@ class MigrationService {
   /// Run migration if it hasn't already been done.
   /// Safe to call on every cold start — is a no-op after the first run.
   Future<void> runIfNeeded() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = PreferencesService.instance;
     final tasksMigrated = prefs.getBool(_migrationKey) == true;
     final revisionMigrated = prefs.getBool(_revisionMigrationKey) == true;
 
@@ -83,7 +83,10 @@ class MigrationService {
         }
 
         await prefs.setBool(_migrationKey, true);
-        debugPrint('MigrationService: Task & Session migration complete.');
+        await prefs.remove(_tasksKey);
+        await prefs.remove(_binTasksKey);
+        await prefs.remove(_sessionLogKey);
+        debugPrint('MigrationService: Task & Session migration complete and legacy keys purged.');
       }
 
       // ── Revision subjects & topics ─────────────────────────────────────────
@@ -113,12 +116,10 @@ class MigrationService {
         }
 
         await prefs.setBool(_revisionMigrationKey, true);
-        debugPrint('MigrationService: Revision migration complete.');
+        await prefs.remove(_subjectsKey);
+        await prefs.remove(_topicsKey);
+        debugPrint('MigrationService: Revision migration complete and legacy keys purged.');
       }
-
-      // Note: We intentionally keep the SharedPreferences keys intact for now
-      // as a safety backup.  They can be cleaned up in a future version once
-      // the SQLite store is proven stable.
     } catch (e, st) {
       debugPrint('MigrationService: Migration failed — will retry next launch. Error: $e\n$st');
       // Do NOT set the flag on failure so we retry next time.

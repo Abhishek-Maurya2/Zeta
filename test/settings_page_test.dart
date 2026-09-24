@@ -8,7 +8,7 @@ import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/theme_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/pages/settings_page.dart';
-import 'package:zeta/components/m3_pane_divider.dart';
+import 'package:zeta/components/m3e_pane_divider.dart';
 import 'package:zeta/components/segmented_column.dart';
 
 Widget createSettingsTestWidget({

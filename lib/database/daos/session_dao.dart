@@ -38,17 +38,6 @@ class SessionDao {
     return rows.map(AppDatabase.rowToSession).toList();
   }
 
-  /// Returns the most recent completedAt timestamp in the local store,
-  /// used as the `since` cursor for incremental pull from Supabase.
-  Future<DateTime?> getLastSessionTimestamp() async {
-    final row = await (_db.select(_db.pomodoroSessionsTable)
-          ..orderBy([(t) => OrderingTerm.desc(t.completedAtMs)])
-          ..limit(1))
-        .getSingleOrNull();
-    if (row == null) return null;
-    return DateTime.fromMillisecondsSinceEpoch(row.completedAtMs);
-  }
-
   /// Returns all sessions completed offline that haven't been synced to Supabase yet.
   Future<List<PomodoroSessionLog>> getUnsyncedSessions() async {
     final rows = await (_db.select(_db.pomodoroSessionsTable)

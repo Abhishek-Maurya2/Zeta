@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/weather_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/app_logger.dart';
@@ -90,9 +89,9 @@ class WeatherProvider extends ChangeNotifier {
   }
 
   // ─── Private Helpers ───────────────────────────────────────────────────────
-  Future<void> _loadSettings() async {
+  void _loadSettings() {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       _weatherEnabled = prefs.getBool(_prefKeyWeatherEnabled) ?? true;
       _showWeatherInHeader = prefs.getBool(_prefKeyShowWeatherInHeader) ?? true;
       _cityName = prefs.getString(_prefKeyCityName) ?? 'San Francisco, US';
@@ -115,7 +114,7 @@ class WeatherProvider extends ChangeNotifier {
 
   Future<void> _saveSetting(String key, dynamic value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       if (value is bool) {
         await prefs.setBool(key, value);
       } else if (value is String) {

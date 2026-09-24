@@ -43,11 +43,19 @@ class TaskDao {
   }
 
   /// Marks a task row as synced at [syncedAt].
-  Future<void> markTaskSynced(String taskId, DateTime syncedAt) async {
-    await (_db.update(_db.tasksTable)..where((t) => t.id.equals(taskId)))
+  Future<bool> markTaskSynced(
+    String taskId,
+    DateTime syncedAt, {
+    required DateTime expectedUpdatedAt,
+  }) async {
+    final changed = await (_db.update(_db.tasksTable)
+          ..where((t) =>
+              t.id.equals(taskId) &
+              t.updatedAtMs.equals(expectedUpdatedAt.millisecondsSinceEpoch)))
         .write(TasksTableCompanion(
       lastSyncedAtMs: Value(syncedAt.millisecondsSinceEpoch),
     ));
+    return changed > 0;
   }
 
   // ─── Writes ────────────────────────────────────────────────────────────────
@@ -110,11 +118,14 @@ class TaskDao {
 
   /// Archives (moves to bin) completed tasks older than [retentionDays] days.
   /// Returns the number of rows updated.
-  Future<int> archiveOldCompletedTasks({int retentionDays = 90}) async {
+  Future<int> archiveOldCompletedTasks({
+    int retentionDays = 90,
+    DateTime? archivedAt,
+  }) async {
     final cutoff = DateTime.now()
         .subtract(Duration(days: retentionDays))
         .millisecondsSinceEpoch;
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final now = (archivedAt ?? DateTime.now()).millisecondsSinceEpoch;
     return (_db.update(_db.tasksTable)
           ..where(
             (t) =>

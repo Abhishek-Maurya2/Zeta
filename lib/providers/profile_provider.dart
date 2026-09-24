@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../repositories/profile_repository.dart';
 import '../services/preferences_service.dart';
 import '../utils/app_logger.dart';
@@ -150,23 +149,58 @@ class ProfileProvider extends ChangeNotifier {
   }
 
   // ─── Private Helpers ───────────────────────────────────────────────────────
-  Future<void> _loadSettings() async {
+  void _loadSettings() {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       _userName = prefs.getString(_prefKeyUserName) ?? 'Abhishek';
       _userEmail = prefs.getString(_prefKeyUserEmail) ?? '';
       final photo = prefs.getString(_prefKeyAvatarPhoto);
       _avatarPhoto = (photo != null && photo.isNotEmpty) ? photo : null;
       _avatarColorIndex = prefs.getInt(_prefKeyAvatarColorIndex) ?? 0;
       notifyListeners();
+
+      _loadFallbackFromDb();
     } catch (e, st) {
       AppLogger.warning('Failed to load profile settings', error: e, stackTrace: st);
     }
   }
 
+  Future<void> _loadFallbackFromDb() async {
+    try {
+      final local = await _repository.getLocalProfile();
+      if (local != null) {
+        var changed = false;
+        final name = local['display_name'] as String?;
+        final email = local['email'] as String?;
+        final photo = local['avatar_image'] as String?;
+
+        if (name != null && name.trim().isNotEmpty && _userName == 'Abhishek') {
+          _userName = name.trim();
+          await _saveSetting(_prefKeyUserName, _userName);
+          changed = true;
+        }
+        if (email != null && email.trim().isNotEmpty && _userEmail.isEmpty) {
+          _userEmail = email.trim();
+          await _saveSetting(_prefKeyUserEmail, _userEmail);
+          changed = true;
+        }
+        if (photo != null && photo.isNotEmpty && _avatarPhoto == null) {
+          _avatarPhoto = photo;
+          await _saveSetting(_prefKeyAvatarPhoto, photo);
+          changed = true;
+        }
+        if (changed) {
+          notifyListeners();
+        }
+      }
+    } catch (e, st) {
+      AppLogger.warning('Failed to load local DB profile fallback', error: e, stackTrace: st);
+    }
+  }
+
   Future<void> _saveSetting(String key, dynamic value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       if (value is String) {
         await prefs.setString(key, value);
       } else if (value is int) {

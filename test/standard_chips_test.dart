@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:zeta/models/task.dart';
-import 'package:zeta/components/common/standard_chips.dart';
+import 'package:zeta/components/standard_chips.dart';
 
 void main() {
   group('StandardChips Widget Tests', () {

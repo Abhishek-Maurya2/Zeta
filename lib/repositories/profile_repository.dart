@@ -30,13 +30,14 @@ class ProfileRepository {
     String? avatarImage,
     bool syncToCloud = true,
   }) async {
-    await _profileDao.upsertProfile(
-      displayName: displayName,
-      email: email,
-      avatarImage: avatarImage,
-    );
     if (syncToCloud) {
       await _profileService.saveProfile(
+        displayName: displayName,
+        email: email,
+        avatarImage: avatarImage,
+      );
+    } else {
+      await _profileDao.upsertProfile(
         displayName: displayName,
         email: email,
         avatarImage: avatarImage,

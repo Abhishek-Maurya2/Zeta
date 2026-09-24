@@ -23,6 +23,13 @@ class RevisionDao {
     );
   }
 
+  Future<Subject?> getSubject(String subjectId) async {
+    final row = await (_db.select(_db.revisionSubjectsTable)
+          ..where((s) => s.id.equals(subjectId)))
+        .getSingleOrNull();
+    return row == null ? null : AppDatabase.rowToSubject(row);
+  }
+
   Future<void> upsertAllSubjects(List<Subject> subjects) async {
     await _db.batch((batch) {
       for (final s in subjects) {
@@ -35,12 +42,16 @@ class RevisionDao {
     });
   }
 
+  Future<void> deleteTopicsForSubject(String subjectId) async {
+    await (_db.delete(_db.revisionTopicsTable)
+          ..where((t) => t.subjectId.equals(subjectId)))
+        .go();
+  }
+
   Future<void> deleteSubject(String subjectId) async {
     await _db.transaction(() async {
       // Cascading delete topics for this subject
-      await (_db.delete(_db.revisionTopicsTable)
-            ..where((t) => t.subjectId.equals(subjectId)))
-          .go();
+      await deleteTopicsForSubject(subjectId);
       await (_db.delete(_db.revisionSubjectsTable)
             ..where((t) => t.id.equals(subjectId)))
           .go();

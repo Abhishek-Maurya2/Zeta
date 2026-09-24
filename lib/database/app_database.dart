@@ -119,6 +119,9 @@ class AppDatabase extends _$AppDatabase {
       mode: PomodoroMode.fromString(row.mode),
       minutes: row.minutes,
       completedAt: row.completedAtMs,
+      lastSyncedAt: row.lastSyncedAtMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(row.lastSyncedAtMs!)
+          : null,
     );
   }
 
@@ -129,6 +132,9 @@ class AppDatabase extends _$AppDatabase {
       mode: Value(s.mode.toJsonString()),
       minutes: Value(s.minutes),
       completedAtMs: Value(s.completedAt),
+      lastSyncedAtMs: s.lastSyncedAt != null
+          ? Value(s.lastSyncedAt!.millisecondsSinceEpoch)
+          : const Value.absent(),
     );
   }
 

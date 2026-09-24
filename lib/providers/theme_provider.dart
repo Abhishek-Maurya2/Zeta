@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/color_variant.dart';
 import '../theme/typography_config.dart';
 import '../services/weather_service.dart';
+import '../services/preferences_service.dart';
 import '../utils/haptics.dart';
 import 'profile_provider.dart';
 import 'weather_provider.dart';
@@ -100,8 +100,25 @@ class ThemeProvider extends ChangeNotifier {
   static const String _prefKeySoundEffects = 'zeta_sound_effects';
   static const String _prefKeyAutoSave = 'zeta_auto_save';
   static const String _prefKeyTelemetry = 'zeta_telemetry';
-  static const String _prefKeyCloudLastSync = 'zeta_cloud_last_sync';
-  static const String _prefKeyCloudRecordsCount = 'zeta_cloud_records_count';
+  static const List<String> _themePrefKeys = [
+    _prefKeyThemeMode,
+    _prefKeySeedColor,
+    _prefKeyUseSystemColor,
+    _prefKeyVariant,
+    _prefKeyHighContrast,
+    _prefKeyAnimations,
+    _prefKeyCompactDensity,
+    _prefKeyFontScale,
+    _prefKeyCornerStyle,
+    _prefKeyTypographyHeadings,
+    _prefKeyTypographyTitles,
+    _prefKeyTypographyBody,
+    _prefKeyTypographyLabels,
+    _prefKeyNotifications,
+    _prefKeySoundEffects,
+    _prefKeyAutoSave,
+    _prefKeyTelemetry,
+  ];
 
   static const List<Color> avatarColors = [
     Color(0xFF10B981), // Emerald Green
@@ -446,40 +463,13 @@ class ThemeProvider extends ChangeNotifier {
     _saveSetting(_prefKeyTelemetry, val);
   }
 
-  // ─── Cloud Sync Snapshot ────────────────────────────────────────────────
-  DateTime? _lastCloudSyncTime;
-  DateTime? get lastCloudSyncTime => _lastCloudSyncTime;
-
-  int _cloudSyncRecordsCount = 0;
-  int get cloudSyncRecordsCount => _cloudSyncRecordsCount;
-
-  Future<void> performCloudSync(int taskCount, int pomodoroCount) async {
-    _lastCloudSyncTime = DateTime.now();
-    _cloudSyncRecordsCount = taskCount + pomodoroCount;
-    notifyListeners();
-
-    final snapshot = {
-      'timestamp': _lastCloudSyncTime!.toIso8601String(),
-      'taskCount': taskCount,
-      'pomodoroCount': pomodoroCount,
-      'userName': userName,
-      'themeMode': _themeMode.name,
-    };
-    await _saveSetting(
-      _prefKeyCloudLastSync,
-      _lastCloudSyncTime!.toIso8601String(),
-    );
-    await _saveSetting(_prefKeyCloudRecordsCount, _cloudSyncRecordsCount);
-    await _saveSetting('zeta_cloud_snapshot_payload', jsonEncode(snapshot));
-  }
-
   // ─── Storage Calculation ────────────────────────────────────────────────
   Future<Map<String, dynamic>> calculateStorageUsage(
     int taskCount,
     int pomodoroCount,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance.prefs;
       final keys = prefs.getKeys();
       int totalBytes = 0;
       for (final key in keys) {
@@ -614,8 +604,6 @@ class ThemeProvider extends ChangeNotifier {
     _soundEffects = true;
     _autoSave = true;
     _telemetry = false;
-    _lastCloudSyncTime = null;
-    _cloudSyncRecordsCount = 0;
     notifyListeners();
     _clearSettings();
     _weather.refreshWeather();
@@ -624,7 +612,7 @@ class ThemeProvider extends ChangeNotifier {
   // ─── Persistence ────────────────────────────────────────────────────────
   Future<void> _loadSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance.prefs;
 
       final modeStr = prefs.getString(_prefKeyThemeMode);
       if (modeStr != null) {
@@ -699,12 +687,6 @@ class ThemeProvider extends ChangeNotifier {
       _autoSave = prefs.getBool(_prefKeyAutoSave) ?? _autoSave;
       _telemetry = prefs.getBool(_prefKeyTelemetry) ?? _telemetry;
 
-      final cloudSyncStr = prefs.getString(_prefKeyCloudLastSync);
-      if (cloudSyncStr != null) {
-        _lastCloudSyncTime = DateTime.tryParse(cloudSyncStr);
-      }
-      _cloudSyncRecordsCount = prefs.getInt(_prefKeyCloudRecordsCount) ?? 0;
-
       notifyListeners();
 
       // Refresh live weather telemetry and sync DB profile in the background
@@ -713,7 +695,7 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _saveSetting(String key, dynamic value) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance.prefs;
       if (value is String) {
         await prefs.setString(key, value);
       } else if (value is bool) {
@@ -728,8 +710,10 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> _clearSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      final prefs = PreferencesService.instance.prefs;
+      for (final key in _themePrefKeys) {
+        await prefs.remove(key);
+      }
     } catch (_) {}
   }
 }

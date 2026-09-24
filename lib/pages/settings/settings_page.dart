@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../components/segmented_column.dart';
 import '../../components/m3e_pane_divider.dart';
 import '../../utils/haptics.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/update_provider.dart';
+import '../../services/preferences_service.dart';
 import '../../components/m3e_page_transition.dart';
 import '../../theme/motion_tokens.dart';
 import '../../theme/breakpoints.dart';
@@ -51,9 +51,9 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadSavedPaneSettings();
   }
 
-  Future<void> _loadSavedPaneSettings() async {
+  void _loadSavedPaneSettings() {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       final savedWidth = prefs.getDouble(_prefKeyPaneWidth);
       final savedCollapsed = prefs.getBool(_prefKeyPaneCollapsed);
       if (mounted) {
@@ -72,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _persistPaneSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setDouble(_prefKeyPaneWidth, _paneWidth);
       await prefs.setBool(_prefKeyPaneCollapsed, _isPaneCollapsed);
     } catch (_) {}

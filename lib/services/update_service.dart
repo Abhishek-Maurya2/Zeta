@@ -8,10 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../models/update_model.dart';
 import 'supabase_service.dart';
+import 'preferences_service.dart';
 
 /// Service responsible for querying releases, downloading update binaries,
 /// and launching platform installers.
@@ -65,7 +64,7 @@ class UpdateService {
   /// Loads configuration from SharedPreferences and environment/Git credentials.
   Future<void> init() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       _owner = prefs.getString(prefKeyGithubOwner) ?? defaultOwner;
       _repo = prefs.getString(prefKeyGithubRepo) ?? defaultRepo;
       _customToken = prefs.getString(prefKeyGithubToken);
@@ -74,7 +73,7 @@ class UpdateService {
 
       // 1. Fetch GitHub PAT from Supabase database automatically without asking the user
       if ((_customToken == null || _customToken!.trim().isEmpty) &&
-          !Platform.environment.containsKey('FLUTTER_TEST')) {
+          (!kIsWeb && !Platform.environment.containsKey('FLUTTER_TEST'))) {
         final dbToken = await _resolveTokenFromDatabase();
         if (dbToken != null && dbToken.isNotEmpty) {
           _customToken = dbToken;
@@ -183,7 +182,7 @@ class UpdateService {
     bool? useSupabaseProxy,
     bool? autoCheck,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = PreferencesService.instance;
     if (owner != null) {
       _owner = owner.trim();
       await prefs.setString(prefKeyGithubOwner, _owner);

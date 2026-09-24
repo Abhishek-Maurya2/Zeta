@@ -9,7 +9,7 @@ class NetworkService {
   static final NetworkService _instance = NetworkService._internal();
   factory NetworkService() => _instance;
   NetworkService._internal() {
-    final isRunningTests = Platform.environment.containsKey('FLUTTER_TEST');
+    final isRunningTests = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
     if (!isRunningTests) {
       _startPeriodicCheck();
     }

@@ -59,10 +59,19 @@ class PreferencesService {
   static const String keyTaskSortBy = 'zeta_task_sort_by_v1';
   static const String keyPomodoroSettings = 'zeta_pomodoro_settings_v1';
   static const String keyRevisionSettings = 'zeta_revision_settings_v1';
+  static const String keyPendingPermanentDeletions = 'zeta_pending_permanent_deletions_v1';
+  static const String keyPendingSubjectDeletions = 'zeta_pending_subject_deletions_v1';
+  static const String keyPendingTopicDeletions = 'zeta_pending_topic_deletions_v1';
+  static const String keyPendingRevisionSubjectUpserts = 'zeta_pending_revision_subject_upserts_v1';
+  static const String keyPendingRevisionTopicUpserts = 'zeta_pending_revision_topic_upserts_v1';
+  static const String keyPendingPomodoroClear = 'zeta_pending_pomodoro_clear_v1';
 
   // ─── Generic Helpers ───────────────────────────────────────────────────────
   String? getString(String key) => _prefs?.getString(key);
   Future<bool> setString(String key, String value) async => _prefs?.setString(key, value) ?? false;
+
+  List<String>? getStringList(String key) => _prefs?.getStringList(key);
+  Future<bool> setStringList(String key, List<String> value) async => _prefs?.setStringList(key, value) ?? false;
 
   bool? getBool(String key) => _prefs?.getBool(key);
   Future<bool> setBool(String key, bool value) async => _prefs?.setBool(key, value) ?? false;

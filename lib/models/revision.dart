@@ -189,6 +189,17 @@ class ChapterTopic {
   );
 
   factory ChapterTopic.fromSupabaseRow(Map<String, dynamic> row) {
+    // 1. Direct fields if present
+    final directStage = row['revision_stage'] as int?;
+    final directLastRevised = row['last_revised_at'] != null
+        ? DateTime.tryParse(row['last_revised_at'].toString())?.toLocal()
+        : null;
+    final directNextRevision = row['next_revision_date'] != null
+        ? DateTime.tryParse(row['next_revision_date'].toString())?.toLocal()
+        : null;
+    final directTaskId = row['associated_task_id'] as String?;
+
+    // 2. Parse stages JSON array fallback
     final stagesRaw = row['stages'];
     List<dynamic> stagesList = [];
     if (stagesRaw is List) {
@@ -199,30 +210,33 @@ class ChapterTopic {
       } catch (_) {}
     }
 
-    int completedStages = 0;
-    DateTime? lastRevised;
-    DateTime? nextRevision;
+    int completedStages = directStage ?? 0;
+    DateTime? lastRevised = directLastRevised;
+    DateTime? nextRevision = directNextRevision;
 
-    for (final s in stagesList) {
-      if (s is Map<String, dynamic>) {
-        final isStageDone = s['completed'] == true;
-        if (isStageDone) {
-          completedStages++;
-          if (s['completedAt'] != null) {
-            final parsed = DateTime.tryParse(s['completedAt'].toString())
-                ?.toLocal();
-            if (parsed != null &&
-                (lastRevised == null || parsed.isAfter(lastRevised))) {
-              lastRevised = parsed;
+    if (directStage == null && stagesList.isNotEmpty) {
+      completedStages = 0;
+      for (final s in stagesList) {
+        if (s is Map<String, dynamic>) {
+          final isStageDone = s['completed'] == true;
+          if (isStageDone) {
+            completedStages++;
+            if (s['completedAt'] != null) {
+              final parsed = DateTime.tryParse(s['completedAt'].toString())
+                  ?.toLocal();
+              if (parsed != null &&
+                  (lastRevised == null || parsed.isAfter(lastRevised))) {
+                lastRevised = parsed;
+              }
             }
+          } else if (nextRevision == null && s['dueDate'] != null) {
+            nextRevision = DateTime.tryParse(s['dueDate'].toString())?.toLocal();
           }
-        } else if (nextRevision == null && s['dueDate'] != null) {
-          nextRevision = DateTime.tryParse(s['dueDate'].toString())?.toLocal();
         }
       }
     }
 
-    final isMastered = row['status'] == 'mastered' || completedStages >= 5;
+    final isMastered = row['status'] == 'mastered' || completedStages >= 4;
     final isCompleted = completedStages > 0 || row['status'] == 'completed';
 
     return ChapterTopic(
@@ -234,6 +248,7 @@ class ChapterTopic {
       revisionStage: isMastered ? 4 : completedStages,
       lastRevisedAt: lastRevised,
       nextRevisionDate: nextRevision,
+      associatedTaskId: directTaskId,
       sortOrder: row['sort_order'] as int? ?? 0,
     );
   }
@@ -245,7 +260,24 @@ class ChapterTopic {
       'subject_id': subjectId,
       'title': title,
       'notes': description,
-      'status': isMastered ? 'mastered' : 'active',
+      'status': isMastered
+          ? 'mastered'
+          : (isCompleted ? 'completed' : 'active'),
+      'revision_stage': revisionStage,
+      'last_revised_at': lastRevisedAt?.toUtc().toIso8601String(),
+      'next_revision_date': nextRevisionDate?.toUtc().toIso8601String(),
+      'associated_task_id': associatedTaskId,
+      'stages': [
+        for (int i = 0; i < 4; i++)
+          {
+            'stage': i + 1,
+            'completed': i < revisionStage,
+            if (i < revisionStage && lastRevisedAt != null)
+              'completedAt': lastRevisedAt!.toUtc().toIso8601String(),
+            if (i == revisionStage && nextRevisionDate != null)
+              'dueDate': nextRevisionDate!.toUtc().toIso8601String(),
+          }
+      ],
       'sort_order': sortOrder,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };

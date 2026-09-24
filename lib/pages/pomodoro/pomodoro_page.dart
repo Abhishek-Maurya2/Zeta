@@ -2,12 +2,11 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../utils/haptics.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../theme/breakpoints.dart';
 import '../../components/m3e_pane_divider.dart';
+import '../../services/preferences_service.dart';
 import 'pomodoro_timer_pane.dart';
 import 'pomodoro_queue_pane.dart';
 import 'pomodoro_analysis_pane.dart';
@@ -76,9 +75,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
     _loadSavedPaneSettings();
   }
 
-  Future<void> _loadSavedPaneSettings() async {
+  void _loadSavedPaneSettings() {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       final savedWidth = prefs.getDouble(_prefKeyPaneWidth);
       final savedCollapsed = prefs.getBool(_prefKeyPaneCollapsed);
       if (mounted) {
@@ -97,7 +96,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
 
   Future<void> _persistPaneSettings() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = PreferencesService.instance;
       await prefs.setDouble(_prefKeyPaneWidth, _supportingPaneWidth);
       await prefs.setBool(_prefKeyPaneCollapsed, _isSupportingPaneCollapsed);
     } catch (_) {}

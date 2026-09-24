@@ -5,7 +5,7 @@ import '../models/task.dart';
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import '../utils/haptics.dart';
-import 'task_chips.dart';
+import 'standard_chips.dart';
 import 'task_subtasks_list.dart';
 
 /// A modular, reusable task card item used across both the Tasks Page

@@ -160,19 +160,38 @@ class PomodoroSessionLog {
   final PomodoroMode mode;
   final int minutes;
   final int completedAt; // Unix timestamp in ms
+  final DateTime? lastSyncedAt;
 
   const PomodoroSessionLog({
     required this.id,
     required this.mode,
     required this.minutes,
     required this.completedAt,
+    this.lastSyncedAt,
   });
+
+  PomodoroSessionLog copyWith({
+    String? id,
+    PomodoroMode? mode,
+    int? minutes,
+    int? completedAt,
+    DateTime? lastSyncedAt,
+  }) {
+    return PomodoroSessionLog(
+      id: id ?? this.id,
+      mode: mode ?? this.mode,
+      minutes: minutes ?? this.minutes,
+      completedAt: completedAt ?? this.completedAt,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'mode': mode.toJsonString(),
     'minutes': minutes,
     'completedAt': completedAt,
+    if (lastSyncedAt != null) 'lastSyncedAt': lastSyncedAt!.toIso8601String(),
   };
 
   factory PomodoroSessionLog.fromJson(Map<String, dynamic> json) {
@@ -182,6 +201,9 @@ class PomodoroSessionLog {
       minutes: json['minutes'] as int? ?? 0,
       completedAt:
           json['completedAt'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+      lastSyncedAt: json['lastSyncedAt'] != null
+          ? DateTime.tryParse(json['lastSyncedAt'] as String)
+          : null,
     );
   }
 
@@ -216,6 +238,7 @@ class PomodoroSessionLog {
       mode: PomodoroMode.fromString(row['mode'] as String? ?? 'focus'),
       minutes: (row['minutes'] as num?)?.toInt() ?? 0,
       completedAt: completedMs,
+      lastSyncedAt: DateTime.now(),
     );
   }
 }

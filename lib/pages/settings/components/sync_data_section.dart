@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
+import '../../../providers/revision_provider.dart';
+import '../../../services/preferences_service.dart';
 import '../../../utils/haptics.dart';
 
 class SyncDataSection extends StatefulWidget {
@@ -30,8 +31,8 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     _loadState();
   }
 
-  Future<void> _loadState() async {
-    final prefs = await SharedPreferences.getInstance();
+  void _loadState() {
+    final prefs = PreferencesService.instance;
     final master = prefs.getBool('zeta_master_sync_enabled') ?? true;
     if (mounted) {
       setState(() {
@@ -42,7 +43,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
 
   Future<void> _setMasterSyncEnabled(bool value) async {
     setState(() => _masterSyncEnabled = value);
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = PreferencesService.instance;
     await prefs.setBool('zeta_master_sync_enabled', value);
     if (value) {
       await _handleSync();
@@ -59,7 +60,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
         force: true,
       );
       final profileFuture = context.read<ThemeProvider>().syncProfileWithDb();
-      await Future.wait([taskFuture, pomodoroFuture, profileFuture]);
+      final revisionFuture = context.read<RevisionProvider>().syncWithCloud(
+        force: true,
+      );
+      await Future.wait([taskFuture, pomodoroFuture, profileFuture, revisionFuture]);
       if (!mounted) return;
       widget.onToast?.call('Cloud sync completed successfully!');
     } catch (e) {
@@ -77,6 +81,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     ThemeProvider themeProvider,
     TaskProvider taskProvider,
     PomodoroProvider pomodoroProvider,
+    RevisionProvider revisionProvider,
   ) {
     final fullBackup = {
       'app': 'Zeta',
@@ -111,12 +116,18 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       'pomodoroSessions': pomodoroProvider.sessionLog
           .map((s) => s.toJson())
           .toList(),
+      'revisionSubjects': revisionProvider.subjects
+          .map((s) => s.toJson())
+          .toList(),
+      'revisionTopics': revisionProvider.topics
+          .map((t) => t.toJson())
+          .toList(),
     };
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(fullBackup);
     Clipboard.setData(ClipboardData(text: jsonStr));
     widget.onToast?.call(
-      'Full backup copied to clipboard (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} pomodoro sessions)!',
+      'Full backup copied to clipboard (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} pomodoro sessions, ${revisionProvider.totalTopicsCount} topics)!',
     );
   }
 
@@ -235,9 +246,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final themeProvider = context.watch<ThemeProvider>();
+    final revisionProvider = context.watch<RevisionProvider>();
 
     final isSyncBusy =
-        _isSyncing || taskProvider.isSyncing || pomodoroProvider.isSyncing;
+        _isSyncing || taskProvider.isSyncing || pomodoroProvider.isSyncing || revisionProvider.isLoading;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -527,6 +539,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                           themeProvider,
                           taskProvider,
                           pomodoroProvider,
+                          revisionProvider,
                         ),
                       ),
                     ],

@@ -3,7 +3,6 @@ import '../models/task.dart';
 import '../database/daos/task_dao.dart';
 import '../database/database_provider.dart';
 import '../services/supabase_sync_service.dart';
-import '../utils/app_logger.dart';
 
 /// Repository that coordinates local SQLite task storage with remote Supabase synchronization.
 class TaskRepository {
@@ -14,7 +13,20 @@ class TaskRepository {
     TaskDao? taskDao,
     SupabaseSyncService? syncService,
   })  : _taskDao = taskDao ?? DatabaseProvider.instance.taskDao,
-        _syncService = syncService ?? SupabaseSyncService();
+        _syncService = syncService ?? SupabaseSyncService() {
+    _syncService.onTaskSynced = _markTaskSynced;
+    _syncService.onNetworkReconnect = processPendingSync;
+  }
+
+  Future<void> _markTaskSynced(Task task, DateTime syncedAt) async {
+    final marker = task.updatedAt.isAfter(syncedAt) ? task.updatedAt : syncedAt;
+    final marked = await _taskDao.markTaskSynced(
+      task.id,
+      marker,
+      expectedUpdatedAt: task.updatedAt,
+    );
+    if (marked) task.lastSyncedAt = marker;
+  }
 
   TaskDao get taskDao => _taskDao;
   SupabaseSyncService get syncService => _syncService;
@@ -32,10 +44,22 @@ class TaskRepository {
 
   Future<List<Task>> getBinTasks() => _taskDao.getBinTasks();
 
-  Future<List<Task>> getUnsyncedTasks() => _taskDao.getUnsyncedTasks();
+  Future<void> processPendingSync() async {
+    await _syncService.processPendingQueue();
+    final unsynced = await _taskDao.getUnsyncedTasks();
+    for (final task in unsynced) {
+      if (task.title.trim().isNotEmpty) {
+        await _syncService.pushTask(task);
+      }
+    }
+  }
 
   // ─── Local Mutations ───────────────────────────────────────────────────────
   Future<void> saveTask(Task task, {bool pushToCloud = true}) async {
+    if (!pushToCloud) {
+      final now = DateTime.now();
+      task.lastSyncedAt = task.updatedAt.isAfter(now) ? task.updatedAt : now;
+    }
     await _taskDao.upsertTask(task);
     if (pushToCloud) {
       unawaited(_syncService.pushTask(task));
@@ -43,6 +67,12 @@ class TaskRepository {
   }
 
   Future<void> saveTasksBatch(List<Task> tasks, {bool pushToCloud = true}) async {
+    if (!pushToCloud && tasks.isNotEmpty) {
+      final now = DateTime.now();
+      for (final task in tasks) {
+        task.lastSyncedAt = task.updatedAt.isAfter(now) ? task.updatedAt : now;
+      }
+    }
     await _taskDao.upsertAll(tasks);
     if (pushToCloud) {
       for (final t in tasks) {
@@ -51,19 +81,29 @@ class TaskRepository {
     }
   }
 
+  Future<void> softDeleteTask(Task task, {bool pushToCloud = true}) async {
+    final updatedTask = task.copyWith(
+      deletedAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+    await _taskDao.upsertTask(updatedTask);
+    if (pushToCloud) {
+      unawaited(_syncService.pushTask(updatedTask));
+    }
+  }
+
   Future<void> deleteTask(String taskId, {bool pushToCloud = true}) async {
     await _taskDao.hardDelete(taskId);
     if (pushToCloud) {
-      unawaited(_syncService.deleteTask(taskId, soft: false));
+      await _syncService.queuePermanentDeletions([taskId]);
     }
   }
 
   Future<void> deleteMultipleTasks(Iterable<String> taskIds, {bool pushToCloud = true}) async {
-    await _taskDao.hardDeleteMany(taskIds);
+    final ids = taskIds.toSet();
+    await _taskDao.hardDeleteMany(ids);
     if (pushToCloud) {
-      for (final id in taskIds) {
-        unawaited(_syncService.deleteTask(id, soft: false));
-      }
+      await _syncService.queuePermanentDeletions(ids);
     }
   }
 
@@ -71,28 +111,46 @@ class TaskRepository {
     final binTasks = await _taskDao.getBinTasks();
     final count = await _taskDao.clearBin();
     if (pushToCloud) {
-      for (final t in binTasks) {
-        unawaited(_syncService.deleteTask(t.id, soft: false));
-      }
+      await _syncService.queuePermanentDeletions(binTasks.map((task) => task.id));
     }
     return count;
   }
 
-  Future<int> archiveOldCompletedTasks({int retentionDays = 90}) {
-    return _taskDao.archiveOldCompletedTasks(retentionDays: retentionDays);
+  Future<int> evictOldBinTasks({int retentionDays = 90}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
+    final expired = (await _taskDao.getBinTasks())
+        .where((task) => task.deletedAt != null && task.deletedAt!.isBefore(cutoff))
+        .toList();
+    final count = await _taskDao.evictOldBinTasks(retentionDays: retentionDays);
+    await _syncService.queuePermanentDeletions(expired.map((task) => task.id));
+    return count;
+  }
+
+  Future<int> archiveOldCompletedTasks({int retentionDays = 90}) async {
+    final cutoff = DateTime.now().subtract(Duration(days: retentionDays));
+    final eligible = (await _taskDao.getActiveTasks())
+        .where((task) => task.completed && task.updatedAt.isBefore(cutoff))
+        .toList();
+    final now = DateTime.now();
+    final count = await _taskDao.archiveOldCompletedTasks(
+      retentionDays: retentionDays,
+      archivedAt: now,
+    );
+    for (final task in eligible) {
+      unawaited(_syncService.pushTask(task.copyWith(
+        deletedAt: now,
+        updatedAt: now,
+      )));
+    }
+    return count;
   }
 
   // ─── Cloud Sync Operations ─────────────────────────────────────────────────
-  Future<void> syncWithCloud({bool force = false}) async {
-    try {
-      await _syncService.processPendingQueue();
-      final remoteTasks = await _syncService.pullTasks();
-      if (remoteTasks.isNotEmpty) {
-        await _taskDao.upsertAll(remoteTasks);
-      }
-    } catch (e, st) {
-      AppLogger.error('TaskRepository sync failed', error: e, stackTrace: st);
-      rethrow;
-    }
+  Future<List<Task>?> pullRemoteSnapshot() async {
+    await processPendingSync();
+    final tasks = await _syncService.pullTasks();
+    return _syncService.lastError == null ? tasks : null;
   }
+
+  Future<bool> pushTask(Task task) => _syncService.pushTask(task);
 }
