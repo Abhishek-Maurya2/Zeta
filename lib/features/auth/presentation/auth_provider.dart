@@ -49,7 +49,8 @@ class AuthProvider extends ChangeNotifier {
         }
         _subscription = _repository.authChanges.listen(_onAuthChanged);
       }
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('AuthProvider._initialize ERROR: $e\n$st');
       _error = _friendlyMessage(e);
       _status = AuthStatus.unavailable;
     }
@@ -74,7 +75,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _activateAccount(userId);
       _status = AuthStatus.signedIn;
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('AuthProvider._activateAndNotify ERROR: $e\n$st');
       _error = _friendlyMessage(e);
       _status = AuthStatus.unavailable;
     }
@@ -82,8 +84,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _activateAccount(String userId) async {
-    await PreferencesService.instance.claimLegacySyncQueues(userId);
-    await DatabaseProvider.instance.claimLegacyRows(userId);
+    try {
+      await PreferencesService.instance.claimLegacySyncQueues(userId);
+    } catch (e) {
+      debugPrint('AuthProvider._activateAccount: claimLegacySyncQueues error: $e');
+    }
+    try {
+      await DatabaseProvider.instance.claimLegacyRows(userId);
+    } catch (e) {
+      debugPrint('AuthProvider._activateAccount: claimLegacyRows error: $e');
+    }
   }
 
   Future<bool> signIn({required String email, required String password}) async {
@@ -168,6 +178,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _friendlyMessage(Object error) {
+    debugPrint('AuthProvider._friendlyMessage: $error (${error.runtimeType})');
     if (error is AuthException) return error.message;
     return 'Could not connect to your account. Check your connection and try again.';
   }

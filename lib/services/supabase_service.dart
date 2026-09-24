@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ class SupabaseService {
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
+  Completer<void>? _initCompleter;
 
   SupabaseClient get client {
     if (!_isInitialized) {
@@ -46,7 +48,12 @@ class SupabaseService {
   /// Initializes the Supabase client.
   Future<void> init() async {
     if (_isInitialized) return;
+    if (_initCompleter != null) return _initCompleter!.future;
+    final completer = Completer<void>();
+    _initCompleter = completer;
+
     if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) {
+      completer.complete();
       return;
     }
     try {
@@ -65,6 +72,8 @@ class SupabaseService {
         final _ = Supabase.instance.client;
         _isInitialized = true;
       } catch (_) {}
+    } finally {
+      completer.complete();
     }
   }
 }

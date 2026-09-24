@@ -53,7 +53,7 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (m, from, to) async {
       if (from < 2) {
-        await m.createTable(profilesTable);
+        await _safeCreateTable(m, profilesTable);
       }
       if (from < 3) {
         await customStatement(
@@ -64,9 +64,10 @@ class AppDatabase extends _$AppDatabase {
         );
       }
       if (from < 4) {
-        await m.createTable(revisionSubjectsTable);
-        await m.createTable(revisionTopicsTable);
-        await m.addColumn(
+        await _safeCreateTable(m, revisionSubjectsTable);
+        await _safeCreateTable(m, revisionTopicsTable);
+        await _safeAddColumn(
+          m,
           pomodoroSessionsTable,
           pomodoroSessionsTable.lastSyncedAtMs,
         );
@@ -75,17 +76,26 @@ class AppDatabase extends _$AppDatabase {
         );
       }
       if (from < 5) {
-        await m.addColumn(pomodoroSessionsTable, pomodoroSessionsTable.userId);
+        await _safeAddColumn(
+          m,
+          pomodoroSessionsTable,
+          pomodoroSessionsTable.userId,
+        );
         if (from >= 4) {
-          await m.addColumn(
+          await _safeAddColumn(
+            m,
             revisionSubjectsTable,
             revisionSubjectsTable.userId,
           );
-          await m.addColumn(revisionTopicsTable, revisionTopicsTable.userId);
+          await _safeAddColumn(
+            m,
+            revisionTopicsTable,
+            revisionTopicsTable.userId,
+          );
         }
       }
       if (from >= 2 && from < 6) {
-        await m.addColumn(profilesTable, profilesTable.lastSyncedAtMs);
+        await _safeAddColumn(m, profilesTable, profilesTable.lastSyncedAtMs);
       }
       if (from < 7) {
         await customStatement(
@@ -97,6 +107,41 @@ class AppDatabase extends _$AppDatabase {
       }
     },
   );
+
+  Future<bool> _columnExists(String tableName, String columnName) async {
+    try {
+      final rows = await customSelect('PRAGMA table_info("$tableName")').get();
+      return rows.any((r) => r.data['name'] == columnName);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _safeAddColumn(
+    Migrator m,
+    TableInfo table,
+    GeneratedColumn column,
+  ) async {
+    try {
+      if (!await _columnExists(table.actualTableName, column.$name)) {
+        await m.addColumn(table, column);
+      }
+    } catch (e) {
+      if (!e.toString().contains('duplicate column name')) {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _safeCreateTable(Migrator m, TableInfo table) async {
+    try {
+      await m.createTable(table);
+    } catch (e) {
+      if (!e.toString().contains('already exists')) {
+        rethrow;
+      }
+    }
+  }
 
   // ─── Task helpers ───────────────────────────────────────────────────────────
 
