@@ -126,13 +126,14 @@ class AndroidTasksWidgetService {
         };
       }).toList();
 
-      final systemSeedValue = await _readDeviceSeedColor();
+      final systemAccentValue = await _readDeviceAccentColor();
+      if (!context.mounted) return;
       final currentScheme = Theme.of(context).colorScheme;
-      final seedColor = systemSeedValue == null
+      final seedColor = systemAccentValue == null
           ? (_themeProvider?.useSystemColor == true
                 ? currentScheme.primary
                 : _themeProvider?.seedColor ?? currentScheme.primary)
-          : Color(systemSeedValue);
+          : Color(systemAccentValue);
       final scheme = ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: Brightness.light,
@@ -159,9 +160,9 @@ class AndroidTasksWidgetService {
     }
   }
 
-  Future<int?> _readDeviceSeedColor() async {
+  Future<int?> _readDeviceAccentColor() async {
     try {
-      return await _channel.invokeMethod<int>('getDeviceSeedColor');
+      return await _channel.invokeMethod<int>('getDeviceAccentColor');
     } on MissingPluginException {
       return null;
     } on PlatformException {

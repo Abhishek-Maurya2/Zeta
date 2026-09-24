@@ -20,15 +20,11 @@ class AuthGate extends StatelessWidget {
     if (bypassAuth) return authenticatedBuilder(context);
     final auth = context.watch<AuthProvider>();
     if (auth.status == AuthStatus.loading) {
-      return const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
+      return const SizedBox.shrink();
     }
     if (auth.status == AuthStatus.signedIn) {
       return authenticatedBuilder(context);
     }
-    return MaterialApp(
-      home: LoginPage(unavailable: auth.status == AuthStatus.unavailable),
-    );
+    return LoginPage(unavailable: auth.status == AuthStatus.unavailable);
   }
 }

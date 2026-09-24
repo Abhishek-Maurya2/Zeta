@@ -80,7 +80,7 @@ class MainActivity : FlutterActivity() {
         widgetChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL)
         widgetChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
-                "getDeviceSeedColor" -> result.success(TasksWidgetProvider.deviceSeedColor(this))
+                "getDeviceAccentColor" -> result.success(TasksWidgetProvider.deviceAccentColor(this))
                 "getInitialWidgetAction" -> {
                     result.success(initialWidgetAction)
                     initialWidgetAction = null

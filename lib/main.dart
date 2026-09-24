@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    as flutter_localizations;
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -66,64 +68,24 @@ class ZetaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveShowSplash = showSplash ?? !_isTestMode;
 
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
-      child: AuthGate(
-        authenticatedBuilder: (_) =>
-            _AuthenticatedApp(showSplash: effectiveShowSplash),
-        bypassAuth: _isTestMode,
-      ),
-    );
-  }
-}
-
-class _AuthenticatedApp extends StatelessWidget {
-  final bool showSplash;
-
-  const _AuthenticatedApp({required this.showSplash});
-
-  @override
-  Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(
           create: (ctx) =>
               ThemeProvider(weatherProvider: ctx.read<WeatherProvider>()),
         ),
-        ChangeNotifierProvider(create: (_) => NavigationProvider()),
-        ChangeNotifierProvider(create: (_) => TaskProvider()),
-        ChangeNotifierProvider(create: (_) => PomodoroProvider()),
-        ChangeNotifierProvider(create: (_) => UpdateProvider()),
-        ChangeNotifierProxyProvider<TaskProvider, RevisionProvider>(
-          create: (_) => RevisionProvider(),
-          update: (_, taskProvider, revProvider) {
-            final provider = revProvider ?? RevisionProvider();
-            taskProvider.onTaskCompletedCallback = (taskId) {
-              provider.syncFromTaskCompletion(taskId, taskProvider);
-            };
-            return provider;
-          },
-        ),
-        ChangeNotifierProxyProvider<TaskProvider, NotificationProvider>(
-          create: (_) => NotificationProvider(),
-          update: (_, taskProvider, notifProvider) {
-            final provider = notifProvider ?? NotificationProvider();
-            provider.updateTasks(taskProvider.allTasks);
-            return provider;
-          },
-        ),
       ],
-      child: _ZetaAppView(showSplash: showSplash),
+      child: _ZetaAppShell(showSplash: effectiveShowSplash),
     );
   }
 }
 
-class _ZetaAppView extends StatelessWidget {
+class _ZetaAppShell extends StatelessWidget {
   final bool showSplash;
 
-  const _ZetaAppView({required this.showSplash});
+  const _ZetaAppShell({required this.showSplash});
 
   @override
   Widget build(BuildContext context) {
@@ -181,6 +143,14 @@ class _ZetaAppView extends StatelessWidget {
           title: 'Zeta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,
+          localizationsDelegates: const [
+            flutter_localizations.GlobalMaterialLocalizations.delegate,
+            flutter_localizations.GlobalWidgetsLocalizations.delegate,
+            flutter_localizations.GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('en', ''),
+          ],
           builder: (context, child) {
             return MediaQuery(
               data: MediaQuery.of(context)
@@ -219,7 +189,7 @@ class _ZetaAppView extends StatelessWidget {
   }
 }
 
-/// Root widget hosting the underlying [AppScaffold] and the animated [SplashScreen] overlay.
+/// Root widget hosting the underlying [AuthGate] / [AppScaffold] and the animated [SplashScreen] overlay.
 /// When the splash finishes its exit animation, it dissolves cleanly with zero frame drop.
 class ZetaAppRoot extends StatefulWidget {
   final bool showSplash;
@@ -231,12 +201,13 @@ class ZetaAppRoot extends StatefulWidget {
 }
 
 class _ZetaAppRootState extends State<ZetaAppRoot> {
+  static bool _hasCompletedInitialSplash = false;
   late bool _displaySplash;
 
   @override
   void initState() {
     super.initState();
-    _displaySplash = widget.showSplash;
+    _displaySplash = widget.showSplash && !_hasCompletedInitialSplash;
   }
 
   @override
@@ -244,10 +215,14 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        const AppScaffold(),
+        AuthGate(
+          authenticatedBuilder: (_) => const _AuthenticatedApp(),
+          bypassAuth: _isTestMode,
+        ),
         if (_displaySplash)
           SplashScreen(
             onInitializationComplete: () {
+              _hasCompletedInitialSplash = true;
               if (mounted) {
                 setState(() {
                   _displaySplash = false;
@@ -256,6 +231,42 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
             },
           ),
       ],
+    );
+  }
+}
+
+class _AuthenticatedApp extends StatelessWidget {
+  const _AuthenticatedApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => PomodoroProvider()),
+        ChangeNotifierProvider(create: (_) => UpdateProvider()),
+        ChangeNotifierProxyProvider<TaskProvider, RevisionProvider>(
+          create: (_) => RevisionProvider(),
+          update: (_, taskProvider, revProvider) {
+            final provider = revProvider ?? RevisionProvider();
+            taskProvider.onTaskCompletedCallback = (taskId) {
+              provider.syncFromTaskCompletion(taskId, taskProvider);
+            };
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<TaskProvider, NotificationProvider>(
+          create: (_) => NotificationProvider(),
+          update: (_, taskProvider, notifProvider) {
+            final provider = notifProvider ?? NotificationProvider();
+            provider.updateTasks(taskProvider.allTasks);
+            return provider;
+          },
+        ),
+      ],
+      child: const AppScaffold(),
     );
   }
 }

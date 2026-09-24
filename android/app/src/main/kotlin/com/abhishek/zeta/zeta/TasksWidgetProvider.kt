@@ -110,7 +110,7 @@ class TasksWidgetProvider : AppWidgetProvider() {
             return WidgetPalette(fallbackBackground, fallbackForeground, fallbackAccent, fallbackAccentForeground)
         }
 
-        internal fun deviceSeedColor(context: Context): Int? {
+        internal fun deviceAccentColor(context: Context): Int? {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
             val resourceId = context.resources.getIdentifier("system_accent1_500", "color", "android")
             if (resourceId == 0) return null
