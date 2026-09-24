@@ -545,13 +545,11 @@ class PomodoroChartCanvas extends StatelessWidget {
                 final fraction = (focus / effectiveMax).clamp(0.0, 1.0);
                 final computedHeight = math.max(6.0, fraction * barAreaHeight);
 
-                final barColor = isHighlighted
-                    ? colorScheme.secondaryContainer
-                    : (isSuccess
-                        ? colorScheme.successContainer
-                        : (isBelowAverage
-                            ? colorScheme.errorContainer
-                            : colorScheme.tertiaryContainer));
+                final barColor = isSuccess
+                    ? colorScheme.successContainer
+                    : (isBelowAverage
+                          ? colorScheme.errorContainer
+                          : colorScheme.tertiaryContainer);
 
                 Widget? badgeWidget;
                 if (computedHeight >= badgeSize + 6) {
@@ -568,20 +566,29 @@ class PomodoroChartCanvas extends StatelessWidget {
                         ),
                       ),
                     );
-                  } else if (!isBelowAverage) {
+                  } else if (isBelowAverage) {
+                    badgeWidget = M3EShapeContainer.ghostish(
+                      width: badgeSize,
+                      height: badgeSize,
+                      color: colorScheme.error,
+                      child: Center(
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: iconSize,
+                          color: colorScheme.errorContainer,
+                        ),
+                      ),
+                    );
+                  } else {
                     badgeWidget = M3EShapeContainer.arrow(
                       width: badgeSize,
                       height: badgeSize,
-                      color: isHighlighted
-                          ? colorScheme.secondary
-                          : colorScheme.tertiary,
+                      color: colorScheme.tertiary,
                       child: Center(
                         child: Icon(
                           Icons.remove_rounded,
                           size: iconSize,
-                          color: isHighlighted
-                              ? colorScheme.secondaryContainer
-                              : colorScheme.tertiaryContainer,
+                          color: colorScheme.tertiaryContainer,
                         ),
                       ),
                     );
