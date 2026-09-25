@@ -46,6 +46,27 @@ class NavigationProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  String? _resumeItemId;
+  String? get resumeItemId => _resumeItemId;
+
+  void resumeTo({
+    required PageId page,
+    String? itemId,
+    SettingsCategory? category,
+  }) {
+    _activePage = page;
+    _selectedSettingsCategory = category;
+    _resumeItemId = itemId;
+    notifyListeners();
+  }
+
+  void clearResumeItemId() {
+    if (_resumeItemId != null) {
+      _resumeItemId = null;
+      notifyListeners();
+    }
+  }
 }
 
 /// Navigation destination data used by both NavigationRail and BottomNavBar.

@@ -8,6 +8,7 @@ enum SettingsCategory {
   weather,
   notifications,
   syncAndData,
+  crossDevice,
   updates,
 }
 
@@ -69,6 +70,13 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     description: 'Cloud sync, backups, and storage',
     icon: Icons.sync_alt_outlined,
     selectedIcon: Icons.sync_alt_rounded,
+  ),
+  SettingsCategoryItem(
+    id: SettingsCategory.crossDevice,
+    label: 'Cross-Device',
+    description: 'Instant handoff between phone & PC',
+    icon: Icons.devices_outlined,
+    selectedIcon: Icons.devices_rounded,
   ),
   SettingsCategoryItem(
     id: SettingsCategory.updates,

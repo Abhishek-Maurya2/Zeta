@@ -56,6 +56,9 @@ class NotificationService {
   /// Callback for interactive notification actions (e.g. 'toggle', 'pause', 'resume', 'skip')
   void Function(String action)? onPomodoroAction;
 
+  /// Callback for cross-device resume notification activation (page, itemId)
+  void Function(String page, String? itemId)? onResumeAction;
+
   /// Windows native notifications
   WindowsNotification? _winNotifier;
 
@@ -132,6 +135,14 @@ class NotificationService {
   void _onNotificationTap(NotificationResponse response) {
     debugPrint(
         '[NotificationService] tapped: payload=${response.payload}, actionId=${response.actionId}');
+    if (response.payload != null && response.payload!.startsWith('resume:')) {
+      final payload = response.payload!.substring('resume:'.length);
+      final parts = payload.split('|');
+      final page = parts.isNotEmpty ? parts[0] : 'home';
+      final itemId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+      onResumeAction?.call(page, itemId);
+      return;
+    }
     if (response.actionId == 'action_toggle') {
       onPomodoroAction?.call('toggle');
     } else if (response.actionId == 'action_pause') {
@@ -158,7 +169,13 @@ class NotificationService {
       } catch (_) {}
 
       final arg = details.arguments ?? '';
-      if (arg == 'action:toggle' || arg == 'action_toggle') {
+      if (arg.startsWith('action:resume:')) {
+        final payload = arg.substring('action:resume:'.length);
+        final parts = payload.split('|');
+        final page = parts.isNotEmpty ? parts[0] : 'home';
+        final itemId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+        onResumeAction?.call(page, itemId);
+      } else if (arg == 'action:toggle' || arg == 'action_toggle') {
         onPomodoroAction?.call('toggle');
       } else if (arg == 'action:pause') {
         onPomodoroAction?.call('pause');

@@ -75,6 +75,13 @@ class PreferencesService {
   static const String keyPendingPomodoroClear =
       'zeta_pending_pomodoro_clear_v1';
 
+  // ─── Cross-Device Resume Keys ──────────────────────────────────────────────
+  static const String keyCrossDeviceEnabled = 'zeta_cross_device_enabled';
+  static const String keyCrossDeviceRole = 'zeta_cross_device_role';
+  static const String keyCrossDeviceShowToasts = 'zeta_cross_device_show_toasts';
+  static const String keyCrossDeviceDeviceName = 'zeta_cross_device_name';
+  static const String keyCrossDeviceCooldownSec = 'zeta_cross_device_cooldown_sec';
+
   static String accountScopedKey(String key, String userId) => '$key.$userId';
 
   /// Moves pre-auth offline operations into the first account's durable queue.
@@ -171,4 +178,25 @@ class PreferencesService {
       _prefs?.setDouble(key, value) ?? false;
 
   Future<bool> remove(String key) async => _prefs?.remove(key) ?? false;
+
+  // ─── Cross-Device Resume Accessors ─────────────────────────────────────────
+  bool get isCrossDeviceEnabled => getBool(keyCrossDeviceEnabled) ?? true;
+  Future<bool> setCrossDeviceEnabled(bool value) =>
+      setBool(keyCrossDeviceEnabled, value);
+
+  String get crossDeviceRole => getString(keyCrossDeviceRole) ?? 'both';
+  Future<bool> setCrossDeviceRole(String value) =>
+      setString(keyCrossDeviceRole, value);
+
+  bool get crossDeviceShowToasts => getBool(keyCrossDeviceShowToasts) ?? true;
+  Future<bool> setCrossDeviceShowToasts(bool value) =>
+      setBool(keyCrossDeviceShowToasts, value);
+
+  String? get crossDeviceDeviceName => getString(keyCrossDeviceDeviceName);
+  Future<bool> setCrossDeviceDeviceName(String value) =>
+      setString(keyCrossDeviceDeviceName, value);
+
+  int get crossDeviceCooldownSec => getInt(keyCrossDeviceCooldownSec) ?? 30;
+  Future<bool> setCrossDeviceCooldownSec(int value) =>
+      setInt(keyCrossDeviceCooldownSec, value);
 }

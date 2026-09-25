@@ -18,6 +18,7 @@ import 'components/typography_section.dart';
 import 'components/weather_section.dart';
 import 'components/notifications_section.dart';
 import 'components/sync_data_section.dart';
+import 'components/cross_device_section.dart';
 import 'components/updates_section.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -586,6 +587,8 @@ class _SettingsPageState extends State<SettingsPage> {
         return NotificationsSyncSection(onToast: _showToast);
       case SettingsCategory.syncAndData:
         return SyncDataSection(onToast: _showToast);
+      case SettingsCategory.crossDevice:
+        return CrossDeviceSection(onToast: _showToast);
       case SettingsCategory.updates:
         return UpdatesSection(onToast: _showToast);
       case null:
