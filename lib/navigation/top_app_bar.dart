@@ -12,10 +12,10 @@ import '../providers/profile_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/revision_provider.dart';
 import '../components/zeta_logo.dart';
-import '../components/user_avatar.dart';
 import '../components/segmented_column.dart';
 import '../components/task_edit_pane.dart';
 import '../theme/breakpoints.dart';
+import 'components/profile_avatar_menu.dart';
 
 /// Top App Bar mirroring Sharva's header:
 /// - Leading: Navigation menu toggle + Sharva logo brand + App name
@@ -348,23 +348,10 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                     '${profileProvider.userName} • Waiting to sync';
               }
 
-              return Tooltip(
-                message: tooltipMessage,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: () {
-                    ZetaHaptics.selection();
-                    navProvider.setActivePage(PageId.settings);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: UserAvatar(
-                      radius: 20,
-                      ringWidth: 2,
-                      ringColor: syncRingColor,
-                    ),
-                  ),
-                ),
+              return ProfileAvatarMenu(
+                syncRingColor: syncRingColor,
+                tooltipMessage: tooltipMessage,
+                isCompact: isCompact,
               );
             },
           ),

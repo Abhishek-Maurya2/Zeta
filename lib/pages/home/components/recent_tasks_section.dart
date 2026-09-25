@@ -9,16 +9,16 @@ import '../../../components/task_context_menu.dart';
 import '../../../components/task_edit_pane.dart';
 import '../../../components/segmented_column.dart';
 
-/// Recent Tasks Section mirroring Sharva's RecentTasksSection:
+/// Up Next Section:
 /// - Header with checklist icon, active tasks count pill, and "View All →" link to Tasks page.
-/// - Segmented column of up to 4 recent tasks with full subtask collapse, edit, and context menu support.
+/// - Segmented column of active tasks with full subtask collapse, edit, and context menu support.
 /// - Expressive empty state when no active tasks exist.
-class RecentTasksSection extends StatelessWidget {
+class UpNextSection extends StatelessWidget {
   final List<Task> tasks;
   final int totalCount;
   final VoidCallback? onViewAll;
 
-  const RecentTasksSection({
+  const UpNextSection({
     super.key,
     required this.tasks,
     required this.totalCount,
@@ -67,7 +67,7 @@ class RecentTasksSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Recent Tasks',
+                      'Up Next',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,
@@ -79,19 +79,20 @@ class RecentTasksSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
+                      horizontal: 9,
+                      vertical: 0,
                     ),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHigh,
+                      color: colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
                       '$totalCount',
                       style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontFamily: 'RobotoMono',
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.primary,
                       ),
                     ),
                   ),
@@ -103,7 +104,8 @@ class RecentTasksSection extends StatelessWidget {
             Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: onViewAll ??
+                onTap:
+                    onViewAll ??
                     () {
                       navProvider.setActivePage(PageId.tasks);
                     },
@@ -199,7 +201,7 @@ class RecentTasksSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Your recent tasks will appear here for quick access.',
+                  'Your upcoming tasks will appear here for quick access.',
                   textAlign: TextAlign.center,
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
@@ -213,3 +215,6 @@ class RecentTasksSection extends StatelessWidget {
     );
   }
 }
+
+/// Backwards compatibility alias for UpNextSection
+typedef RecentTasksSection = UpNextSection;

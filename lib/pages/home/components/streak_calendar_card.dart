@@ -4,12 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
-import '../../../components/task_edit_pane.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
 import '../../../components/standard_chips.dart';
-import '../../../components/zeta_empty_state.dart';
 
 /// Streak Calendar Card mirroring Sharva's StreakCalendarCard:
 /// - Fire icon badge with warm gradient, current streak counter, and active pill.
@@ -167,17 +165,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
       hasActiveStreak: hasActiveStreak,
       rangeStart: rangeStart,
       rangeEnd: rangeEnd,
-    );
-
-    // Tasks on selected date
-    final selectedDayTasks = taskProvider.allTasks
-        .where((t) => _isTaskOnDate(t, widget.selectedDate))
-        .toList();
-
-    // Formatted selected date
-    final selectedDayStr = DateTimeUtils.formatSelectedDay(
-      widget.selectedDate,
-      today,
     );
 
     final cardContent = Container(
@@ -431,7 +418,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Tasks on Day',
+                    'Pending',
                     style: TextStyle(
                       fontSize: 10,
                       color: colorScheme.onSurfaceVariant,
@@ -447,12 +434,12 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                     height: 7,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: colorScheme.primary, width: 2),
+                      color: colorScheme.error,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Selected',
+                    'Due',
                     style: TextStyle(
                       fontSize: 10,
                       color: colorScheme.onSurfaceVariant,
@@ -461,204 +448,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 ],
               ),
             ],
-          ),
-
-          const SizedBox(height: 14),
-
-          // ─── 4. Tasks on Selected Day Drawer ─────────────────────────────
-          Container(
-            padding: const EdgeInsets.only(top: 12),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                ),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.event_note_rounded,
-                            size: 16,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Tasks on $selectedDayStr',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selectedDayTasks.isNotEmpty
-                            ? colorScheme.primaryContainer
-                            : colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${selectedDayTasks.length} ${selectedDayTasks.length == 1 ? "Task" : "Tasks"}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: selectedDayTasks.isNotEmpty
-                              ? colorScheme.onPrimaryContainer
-                              : colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                if (selectedDayTasks.isNotEmpty) ...[
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 180),
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      itemCount: selectedDayTasks.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 6),
-                      itemBuilder: (context, idx) {
-                        final task = selectedDayTasks[idx];
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: () => TaskEditPane.show(context, task: task),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh
-                                  .withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () => taskProvider.toggleTask(task.id),
-                                  child: Icon(
-                                    task.completed
-                                        ? Icons.check_circle_rounded
-                                        : Icons.radio_button_unchecked_rounded,
-                                    size: 18,
-                                    color: task.completed
-                                        ? const Color(0xFF10B981)
-                                        : colorScheme.outline,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        task.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          decoration: task.completed
-                                              ? TextDecoration.lineThrough
-                                              : null,
-                                          color: task.completed
-                                              ? colorScheme.onSurfaceVariant
-                                                    .withValues(alpha: 0.6)
-                                              : colorScheme.onSurface,
-                                        ),
-                                      ),
-                                      if (task.hasTime && task.dueTime != null)
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.schedule_rounded,
-                                              size: 10,
-                                              color: colorScheme.outline,
-                                            ),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              task.dueTime!,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: colorScheme.outline,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  size: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.outline,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ] else ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHigh.withValues(
-                        alpha: 0.35,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: ZetaEmptyState(
-                      size: ZetaEmptyStateSize.compact,
-                      shapeKind: M3EShapeKind.pill,
-                      icon: Icons.event_available_rounded,
-                      title: 'No tasks scheduled',
-                      subtitle: 'Nothing planned for $selectedDayStr.',
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      primaryAction: M3EButton.icon(
-                        icon: const Icon(Icons.add_rounded, size: 16),
-                        label: const Text('Add Task'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: () => TaskEditPane.show(context),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
           ),
         ],
       ),

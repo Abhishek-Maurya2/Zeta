@@ -49,7 +49,7 @@ class PomodoroQueueItemTile extends StatelessWidget {
                                     ? Icons.coffee_rounded
                                     : Icons.hotel_rounded))),
               size: 23,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: isActive
                   ? colorScheme.onPrimary
                   : (isPast
@@ -73,8 +73,9 @@ class PomodoroQueueItemTile extends StatelessWidget {
                       item.label,
                       style: textTheme.labelLarge?.copyWith(
                         fontSize: 20,
-                        fontWeight:
-                            isActive ? FontWeight.w800 : FontWeight.w500,
+                        fontWeight: isActive
+                            ? FontWeight.w800
+                            : FontWeight.w500,
                         color: isActive
                             ? colorScheme.onSecondaryContainer
                             : (isPast
@@ -87,17 +88,14 @@ class PomodoroQueueItemTile extends StatelessWidget {
                   if (item.sessionNumber != null) ...[
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 1,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       decoration: BoxDecoration(
                         color: !isActive
                             ? isPast
                                   ? colorScheme.secondary.withValues(alpha: 0.7)
                                   : colorScheme.secondary
                             : colorScheme.primary,
-                        borderRadius: BorderRadius.circular(7),
+                        borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         '${item.sessionNumber}',
