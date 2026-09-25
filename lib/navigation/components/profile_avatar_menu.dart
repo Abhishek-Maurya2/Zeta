@@ -188,8 +188,6 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
   }
 
   Widget _buildOverlayChild(BuildContext overlayContext) {
-    final sizeClass = ZetaWindowSizeClass.of(context);
-    final isCompact = widget.isCompact ?? sizeClass.isCompact;
     return Align(
       alignment: Alignment.topLeft,
       child: CompositedTransformFollower(

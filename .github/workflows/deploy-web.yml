@@ -92,8 +92,17 @@ jobs:
             ]
           }
           EOF
+          cat << 'EOF' > .vercel/project.json
+          {
+            "projectId": "prj_3aKe0zAGHcowaWsuncZA6kCxvRfr",
+            "orgId": "team_tAgsxqYBU5ovEIA5XIAYUpc0"
+          }
+          EOF
 
       - name: Deploy Project Artifacts to Vercel
         if: ${{ env.VERCEL_TOKEN != '' }}
-        run: vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }})
+          echo "Deployed to: $DEPLOYMENT_URL"
+          vercel alias set "$DEPLOYMENT_URL" sharvas.vercel.app --token=${{ secrets.VERCEL_TOKEN }} || true
 
