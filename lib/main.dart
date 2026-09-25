@@ -26,6 +26,7 @@ import 'services/preferences_service.dart';
 import 'database/database_provider.dart';
 import 'database/migration_service.dart';
 import 'services/quick_actions_service.dart';
+import 'services/windows_tray_service.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/auth_gate.dart';
 
@@ -39,6 +40,9 @@ void main([List<String> args = const <String>[]]) async {
   }
   if (args.isNotEmpty) {
     QuickActionsService.instance.setInitialArgs(args);
+    if (args.contains('--background')) {
+      WindowsTrayService.instance.setInitialTrayState(true);
+    }
   }
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),

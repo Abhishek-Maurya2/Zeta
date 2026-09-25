@@ -64,15 +64,71 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Task? _editingTask;
   String? _editingInitialTitle;
+  String? _editingInitialDescription;
+  String? _editingInitialDueDate;
+  String? _editingInitialDueTime;
+  bool? _editingInitialHasTime;
+  List<Subtask>? _editingInitialSubtasks;
   bool _isEditPaneOpen = false;
+
+  Map<String, dynamic>? _taskFormDraft;
+  Map<String, dynamic>? get taskFormDraft => _taskFormDraft;
 
   Task? get editingTask => _editingTask;
   String? get editingInitialTitle => _editingInitialTitle;
+  String? get editingInitialDescription => _editingInitialDescription;
+  String? get editingInitialDueDate => _editingInitialDueDate;
+  String? get editingInitialDueTime => _editingInitialDueTime;
+  bool? get editingInitialHasTime => _editingInitialHasTime;
+  List<Subtask>? get editingInitialSubtasks => _editingInitialSubtasks;
   bool get isEditPaneOpen => _isEditPaneOpen;
 
-  void openEditPane({Task? task, String? initialTitle}) {
+  void updateTaskDraft({
+    String? title,
+    String? description,
+    String? dueDate,
+    String? dueTime,
+    bool? hasTime,
+    List<String>? subtasks,
+    String? editingTaskId,
+    bool? isCreating,
+  }) {
+    _taskFormDraft = {
+      'title': title,
+      'description': description,
+      'dueDate': dueDate,
+      'dueTime': dueTime,
+      'hasTime': hasTime,
+      'subtasks': subtasks,
+      'editingTaskId': editingTaskId,
+      'isCreating': isCreating ?? (editingTaskId == null),
+    };
+    notifyListeners();
+  }
+
+  void clearTaskDraft() {
+    if (_taskFormDraft != null) {
+      _taskFormDraft = null;
+      notifyListeners();
+    }
+  }
+
+  void openEditPane({
+    Task? task,
+    String? initialTitle,
+    String? initialDescription,
+    String? initialDueDate,
+    String? initialDueTime,
+    bool? initialHasTime,
+    List<Subtask>? initialSubtasks,
+  }) {
     _editingTask = task;
     _editingInitialTitle = initialTitle;
+    _editingInitialDescription = initialDescription;
+    _editingInitialDueDate = initialDueDate;
+    _editingInitialDueTime = initialDueTime;
+    _editingInitialHasTime = initialHasTime;
+    _editingInitialSubtasks = initialSubtasks;
     _isEditPaneOpen = true;
     notifyListeners();
   }
@@ -82,6 +138,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _isEditPaneOpen = false;
       _editingTask = null;
       _editingInitialTitle = null;
+      _editingInitialDescription = null;
+      _editingInitialDueDate = null;
+      _editingInitialDueTime = null;
+      _editingInitialHasTime = null;
+      _editingInitialSubtasks = null;
+      _taskFormDraft = null;
       notifyListeners();
     }
   }

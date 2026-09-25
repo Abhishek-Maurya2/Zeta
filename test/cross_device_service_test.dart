@@ -59,6 +59,46 @@ void main() {
       expect(event.title, equals('Math Homework'));
     });
 
+    test('parses incoming payload with rich contextData correctly', () {
+      final payload = {
+        'deviceId': 'phone_xyz',
+        'deviceName': 'Galaxy S24',
+        'platform': 'android',
+        'page': 'tasks',
+        'itemId': 'task_123',
+        'title': 'Math Homework',
+        'detail': 'Due tomorrow',
+        'contextData': {
+          'taskDraft': {
+            'title': 'Math Homework',
+            'description': 'Page 42 questions 1-10',
+            'dueDate': 'Tomorrow',
+            'dueTime': '05:00 PM',
+            'hasTime': true,
+            'subtasks': ['Q1', 'Q2'],
+            'isCreating': false,
+          },
+          'settingsCategory': 'crossDevice',
+          'pomodoroTab': 'analysis',
+        },
+        'timestamp': 1727273570000,
+      };
+
+      final event = CrossDeviceResumeEvent.fromMap(payload);
+      expect(event.contextData, isNotNull);
+      expect(event.contextData!['pomodoroTab'], equals('analysis'));
+      expect(event.contextData!['settingsCategory'], equals('crossDevice'));
+
+      final draft = event.contextData!['taskDraft'] as Map;
+      expect(draft['title'], equals('Math Homework'));
+      expect(draft['description'], equals('Page 42 questions 1-10'));
+      expect(draft['subtasks'], equals(['Q1', 'Q2']));
+
+      final map = event.toMap();
+      expect(map['contextData'], isNotNull);
+      expect(map['contextData']['pomodoroTab'], equals('analysis'));
+    });
+
     test('NavigationProvider.resumeTo correctly switches page and records itemId', () {
       final nav = NavigationProvider();
       expect(nav.activePage, equals(PageId.home));
@@ -70,6 +110,20 @@ void main() {
 
       nav.clearResumeItemId();
       expect(nav.resumeItemId, isNull);
+    });
+
+    test('Quota Saver activates on inactivity and resets on user activity', () {
+      final service = CrossDeviceService.instance;
+      service.recordUserActivity();
+      expect(service.isQuotaSaverActive.value, isFalse);
+
+      // Simulate quota saver activation
+      service.isQuotaSaverActive.value = true;
+      expect(service.isQuotaSaverActive.value, isTrue);
+
+      // User activity resets quota saver
+      service.recordUserActivity();
+      expect(service.isQuotaSaverActive.value, isFalse);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'segmented_column.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
+import '../services/cross_device_service.dart';
 import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
@@ -25,6 +26,11 @@ class TaskEditPane {
     BuildContext context, {
     Task? task,
     String? initialTitle,
+    String? initialDescription,
+    String? initialDueDate,
+    String? initialDueTime,
+    bool? initialHasTime,
+    List<Subtask>? initialSubtasks,
   }) {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
@@ -95,6 +101,11 @@ class TaskEditPane {
                           child: TaskEditFormContent(
                             task: task,
                             initialTitle: initialTitle,
+                            initialDescription: initialDescription,
+                            initialDueDate: initialDueDate,
+                            initialDueTime: initialDueTime,
+                            initialHasTime: initialHasTime,
+                            initialSubtasks: initialSubtasks,
                             onClose: () => Navigator.of(ctx).pop(),
                           ),
                         ),
@@ -113,6 +124,11 @@ class TaskEditPane {
       context.read<TaskProvider>().openEditPane(
         task: task,
         initialTitle: initialTitle,
+        initialDescription: initialDescription,
+        initialDueDate: initialDueDate,
+        initialDueTime: initialDueTime,
+        initialHasTime: initialHasTime,
+        initialSubtasks: initialSubtasks,
       );
       return Future.value();
     }
@@ -122,11 +138,21 @@ class TaskEditPane {
 class TaskEditFormContent extends StatefulWidget {
   final Task? task;
   final String? initialTitle;
+  final String? initialDescription;
+  final String? initialDueDate;
+  final String? initialDueTime;
+  final bool? initialHasTime;
+  final List<Subtask>? initialSubtasks;
   final VoidCallback? onClose;
   const TaskEditFormContent({
     super.key,
     this.task,
     this.initialTitle,
+    this.initialDescription,
+    this.initialDueDate,
+    this.initialDueTime,
+    this.initialHasTime,
+    this.initialSubtasks,
     this.onClose,
   });
 
@@ -154,24 +180,49 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
       text: widget.task?.title ?? widget.initialTitle ?? '',
     );
     _descController = TextEditingController(
-      text: widget.task?.description ?? '',
+      text: widget.task?.description ?? widget.initialDescription ?? '',
     );
     _dueDate = widget.task?.dueDate != null
         ? TaskDateFormatter.formatString(widget.task!.dueDate!)
-        : null;
-    _hasTime =
-        (widget.task?.hasTime ?? false) ||
+        : widget.initialDueDate;
+    _hasTime = widget.initialHasTime ??
+        ((widget.task?.hasTime ?? false) ||
         (widget.task?.dueTime != null &&
-            widget.task!.dueTime!.trim().isNotEmpty);
-    _dueTime = widget.task?.dueTime;
+            widget.task!.dueTime!.trim().isNotEmpty));
+    _dueTime = widget.initialDueTime ?? widget.task?.dueTime;
     if (_hasTime && (_dueTime == null || _dueTime!.isEmpty)) {
       _dueTime = '09:00 AM';
     }
-    _subtasks = widget.task?.subtasks.map((s) => s.copyWith()).toList() ?? [];
+    _subtasks = widget.initialSubtasks != null
+        ? widget.initialSubtasks!.map((s) => s.copyWith()).toList()
+        : widget.task?.subtasks.map((s) => s.copyWith()).toList() ?? [];
+
+    _titleController.addListener(_syncDraft);
+    _descController.addListener(_syncDraft);
+  }
+
+  void _syncDraft() {
+    if (!mounted) return;
+    try {
+      final tp = context.read<TaskProvider>();
+      tp.updateTaskDraft(
+        title: _titleController.text,
+        description: _descController.text,
+        dueDate: _dueDate,
+        dueTime: _dueTime,
+        hasTime: _hasTime,
+        subtasks: _subtasks.map((s) => s.title).toList(),
+        editingTaskId: widget.task?.id,
+        isCreating: widget.task == null,
+      );
+      CrossDeviceService.instance.notifyDraftActivity();
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _titleController.removeListener(_syncDraft);
+    _descController.removeListener(_syncDraft);
     _titleController.dispose();
     _descController.dispose();
     _newSubtaskController.dispose();
@@ -191,12 +242,14 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
       );
       _newSubtaskController.clear();
     });
+    _syncDraft();
   }
 
   void _removeSubtask(String id) {
     setState(() {
       _subtasks.removeWhere((s) => s.id == id);
     });
+    _syncDraft();
   }
 
   void _toggleSubtask(String id) {
@@ -206,6 +259,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
         _subtasks[index].completed = !_subtasks[index].completed;
       }
     });
+    _syncDraft();
   }
 
   Future<void> _pickDate() async {
@@ -224,6 +278,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
       setState(() {
         _dueDate = TaskDateFormatter.format(picked);
       });
+      _syncDraft();
     }
   }
 
@@ -244,6 +299,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
         _dueTime = '$hour:$minute $period';
         _dueDate ??= 'Today';
       });
+      _syncDraft();
     }
   }
 
@@ -268,6 +324,9 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 
   void _closePane() {
+    try {
+      context.read<TaskProvider>().clearTaskDraft();
+    } catch (_) {}
     if (widget.onClose != null) {
       widget.onClose!();
     } else {
@@ -288,6 +347,7 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
     final desc = _descController.text.trim();
     final provider = context.read<TaskProvider>();
+    provider.clearTaskDraft();
 
     if (isEditing) {
       provider.updateTask(

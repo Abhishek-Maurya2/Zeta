@@ -2,6 +2,7 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 #include <shobjidl.h>
+#include <string>
 
 #include "flutter_window.h"
 #include "jump_list.h"
@@ -22,6 +23,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   // Set explicit AppUserModelID for taskbar grouping and Jump List anchoring
   ::SetCurrentProcessExplicitAppUserModelID(jump_list::kAppUserModelID);
 
+  // Check if launched with --background flag (e.g., Windows startup)
+  bool start_in_background = false;
+  if (command_line) {
+    std::wstring cmd(command_line);
+    if (cmd.find(L"--background") != std::wstring::npos) {
+      start_in_background = true;
+    }
+  }
+
   // Single-instance management: forward command line arguments to running instance
   HANDLE single_instance_mutex =
       ::CreateMutexW(nullptr, TRUE, L"ZetaApp_SingleInstance_Mutex");
@@ -33,13 +43,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
       }
       ::SetForegroundWindow(existing_hwnd);
 
+      COPYDATASTRUCT cds;
+      cds.dwData = 0x5A455441;  // 'ZETA'
       if (command_line && wcslen(command_line) > 0) {
-        COPYDATASTRUCT cds;
-        cds.dwData = 0x5A455441;  // 'ZETA'
         cds.cbData = static_cast<DWORD>((wcslen(command_line) + 1) * sizeof(wchar_t));
         cds.lpData = static_cast<void*>(command_line);
-        ::SendMessageW(existing_hwnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds));
+      } else {
+        wchar_t empty_cmd[] = L"";
+        cds.cbData = sizeof(empty_cmd);
+        cds.lpData = static_cast<void*>(empty_cmd);
       }
+      ::SendMessageW(existing_hwnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds));
     }
     if (single_instance_mutex) {
       ::CloseHandle(single_instance_mutex);
@@ -48,7 +62,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     return EXIT_SUCCESS;
   }
 
-  flutter::DartProject project(L"data");
+  // Use absolute path to data directory adjacent to executable so that launching
+  // from any current working directory (e.g. startup registry, shortcut, cmd)
+  // always locates flutter_assets and AssetManifest.bin reliably.
+  wchar_t exe_path[MAX_PATH];
+  ::GetModuleFileNameW(nullptr, exe_path, MAX_PATH);
+  std::wstring exe_dir(exe_path);
+  size_t last_slash = exe_dir.find_last_of(L"\\/");
+  std::wstring data_path = (last_slash != std::wstring::npos)
+      ? exe_dir.substr(0, last_slash) + L"\\data"
+      : L"data";
+
+  flutter::DartProject project(data_path);
 
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
@@ -67,6 +92,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   }
   window.SetQuitOnClose(true);
 
+  // If launched with --background, hide window immediately and initialize tray
+  if (start_in_background) {
+    window.HideToTray();
+    window.InitTray(true);
+  }
+
   ::MSG msg;
   while (::GetMessage(&msg, nullptr, 0, 0)) {
     ::TranslateMessage(&msg);
@@ -79,3 +110,4 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   ::CoUninitialize();
   return EXIT_SUCCESS;
 }
+

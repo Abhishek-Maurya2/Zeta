@@ -6,6 +6,7 @@
 
 #include "flutter/generated_plugin_registrant.h"
 #include "jump_list.h"
+#include "resource.h"
 #include "utils.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -118,6 +119,92 @@ bool FlutterWindow::OnCreate() {
             }
           }
           result->Success();
+        } else if (call.method_name() == "initTray") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          bool min_to_tray = true;
+          if (args) {
+            auto it = args->find(flutter::EncodableValue("minimizeToTray"));
+            if (it != args->end()) {
+              if (const auto* val = std::get_if<bool>(&it->second)) {
+                min_to_tray = *val;
+              }
+            }
+          }
+          this->InitTray(min_to_tray);
+          result->Success();
+        } else if (call.method_name() == "showWindow") {
+          this->ShowFromTray();
+          result->Success();
+        } else if (call.method_name() == "hideToTray") {
+          this->HideToTray();
+          result->Success();
+        } else if (call.method_name() == "setMinimizeToTray") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          if (args) {
+            auto it = args->find(flutter::EncodableValue("enable"));
+            if (it != args->end()) {
+              if (const auto* val = std::get_if<bool>(&it->second)) {
+                this->minimize_to_tray_ = *val;
+              }
+            }
+          }
+          result->Success();
+        } else if (call.method_name() == "isWindowVisible") {
+          HWND hwnd = GetHandle();
+          bool visible = hwnd && IsWindowVisible(hwnd);
+          result->Success(flutter::EncodableValue(visible));
+        } else if (call.method_name() == "isStartupLaunchEnabled") {
+          HKEY hkey = nullptr;
+          bool enabled = false;
+          if (RegOpenKeyExW(HKEY_CURRENT_USER,
+                            L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            0, KEY_READ, &hkey) == ERROR_SUCCESS) {
+            DWORD type = 0;
+            DWORD data_size = 0;
+            if (RegQueryValueExW(hkey, L"Zeta", nullptr, &type, nullptr, &data_size) == ERROR_SUCCESS) {
+              enabled = true;
+            }
+            RegCloseKey(hkey);
+          }
+          result->Success(flutter::EncodableValue(enabled));
+        } else if (call.method_name() == "setStartupLaunchEnabled") {
+          const auto* args =
+              std::get_if<flutter::EncodableMap>(call.arguments());
+          bool enable = false;
+          if (args) {
+            auto it = args->find(flutter::EncodableValue("enabled"));
+            if (it != args->end()) {
+              if (const auto* val = std::get_if<bool>(&it->second)) {
+                enable = *val;
+              }
+            }
+          }
+
+          bool success = false;
+          HKEY hkey = nullptr;
+          if (RegOpenKeyExW(HKEY_CURRENT_USER,
+                            L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            0, KEY_SET_VALUE, &hkey) == ERROR_SUCCESS) {
+            if (enable) {
+              wchar_t exe_path[MAX_PATH];
+              if (GetModuleFileNameW(nullptr, exe_path, MAX_PATH) > 0) {
+                std::wstring cmd = L"\"" + std::wstring(exe_path) + L"\" --background";
+                DWORD bytes = static_cast<DWORD>((cmd.length() + 1) * sizeof(wchar_t));
+                if (RegSetValueExW(hkey, L"Zeta", 0, REG_SZ,
+                                  reinterpret_cast<const BYTE*>(cmd.c_str()),
+                                  bytes) == ERROR_SUCCESS) {
+                  success = true;
+                }
+              }
+            } else {
+              RegDeleteValueW(hkey, L"Zeta");
+              success = true;
+            }
+            RegCloseKey(hkey);
+          }
+          result->Success(flutter::EncodableValue(success));
         } else {
           result->NotImplemented();
         }
@@ -188,6 +275,7 @@ void FlutterWindow::OnDestroy() {
     SetFullscreen(false);
   }
   SetThreadExecutionState(ES_CONTINUOUS);
+  RemoveTray();
   title_bar_channel_ = nullptr;
   shortcuts_channel_ = nullptr;
   if (flutter_controller_) {
@@ -195,6 +283,71 @@ void FlutterWindow::OnDestroy() {
   }
 
   Win32Window::OnDestroy();
+}
+
+// ─── System Tray Implementation ─────────────────────────────────────────────
+
+void FlutterWindow::InitTray(bool minimize_to_tray) {
+  if (tray_initialized_) {
+    minimize_to_tray_ = minimize_to_tray;
+    return;
+  }
+  minimize_to_tray_ = minimize_to_tray;
+
+  HWND hwnd = GetHandle();
+  if (!hwnd) return;
+
+  // Create tray context menu
+  tray_menu_ = CreatePopupMenu();
+  AppendMenuW(tray_menu_, MF_STRING, 1, L"Show Zeta");
+  AppendMenuW(tray_menu_, MF_SEPARATOR, 0, nullptr);
+  AppendMenuW(tray_menu_, MF_STRING, 2, L"Quit");
+
+  // Initialize NOTIFYICONDATA
+  ZeroMemory(&nid_, sizeof(nid_));
+  nid_.cbSize = sizeof(NOTIFYICONDATA);
+  nid_.hWnd = hwnd;
+  nid_.uID = 1;
+  nid_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+  nid_.uCallbackMessage = WM_TRAY_ICON;
+  nid_.hIcon = LoadIcon(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_APP_ICON));
+  wcscpy_s(nid_.szTip, L"Zeta");
+
+  Shell_NotifyIconW(NIM_ADD, &nid_);
+  tray_initialized_ = true;
+}
+
+void FlutterWindow::ShowFromTray() {
+  HWND hwnd = GetHandle();
+  if (!hwnd) return;
+  ShowWindow(hwnd, SW_SHOW);
+  if (IsIconic(hwnd)) {
+    ShowWindow(hwnd, SW_RESTORE);
+  }
+  SetForegroundWindow(hwnd);
+  if (title_bar_channel_) {
+    title_bar_channel_->InvokeMethod("trayShow", nullptr);
+  }
+}
+
+void FlutterWindow::HideToTray() {
+  HWND hwnd = GetHandle();
+  if (!hwnd) return;
+  ShowWindow(hwnd, SW_HIDE);
+  if (title_bar_channel_) {
+    title_bar_channel_->InvokeMethod("trayHide", nullptr);
+  }
+}
+
+void FlutterWindow::RemoveTray() {
+  if (tray_initialized_) {
+    Shell_NotifyIconW(NIM_DELETE, &nid_);
+    tray_initialized_ = false;
+  }
+  if (tray_menu_) {
+    DestroyMenu(tray_menu_);
+    tray_menu_ = nullptr;
+  }
 }
 
 LRESULT
@@ -215,6 +368,41 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
     case WM_FONTCHANGE:
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
+
+    // ─── Minimize to Tray on Close ────────────────────────────────────────
+    case WM_CLOSE:
+      if (tray_initialized_ && minimize_to_tray_) {
+        HideToTray();
+        return 0;  // Prevent default close/destroy
+      }
+      break;
+
+    // ─── System Tray Icon Events ──────────────────────────────────────────
+    case WM_TRAY_ICON:
+      if (lparam == WM_LBUTTONDBLCLK || lparam == WM_LBUTTONUP) {
+        ShowFromTray();
+      } else if (lparam == WM_RBUTTONUP) {
+        POINT pt;
+        GetCursorPos(&pt);
+        SetForegroundWindow(hwnd);
+        int cmd = TrackPopupMenu(tray_menu_,
+                                 TPM_RETURNCMD | TPM_NONOTIFY,
+                                 pt.x, pt.y, 0, hwnd, nullptr);
+        if (cmd == 1) {
+          ShowFromTray();
+        } else if (cmd == 2) {
+          // Real quit: notify Flutter side, then destroy
+          if (title_bar_channel_) {
+            title_bar_channel_->InvokeMethod(
+                "trayQuit",
+                std::make_unique<flutter::EncodableValue>(true));
+          }
+          RemoveTray();
+          DestroyWindow(hwnd);
+        }
+      }
+      return 0;
+
     case WM_COPYDATA: {
       auto cds = reinterpret_cast<PCOPYDATASTRUCT>(lparam);
       if (cds && cds->dwData == 0x5A455441) {  // 'ZETA'
@@ -240,6 +428,8 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                 std::make_unique<flutter::EncodableValue>(route));
           }
         }
+        // Also bring the window to foreground when receiving commands from another instance
+        ShowFromTray();
         return TRUE;
       }
       break;
@@ -248,3 +438,4 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
 }
+

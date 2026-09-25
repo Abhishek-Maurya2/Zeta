@@ -9,6 +9,7 @@ import '../../../features/auth/presentation/auth_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/cross_device_service.dart';
 import '../../../services/preferences_service.dart';
+import '../../../services/windows_tray_service.dart';
 import '../../../utils/app_snackbar.dart';
 import '../../../utils/haptics.dart';
 
@@ -30,6 +31,11 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
   late bool _showToasts;
   late String _deviceName;
 
+  // Windows tray / startup state
+  late bool _minimizeToTray;
+  bool _startupEnabled = false;
+  bool _startupLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +43,24 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
     _role = _prefs.crossDeviceRole;
     _showToasts = _prefs.crossDeviceShowToasts;
     _deviceName = _crossDevice.effectiveDeviceName;
+
+    _minimizeToTray = WindowsTrayService.instance.minimizeToTray;
+
+    if (!kIsWeb && Platform.isWindows) {
+      _loadStartupState();
+    } else {
+      _startupLoading = false;
+    }
+  }
+
+  Future<void> _loadStartupState() async {
+    final enabled = await WindowsTrayService.instance.isStartupEnabled();
+    if (mounted) {
+      setState(() {
+        _startupEnabled = enabled;
+        _startupLoading = false;
+      });
+    }
   }
 
   void _toggleMaster(bool value) {
@@ -59,6 +83,29 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
     ZetaHaptics.light();
     setState(() => _showToasts = value);
     _prefs.setCrossDeviceShowToasts(value);
+  }
+
+  Future<void> _toggleMinimizeToTray(bool value) async {
+    ZetaHaptics.light();
+    setState(() => _minimizeToTray = value);
+    await WindowsTrayService.instance.setMinimizeToTray(value);
+    widget.onToast?.call(
+      value ? 'Close minimizes to tray' : 'Close will quit the app',
+    );
+  }
+
+  Future<void> _toggleStartupOnBoot(bool value) async {
+    ZetaHaptics.light();
+    setState(() => _startupEnabled = value);
+    final success = await WindowsTrayService.instance.setStartupEnabled(value);
+    if (!success && mounted) {
+      setState(() => _startupEnabled = !value);
+      widget.onToast?.call('Failed to update startup setting');
+    } else {
+      widget.onToast?.call(
+        value ? 'Zeta will start with Windows' : 'Startup on boot disabled',
+      );
+    }
   }
 
   Future<void> _handleEditDeviceName() async {
@@ -109,7 +156,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
 
     AppSnackbar.show(
       context,
-      message: 'Test resume triggered — check your notification tray / banner.',
+      message: 'Test resume triggered — check your notification tray.',
       actionLabel: 'Dismiss',
       onAction: () {},
       duration: const Duration(seconds: 4),
@@ -122,6 +169,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
     final textTheme = Theme.of(context).textTheme;
     final authProvider = context.watch<AuthProvider>();
     final isSignedIn = authProvider.status == AuthStatus.signedIn;
+    final isWindows = !kIsWeb && Platform.isWindows;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -307,7 +355,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                 ),
 
                 // Windows Desktop Toast Toggle
-                if (!kIsWeb && Platform.isWindows)
+                if (isWindows)
                   ListTile(
                     leading: const Icon(Icons.desktop_windows_outlined),
                     title: const Text('Windows Desktop Notifications'),
@@ -322,14 +370,41 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     onTap: _enabled ? () => _toggleToasts(!_showToasts) : null,
                   ),
 
-                // Free-tier Efficiency Indicator
-                const ListTile(
-                  leading: Icon(Icons.energy_savings_leaf_outlined),
-                  title: Text('Supabase Free Tier Efficiency'),
-                  subtitle: Text(
-                    'Zero database writes • 30s smart cooldown & 3s idle debounce enabled',
-                  ),
-                  enabled: false,
+                // Free-tier Efficiency Indicator with dynamic Quota Saver state
+                ValueListenableBuilder<bool>(
+                  valueListenable: _crossDevice.isQuotaSaverActive,
+                  builder: (context, isIdle, _) {
+                    return ListTile(
+                      leading: Icon(
+                        isIdle
+                            ? Icons.bedtime_outlined
+                            : Icons.energy_savings_leaf_outlined,
+                        color: isIdle ? Colors.amber : Colors.green,
+                      ),
+                      title: Text(
+                        isIdle
+                            ? 'Quota Saver: Idle Sleep (Saving Quota)'
+                            : 'Supabase Free Tier Efficiency Active',
+                        style: TextStyle(
+                          color: isIdle ? Colors.amber[800] : null,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isIdle
+                            ? 'Broadcasts suspended after 3m of inactivity. Tap any screen to resume instantly.'
+                            : 'Zero DB writes • 3m inactivity cutoff • 2m background disconnect • 30s cooldown',
+                      ),
+                      trailing: isIdle
+                          ? TextButton(
+                              onPressed: () {
+                                _crossDevice.recordUserActivity();
+                              },
+                              child: const Text('Wake Now'),
+                            )
+                          : null,
+                    );
+                  },
                 ),
 
                 // Test Action
@@ -346,13 +421,75 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     ),
                   ),
                   subtitle: const Text(
-                    'Preview the exact toast banner & resume handoff behavior',
+                    'Preview the exact toast & resume handoff behavior',
                   ),
                   enabled: _enabled,
                   onTap: _enabled ? _handleTestResume : null,
                 ),
               ],
             ),
+
+            // ─── 4. Windows Background Section ───────────────────────────────
+            if (isWindows) ...[
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text(
+                  'WINDOWS BACKGROUND',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              M3ESegmentedColumn(
+                decoration: const M3ESegmentedListDecoration(
+                  padding: EdgeInsets.all(1.0),
+                  outerRadius: 28.0,
+                  innerRadius: 6.0,
+                  gap: 3.0,
+                ),
+                color: colorScheme.surfaceContainerLowest,
+                children: [
+                  // Minimize to Tray
+                  ListTile(
+                    leading: const Icon(Icons.visibility_off_outlined),
+                    title: const Text('Minimize to System Tray'),
+                    subtitle: const Text(
+                      'Closing the window hides Zeta to the system tray instead of quitting',
+                    ),
+                    trailing: M3ESwitch(
+                      value: _minimizeToTray,
+                      onChanged: _toggleMinimizeToTray,
+                    ),
+                    onTap: () => _toggleMinimizeToTray(!_minimizeToTray),
+                  ),
+
+                  // Start on Boot
+                  ListTile(
+                    leading: const Icon(Icons.power_settings_new_rounded),
+                    title: const Text('Start with Windows'),
+                    subtitle: const Text(
+                      'Automatically launch Zeta in the background when you sign in',
+                    ),
+                    trailing: _startupLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : M3ESwitch(
+                            value: _startupEnabled,
+                            onChanged: _toggleStartupOnBoot,
+                          ),
+                    onTap: _startupLoading
+                        ? null
+                        : () => _toggleStartupOnBoot(!_startupEnabled),
+                  ),
+                ],
+              ),
+            ],
 
             const SizedBox(height: 48),
           ],
@@ -361,3 +498,4 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
     );
   }
 }
+

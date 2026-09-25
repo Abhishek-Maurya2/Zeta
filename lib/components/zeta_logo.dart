@@ -10,12 +10,32 @@ class ZetaLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveRadius = borderRadius ?? BorderRadius.circular(size * 0.22);
+
     Widget logoWidget = Image.asset(
       'assets/logo/logo.png',
       width: size,
       height: size,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
+      errorBuilder: (context, error, stackTrace) {
+        final theme = Theme.of(context);
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            borderRadius: effectiveRadius,
+          ),
+          child: Center(
+            child: Icon(
+              Icons.auto_awesome,
+              color: theme.colorScheme.primary,
+              size: size * 0.55,
+            ),
+          ),
+        );
+      },
     );
 
     if (borderRadius != null) {

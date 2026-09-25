@@ -197,7 +197,7 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
         showWhenUnlinked: false,
         targetAnchor: Alignment.center,
         followerAnchor: Alignment.topRight,
-        offset: Offset(40, isCompact ? -33 : -35),
+        offset: const Offset(28, -27),
         child: TapRegion(
           groupId: _tapRegionGroupId,
           onTapOutside: (_) => _closeMenu(),
@@ -327,10 +327,9 @@ class _ProfileCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
+    final themeProvider = context.watch<ThemeProvider>();
     final textTheme = Theme.of(context).textTheme;
-    final isDark = themeProvider.isDarkMode(context);
     final profileProvider = context.watch<ProfileProvider>();
     final navProvider = context.read<NavigationProvider>();
 
@@ -344,13 +343,14 @@ class _ProfileCardContent extends StatelessWidget {
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
+    final isDark = themeProvider.isDarkMode(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
         child: Card(
-          color: colorScheme.secondaryContainer.withValues(alpha: 0.4),
+          color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
@@ -358,16 +358,26 @@ class _ProfileCardContent extends StatelessWidget {
           margin: EdgeInsets.zero,
           clipBehavior: Clip.antiAlias,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 12),
+            padding: const EdgeInsets.all(10),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // ─── Header: [Name, Email] + Photo ──────────────────────────
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 1, 4, 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   child: Row(
                     children: [
+                      UserAvatar(
+                        radius: 30,
+                        showRing: true,
+                        ringWidth: 2,
+                        ringColor: syncRingColor,
+                      ),
+                      const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +386,7 @@ class _ProfileCardContent extends StatelessWidget {
                             Text(
                               userName,
                               style: textTheme.headlineSmall?.copyWith(
-                                fontSize: 23,
+                                fontSize: 27,
                                 color: colorScheme.onSurface,
                               ),
                               maxLines: 1,
@@ -385,7 +395,7 @@ class _ProfileCardContent extends StatelessWidget {
                             Text(
                               userEmail,
                               style: textTheme.headlineSmall?.copyWith(
-                                fontSize: 11,
+                                fontSize: 13,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                               maxLines: 1,
@@ -394,30 +404,21 @@ class _ProfileCardContent extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      UserAvatar(
-                        radius: 21,
-                        showRing: true,
-                        ringWidth: 2,
-                        ringColor: syncRingColor,
-                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 20),
                 // ─── Segmented List: Refresh, Settings, Bin ─────────────────
                 M3ESegmentedColumn(
                   decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(0),
+                    padding: EdgeInsets.all(2),
                     outerRadius: 14.0,
                     innerRadius: 6.0,
                     gap: 2.0,
                   ),
                   color: isDark
-                      ? colorScheme.secondary.withValues(alpha: 0.2)
-                      : colorScheme.surfaceContainerLowest.withValues(
-                          alpha: 0.5,
-                        ),
+                      ? colorScheme.tertiary.withValues(alpha: 0.3)
+                      : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
                   children: [
                     // 1. Refresh Tile
                     Material(

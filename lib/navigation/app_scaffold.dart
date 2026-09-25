@@ -11,6 +11,7 @@ import '../services/android_tasks_widget_service.dart';
 import '../utils/app_snackbar.dart';
 import '../utils/haptics.dart';
 import '../utils/windows_title_bar.dart';
+import '../services/windows_tray_service.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
@@ -90,8 +91,15 @@ class _AppScaffoldState extends State<AppScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final nav = context.read<NavigationProvider>();
+        final taskProvider = context.read<TaskProvider>();
+        final pomodoroProvider = context.read<PomodoroProvider>();
         QuickActionsService.instance.init(nav);
-        CrossDeviceService.instance.init(nav);
+        CrossDeviceService.instance.init(
+          nav,
+          taskProvider: taskProvider,
+          pomodoroProvider: pomodoroProvider,
+        );
+        WindowsTrayService.instance.init();
         unawaited(AndroidTasksWidgetService.instance.initialize(context));
       }
     });
@@ -510,9 +518,6 @@ class _AppScaffoldState extends State<AppScaffold>
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
 
-                  // Cross-Device Resume Banner (shown when handoff from another device is available)
-                  _buildCrossDeviceBanner(),
-
                   // 2. Expandable Stretchable Refresh Container below topappbar
                   if (navProvider.activePage != PageId.settings)
                     PullToRefreshContainer(
@@ -694,15 +699,22 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         builder: (context, tp, _) =>
                                                             TaskEditFormContent(
                                                               key: ValueKey(
-                                                                tp
-                                                                        .editingTask
-                                                                        ?.id ??
-                                                                    'new_task',
+                                                                '${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}',
                                                               ),
                                                               task: tp
                                                                   .editingTask,
                                                               initialTitle: tp
                                                                   .editingInitialTitle,
+                                                              initialDescription: tp
+                                                                  .editingInitialDescription,
+                                                              initialDueDate: tp
+                                                                  .editingInitialDueDate,
+                                                              initialDueTime: tp
+                                                                  .editingInitialDueTime,
+                                                              initialHasTime: tp
+                                                                  .editingInitialHasTime,
+                                                              initialSubtasks: tp
+                                                                  .editingInitialSubtasks,
                                                               onClose: () => tp
                                                                   .closeEditPane(),
                                                             ),
@@ -760,93 +772,6 @@ class _AppScaffoldState extends State<AppScaffold>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildCrossDeviceBanner() {
-    return ValueListenableBuilder<CrossDeviceResumeEvent?>(
-      valueListenable: CrossDeviceService.instance.activeResumeEvent,
-      builder: (context, event, _) {
-        if (event == null) return const SizedBox.shrink();
-
-        final colorScheme = Theme.of(context).colorScheme;
-        final textTheme = Theme.of(context).textTheme;
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: colorScheme.secondaryContainer,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.phonelink_ring_rounded,
-                color: colorScheme.onSecondaryContainer,
-                size: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Continue on Zeta',
-                      style: textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSecondaryContainer,
-                      ),
-                    ),
-                    Text(
-                      'Resume "${event.title}" from ${event.deviceName}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSecondaryContainer.withValues(alpha: 0.8),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.tonal(
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                ),
-                onPressed: () {
-                  ZetaHaptics.medium();
-                  CrossDeviceService.instance.acceptActiveResumePrompt();
-                },
-                child: const Text('Resume'),
-              ),
-              const SizedBox(width: 4),
-              IconButton(
-                iconSize: 18,
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () {
-                  ZetaHaptics.light();
-                  CrossDeviceService.instance.dismissActiveResumePrompt();
-                },
-                tooltip: 'Dismiss',
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

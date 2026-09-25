@@ -55,6 +55,16 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   // ─── Getters ───────────────────────────────────────────────────────────────
+  String _activeTab = 'timer'; // 'timer', 'queue', 'analysis'
+  String get activeTab => _activeTab;
+
+  void setActiveTab(String tab) {
+    if (_activeTab != tab) {
+      _activeTab = tab;
+      notifyListeners();
+    }
+  }
+
   PomodoroSettings get settings => _settings;
   List<PomodoroSessionItem> get queue => _queue;
   int get activeQueueIndex => _activeQueueIndex;

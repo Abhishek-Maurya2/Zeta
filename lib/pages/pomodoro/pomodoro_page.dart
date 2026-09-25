@@ -198,6 +198,21 @@ class _PomodoroPageState extends State<PomodoroPage> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    // Sync tab with provider.activeTab (e.g. from cross-device resume)
+    if (provider.activeTab == 'queue' && _activeTab != PomodoroTab.queue) {
+      _activeTab = PomodoroTab.queue;
+      _secondaryTab = SecondaryPaneTab.queue;
+      _isSupportingPaneCollapsed = false;
+    } else if (provider.activeTab == 'analysis' &&
+        _activeTab != PomodoroTab.analysis) {
+      _activeTab = PomodoroTab.analysis;
+      _secondaryTab = SecondaryPaneTab.analysis;
+      _isSupportingPaneCollapsed = false;
+    } else if (provider.activeTab == 'timer' &&
+        _activeTab != PomodoroTab.timer) {
+      _activeTab = PomodoroTab.timer;
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: isTwoPane
@@ -312,6 +327,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                     setState(() {
                                       _secondaryTab =
                                           SecondaryPaneTab.values[idx];
+                                    provider.setActiveTab(SecondaryPaneTab.values[idx].name);
                                     });
                                   }
                                 },
@@ -453,6 +469,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                   ZetaHaptics.selection();
                   setState(() {
                     _activeTab = PomodoroTab.values[idx];
+                    provider.setActiveTab(PomodoroTab.values[idx].name);
                   });
                 }
               },
