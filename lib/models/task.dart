@@ -1,4 +1,5 @@
 import '../utils/task_date_formatter.dart';
+import 'attachment.dart';
 
 class Subtask {
   final String id;
@@ -38,6 +39,7 @@ class Task {
   bool hasTime;
   String? dueTime;
   List<Subtask> subtasks;
+  List<AttachmentItem> attachments;
   DateTime createdAt;
   DateTime updatedAt;
   DateTime? deletedAt;
@@ -53,12 +55,14 @@ class Task {
     this.hasTime = false,
     this.dueTime,
     List<Subtask>? subtasks,
+    List<AttachmentItem>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
     this.deletedAt,
     this.lastSyncedAt,
   }) : description = sanitizeDescription(description),
        subtasks = subtasks ?? [],
+       attachments = attachments ?? [],
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? (createdAt ?? DateTime.now());
 
@@ -95,6 +99,7 @@ class Task {
     'hasTime': hasTime,
     'dueTime': dueTime,
     'subtasks': subtasks.map((s) => s.toJson()).toList(),
+    'attachments': attachments.map((a) => a.toJson()).toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
     'deletedAt': deletedAt?.toIso8601String(),
@@ -112,6 +117,9 @@ class Task {
     dueTime: json['dueTime'] as String?,
     subtasks: (json['subtasks'] as List<dynamic>?)
         ?.map((s) => Subtask.fromJson(s as Map<String, dynamic>))
+        .toList(),
+    attachments: (json['attachments'] as List<dynamic>?)
+        ?.map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
         .toList(),
     createdAt: json['createdAt'] != null
         ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
@@ -186,6 +194,7 @@ class Task {
       'due_date': parsedDueDate?.toUtc().toIso8601String(),
       'has_time': effectiveHasTime,
       'subtasks': subtasks.map((s) => s.toJson()).toList(),
+      'attachments': attachments.map((a) => a.toJson()).toList(),
       'deleted_at': deletedAt?.toUtc().toIso8601String(),
       'created_at': createdAt.toUtc().toIso8601String(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -243,6 +252,12 @@ class Task {
             .toList() ??
         [];
 
+    final attachmentsList =
+        (row['attachments'] as List<dynamic>?)
+            ?.map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+            .toList() ??
+        [];
+
     return Task(
       id: row['id'] as String? ?? '',
       userId: row['user_id'] as String?,
@@ -255,6 +270,7 @@ class Task {
       hasTime: hasTime,
       dueTime: localDueTime,
       subtasks: subtasksList,
+      attachments: attachmentsList,
       createdAt: row['created_at'] != null
           ? DateTime.tryParse(row['created_at'].toString())?.toLocal() ??
                 DateTime.now()
@@ -282,6 +298,7 @@ class Task {
     bool? hasTime,
     String? dueTime,
     List<Subtask>? subtasks,
+    List<AttachmentItem>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
@@ -297,6 +314,7 @@ class Task {
       hasTime: hasTime ?? this.hasTime,
       dueTime: dueTime ?? this.dueTime,
       subtasks: subtasks ?? this.subtasks.map((s) => s.copyWith()).toList(),
+      attachments: attachments ?? this.attachments.map((a) => a.copyWith()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,

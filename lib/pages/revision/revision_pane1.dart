@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/revision.dart';
 import '../../providers/revision_provider.dart';
 import '../../providers/task_provider.dart';
+import 'components/revision_notes_sheet.dart';
 import 'components/revision_settings_sheet.dart';
 import 'components/revision_subject_card.dart';
 import 'components/topic_edit_dialog.dart';
@@ -149,6 +150,10 @@ class RevisionPane1 extends StatelessWidget {
                 totalTopics: subTopics.length,
                 completedTopics: completedCount,
                 dueCount: dueCount,
+                onNotes: () {
+                  ZetaHaptics.light();
+                  RevisionNotesSheet.show(context, subject: sub);
+                },
                 onEdit: () {
                   ZetaHaptics.light();
                   SubjectEditDialog.show(context, subject: sub);

@@ -7,6 +7,7 @@ import '../../../models/revision.dart';
 class RevisionTopicTile extends StatelessWidget {
   final ChapterTopic topic;
   final VoidCallback onComplete;
+  final VoidCallback? onNotes;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final int? index;
@@ -16,6 +17,7 @@ class RevisionTopicTile extends StatelessWidget {
     super.key,
     required this.topic,
     required this.onComplete,
+    this.onNotes,
     this.onEdit,
     this.onDelete,
     this.index,
@@ -96,18 +98,37 @@ class RevisionTopicTile extends StatelessWidget {
 
               // title
               Expanded(
-                child: Text(
-                  topic.title,
-                  style: textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                    fontSize: 20,
-                  ),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        topic.title,
+                        style: textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    if (topic.note?.isNotEmpty == true ||
+                        topic.attachments.isNotEmpty ||
+                        (topic.description?.isNotEmpty ?? false)) ...[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'Has notes / attachments',
+                        child: Icon(
+                          Icons.description_outlined,
+                          size: 16,
+                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
 
               // menu
-              if (onEdit != null || onDelete != null)
+              if (onNotes != null || onEdit != null || onDelete != null)
                 GlassM3EMenu(
                   position: M3EMenuAnchorPosition.bottomEnd,
                   colorStyle: M3EMenuColorStyle.vibrant,
@@ -118,6 +139,13 @@ class RevisionTopicTile extends StatelessWidget {
                     );
                   },
                   children: [
+                    if (onNotes != null)
+                      M3EMenuSelectable(
+                        value: 'notes',
+                        label: 'Notes & Attachments',
+                        leading: const Icon(Icons.description_outlined),
+                        onPressed: onNotes,
+                      ),
                     if (onEdit != null)
                       M3EMenuSelectable(
                         value: 'edit',

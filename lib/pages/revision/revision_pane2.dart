@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/revision_provider.dart';
 import '../../providers/task_provider.dart';
+import 'components/revision_notes_sheet.dart';
 import 'components/revision_topic_tile.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
@@ -93,6 +94,14 @@ class RevisionPane2 extends StatelessWidget {
                 topic: topic,
                 index: index,
                 canReorder: topics.length > 1,
+                onNotes: () {
+                  ZetaHaptics.light();
+                  RevisionNotesSheet.show(
+                    context,
+                    subject: selectedSubject,
+                    initialTopic: topic,
+                  );
+                },
                 onComplete: () {
                   ZetaHaptics.medium();
                   revProvider.completeTopic(topic.id, taskProvider);

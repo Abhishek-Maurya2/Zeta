@@ -111,6 +111,18 @@ class $TasksTableTable extends TasksTable
     requiredDuringInsert: false,
     defaultValue: const Constant('[]'),
   );
+  static const VerificationMeta _attachmentsJsonMeta = const VerificationMeta(
+    'attachmentsJson',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentsJson = GeneratedColumn<String>(
+    'attachments_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
     'createdAtMs',
   );
@@ -166,6 +178,7 @@ class $TasksTableTable extends TasksTable
     hasTime,
     dueTime,
     subtasksJson,
+    attachmentsJson,
     createdAtMs,
     updatedAtMs,
     deletedAtMs,
@@ -241,6 +254,15 @@ class $TasksTableTable extends TasksTable
         subtasksJson.isAcceptableOrUnknown(
           data['subtasks_json']!,
           _subtasksJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('attachments_json')) {
+      context.handle(
+        _attachmentsJsonMeta,
+        attachmentsJson.isAcceptableOrUnknown(
+          data['attachments_json']!,
+          _attachmentsJsonMeta,
         ),
       );
     }
@@ -329,6 +351,10 @@ class $TasksTableTable extends TasksTable
         DriftSqlType.string,
         data['${effectivePrefix}subtasks_json'],
       )!,
+      attachmentsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachments_json'],
+      )!,
       createdAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at_ms'],
@@ -364,6 +390,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   final bool hasTime;
   final String? dueTime;
   final String subtasksJson;
+  final String attachmentsJson;
   final int createdAtMs;
   final int updatedAtMs;
   final int? deletedAtMs;
@@ -378,6 +405,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     required this.hasTime,
     this.dueTime,
     required this.subtasksJson,
+    required this.attachmentsJson,
     required this.createdAtMs,
     required this.updatedAtMs,
     this.deletedAtMs,
@@ -403,6 +431,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       map['due_time'] = Variable<String>(dueTime);
     }
     map['subtasks_json'] = Variable<String>(subtasksJson);
+    map['attachments_json'] = Variable<String>(attachmentsJson);
     map['created_at_ms'] = Variable<int>(createdAtMs);
     map['updated_at_ms'] = Variable<int>(updatedAtMs);
     if (!nullToAbsent || deletedAtMs != null) {
@@ -433,6 +462,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           ? const Value.absent()
           : Value(dueTime),
       subtasksJson: Value(subtasksJson),
+      attachmentsJson: Value(attachmentsJson),
       createdAtMs: Value(createdAtMs),
       updatedAtMs: Value(updatedAtMs),
       deletedAtMs: deletedAtMs == null && nullToAbsent
@@ -459,6 +489,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       hasTime: serializer.fromJson<bool>(json['hasTime']),
       dueTime: serializer.fromJson<String?>(json['dueTime']),
       subtasksJson: serializer.fromJson<String>(json['subtasksJson']),
+      attachmentsJson: serializer.fromJson<String>(json['attachmentsJson']),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
       deletedAtMs: serializer.fromJson<int?>(json['deletedAtMs']),
@@ -478,6 +509,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       'hasTime': serializer.toJson<bool>(hasTime),
       'dueTime': serializer.toJson<String?>(dueTime),
       'subtasksJson': serializer.toJson<String>(subtasksJson),
+      'attachmentsJson': serializer.toJson<String>(attachmentsJson),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'updatedAtMs': serializer.toJson<int>(updatedAtMs),
       'deletedAtMs': serializer.toJson<int?>(deletedAtMs),
@@ -495,6 +527,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     bool? hasTime,
     Value<String?> dueTime = const Value.absent(),
     String? subtasksJson,
+    String? attachmentsJson,
     int? createdAtMs,
     int? updatedAtMs,
     Value<int?> deletedAtMs = const Value.absent(),
@@ -509,6 +542,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     hasTime: hasTime ?? this.hasTime,
     dueTime: dueTime.present ? dueTime.value : this.dueTime,
     subtasksJson: subtasksJson ?? this.subtasksJson,
+    attachmentsJson: attachmentsJson ?? this.attachmentsJson,
     createdAtMs: createdAtMs ?? this.createdAtMs,
     updatedAtMs: updatedAtMs ?? this.updatedAtMs,
     deletedAtMs: deletedAtMs.present ? deletedAtMs.value : this.deletedAtMs,
@@ -531,6 +565,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       subtasksJson: data.subtasksJson.present
           ? data.subtasksJson.value
           : this.subtasksJson,
+      attachmentsJson: data.attachmentsJson.present
+          ? data.attachmentsJson.value
+          : this.attachmentsJson,
       createdAtMs: data.createdAtMs.present
           ? data.createdAtMs.value
           : this.createdAtMs,
@@ -558,6 +595,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           ..write('hasTime: $hasTime, ')
           ..write('dueTime: $dueTime, ')
           ..write('subtasksJson: $subtasksJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
@@ -577,6 +615,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     hasTime,
     dueTime,
     subtasksJson,
+    attachmentsJson,
     createdAtMs,
     updatedAtMs,
     deletedAtMs,
@@ -595,6 +634,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           other.hasTime == this.hasTime &&
           other.dueTime == this.dueTime &&
           other.subtasksJson == this.subtasksJson &&
+          other.attachmentsJson == this.attachmentsJson &&
           other.createdAtMs == this.createdAtMs &&
           other.updatedAtMs == this.updatedAtMs &&
           other.deletedAtMs == this.deletedAtMs &&
@@ -611,6 +651,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
   final Value<bool> hasTime;
   final Value<String?> dueTime;
   final Value<String> subtasksJson;
+  final Value<String> attachmentsJson;
   final Value<int> createdAtMs;
   final Value<int> updatedAtMs;
   final Value<int?> deletedAtMs;
@@ -626,6 +667,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.hasTime = const Value.absent(),
     this.dueTime = const Value.absent(),
     this.subtasksJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
     this.deletedAtMs = const Value.absent(),
@@ -642,6 +684,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.hasTime = const Value.absent(),
     this.dueTime = const Value.absent(),
     this.subtasksJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     required int createdAtMs,
     required int updatedAtMs,
     this.deletedAtMs = const Value.absent(),
@@ -661,6 +704,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Expression<bool>? hasTime,
     Expression<String>? dueTime,
     Expression<String>? subtasksJson,
+    Expression<String>? attachmentsJson,
     Expression<int>? createdAtMs,
     Expression<int>? updatedAtMs,
     Expression<int>? deletedAtMs,
@@ -677,6 +721,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       if (hasTime != null) 'has_time': hasTime,
       if (dueTime != null) 'due_time': dueTime,
       if (subtasksJson != null) 'subtasks_json': subtasksJson,
+      if (attachmentsJson != null) 'attachments_json': attachmentsJson,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
       if (deletedAtMs != null) 'deleted_at_ms': deletedAtMs,
@@ -695,6 +740,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Value<bool>? hasTime,
     Value<String?>? dueTime,
     Value<String>? subtasksJson,
+    Value<String>? attachmentsJson,
     Value<int>? createdAtMs,
     Value<int>? updatedAtMs,
     Value<int?>? deletedAtMs,
@@ -711,6 +757,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       hasTime: hasTime ?? this.hasTime,
       dueTime: dueTime ?? this.dueTime,
       subtasksJson: subtasksJson ?? this.subtasksJson,
+      attachmentsJson: attachmentsJson ?? this.attachmentsJson,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
       deletedAtMs: deletedAtMs ?? this.deletedAtMs,
@@ -749,6 +796,9 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     if (subtasksJson.present) {
       map['subtasks_json'] = Variable<String>(subtasksJson.value);
     }
+    if (attachmentsJson.present) {
+      map['attachments_json'] = Variable<String>(attachmentsJson.value);
+    }
     if (createdAtMs.present) {
       map['created_at_ms'] = Variable<int>(createdAtMs.value);
     }
@@ -779,6 +829,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
           ..write('hasTime: $hasTime, ')
           ..write('dueTime: $dueTime, ')
           ..write('subtasksJson: $subtasksJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
@@ -1709,6 +1760,30 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
     requiredDuringInsert: false,
     defaultValue: const Constant(0xFF6750A4),
   );
+  static const VerificationMeta _notesJsonMeta = const VerificationMeta(
+    'notesJson',
+  );
+  @override
+  late final GeneratedColumn<String> notesJson = GeneratedColumn<String>(
+    'notes_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _attachmentsJsonMeta = const VerificationMeta(
+    'attachmentsJson',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentsJson = GeneratedColumn<String>(
+    'attachments_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
   static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
     'createdAtMs',
   );
@@ -1727,6 +1802,8 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
     name,
     iconName,
     colorValue,
+    notesJson,
+    attachmentsJson,
     createdAtMs,
   ];
   @override
@@ -1772,6 +1849,21 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
         colorValue.isAcceptableOrUnknown(data['color_value']!, _colorValueMeta),
       );
     }
+    if (data.containsKey('notes_json')) {
+      context.handle(
+        _notesJsonMeta,
+        notesJson.isAcceptableOrUnknown(data['notes_json']!, _notesJsonMeta),
+      );
+    }
+    if (data.containsKey('attachments_json')) {
+      context.handle(
+        _attachmentsJsonMeta,
+        attachmentsJson.isAcceptableOrUnknown(
+          data['attachments_json']!,
+          _attachmentsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at_ms')) {
       context.handle(
         _createdAtMsMeta,
@@ -1815,6 +1907,14 @@ class $RevisionSubjectsTableTable extends RevisionSubjectsTable
         DriftSqlType.int,
         data['${effectivePrefix}color_value'],
       )!,
+      notesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes_json'],
+      )!,
+      attachmentsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachments_json'],
+      )!,
       createdAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at_ms'],
@@ -1835,6 +1935,8 @@ class RevisionSubjectsTableData extends DataClass
   final String name;
   final String iconName;
   final int colorValue;
+  final String notesJson;
+  final String attachmentsJson;
   final int createdAtMs;
   const RevisionSubjectsTableData({
     required this.id,
@@ -1842,6 +1944,8 @@ class RevisionSubjectsTableData extends DataClass
     required this.name,
     required this.iconName,
     required this.colorValue,
+    required this.notesJson,
+    required this.attachmentsJson,
     required this.createdAtMs,
   });
   @override
@@ -1854,6 +1958,8 @@ class RevisionSubjectsTableData extends DataClass
     map['name'] = Variable<String>(name);
     map['icon_name'] = Variable<String>(iconName);
     map['color_value'] = Variable<int>(colorValue);
+    map['notes_json'] = Variable<String>(notesJson);
+    map['attachments_json'] = Variable<String>(attachmentsJson);
     map['created_at_ms'] = Variable<int>(createdAtMs);
     return map;
   }
@@ -1867,6 +1973,8 @@ class RevisionSubjectsTableData extends DataClass
       name: Value(name),
       iconName: Value(iconName),
       colorValue: Value(colorValue),
+      notesJson: Value(notesJson),
+      attachmentsJson: Value(attachmentsJson),
       createdAtMs: Value(createdAtMs),
     );
   }
@@ -1882,6 +1990,8 @@ class RevisionSubjectsTableData extends DataClass
       name: serializer.fromJson<String>(json['name']),
       iconName: serializer.fromJson<String>(json['iconName']),
       colorValue: serializer.fromJson<int>(json['colorValue']),
+      notesJson: serializer.fromJson<String>(json['notesJson']),
+      attachmentsJson: serializer.fromJson<String>(json['attachmentsJson']),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
     );
   }
@@ -1894,6 +2004,8 @@ class RevisionSubjectsTableData extends DataClass
       'name': serializer.toJson<String>(name),
       'iconName': serializer.toJson<String>(iconName),
       'colorValue': serializer.toJson<int>(colorValue),
+      'notesJson': serializer.toJson<String>(notesJson),
+      'attachmentsJson': serializer.toJson<String>(attachmentsJson),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
     };
   }
@@ -1904,6 +2016,8 @@ class RevisionSubjectsTableData extends DataClass
     String? name,
     String? iconName,
     int? colorValue,
+    String? notesJson,
+    String? attachmentsJson,
     int? createdAtMs,
   }) => RevisionSubjectsTableData(
     id: id ?? this.id,
@@ -1911,6 +2025,8 @@ class RevisionSubjectsTableData extends DataClass
     name: name ?? this.name,
     iconName: iconName ?? this.iconName,
     colorValue: colorValue ?? this.colorValue,
+    notesJson: notesJson ?? this.notesJson,
+    attachmentsJson: attachmentsJson ?? this.attachmentsJson,
     createdAtMs: createdAtMs ?? this.createdAtMs,
   );
   RevisionSubjectsTableData copyWithCompanion(
@@ -1924,6 +2040,10 @@ class RevisionSubjectsTableData extends DataClass
       colorValue: data.colorValue.present
           ? data.colorValue.value
           : this.colorValue,
+      notesJson: data.notesJson.present ? data.notesJson.value : this.notesJson,
+      attachmentsJson: data.attachmentsJson.present
+          ? data.attachmentsJson.value
+          : this.attachmentsJson,
       createdAtMs: data.createdAtMs.present
           ? data.createdAtMs.value
           : this.createdAtMs,
@@ -1938,14 +2058,24 @@ class RevisionSubjectsTableData extends DataClass
           ..write('name: $name, ')
           ..write('iconName: $iconName, ')
           ..write('colorValue: $colorValue, ')
+          ..write('notesJson: $notesJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, userId, name, iconName, colorValue, createdAtMs);
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    name,
+    iconName,
+    colorValue,
+    notesJson,
+    attachmentsJson,
+    createdAtMs,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1955,6 +2085,8 @@ class RevisionSubjectsTableData extends DataClass
           other.name == this.name &&
           other.iconName == this.iconName &&
           other.colorValue == this.colorValue &&
+          other.notesJson == this.notesJson &&
+          other.attachmentsJson == this.attachmentsJson &&
           other.createdAtMs == this.createdAtMs);
 }
 
@@ -1965,6 +2097,8 @@ class RevisionSubjectsTableCompanion
   final Value<String> name;
   final Value<String> iconName;
   final Value<int> colorValue;
+  final Value<String> notesJson;
+  final Value<String> attachmentsJson;
   final Value<int> createdAtMs;
   final Value<int> rowid;
   const RevisionSubjectsTableCompanion({
@@ -1973,6 +2107,8 @@ class RevisionSubjectsTableCompanion
     this.name = const Value.absent(),
     this.iconName = const Value.absent(),
     this.colorValue = const Value.absent(),
+    this.notesJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1982,6 +2118,8 @@ class RevisionSubjectsTableCompanion
     required String name,
     this.iconName = const Value.absent(),
     this.colorValue = const Value.absent(),
+    this.notesJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     required int createdAtMs,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1993,6 +2131,8 @@ class RevisionSubjectsTableCompanion
     Expression<String>? name,
     Expression<String>? iconName,
     Expression<int>? colorValue,
+    Expression<String>? notesJson,
+    Expression<String>? attachmentsJson,
     Expression<int>? createdAtMs,
     Expression<int>? rowid,
   }) {
@@ -2002,6 +2142,8 @@ class RevisionSubjectsTableCompanion
       if (name != null) 'name': name,
       if (iconName != null) 'icon_name': iconName,
       if (colorValue != null) 'color_value': colorValue,
+      if (notesJson != null) 'notes_json': notesJson,
+      if (attachmentsJson != null) 'attachments_json': attachmentsJson,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2013,6 +2155,8 @@ class RevisionSubjectsTableCompanion
     Value<String>? name,
     Value<String>? iconName,
     Value<int>? colorValue,
+    Value<String>? notesJson,
+    Value<String>? attachmentsJson,
     Value<int>? createdAtMs,
     Value<int>? rowid,
   }) {
@@ -2022,6 +2166,8 @@ class RevisionSubjectsTableCompanion
       name: name ?? this.name,
       iconName: iconName ?? this.iconName,
       colorValue: colorValue ?? this.colorValue,
+      notesJson: notesJson ?? this.notesJson,
+      attachmentsJson: attachmentsJson ?? this.attachmentsJson,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       rowid: rowid ?? this.rowid,
     );
@@ -2045,6 +2191,12 @@ class RevisionSubjectsTableCompanion
     if (colorValue.present) {
       map['color_value'] = Variable<int>(colorValue.value);
     }
+    if (notesJson.present) {
+      map['notes_json'] = Variable<String>(notesJson.value);
+    }
+    if (attachmentsJson.present) {
+      map['attachments_json'] = Variable<String>(attachmentsJson.value);
+    }
     if (createdAtMs.present) {
       map['created_at_ms'] = Variable<int>(createdAtMs.value);
     }
@@ -2062,6 +2214,8 @@ class RevisionSubjectsTableCompanion
           ..write('name: $name, ')
           ..write('iconName: $iconName, ')
           ..write('colorValue: $colorValue, ')
+          ..write('notesJson: $notesJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -2123,6 +2277,30 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _notesJsonMeta = const VerificationMeta(
+    'notesJson',
+  );
+  @override
+  late final GeneratedColumn<String> notesJson = GeneratedColumn<String>(
+    'notes_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('{}'),
+  );
+  static const VerificationMeta _attachmentsJsonMeta = const VerificationMeta(
+    'attachmentsJson',
+  );
+  @override
+  late final GeneratedColumn<String> attachmentsJson = GeneratedColumn<String>(
+    'attachments_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
   );
   static const VerificationMeta _isCompletedMeta = const VerificationMeta(
     'isCompleted',
@@ -2202,6 +2380,8 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
     subjectId,
     title,
     description,
+    notesJson,
+    attachmentsJson,
     isCompleted,
     revisionStage,
     lastRevisedAtMs,
@@ -2254,6 +2434,21 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
         description.isAcceptableOrUnknown(
           data['description']!,
           _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('notes_json')) {
+      context.handle(
+        _notesJsonMeta,
+        notesJson.isAcceptableOrUnknown(data['notes_json']!, _notesJsonMeta),
+      );
+    }
+    if (data.containsKey('attachments_json')) {
+      context.handle(
+        _attachmentsJsonMeta,
+        attachmentsJson.isAcceptableOrUnknown(
+          data['attachments_json']!,
+          _attachmentsJsonMeta,
         ),
       );
     }
@@ -2340,6 +2535,14 @@ class $RevisionTopicsTableTable extends RevisionTopicsTable
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      notesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes_json'],
+      )!,
+      attachmentsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}attachments_json'],
+      )!,
       isCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_completed'],
@@ -2380,6 +2583,8 @@ class RevisionTopicsTableData extends DataClass
   final String subjectId;
   final String title;
   final String? description;
+  final String notesJson;
+  final String attachmentsJson;
   final bool isCompleted;
   final int revisionStage;
   final int? lastRevisedAtMs;
@@ -2392,6 +2597,8 @@ class RevisionTopicsTableData extends DataClass
     required this.subjectId,
     required this.title,
     this.description,
+    required this.notesJson,
+    required this.attachmentsJson,
     required this.isCompleted,
     required this.revisionStage,
     this.lastRevisedAtMs,
@@ -2411,6 +2618,8 @@ class RevisionTopicsTableData extends DataClass
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
     }
+    map['notes_json'] = Variable<String>(notesJson);
+    map['attachments_json'] = Variable<String>(attachmentsJson);
     map['is_completed'] = Variable<bool>(isCompleted);
     map['revision_stage'] = Variable<int>(revisionStage);
     if (!nullToAbsent || lastRevisedAtMs != null) {
@@ -2437,6 +2646,8 @@ class RevisionTopicsTableData extends DataClass
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      notesJson: Value(notesJson),
+      attachmentsJson: Value(attachmentsJson),
       isCompleted: Value(isCompleted),
       revisionStage: Value(revisionStage),
       lastRevisedAtMs: lastRevisedAtMs == null && nullToAbsent
@@ -2463,6 +2674,8 @@ class RevisionTopicsTableData extends DataClass
       subjectId: serializer.fromJson<String>(json['subjectId']),
       title: serializer.fromJson<String>(json['title']),
       description: serializer.fromJson<String?>(json['description']),
+      notesJson: serializer.fromJson<String>(json['notesJson']),
+      attachmentsJson: serializer.fromJson<String>(json['attachmentsJson']),
       isCompleted: serializer.fromJson<bool>(json['isCompleted']),
       revisionStage: serializer.fromJson<int>(json['revisionStage']),
       lastRevisedAtMs: serializer.fromJson<int?>(json['lastRevisedAtMs']),
@@ -2480,6 +2693,8 @@ class RevisionTopicsTableData extends DataClass
       'subjectId': serializer.toJson<String>(subjectId),
       'title': serializer.toJson<String>(title),
       'description': serializer.toJson<String?>(description),
+      'notesJson': serializer.toJson<String>(notesJson),
+      'attachmentsJson': serializer.toJson<String>(attachmentsJson),
       'isCompleted': serializer.toJson<bool>(isCompleted),
       'revisionStage': serializer.toJson<int>(revisionStage),
       'lastRevisedAtMs': serializer.toJson<int?>(lastRevisedAtMs),
@@ -2495,6 +2710,8 @@ class RevisionTopicsTableData extends DataClass
     String? subjectId,
     String? title,
     Value<String?> description = const Value.absent(),
+    String? notesJson,
+    String? attachmentsJson,
     bool? isCompleted,
     int? revisionStage,
     Value<int?> lastRevisedAtMs = const Value.absent(),
@@ -2507,6 +2724,8 @@ class RevisionTopicsTableData extends DataClass
     subjectId: subjectId ?? this.subjectId,
     title: title ?? this.title,
     description: description.present ? description.value : this.description,
+    notesJson: notesJson ?? this.notesJson,
+    attachmentsJson: attachmentsJson ?? this.attachmentsJson,
     isCompleted: isCompleted ?? this.isCompleted,
     revisionStage: revisionStage ?? this.revisionStage,
     lastRevisedAtMs: lastRevisedAtMs.present
@@ -2529,6 +2748,10 @@ class RevisionTopicsTableData extends DataClass
       description: data.description.present
           ? data.description.value
           : this.description,
+      notesJson: data.notesJson.present ? data.notesJson.value : this.notesJson,
+      attachmentsJson: data.attachmentsJson.present
+          ? data.attachmentsJson.value
+          : this.attachmentsJson,
       isCompleted: data.isCompleted.present
           ? data.isCompleted.value
           : this.isCompleted,
@@ -2556,6 +2779,8 @@ class RevisionTopicsTableData extends DataClass
           ..write('subjectId: $subjectId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
+          ..write('notesJson: $notesJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('revisionStage: $revisionStage, ')
           ..write('lastRevisedAtMs: $lastRevisedAtMs, ')
@@ -2573,6 +2798,8 @@ class RevisionTopicsTableData extends DataClass
     subjectId,
     title,
     description,
+    notesJson,
+    attachmentsJson,
     isCompleted,
     revisionStage,
     lastRevisedAtMs,
@@ -2589,6 +2816,8 @@ class RevisionTopicsTableData extends DataClass
           other.subjectId == this.subjectId &&
           other.title == this.title &&
           other.description == this.description &&
+          other.notesJson == this.notesJson &&
+          other.attachmentsJson == this.attachmentsJson &&
           other.isCompleted == this.isCompleted &&
           other.revisionStage == this.revisionStage &&
           other.lastRevisedAtMs == this.lastRevisedAtMs &&
@@ -2604,6 +2833,8 @@ class RevisionTopicsTableCompanion
   final Value<String> subjectId;
   final Value<String> title;
   final Value<String?> description;
+  final Value<String> notesJson;
+  final Value<String> attachmentsJson;
   final Value<bool> isCompleted;
   final Value<int> revisionStage;
   final Value<int?> lastRevisedAtMs;
@@ -2617,6 +2848,8 @@ class RevisionTopicsTableCompanion
     this.subjectId = const Value.absent(),
     this.title = const Value.absent(),
     this.description = const Value.absent(),
+    this.notesJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.revisionStage = const Value.absent(),
     this.lastRevisedAtMs = const Value.absent(),
@@ -2631,6 +2864,8 @@ class RevisionTopicsTableCompanion
     required String subjectId,
     required String title,
     this.description = const Value.absent(),
+    this.notesJson = const Value.absent(),
+    this.attachmentsJson = const Value.absent(),
     this.isCompleted = const Value.absent(),
     this.revisionStage = const Value.absent(),
     this.lastRevisedAtMs = const Value.absent(),
@@ -2647,6 +2882,8 @@ class RevisionTopicsTableCompanion
     Expression<String>? subjectId,
     Expression<String>? title,
     Expression<String>? description,
+    Expression<String>? notesJson,
+    Expression<String>? attachmentsJson,
     Expression<bool>? isCompleted,
     Expression<int>? revisionStage,
     Expression<int>? lastRevisedAtMs,
@@ -2661,6 +2898,8 @@ class RevisionTopicsTableCompanion
       if (subjectId != null) 'subject_id': subjectId,
       if (title != null) 'title': title,
       if (description != null) 'description': description,
+      if (notesJson != null) 'notes_json': notesJson,
+      if (attachmentsJson != null) 'attachments_json': attachmentsJson,
       if (isCompleted != null) 'is_completed': isCompleted,
       if (revisionStage != null) 'revision_stage': revisionStage,
       if (lastRevisedAtMs != null) 'last_revised_at_ms': lastRevisedAtMs,
@@ -2678,6 +2917,8 @@ class RevisionTopicsTableCompanion
     Value<String>? subjectId,
     Value<String>? title,
     Value<String?>? description,
+    Value<String>? notesJson,
+    Value<String>? attachmentsJson,
     Value<bool>? isCompleted,
     Value<int>? revisionStage,
     Value<int?>? lastRevisedAtMs,
@@ -2692,6 +2933,8 @@ class RevisionTopicsTableCompanion
       subjectId: subjectId ?? this.subjectId,
       title: title ?? this.title,
       description: description ?? this.description,
+      notesJson: notesJson ?? this.notesJson,
+      attachmentsJson: attachmentsJson ?? this.attachmentsJson,
       isCompleted: isCompleted ?? this.isCompleted,
       revisionStage: revisionStage ?? this.revisionStage,
       lastRevisedAtMs: lastRevisedAtMs ?? this.lastRevisedAtMs,
@@ -2719,6 +2962,12 @@ class RevisionTopicsTableCompanion
     }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (notesJson.present) {
+      map['notes_json'] = Variable<String>(notesJson.value);
+    }
+    if (attachmentsJson.present) {
+      map['attachments_json'] = Variable<String>(attachmentsJson.value);
     }
     if (isCompleted.present) {
       map['is_completed'] = Variable<bool>(isCompleted.value);
@@ -2752,6 +3001,8 @@ class RevisionTopicsTableCompanion
           ..write('subjectId: $subjectId, ')
           ..write('title: $title, ')
           ..write('description: $description, ')
+          ..write('notesJson: $notesJson, ')
+          ..write('attachmentsJson: $attachmentsJson, ')
           ..write('isCompleted: $isCompleted, ')
           ..write('revisionStage: $revisionStage, ')
           ..write('lastRevisedAtMs: $lastRevisedAtMs, ')
@@ -2798,6 +3049,7 @@ typedef $$TasksTableTableCreateCompanionBuilder = TasksTableCompanion Function({
   Value<bool> hasTime,
   Value<String?> dueTime,
   Value<String> subtasksJson,
+  Value<String> attachmentsJson,
   required int createdAtMs,
   required int updatedAtMs,
   Value<int?> deletedAtMs,
@@ -2814,6 +3066,7 @@ typedef $$TasksTableTableUpdateCompanionBuilder = TasksTableCompanion Function({
   Value<bool> hasTime,
   Value<String?> dueTime,
   Value<String> subtasksJson,
+  Value<String> attachmentsJson,
   Value<int> createdAtMs,
   Value<int> updatedAtMs,
   Value<int?> deletedAtMs,
@@ -2872,6 +3125,11 @@ class $$TasksTableTableFilterComposer
 
   ColumnFilters<String> get subtasksJson => $composableBuilder(
     column: $table.subtasksJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2950,6 +3208,11 @@ class $$TasksTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -3008,6 +3271,11 @@ class $$TasksTableTableAnnotationComposer
 
   GeneratedColumn<String> get subtasksJson => $composableBuilder(
     column: $table.subtasksJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => column,
   );
 
@@ -3072,6 +3340,7 @@ class $$TasksTableTableTableManager
                 Value<bool> hasTime = const Value.absent(),
                 Value<String?> dueTime = const Value.absent(),
                 Value<String> subtasksJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> updatedAtMs = const Value.absent(),
                 Value<int?> deletedAtMs = const Value.absent(),
@@ -3087,6 +3356,7 @@ class $$TasksTableTableTableManager
                 hasTime: hasTime,
                 dueTime: dueTime,
                 subtasksJson: subtasksJson,
+                attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 deletedAtMs: deletedAtMs,
@@ -3104,6 +3374,7 @@ class $$TasksTableTableTableManager
                 Value<bool> hasTime = const Value.absent(),
                 Value<String?> dueTime = const Value.absent(),
                 Value<String> subtasksJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 required int createdAtMs,
                 required int updatedAtMs,
                 Value<int?> deletedAtMs = const Value.absent(),
@@ -3119,6 +3390,7 @@ class $$TasksTableTableTableManager
                 hasTime: hasTime,
                 dueTime: dueTime,
                 subtasksJson: subtasksJson,
+                attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
                 deletedAtMs: deletedAtMs,
@@ -3660,6 +3932,8 @@ typedef $$RevisionSubjectsTableTableCreateCompanionBuilder =
       required String name,
       Value<String> iconName,
       Value<int> colorValue,
+      Value<String> notesJson,
+      Value<String> attachmentsJson,
       required int createdAtMs,
       Value<int> rowid,
     });
@@ -3670,6 +3944,8 @@ typedef $$RevisionSubjectsTableTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String> iconName,
       Value<int> colorValue,
+      Value<String> notesJson,
+      Value<String> attachmentsJson,
       Value<int> createdAtMs,
       Value<int> rowid,
     });
@@ -3705,6 +3981,16 @@ class $$RevisionSubjectsTableTableFilterComposer
 
   ColumnFilters<int> get colorValue => $composableBuilder(
     column: $table.colorValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notesJson => $composableBuilder(
+    column: $table.notesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3748,6 +4034,16 @@ class $$RevisionSubjectsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get notesJson => $composableBuilder(
+    column: $table.notesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAtMs => $composableBuilder(
     column: $table.createdAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -3777,6 +4073,14 @@ class $$RevisionSubjectsTableTableAnnotationComposer
 
   GeneratedColumn<int> get colorValue => $composableBuilder(
     column: $table.colorValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notesJson =>
+      $composableBuilder(column: $table.notesJson, builder: (column) => column);
+
+  GeneratedColumn<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => column,
   );
 
@@ -3837,6 +4141,8 @@ class $$RevisionSubjectsTableTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String> iconName = const Value.absent(),
                 Value<int> colorValue = const Value.absent(),
+                Value<String> notesJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RevisionSubjectsTableCompanion(
@@ -3845,6 +4151,8 @@ class $$RevisionSubjectsTableTableTableManager
                 name: name,
                 iconName: iconName,
                 colorValue: colorValue,
+                notesJson: notesJson,
+                attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 rowid: rowid,
               ),
@@ -3855,6 +4163,8 @@ class $$RevisionSubjectsTableTableTableManager
                 required String name,
                 Value<String> iconName = const Value.absent(),
                 Value<int> colorValue = const Value.absent(),
+                Value<String> notesJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 required int createdAtMs,
                 Value<int> rowid = const Value.absent(),
               }) => RevisionSubjectsTableCompanion.insert(
@@ -3863,6 +4173,8 @@ class $$RevisionSubjectsTableTableTableManager
                 name: name,
                 iconName: iconName,
                 colorValue: colorValue,
+                notesJson: notesJson,
+                attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 rowid: rowid,
               ),
@@ -3914,6 +4226,8 @@ typedef $$RevisionTopicsTableTableCreateCompanionBuilder =
       required String subjectId,
       required String title,
       Value<String?> description,
+      Value<String> notesJson,
+      Value<String> attachmentsJson,
       Value<bool> isCompleted,
       Value<int> revisionStage,
       Value<int?> lastRevisedAtMs,
@@ -3929,6 +4243,8 @@ typedef $$RevisionTopicsTableTableUpdateCompanionBuilder =
       Value<String> subjectId,
       Value<String> title,
       Value<String?> description,
+      Value<String> notesJson,
+      Value<String> attachmentsJson,
       Value<bool> isCompleted,
       Value<int> revisionStage,
       Value<int?> lastRevisedAtMs,
@@ -3969,6 +4285,16 @@ class $$RevisionTopicsTableTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notesJson => $composableBuilder(
+    column: $table.notesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4037,6 +4363,16 @@ class $$RevisionTopicsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get notesJson => $composableBuilder(
+    column: $table.notesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isCompleted => $composableBuilder(
     column: $table.isCompleted,
     builder: (column) => ColumnOrderings(column),
@@ -4091,6 +4427,14 @@ class $$RevisionTopicsTableTableAnnotationComposer
 
   GeneratedColumn<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notesJson =>
+      $composableBuilder(column: $table.notesJson, builder: (column) => column);
+
+  GeneratedColumn<String> get attachmentsJson => $composableBuilder(
+    column: $table.attachmentsJson,
     builder: (column) => column,
   );
 
@@ -4171,6 +4515,8 @@ class $$RevisionTopicsTableTableTableManager
                 Value<String> subjectId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<String> notesJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
                 Value<int> revisionStage = const Value.absent(),
                 Value<int?> lastRevisedAtMs = const Value.absent(),
@@ -4184,6 +4530,8 @@ class $$RevisionTopicsTableTableTableManager
                 subjectId: subjectId,
                 title: title,
                 description: description,
+                notesJson: notesJson,
+                attachmentsJson: attachmentsJson,
                 isCompleted: isCompleted,
                 revisionStage: revisionStage,
                 lastRevisedAtMs: lastRevisedAtMs,
@@ -4199,6 +4547,8 @@ class $$RevisionTopicsTableTableTableManager
                 required String subjectId,
                 required String title,
                 Value<String?> description = const Value.absent(),
+                Value<String> notesJson = const Value.absent(),
+                Value<String> attachmentsJson = const Value.absent(),
                 Value<bool> isCompleted = const Value.absent(),
                 Value<int> revisionStage = const Value.absent(),
                 Value<int?> lastRevisedAtMs = const Value.absent(),
@@ -4212,6 +4562,8 @@ class $$RevisionTopicsTableTableTableManager
                 subjectId: subjectId,
                 title: title,
                 description: description,
+                notesJson: notesJson,
+                attachmentsJson: attachmentsJson,
                 isCompleted: isCompleted,
                 revisionStage: revisionStage,
                 lastRevisedAtMs: lastRevisedAtMs,

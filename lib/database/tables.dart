@@ -14,6 +14,7 @@ class TasksTable extends Table {
   BoolColumn get hasTime => boolean().withDefault(const Constant(false))();
   TextColumn get dueTime => text().nullable()();
   TextColumn get subtasksJson => text().withDefault(const Constant('[]'))();
+  TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
   IntColumn get createdAtMs => integer()();
   IntColumn get updatedAtMs => integer()();
   IntColumn get deletedAtMs => integer().nullable()();
@@ -67,6 +68,8 @@ class RevisionSubjectsTable extends Table {
       text().withDefault(const Constant('menu_book_rounded'))();
   IntColumn get colorValue =>
       integer().withDefault(const Constant(0xFF6750A4))();
+  TextColumn get notesJson => text().withDefault(const Constant('{}'))();
+  TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
   IntColumn get createdAtMs => integer()();
 
   @override
@@ -83,6 +86,8 @@ class RevisionTopicsTable extends Table {
   TextColumn get subjectId => text()();
   TextColumn get title => text()();
   TextColumn get description => text().nullable()();
+  TextColumn get notesJson => text().withDefault(const Constant('{}'))();
+  TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
   IntColumn get revisionStage => integer().withDefault(const Constant(0))();
   IntColumn get lastRevisedAtMs => integer().nullable()();

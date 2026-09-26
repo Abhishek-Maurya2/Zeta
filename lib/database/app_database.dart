@@ -5,6 +5,8 @@ import 'package:drift/drift.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
 import '../models/revision.dart';
+import '../models/attachment.dart';
+import '../models/note_item.dart';
 import 'connection/connection.dart';
 import 'tables.dart';
 import 'account_scope.dart';
@@ -29,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +107,29 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_sync_outbox_account_order ON sync_outbox (user_id, created_at_ms);',
         );
       }
+      if (from < 8) {
+        await _safeAddColumn(m, tasksTable, tasksTable.attachmentsJson);
+        await _safeAddColumn(
+          m,
+          revisionSubjectsTable,
+          revisionSubjectsTable.notesJson,
+        );
+        await _safeAddColumn(
+          m,
+          revisionSubjectsTable,
+          revisionSubjectsTable.attachmentsJson,
+        );
+        await _safeAddColumn(
+          m,
+          revisionTopicsTable,
+          revisionTopicsTable.notesJson,
+        );
+        await _safeAddColumn(
+          m,
+          revisionTopicsTable,
+          revisionTopicsTable.attachmentsJson,
+        );
+      }
     },
   );
 
@@ -150,6 +175,14 @@ class AppDatabase extends _$AppDatabase {
     final subtasks = (jsonDecode(row.subtasksJson) as List<dynamic>)
         .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
         .toList();
+
+    List<AttachmentItem> attachments = [];
+    try {
+      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+          .toList();
+    } catch (_) {}
+
     return Task(
       id: row.id,
       userId: row.userId,
@@ -160,6 +193,7 @@ class AppDatabase extends _$AppDatabase {
       hasTime: row.hasTime,
       dueTime: row.dueTime,
       subtasks: subtasks,
+      attachments: attachments,
       createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtMs),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(row.updatedAtMs),
       deletedAt: row.deletedAtMs != null
@@ -184,6 +218,9 @@ class AppDatabase extends _$AppDatabase {
       dueTime: Value(t.dueTime),
       subtasksJson: Value(
         jsonEncode(t.subtasks.map((s) => s.toJson()).toList()),
+      ),
+      attachmentsJson: Value(
+        jsonEncode(t.attachments.map((a) => a.toJson()).toList()),
       ),
       createdAtMs: Value(t.createdAt.millisecondsSinceEpoch),
       updatedAtMs: Value(t.updatedAt.millisecondsSinceEpoch),
@@ -224,11 +261,28 @@ class AppDatabase extends _$AppDatabase {
   // ─── Revision helpers ───────────────────────────────────────────────────────
 
   static Subject rowToSubject(RevisionSubjectsTableData row) {
+    NoteItem? note;
+    try {
+      final decoded = jsonDecode(row.notesJson);
+      if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
+        note = NoteItem.fromJson(decoded);
+      }
+    } catch (_) {}
+
+    List<AttachmentItem> attachments = [];
+    try {
+      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+          .toList();
+    } catch (_) {}
+
     return Subject(
       id: row.id,
       name: row.name,
       iconName: row.iconName,
       colorValue: row.colorValue,
+      note: note,
+      attachments: attachments,
       createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtMs),
     );
   }
@@ -240,11 +294,30 @@ class AppDatabase extends _$AppDatabase {
       name: Value(s.name),
       iconName: Value(s.iconName),
       colorValue: Value(s.colorValue),
+      notesJson: Value(s.note != null ? jsonEncode(s.note!.toJson()) : '{}'),
+      attachmentsJson: Value(
+        jsonEncode(s.attachments.map((a) => a.toJson()).toList()),
+      ),
       createdAtMs: Value(s.createdAt.millisecondsSinceEpoch),
     );
   }
 
   static ChapterTopic rowToTopic(RevisionTopicsTableData row) {
+    NoteItem? note;
+    try {
+      final decoded = jsonDecode(row.notesJson);
+      if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
+        note = NoteItem.fromJson(decoded);
+      }
+    } catch (_) {}
+
+    List<AttachmentItem> attachments = [];
+    try {
+      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+          .toList();
+    } catch (_) {}
+
     return ChapterTopic(
       id: row.id,
       subjectId: row.subjectId,
@@ -260,6 +333,8 @@ class AppDatabase extends _$AppDatabase {
           : null,
       associatedTaskId: row.associatedTaskId,
       sortOrder: row.sortOrder,
+      note: note,
+      attachments: attachments,
     );
   }
 
@@ -270,6 +345,10 @@ class AppDatabase extends _$AppDatabase {
       subjectId: Value(t.subjectId),
       title: Value(t.title),
       description: Value(t.description),
+      notesJson: Value(t.note != null ? jsonEncode(t.note!.toJson()) : '{}'),
+      attachmentsJson: Value(
+        jsonEncode(t.attachments.map((a) => a.toJson()).toList()),
+      ),
       isCompleted: Value(t.isCompleted),
       revisionStage: Value(t.revisionStage),
       lastRevisedAtMs: Value(t.lastRevisedAt?.millisecondsSinceEpoch),

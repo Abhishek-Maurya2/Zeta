@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
+import '../models/attachment.dart';
 import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../services/notification_service.dart';
@@ -702,6 +703,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool hasTime = false,
     String? dueTime,
     List<Subtask>? subtasks,
+    List<AttachmentItem>? attachments,
   }) async {
     final newTask = Task(
       id: const Uuid().v4(),
@@ -711,6 +713,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       hasTime: hasTime,
       dueTime: dueTime,
       subtasks: subtasks ?? [],
+      attachments: attachments ?? [],
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -731,6 +734,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool hasTime = false,
     String? dueTime,
     List<Subtask>? subtasks,
+    List<AttachmentItem>? attachments,
     bool? completed,
   }) {
     final index = _tasks.indexWhere((t) => t.id == id);
@@ -743,6 +747,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.dueTime = dueTime;
       task.updatedAt = DateTime.now();
       if (subtasks != null) task.subtasks = subtasks;
+      if (attachments != null) task.attachments = attachments;
       if (completed != null) task.completed = completed;
       _invalidateCache();
       notifyListeners();

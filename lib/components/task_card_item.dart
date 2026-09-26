@@ -5,6 +5,7 @@ import '../models/task.dart';
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import '../utils/haptics.dart';
+import 'attachment_chip.dart';
 import 'standard_chips.dart';
 import 'task_subtasks_list.dart';
 
@@ -151,6 +152,7 @@ class TaskCardItem extends StatelessWidget {
                   task.dueDate != null ||
                   hasSubtasks ||
                   revisionInfo.isRevision ||
+                  task.attachments.isNotEmpty ||
                   (extraChips != null && extraChips!.isNotEmpty)) ...[
                 const SizedBox(height: 15),
                 Padding(
@@ -177,6 +179,8 @@ class TaskCardItem extends StatelessWidget {
                             isExpanded: isExpanded,
                             onToggleExpand: isDeleted ? null : onToggleExpand,
                           ),
+                        for (final attachment in task.attachments)
+                          AttachmentChip(attachment: attachment),
                         ...?extraChips,
                       ],
                     ),

@@ -6,12 +6,15 @@ import 'package:provider/provider.dart';
 
 import 'segmented_column.dart';
 import '../models/task.dart';
+import '../models/attachment.dart';
 import '../providers/task_provider.dart';
 import '../services/cross_device_service.dart';
 import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
 import '../theme/success_colors.dart';
+import 'add_attachment_dialog.dart';
+import 'attachment_chip.dart';
 
 /// Modal pane / dialog for creating or editing a task.
 ///
@@ -32,6 +35,7 @@ class TaskEditPane {
     String? initialDueTime,
     bool? initialHasTime,
     List<Subtask>? initialSubtasks,
+    List<AttachmentItem>? initialAttachments,
   }) {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
@@ -107,6 +111,7 @@ class TaskEditPane {
                             initialDueTime: initialDueTime,
                             initialHasTime: initialHasTime,
                             initialSubtasks: initialSubtasks,
+                            initialAttachments: initialAttachments,
                             onClose: () => Navigator.of(ctx).pop(),
                           ),
                         ),
@@ -144,6 +149,7 @@ class TaskEditFormContent extends StatefulWidget {
   final String? initialDueTime;
   final bool? initialHasTime;
   final List<Subtask>? initialSubtasks;
+  final List<AttachmentItem>? initialAttachments;
   final VoidCallback? onClose;
   const TaskEditFormContent({
     super.key,
@@ -154,6 +160,7 @@ class TaskEditFormContent extends StatefulWidget {
     this.initialDueTime,
     this.initialHasTime,
     this.initialSubtasks,
+    this.initialAttachments,
     this.onClose,
   });
 
@@ -173,6 +180,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   bool _hasTime = false;
   String? _dueTime;
   late List<Subtask> _subtasks;
+  late List<AttachmentItem> _attachments;
   String? _errorMessage;
 
   bool get isEditing => widget.task != null;
@@ -200,6 +208,9 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     _subtasks = widget.initialSubtasks != null
         ? widget.initialSubtasks!.map((s) => s.copyWith()).toList()
         : widget.task?.subtasks.map((s) => s.copyWith()).toList() ?? [];
+    _attachments = widget.initialAttachments != null
+        ? widget.initialAttachments!.map((a) => a.copyWith()).toList()
+        : widget.task?.attachments.map((a) => a.copyWith()).toList() ?? [];
 
     _titleController.addListener(_syncDraft);
     _descController.addListener(_syncDraft);
@@ -441,6 +452,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         hasTime: _hasTime,
         dueTime: _hasTime ? _dueTime : null,
         subtasks: _subtasks,
+        attachments: _attachments,
       );
     } else {
       provider.addTask(
@@ -450,6 +462,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         hasTime: _hasTime,
         dueTime: _hasTime ? _dueTime : null,
         subtasks: _subtasks,
+        attachments: _attachments,
       );
     }
 
@@ -950,6 +963,75 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             focusedBorder: InputBorder.none,
                             contentPadding: EdgeInsets.zero,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 2.5 Attachments
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Icon(
+                          Icons.attach_file_rounded,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Attachments',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                ),
+                                M3EButton.icon(
+                                  onPressed: () async {
+                                    ZetaHaptics.light();
+                                    final item = await AddAttachmentDialog.show(context);
+                                    if (item != null) {
+                                      setState(() {
+                                        _attachments.add(item);
+                                      });
+                                    }
+                                  },
+                                  label: const Text('Add Link'),
+                                  icon: const Icon(Icons.add_link_rounded, size: 16),
+                                  size: M3EButtonSize.sm,
+                                  style: M3EButtonStyle.tonal,
+                                ),
+                              ],
+                            ),
+                            if (_attachments.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: _attachments.map((att) {
+                                  return AttachmentChip(
+                                    attachment: att,
+                                    onDelete: () {
+                                      setState(() {
+                                        _attachments.removeWhere((a) => a.id == att.id);
+                                      });
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                     ],

@@ -11,6 +11,7 @@ class RevisionSubjectCard extends StatelessWidget {
   final int completedTopics;
   final int dueCount;
   final VoidCallback? onTap;
+  final VoidCallback? onNotes;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
@@ -22,6 +23,7 @@ class RevisionSubjectCard extends StatelessWidget {
     required this.completedTopics,
     required this.dueCount,
     this.onTap,
+    this.onNotes,
     this.onEdit,
     this.onDelete,
   });
@@ -80,18 +82,36 @@ class RevisionSubjectCard extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        subject.name,
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w600,
-                          color: isSelected
-                              ? colorScheme.onSecondaryContainer
-                              : colorScheme.onSurface,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              subject.name,
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? colorScheme.onSecondaryContainer
+                                    : colorScheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (subject.note?.isNotEmpty == true ||
+                              subject.attachments.isNotEmpty) ...[
+                            const SizedBox(width: 6),
+                            Icon(
+                              Icons.description_outlined,
+                              size: 15,
+                              color: isSelected
+                                  ? colorScheme.onSecondaryContainer.withValues(alpha: 0.7)
+                                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                     if (dueCount > 0)
@@ -135,7 +155,7 @@ class RevisionSubjectCard extends StatelessWidget {
             ),
           ),
 
-          if (onEdit != null || onDelete != null) ...[
+          if (onNotes != null || onEdit != null || onDelete != null) ...[
             GlassM3EMenu(
               position: M3EMenuAnchorPosition.bottomEnd,
               colorStyle: M3EMenuColorStyle.vibrant,
@@ -148,6 +168,13 @@ class RevisionSubjectCard extends StatelessWidget {
                 );
               },
               children: [
+                if (onNotes != null)
+                  M3EMenuSelectable(
+                    value: 'notes',
+                    label: 'Notes & Attachments',
+                    leading: const Icon(Icons.description_outlined),
+                    onPressed: onNotes,
+                  ),
                 if (onEdit != null)
                   M3EMenuSelectable(
                     value: 'edit',
