@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -82,6 +83,30 @@ class UserAvatar extends StatelessWidget {
 
     Widget avatarContent() {
       if (hasPhoto && photo != null) {
+        if (!kIsWeb &&
+            (photo.startsWith('/') ||
+                photo.contains(r':\') ||
+                photo.contains(r':/') ||
+                photo.startsWith('file:'))) {
+          final filePath = photo.startsWith('file://')
+              ? photo.replaceFirst('file://', '')
+              : photo;
+          final file = File(filePath);
+          if (file.existsSync()) {
+            return Image.file(
+              file,
+              key: ValueKey(
+                '${file.path}_${file.lastModifiedSync().millisecondsSinceEpoch}',
+              ),
+              width: diameter,
+              height: diameter,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.medium,
+              errorBuilder: (context, error, stackTrace) => fallbackInitial(),
+            );
+          }
+        }
         if (photo.startsWith('http://') || photo.startsWith('https://')) {
           return Image.network(
             photo,

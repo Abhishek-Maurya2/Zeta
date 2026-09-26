@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
@@ -22,12 +21,23 @@ class ProfileProvider extends ChangeNotifier {
 
   ProfileProvider({ProfileRepository? repository})
     : _repository = repository ?? ProfileRepository() {
+    _initFromCache();
     _networkSubscription = NetworkService().onConnectivityChanged.listen((
       online,
     ) {
       if (online) unawaited(syncProfileWithDb());
     });
     unawaited(_loadProfile());
+  }
+
+  void _initFromCache() {
+    final cached = _repository.getCachedProfile();
+    final name = cached['display_name'];
+    final email = cached['email'];
+    final photo = cached['avatar_image'];
+    if (name != null && name.trim().isNotEmpty) _userName = name.trim();
+    if (email != null && email.trim().isNotEmpty) _userEmail = email.trim();
+    if (photo != null && photo.trim().isNotEmpty) _avatarPhoto = photo.trim();
   }
 
   String get userName => _userName;
@@ -51,13 +61,11 @@ class ProfileProvider extends ChangeNotifier {
 
   Future<void> uploadAvatar(Uint8List bytes, {String extension = 'png'}) async {
     if (bytes.isEmpty) return;
-    final contentType = switch (extension.toLowerCase()) {
-      'jpg' || 'jpeg' => 'image/jpeg',
-      'webp' => 'image/webp',
-      'gif' => 'image/gif',
-      _ => 'image/png',
-    };
-    _avatarPhoto = 'data:$contentType;base64,${base64Encode(bytes)}';
+    final localPath = await _repository.saveAvatarLocally(
+      bytes: bytes,
+      extension: extension,
+    );
+    _avatarPhoto = localPath;
     notifyListeners();
     await _persistAndSync();
   }
@@ -65,6 +73,7 @@ class ProfileProvider extends ChangeNotifier {
   Future<void> clearAvatarPhoto() async {
     if (!hasAvatarPhoto) return;
     _avatarPhoto = null;
+    await _repository.clearAvatarLocally();
     notifyListeners();
     await _persistAndSync();
   }

@@ -122,7 +122,6 @@ class _TasksCompletedPaginatedListState
     final totalTasks = widget.tasks.length;
     final hasMore = totalTasks > _displayedCount;
     final visibleTasks = widget.tasks.take(_displayedCount).toList();
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
