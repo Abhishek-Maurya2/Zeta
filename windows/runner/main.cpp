@@ -36,7 +36,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   HANDLE single_instance_mutex =
       ::CreateMutexW(nullptr, TRUE, L"ZetaApp_SingleInstance_Mutex");
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    HWND existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"zeta");
+    HWND existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Zeta");
     if (existing_hwnd) {
       if (::IsIconic(existing_hwnd)) {
         ::ShowWindow(existing_hwnd, SW_RESTORE);
@@ -83,7 +83,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"zeta", origin, size)) {
+  if (!window.Create(L"Zeta", origin, size)) {
     if (single_instance_mutex) {
       ::CloseHandle(single_instance_mutex);
     }

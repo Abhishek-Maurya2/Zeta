@@ -4,6 +4,48 @@ import 'package:http/http.dart' as http;
 import 'package:material_ui/material_ui.dart';
 import 'package:geolocator/geolocator.dart';
 
+class HourlyForecast {
+  final DateTime time;
+  final double temperature; // In Celsius
+  final int weatherCode;
+  final bool isDay;
+  final int humidity; // Percentage (e.g. 65)
+  final double windSpeed; // In km/h
+
+  const HourlyForecast({
+    required this.time,
+    required this.temperature,
+    required this.weatherCode,
+    required this.isDay,
+    this.humidity = 50,
+    this.windSpeed = 10.0,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'time': time.toIso8601String(),
+    'temperature': temperature,
+    'weatherCode': weatherCode,
+    'isDay': isDay,
+    'humidity': humidity,
+    'windSpeed': windSpeed,
+  };
+
+  factory HourlyForecast.fromJson(Map<String, dynamic> json) => HourlyForecast(
+    time: json['time'] != null
+        ? DateTime.tryParse(json['time'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    temperature: (json['temperature'] as num?)?.toDouble() ?? 20.0,
+    weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
+    isDay: json['isDay'] as bool? ?? true,
+    humidity: (json['humidity'] as num?)?.toInt() ?? 50,
+    windSpeed: (json['windSpeed'] as num?)?.toDouble() ?? 10.0,
+  );
+
+  String get condition => WeatherService.codeToCondition(weatherCode);
+
+  String get iconName => WeatherData.resolveIconName(weatherCode, isDay);
+}
+
 class WeatherData {
   final double temperature; // In Celsius
   final String condition;
@@ -13,6 +55,7 @@ class WeatherData {
   final String cityName;
   final bool isDay;
   final DateTime fetchedAt;
+  final List<HourlyForecast> hourlyForecast;
 
   const WeatherData({
     required this.temperature,
@@ -23,6 +66,7 @@ class WeatherData {
     required this.cityName,
     required this.isDay,
     required this.fetchedAt,
+    this.hourlyForecast = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -34,6 +78,7 @@ class WeatherData {
     'cityName': cityName,
     'isDay': isDay,
     'fetchedAt': fetchedAt.toIso8601String(),
+    'hourlyForecast': hourlyForecast.map((h) => h.toJson()).toList(),
   };
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
@@ -48,7 +93,39 @@ class WeatherData {
       fetchedAt: json['fetchedAt'] != null
           ? DateTime.tryParse(json['fetchedAt'] as String) ?? DateTime.now()
           : DateTime.now(),
+      hourlyForecast: (json['hourlyForecast'] as List<dynamic>?)
+              ?.map((e) => HourlyForecast.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
+  }
+
+  /// Next 24 hours of hourly forecast starting from current hour.
+  List<HourlyForecast> get next24Hours {
+    if (hourlyForecast.isEmpty) return const [];
+    final now = DateTime.now();
+    final startOfCurrentHour = DateTime(now.year, now.month, now.day, now.hour);
+    final filtered = hourlyForecast
+        .where((h) => !h.time.isBefore(startOfCurrentHour))
+        .toList();
+    if (filtered.isEmpty) {
+      return hourlyForecast.take(24).toList();
+    }
+    return filtered.take(24).toList();
+  }
+
+  /// Lowest predicted temperature over the next 24 hours.
+  double? get minTempToday {
+    final next = next24Hours;
+    if (next.isEmpty) return null;
+    return next.map((h) => h.temperature).reduce((a, b) => a < b ? a : b);
+  }
+
+  /// Highest predicted temperature over the next 24 hours.
+  double? get maxTempToday {
+    final next = next24Hours;
+    if (next.isEmpty) return null;
+    return next.map((h) => h.temperature).reduce((a, b) => a > b ? a : b);
   }
 
   /// Evaluates whether it is currently daytime.
@@ -154,16 +231,15 @@ class WeatherData {
     }
   }
 
-  /// Exact icon name matching Sharva's WeatherIcon component
-  String get iconName {
-    final day = isEffectivelyDay;
-    switch (weatherCode) {
+  /// Resolves exact icon name matching Sharva's WeatherIcon component based on code and day/night.
+  static String resolveIconName(int code, bool isDayTime) {
+    switch (code) {
       case 0:
-        return day ? 'clear_day' : 'clear_night';
+        return isDayTime ? 'clear_day' : 'clear_night';
       case 1:
-        return day ? 'mostly_clear_day' : 'mostly_clear_night';
+        return isDayTime ? 'mostly_clear_day' : 'mostly_clear_night';
       case 2:
-        return day ? 'partly_cloudy_day' : 'partly_cloudy_night';
+        return isDayTime ? 'partly_cloudy_day' : 'partly_cloudy_night';
       case 3:
         return 'overcast';
       case 45:
@@ -172,13 +248,13 @@ class WeatherData {
       case 51:
       case 53:
       case 55:
-        return day ? 'light_rain_day' : 'light_rain_night';
+        return isDayTime ? 'light_rain_day' : 'light_rain_night';
       case 56:
       case 57:
         return 'sleet_hail';
       case 61:
       case 63:
-        return day ? 'rain' : 'light_rain_night';
+        return isDayTime ? 'rain' : 'light_rain_night';
       case 65:
         return 'heavy_rain';
       case 66:
@@ -186,18 +262,18 @@ class WeatherData {
         return 'mixed_precipitation';
       case 71:
       case 73:
-        return day ? 'light_snow_day' : 'light_snow_night';
+        return isDayTime ? 'light_snow_day' : 'light_snow_night';
       case 75:
         return 'heavy_snow';
       case 77:
         return 'snow';
       case 80:
       case 81:
-        return day ? 'light_rain_day' : 'light_rain_night';
+        return isDayTime ? 'light_rain_day' : 'light_rain_night';
       case 82:
         return 'heavy_rain';
       case 85:
-        return day ? 'light_snow_day' : 'light_snow_night';
+        return isDayTime ? 'light_snow_day' : 'light_snow_night';
       case 86:
         return 'heavy_snow';
       case 95:
@@ -205,9 +281,12 @@ class WeatherData {
       case 99:
         return 'thunderstorm';
       default:
-        return day ? 'clear_day' : 'clear_night';
+        return isDayTime ? 'clear_day' : 'clear_night';
     }
   }
+
+  /// Exact icon name matching Sharva's WeatherIcon component
+  String get iconName => resolveIconName(weatherCode, isEffectivelyDay);
 }
 
 class WeatherService {
@@ -233,7 +312,7 @@ class WeatherService {
     'singapore': [1.3521, 103.8198],
   };
 
-  static String _codeToCondition(int code) {
+  static String codeToCondition(int code) {
     switch (code) {
       case 0:
         return 'Clear Sky';
@@ -271,6 +350,84 @@ class WeatherService {
       default:
         return 'Fair';
     }
+  }
+
+  static List<HourlyForecast> _parseHourlyForecast(
+    Map<String, dynamic> data,
+    double defaultTemp,
+    int defaultCode,
+    bool defaultDay,
+    int defaultHumidity,
+    double defaultWind,
+  ) {
+    final hourlyData = data['hourly'] as Map<String, dynamic>?;
+    if (hourlyData == null) return const [];
+
+    final times = (hourlyData['time'] as List<dynamic>?) ?? [];
+    final temps = (hourlyData['temperature_2m'] as List<dynamic>?) ?? [];
+    final codes = (hourlyData['weather_code'] as List<dynamic>?) ?? [];
+    final isDays = (hourlyData['is_day'] as List<dynamic>?) ?? [];
+    final humidities =
+        (hourlyData['relative_humidity_2m'] as List<dynamic>?) ?? [];
+    final winds = (hourlyData['wind_speed_10m'] as List<dynamic>?) ?? [];
+
+    final List<HourlyForecast> list = [];
+    final len = times.length;
+    for (var i = 0; i < len; i++) {
+      final tStr = times[i] as String?;
+      if (tStr == null) continue;
+      final t = DateTime.tryParse(tStr);
+      if (t == null) continue;
+      list.add(
+        HourlyForecast(
+          time: t,
+          temperature:
+              i < temps.length ? (temps[i] as num).toDouble() : defaultTemp,
+          weatherCode:
+              i < codes.length ? (codes[i] as num).toInt() : defaultCode,
+          isDay: i < isDays.length ? (isDays[i] as num).toInt() == 1 : defaultDay,
+          humidity: i < humidities.length
+              ? (humidities[i] as num).toInt()
+              : defaultHumidity,
+          windSpeed:
+              i < winds.length ? (winds[i] as num).toDouble() : defaultWind,
+        ),
+      );
+    }
+    return list;
+  }
+
+  static List<HourlyForecast> _generateFallbackHourly(
+    double baseTemp,
+    int baseCode,
+    int baseHumidity,
+    double baseWind,
+  ) {
+    final List<HourlyForecast> list = [];
+    final now = DateTime.now();
+    for (int h = 0; h < 24; h++) {
+      final time = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+      ).add(Duration(hours: h));
+      final hour = time.hour;
+      final isHourDay = hour >= 6 && hour < 19;
+      final tempOffset =
+          (hour >= 12 && hour <= 16) ? 3.0 : (hour < 6 ? -3.0 : 0.0);
+      list.add(
+        HourlyForecast(
+          time: time,
+          temperature: baseTemp + tempOffset,
+          weatherCode: baseTemp + tempOffset > 27 ? 2 : baseCode,
+          isDay: isHourDay,
+          humidity: baseHumidity,
+          windSpeed: baseWind,
+        ),
+      );
+    }
+    return list;
   }
 
   /// Fetches real live weather data from Open-Meteo in Celsius
@@ -315,7 +472,7 @@ class WeatherService {
 
     try {
       final weatherUrl = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&timezone=auto',
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m&forecast_days=2&timezone=auto',
       );
       final res = await http
           .get(weatherUrl)
@@ -331,15 +488,25 @@ class WeatherService {
         final weatherCode = (current['weather_code'] as num?)?.toInt() ?? 0;
         final isDay = (current['is_day'] as num?)?.toInt() == 1;
 
+        final hourly = _parseHourlyForecast(
+          data,
+          temp,
+          weatherCode,
+          isDay,
+          humidity,
+          wind,
+        );
+
         return WeatherData(
           temperature: temp,
-          condition: _codeToCondition(weatherCode),
+          condition: codeToCondition(weatherCode),
           humidity: humidity,
           windSpeed: wind,
           weatherCode: weatherCode,
           cityName: resolvedName,
           isDay: isDay,
           fetchedAt: DateTime.now(),
+          hourlyForecast: hourly,
         );
       }
     } catch (_) {
@@ -352,16 +519,24 @@ class WeatherService {
     final fallbackHumidity = 45 + (seed % 40); // 45..85%
     final fallbackWind = 8.0 + (seed % 15); // 8..23 km/h
     final isDay = DateTime.now().hour >= 6 && DateTime.now().hour < 19;
+    final fallbackCode = fallbackTemp > 27 ? 2 : 0;
+    final fallbackHourly = _generateFallbackHourly(
+      fallbackTemp,
+      fallbackCode,
+      fallbackHumidity,
+      fallbackWind,
+    );
 
     return WeatherData(
       temperature: fallbackTemp,
       condition: fallbackTemp > 27 ? 'Partly Cloudy' : 'Clear Sky',
       humidity: fallbackHumidity,
       windSpeed: fallbackWind,
-      weatherCode: fallbackTemp > 27 ? 2 : 0,
+      weatherCode: fallbackCode,
       cityName: resolvedName,
       isDay: isDay,
       fetchedAt: DateTime.now(),
+      hourlyForecast: fallbackHourly,
     );
   }
 
@@ -373,7 +548,7 @@ class WeatherService {
   ) async {
     try {
       final weatherUrl = Uri.parse(
-        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&timezone=auto',
+        'https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon&current=temperature_2m,relative_humidity_2m,is_day,weather_code,wind_speed_10m&hourly=temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m&forecast_days=2&timezone=auto',
       );
       final res = await http
           .get(weatherUrl)
@@ -389,15 +564,25 @@ class WeatherService {
         final weatherCode = (current['weather_code'] as num?)?.toInt() ?? 0;
         final isDay = (current['is_day'] as num?)?.toInt() == 1;
 
+        final hourly = _parseHourlyForecast(
+          data,
+          temp,
+          weatherCode,
+          isDay,
+          humidity,
+          wind,
+        );
+
         return WeatherData(
           temperature: temp,
-          condition: _codeToCondition(weatherCode),
+          condition: codeToCondition(weatherCode),
           humidity: humidity,
           windSpeed: wind,
           weatherCode: weatherCode,
           cityName: cityName,
           isDay: isDay,
           fetchedAt: DateTime.now(),
+          hourlyForecast: hourly,
         );
       }
     } catch (_) {

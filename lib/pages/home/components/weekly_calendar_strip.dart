@@ -4,13 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
-import '../../../providers/weather_provider.dart';
-import '../../../providers/navigation_provider.dart';
-import '../../settings/components/settings_category.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
-import '../../../components/weather_icon.dart';
+import 'weather_header_telemetry.dart';
 
 /// Interactive Material 3 Expressive Weekly Calendar Strip mirroring Sharva's design:
 /// - Left: Selected Date headline, Calendar DatePicker launcher, "Today" reset pill, and Weather readout.
@@ -46,11 +43,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final taskProvider = context.watch<TaskProvider>();
-    final weatherProvider = context.watch<WeatherProvider>();
-    final weather = weatherProvider.weatherData;
-    final weatherEnabled = weatherProvider.weatherEnabled;
-    final showWeatherInHeader = weatherProvider.showWeatherInHeader;
-    final effectiveCityName = weather?.cityName ?? weatherProvider.cityName;
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -75,14 +67,6 @@ class WeeklyCalendarStrip extends StatelessWidget {
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 800;
 
-            final tempStr = weather != null
-                ? '${weather.temperature.round()}°C'
-                : '24°C';
-            final conditionStr =
-                weather?.displayCondition ??
-                (DateTime.now().hour < 6 || DateTime.now().hour >= 19
-                    ? 'Clear Night'
-                    : 'Partly Cloudy');
 
             final leftHeader = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,63 +117,7 @@ class WeeklyCalendarStrip extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (weatherEnabled &&
-                    showWeatherInHeader) ...[
-                  const SizedBox(height: 4),
-
-                  // Weather Telemetry Below Date (Clickable to open Weather Page)
-                  Tooltip(
-                    message:
-                        '$conditionStr • $effectiveCityName\nClick to open weather settings',
-                    child: InkWell(
-                      hoverColor: Colors.transparent,
-                      
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        ZetaHaptics.light();
-                        final navProvider = context.read<NavigationProvider>();
-                        navProvider.setActivePage(PageId.settings);
-                        navProvider.setSettingsCategory(SettingsCategory.weather);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              tempStr,
-                              style: TextStyle(
-                                fontFamily: 'GoogleSansFlex',
-                                fontSize: 26,
-                                color: colorScheme.onSurfaceVariant,
-                                fontVariations: const [
-                                  FontVariation('wght', 700), // Weight
-                                  FontVariation('wdth', 180),
-                                  FontVariation('GRAD', 180), // Grade stroke density
-                                  FontVariation('opsz', 220), // Optical size
-                                  FontVariation('slnt', -10),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            WeatherIcon(
-                              name:
-                                  weather?.iconName ??
-                                  (DateTime.now().hour < 6 ||
-                                          DateTime.now().hour >= 19
-                                      ? 'partly_cloudy_night'
-                                      : 'partly_cloudy_day'),
-                              size: 28,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                const WeatherHeaderTelemetry(),
               ],
             );
 
