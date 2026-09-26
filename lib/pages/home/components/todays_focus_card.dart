@@ -141,8 +141,9 @@ class TodaysFocusCard extends StatelessWidget {
                           children: [
                             Text(
                               task!.title,
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                fontSize: 22,
                                 decoration: task!.completed
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -160,12 +161,10 @@ class TodaysFocusCard extends StatelessWidget {
                                 task!.description!,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: textTheme.bodySmall?.copyWith(
-                                  decoration: task!.completed
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.8),
+                                style: textTheme.bodyLarge?.copyWith(
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: 0.9,
+                                  ),
                                 ),
                               ),
                             ],
@@ -181,16 +180,16 @@ class TodaysFocusCard extends StatelessWidget {
                   const SizedBox(height: 14),
                   M3ESegmentedColumn(
                     decoration: const M3ESegmentedListDecoration(
-                      padding: EdgeInsets.all(1.0),
+                      padding: EdgeInsets.all(0),
                       outerRadius: 16.0,
-                      innerRadius: 4.0,
+                      innerRadius: 6,
                     ),
-                    color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+                    color: colorScheme.tertiaryContainer,
                     children: task!.subtasks.map((st) {
                       return ListTile(
                         dense: true,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
+                          horizontal: 15,
                           vertical: 0,
                         ),
                         leading: InkWell(
@@ -201,7 +200,7 @@ class TodaysFocusCard extends StatelessWidget {
                             st.completed
                                 ? Icons.check_rounded
                                 : Icons.radio_button_unchecked_rounded,
-                            size: 18,
+                            size: 20,
                             color: st.completed
                                 ? const Color(0xFF10B981)
                                 : colorScheme.onSurfaceVariant,
@@ -210,15 +209,17 @@ class TodaysFocusCard extends StatelessWidget {
                         title: Text(
                           st.title,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'RobotoMono',
                             decoration: st.completed
                                 ? TextDecoration.lineThrough
                                 : null,
                             color: st.completed
-                                ? colorScheme.onSurfaceVariant.withValues(
+                                ? colorScheme.onTertiaryContainer.withValues(
                                     alpha: 0.7,
                                   )
-                                : colorScheme.onSurface,
+                                : colorScheme.onTertiaryContainer,
                           ),
                         ),
                       );

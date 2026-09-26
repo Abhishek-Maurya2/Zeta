@@ -55,19 +55,19 @@ class UpdatesSection extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // ─── App Logo ──────────────────────────────────────────────
-              ZetaLogo(size: 118, borderRadius: BorderRadius.circular(20)),
-              const SizedBox(height: 18),
+              ZetaLogo(size: 120, borderRadius: BorderRadius.circular(10)),
+              const SizedBox(height: 10),
 
               // ─── App Name ──────────────────────────────────────────────
               Text(
                 'Zeta',
-                style: textTheme.headlineSmall?.copyWith(
+                style: textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: colorScheme.onSurface,
                   letterSpacing: -0.3,

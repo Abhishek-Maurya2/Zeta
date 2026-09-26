@@ -149,18 +149,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
               body: SafeArea(
                 child: Stack(
                   children: [
-                    // ─── Background Tap Handler ─────────────────────────
-                    Positioned.fill(
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          ZetaHaptics.light();
-                          provider.toggleTimer();
-                          _resetInactivityTimer();
-                        },
-                      ),
-                    ),
-
                     // ─── Center: Enormous Clock & Progress ───────────────
                     IgnorePointer(
                       child: Center(

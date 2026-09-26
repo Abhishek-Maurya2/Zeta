@@ -759,7 +759,7 @@ class CrossDeviceService with WidgetsBindingObserver {
       case PageId.tasks:
         return 'Task List';
       case PageId.revision:
-        return 'Revision Cards';
+        return 'Subjects';
       case PageId.pomodoro:
         return 'Pomodoro Timer';
       case PageId.bin:

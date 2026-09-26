@@ -77,7 +77,7 @@ class QuickActionsService {
       ),
       const ShortcutItem(
         type: 'action_revision',
-        localizedTitle: 'Revision Notes',
+        localizedTitle: 'Subjects',
         icon: 'ic_revision',
       ),
     ]);

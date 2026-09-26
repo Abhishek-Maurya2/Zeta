@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -157,14 +158,17 @@ class TaskEditFormContent extends StatefulWidget {
   });
 
   @override
-  State<TaskEditFormContent> createState() => _TaskEditFormContentState();
+  State<TaskEditFormContent> createState() => TaskEditFormContentState();
 }
 
-class _TaskEditFormContentState extends State<TaskEditFormContent> {
+class TaskEditFormContentState extends State<TaskEditFormContent> {
   late final TextEditingController _titleController;
   late final TextEditingController _descController;
   final TextEditingController _newSubtaskController = TextEditingController();
+  final TextEditingController _editSubtaskController = TextEditingController();
+  final FocusNode _editSubtaskFocusNode = FocusNode();
 
+  String? _editingSubtaskId;
   String? _dueDate;
   bool _hasTime = false;
   String? _dueTime;
@@ -226,12 +230,17 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     _titleController.dispose();
     _descController.dispose();
     _newSubtaskController.dispose();
+    _editSubtaskController.dispose();
+    _editSubtaskFocusNode.dispose();
     super.dispose();
   }
 
   void _addSubtask() {
     final text = _newSubtaskController.text.trim();
     if (text.isEmpty) return;
+    if (_editingSubtaskId != null) {
+      _saveEditedSubtask(_editingSubtaskId!);
+    }
     setState(() {
       _subtasks.add(
         Subtask(
@@ -245,8 +254,72 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     _syncDraft();
   }
 
+  void _startEditingSubtask(Subtask st) {
+    if (_editingSubtaskId == st.id) return;
+    if (_editingSubtaskId != null) {
+      _saveEditedSubtask(_editingSubtaskId!);
+    }
+    setState(() {
+      _editingSubtaskId = st.id;
+      _editSubtaskController.text = st.title;
+      _editSubtaskController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: st.title.length,
+      );
+    });
+    _editSubtaskFocusNode.requestFocus();
+  }
+
+  void _saveEditedSubtask(String id) {
+    final newTitle = _editSubtaskController.text.trim();
+    if (newTitle.isNotEmpty) {
+      setState(() {
+        final index = _subtasks.indexWhere((s) => s.id == id);
+        if (index != -1) {
+          _subtasks[index].title = newTitle;
+        }
+        _editingSubtaskId = null;
+      });
+      ZetaHaptics.light();
+      _syncDraft();
+    } else {
+      _cancelEditingSubtask();
+    }
+  }
+
+  void _cancelEditingSubtask() {
+    setState(() {
+      _editingSubtaskId = null;
+      _editSubtaskController.clear();
+    });
+  }
+
+  void _reorderSubtask(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+    if (oldIndex < 0 ||
+        oldIndex >= _subtasks.length ||
+        newIndex < 0 ||
+        newIndex >= _subtasks.length) {
+      return;
+    }
+    setState(() {
+      final moved = _subtasks.removeAt(oldIndex);
+      _subtasks.insert(newIndex, moved);
+    });
+    ZetaHaptics.medium();
+    _syncDraft();
+  }
+
+  void reorderSubtaskForTesting(int oldIndex, int newIndex) {
+    _reorderSubtask(oldIndex, newIndex);
+  }
+
   void _removeSubtask(String id) {
     setState(() {
+      if (_editingSubtaskId == id) {
+        _editingSubtaskId = null;
+        _editSubtaskController.clear();
+      }
       _subtasks.removeWhere((s) => s.id == id);
     });
     _syncDraft();
@@ -339,6 +412,16 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
 
   void _handleSave() {
     ZetaHaptics.medium();
+    if (_editingSubtaskId != null) {
+      final newTitle = _editSubtaskController.text.trim();
+      if (newTitle.isNotEmpty) {
+        final index = _subtasks.indexWhere((s) => s.id == _editingSubtaskId);
+        if (index != -1) {
+          _subtasks[index].title = newTitle;
+        }
+      }
+      _editingSubtaskId = null;
+    }
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       setState(() => _errorMessage = 'Task title cannot be empty.');
@@ -507,6 +590,184 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     );
   }
 
+  BorderRadius _getSubtaskBorderRadius(int index, int total) {
+    const outer = Radius.circular(20.0);
+    const inner = Radius.circular(4.0);
+    if (total <= 1) return const BorderRadius.all(outer);
+    if (index == 0) {
+      return const BorderRadius.only(
+        topLeft: outer,
+        topRight: outer,
+        bottomLeft: inner,
+        bottomRight: inner,
+      );
+    }
+    if (index == total - 1) {
+      return const BorderRadius.only(
+        topLeft: inner,
+        topRight: inner,
+        bottomLeft: outer,
+        bottomRight: outer,
+      );
+    }
+    return const BorderRadius.all(inner);
+  }
+
+  Widget _buildSubtaskTile({
+    required BuildContext context,
+    required Subtask st,
+    required int index,
+    required bool isCompact,
+    required ColorScheme colorScheme,
+  }) {
+    final isEditingThis = _editingSubtaskId == st.id;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Row(
+        children: [
+          // 1. Completion Checkbox
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () {
+              ZetaHaptics.selection();
+              _toggleSubtask(st.id);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: Icon(
+                st.completed
+                    ? Icons.check_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: 22,
+                color: st.completed
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 4),
+
+          // 3. Title Text or Inline TextField
+          Expanded(
+            child: isEditingThis
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: TextField(
+                      controller: _editSubtaskController,
+                      focusNode: _editSubtaskFocusNode,
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        hintText: 'Subtask title...',
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.45),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                            width: 1.0,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) => _saveEditedSubtask(st.id),
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      st.title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        decoration: st.completed
+                            ? TextDecoration.lineThrough
+                            : null,
+                        color: st.completed
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+          ),
+
+          const SizedBox(width: 4),
+
+          // 4. Action Buttons
+          if (isEditingThis) ...[
+            M3EIconButton(
+              icon: const Icon(Icons.check_rounded, size: 20),
+              size: M3EIconButtonSize.xs,
+              variant: M3EIconButtonVariant.tonal,
+              tooltip: 'Save',
+              onPressed: () => _saveEditedSubtask(st.id),
+            ),
+            const SizedBox(width: 2),
+            M3EIconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              size: M3EIconButtonSize.xs,
+              variant: M3EIconButtonVariant.standard,
+              tooltip: 'Cancel',
+              onPressed: _cancelEditingSubtask,
+            ),
+          ] else ...[
+            M3EIconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              size: M3EIconButtonSize.xs,
+              variant: M3EIconButtonVariant.standard,
+              tooltip: 'Edit subtask',
+              onPressed: () {
+                ZetaHaptics.light();
+                _startEditingSubtask(st);
+              },
+            ),
+            M3EIconButton(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              size: M3EIconButtonSize.xs,
+              variant: M3EIconButtonVariant.standard,
+              tooltip: 'Remove subtask',
+              onPressed: () {
+                ZetaHaptics.light();
+                _removeSubtask(st.id);
+              },
+            ),
+          ],
+          const SizedBox(width: 4),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSubtasksList({
     required BuildContext context,
     required bool isCompact,
@@ -514,79 +775,64 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
   }) {
     if (_subtasks.isEmpty) return const SizedBox.shrink();
 
-    final segmentedCol = M3ESegmentedColumn(
-      decoration: const M3ESegmentedListDecoration(padding: EdgeInsets.all(0)),
-      color: isCompact
-          ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
-          : colorScheme.surfaceContainerLowest,
-      children: _subtasks.map((st) {
-        return ListTile(
-          dense: true,
-          leading: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () {
-              ZetaHaptics.selection();
-              _toggleSubtask(st.id);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(1.0),
-              child: Icon(
-                st.completed
-                    ? Icons.check_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: 22,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          title: Text(
-            st.title,
-            style: TextStyle(
-              fontSize: 15,
-              decoration: st.completed ? TextDecoration.lineThrough : null,
-              color: st.completed
-                  ? colorScheme.onSurfaceVariant
-                  : colorScheme.onSurface,
-            ),
-          ),
-          trailing: M3EIconButton(
-            icon: const Icon(Icons.close_rounded, size: 21),
-            size: M3EIconButtonSize.xs,
-            variant: M3EIconButtonVariant.standard,
-            tooltip: 'Remove subtask',
-            onPressed: () {
-              ZetaHaptics.light();
-              _removeSubtask(st.id);
-            },
-          ),
-        );
-      }).toList(),
-    );
-
-    if (!isCompact) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: segmentedCol,
-      );
-    }
-
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              // border: Border.all(
-              //   color: colorScheme.outlineVariant.withValues(alpha: 0.30),
-              //   width: 1.0,
-              // ),
+      child: ReorderableListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        buildDefaultDragHandles: false,
+        padding: EdgeInsets.zero,
+        itemCount: _subtasks.length,
+        onReorderItem: _reorderSubtask,
+        proxyDecorator: (Widget child, int index, Animation<double> animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (BuildContext context, Widget? animChild) {
+              final animValue = Curves.easeInOut.transform(animation.value);
+              final elevation = 6.0 * animValue;
+              return Material(
+                elevation: elevation,
+                borderRadius: BorderRadius.circular(16),
+                shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
+                color: isCompact
+                    ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.85)
+                    : colorScheme.surfaceContainerLowest,
+                child: animChild,
+              );
+            },
+            child: child,
+          );
+        },
+        itemBuilder: (context, index) {
+          final st = _subtasks[index];
+          final borderRadius = _getSubtaskBorderRadius(index, _subtasks.length);
+
+          return Padding(
+            key: ValueKey(st.id),
+            padding: EdgeInsets.only(
+              bottom: index == _subtasks.length - 1 ? 0 : 3,
             ),
-            child: segmentedCol,
-          ),
-        ),
+            child: ClipRRect(
+              borderRadius: borderRadius,
+              child: Material(
+                color: isCompact
+                    ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
+                    : colorScheme.surfaceContainerLowest,
+                child: SubtaskReorderListener(
+                  index: index,
+                  enabled: _subtasks.length > 1 && _editingSubtaskId != st.id,
+                  child: _buildSubtaskTile(
+                    context: context,
+                    st: st,
+                    index: index,
+                    isCompact: isCompact,
+                    colorScheme: colorScheme,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -944,3 +1190,62 @@ class _TaskEditFormContentState extends State<TaskEditFormContent> {
     );
   }
 }
+
+/// Adaptive reorder listener that supports:
+/// - Immediate click-and-drag on mouse (Windows/macOS/Linux/Web): allows immediate reorder drag
+///   without requiring an awkward long press or failing due to sensor jitter.
+/// - Delayed drag on touch (Android/iOS): 250ms touch-and-hold initiates reorder while letting quick taps pass through.
+/// - HitTestBehavior.opaque: ensures empty spaces across the entire tile intercept pointer events.
+class SubtaskReorderListener extends StatelessWidget {
+  final int index;
+  final bool enabled;
+  final Widget child;
+
+  const SubtaskReorderListener({
+    super.key,
+    required this.index,
+    required this.enabled,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: enabled
+          ? (PointerDownEvent event) {
+              if (event.buttons != 0 &&
+                  event.buttons != kPrimaryMouseButton &&
+                  event.buttons != kPrimaryButton) {
+                return;
+              }
+              final DeviceGestureSettings? gestureSettings =
+                  MediaQuery.maybeGestureSettingsOf(context);
+              final SliverReorderableListState? list =
+                  SliverReorderableList.maybeOf(context);
+              if (list == null) return;
+
+              final MultiDragGestureRecognizer recognizer =
+                  event.kind == PointerDeviceKind.mouse
+                      ? ImmediateMultiDragGestureRecognizer(debugOwner: this)
+                      : DelayedMultiDragGestureRecognizer(
+                          delay: const Duration(milliseconds: 250),
+                          debugOwner: this,
+                        );
+
+              recognizer.gestureSettings = gestureSettings;
+              list.startItemDragReorder(
+                index: index,
+                event: event,
+                recognizer: recognizer,
+              );
+            }
+          : null,
+      child: MouseRegion(
+        cursor: enabled ? SystemMouseCursors.grab : MouseCursor.defer,
+        child: child,
+      ),
+    );
+  }
+}
+

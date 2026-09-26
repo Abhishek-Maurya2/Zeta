@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -102,8 +103,7 @@ class TasksPage extends StatelessWidget {
                     sortBy: taskProvider.sortBy,
                     onFilterChanged: (newFilter) =>
                         taskProvider.setFilter(newFilter),
-                    onSortChanged: (newSort) =>
-                        taskProvider.setSortBy(newSort),
+                    onSortChanged: (newSort) => taskProvider.setSortBy(newSort),
                     onCycleSort: () => taskProvider.cycleSortOption(),
                     taskProvider: taskProvider,
                     isCompact: isCompact,
@@ -174,41 +174,40 @@ class TasksPage extends StatelessWidget {
                       // Completed Section
                       if (completed.isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 16,
-                              color: Color(0xFF10B981),
+                        M3EExpandableList(
+                          style: M3EExpandableStyle(
+                            color: colorScheme.surfaceContainerLowest,
+                            expandedIconBackground:
+                                colorScheme.surfaceContainerHighest,
+                            headerPadding: const EdgeInsets.symmetric(
+                              horizontal: 15,
+                              vertical: 20,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'COMPLETED (${completed.length})',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.1,
-                                color: colorScheme.onSurfaceVariant,
+                          ),
+                          data: <M3EExpandableData>[
+                            M3EExpandableData(
+                              title: 'Completed (${completed.length})',
+                              titleStyle: [
+                                TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ],
+                              leading: const Icon(
+                                Icons.task_alt_rounded,
+                                size: 20,
+                                color: Color(0xFF10B981),
                               ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Divider(
-                                color: colorScheme.outlineVariant.withValues(
-                                  alpha: 0.4,
+                              expanded: M3EExpandableExpanded.list(
+                                TasksCompletedPaginatedList(
+                                  tasks: completed,
+                                  provider: taskProvider,
+                                  onContextMenu: _showContextMenu,
                                 ),
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        Opacity(
-                          opacity: 0.85,
-                          child: TasksCompletedPaginatedList(
-                            tasks: completed,
-                            provider: taskProvider,
-                            onContextMenu: _showContextMenu,
-                          ),
                         ),
                       ],
                     ],

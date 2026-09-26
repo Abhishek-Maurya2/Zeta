@@ -210,7 +210,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                             readOnly: true,
                             hintText: isCompact
                                 ? 'Search'
-                                : 'Search tasks, notes, subtasks',
+                                : 'Search Tasks, Notes, Subjects',
                             overlayColor: const WidgetStatePropertyAll(
                               Colors.transparent,
                             ),
@@ -396,14 +396,12 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               ),
               const SizedBox(height: 6),
               M3ESegmentedColumn(
-                decoration: M3ESegmentedListDecoration(
+                decoration: const M3ESegmentedListDecoration(
                   padding: EdgeInsets.zero,
-                  border: BorderSide(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                    width: 1.0,
-                  ),
                 ),
-                color: colorScheme.surfaceBright.withValues(alpha: 0.45),
+                color: colorScheme.surfaceContainerLowest.withValues(
+                  alpha: 0.5,
+                ),
                 children: [
                   InkWell(
                     borderRadius: const BorderRadius.vertical(
@@ -596,10 +594,6 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
               if (!ZetaWindowSizeClass.of(context).isCompact) ...[
                 const SizedBox(height: 12),
-                // Divider(
-                //   color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                // ),
-                const SizedBox(height: 8),
 
                 // ─── Keyboard Shortcuts Hint ────────────────────────────────
                 Text(
@@ -639,12 +633,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: M3ESegmentedColumn(
-          decoration: M3ESegmentedListDecoration(
+          decoration: const M3ESegmentedListDecoration(
             padding: EdgeInsets.zero,
-            border: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-              width: 1.0,
-            ),
           ),
           color: colorScheme.surfaceBright.withValues(alpha: 0.45),
           children: [
@@ -786,12 +776,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3ESegmentedColumn(
-            decoration: M3ESegmentedListDecoration(
+            decoration: const M3ESegmentedListDecoration(
               padding: EdgeInsets.zero,
-              border: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                width: 1.0,
-              ),
             ),
             color: colorScheme.surfaceBright.withValues(alpha: 0.45),
             children: taskTiles,
@@ -846,12 +832,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3ESegmentedColumn(
-            decoration: M3ESegmentedListDecoration(
+            decoration: const M3ESegmentedListDecoration(
               padding: EdgeInsets.zero,
-              border: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-                width: 1.0,
-              ),
             ),
             color: colorScheme.surfaceBright.withValues(alpha: 0.45),
             children: binTiles,
@@ -881,7 +863,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.25),
@@ -892,13 +874,18 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         children: [
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 13,
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'RobotoMono',
+            ),
           ),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: colorScheme.surface.withValues(alpha: 0.50),
+              color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
                 color: colorScheme.outline.withValues(alpha: 0.25),
@@ -908,8 +895,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               keyChar,
               style: TextStyle(
                 fontSize: 11,
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.w600,
+                fontFamily: 'RobotoMono',
+                fontWeight: FontWeight.w700,
                 color: colorScheme.onSurface,
               ),
             ),

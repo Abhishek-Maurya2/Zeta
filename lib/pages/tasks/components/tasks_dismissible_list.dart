@@ -12,6 +12,7 @@ import '../../../theme/success_colors.dart';
 class TasksDismissibleList extends StatelessWidget {
   final List<Task> tasks;
   final TaskProvider provider;
+  final bool embedded;
   final void Function(
     BuildContext context,
     Offset position,
@@ -25,6 +26,7 @@ class TasksDismissibleList extends StatelessWidget {
     required this.tasks,
     required this.provider,
     required this.onContextMenu,
+    this.embedded = false,
   });
 
   @override
@@ -37,6 +39,7 @@ class TasksDismissibleList extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: tasks.length,
+      embedded: embedded,
       style: M3EDismissibleListStyle(
         color: colorScheme.surfaceContainerLowest,
         padding: EdgeInsets.zero,

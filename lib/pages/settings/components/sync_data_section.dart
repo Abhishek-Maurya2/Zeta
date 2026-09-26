@@ -524,7 +524,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                               ),
                             ),
                             Text(
-                              'Tasks, Sessions & Revisions',
+                              'Tasks, Sessions & Subjects',
                               style: textTheme.bodySmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),

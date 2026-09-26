@@ -57,8 +57,8 @@ class TasksEmptyView extends StatelessWidget {
       return ZetaEmptyState.tasks(
         shapeKind: M3EShapeKind.cookie9Sided,
         icon: Icons.sync_rounded,
-        title: 'No revision tasks',
-        subtitle: 'Tasks scheduled from the Revision page will appear here.',
+        title: 'No subject tasks',
+        subtitle: 'Tasks scheduled from the Subjects page will appear here.',
       );
     }
 
