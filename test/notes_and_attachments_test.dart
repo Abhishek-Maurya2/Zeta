@@ -1,4 +1,6 @@
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zeta/components/add_attachment_dialog.dart';
 import 'package:zeta/models/attachment.dart';
 import 'package:zeta/models/note_item.dart';
 import 'package:zeta/models/revision.dart';
@@ -225,6 +227,32 @@ void main() {
 
       expect(updated.note?.content, equals('Updated modern markdown notes'));
       expect(updated.note?.attachments.length, equals(1));
+    });
+  });
+
+  group('AddAttachmentDialog Widget Layout Test', () {
+    testWidgets('renders AddAttachmentDialog with no layout overflows', (tester) async {
+      tester.view.physicalSize = const Size(800, 600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: AddAttachmentDialog(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add Attachment'), findsOneWidget);
+      expect(find.text('URL (YouTube, Drive, or Web)'), findsOneWidget);
+      expect(find.text('Title (Optional)'), findsOneWidget);
+      expect(find.text('Cancel'), findsOneWidget);
+      expect(find.text('Attach'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
   });
 }

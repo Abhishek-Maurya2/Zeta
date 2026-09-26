@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
 import '../services/attachment_parser_service.dart';
@@ -116,8 +116,11 @@ class _AddAttachmentDialogState extends State<AddAttachmentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return GlassAlertDialog(
       maxWidth: 420.0,
+      scrollable: true,
       title: const Row(
         children: [
           Icon(Icons.add_link_rounded, size: 22),
@@ -125,41 +128,79 @@ class _AddAttachmentDialogState extends State<AddAttachmentDialog> {
           Text('Add Attachment'),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _urlController,
-            autofocus: true,
-            onChanged: (_) => setState(() => _error = null),
-            decoration: InputDecoration(
-              labelText: 'URL (YouTube, Drive, or Web)',
-              hintText: 'https://...',
-              errorText: _error,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.content_paste_rounded, size: 18),
-                tooltip: 'Paste from clipboard',
-                onPressed: _pasteFromClipboard,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _urlController,
+              autofocus: true,
+              onChanged: (_) => setState(() => _error = null),
+              decoration: InputDecoration(
+                labelText: 'URL (YouTube, Drive, or Web)',
+                hintText: 'https://...',
+                errorText: _error,
+                filled: true,
+                fillColor: colorScheme.surface.withValues(alpha: 0.45),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.content_paste_rounded, size: 18),
+                  tooltip: 'Paste from clipboard',
+                  onPressed: _pasteFromClipboard,
+                ),
               ),
             ),
-          ),
-          _buildTypePreview(),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _titleController,
-            decoration: InputDecoration(
-              labelText: 'Title (Optional)',
-              hintText: 'e.g. Reference Video / Study Docs',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+            _buildTypePreview(),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Title (Optional)',
+                hintText: 'e.g. Reference Video / Study Docs',
+                filled: true,
+                fillColor: colorScheme.surface.withValues(alpha: 0.45),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         GlassButton(
