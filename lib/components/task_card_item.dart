@@ -179,8 +179,12 @@ class TaskCardItem extends StatelessWidget {
                             isExpanded: isExpanded,
                             onToggleExpand: isDeleted ? null : onToggleExpand,
                           ),
-                        for (final attachment in task.attachments)
-                          AttachmentChip(attachment: attachment),
+                        // Inside TaskCardItem.build -> Wrap(children: [ ... ])
+                        if (task.attachments.isNotEmpty)
+                          TaskAttachmentsChipGroup(
+                            attachments: task.attachments,
+                            maxTitleLength: 20,
+                          ),
                         ...?extraChips,
                       ],
                     ),

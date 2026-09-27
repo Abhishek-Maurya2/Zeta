@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/revision_provider.dart';
 import '../../providers/task_provider.dart';
-import 'components/revision_notes_sheet.dart';
+import '../../models/revision.dart';
 import 'components/revision_topic_tile.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
@@ -12,8 +12,9 @@ import '../../components/segmented_column.dart';
 /// Pane 2 of Revision: Topics list for the selected subject and review actions.
 class RevisionPane2 extends StatelessWidget {
   final bool isSplitPane;
+  final ValueChanged<ChapterTopic>? onOpenNotes;
 
-  const RevisionPane2({super.key, required this.isSplitPane});
+  const RevisionPane2({super.key, required this.isSplitPane, this.onOpenNotes});
 
   @override
   Widget build(BuildContext context) {
@@ -83,9 +84,7 @@ class RevisionPane2 extends StatelessWidget {
 
         return Padding(
           key: ValueKey(topic.id),
-          padding: EdgeInsets.only(
-            bottom: index == topics.length - 1 ? 0 : 3,
-          ),
+          padding: EdgeInsets.only(bottom: index == topics.length - 1 ? 0 : 3),
           child: ClipRRect(
             borderRadius: borderRadius,
             child: Material(
@@ -96,11 +95,7 @@ class RevisionPane2 extends StatelessWidget {
                 canReorder: topics.length > 1,
                 onNotes: () {
                   ZetaHaptics.light();
-                  RevisionNotesSheet.show(
-                    context,
-                    subject: selectedSubject,
-                    initialTopic: topic,
-                  );
+                  onOpenNotes?.call(topic);
                 },
                 onComplete: () {
                   ZetaHaptics.medium();

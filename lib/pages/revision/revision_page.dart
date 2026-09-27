@@ -1,17 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../providers/revision_provider.dart';
 import '../../services/preferences_service.dart';
 import 'components/topic_edit_dialog.dart';
+import 'components/revision_notes_pane.dart';
 import '../../theme/breakpoints.dart';
 import '../../theme/motion_tokens.dart';
 import '../../utils/haptics.dart';
 import '../../components/m3e_pane_divider.dart';
 import '../../components/m3e_page_transition.dart';
-import '../../components/segmented_column.dart';
+import '../../models/revision.dart';
 import 'revision_pane1.dart';
 import 'revision_pane2.dart';
+
+enum RevisionRightPaneMode { topics, notes }
 
 class RevisionPage extends StatefulWidget {
   const RevisionPage({super.key});
@@ -23,21 +27,29 @@ class RevisionPage extends StatefulWidget {
 class _RevisionPageState extends State<RevisionPage> {
   // ─── Pane sizing (mirrors settings pattern) ────────────────────────────────
   static const double _defaultPaneWidth =
-      ZetaBreakpoints.paneFixedExpanded; // 360
-  static const double _largePaneWidth = ZetaBreakpoints.paneFixedLarge; // 412
-  static const double _minPaneWidth = ZetaBreakpoints.paneMinList; // 240
+      ZetaBreakpoints.paneFixedExpanded; // 360[cite: 1]
+  static const double _largePaneWidth =
+      ZetaBreakpoints.paneFixedLarge; // 412[cite: 1]
+  static const double _minPaneWidth =
+      ZetaBreakpoints.paneMinList; // 240[cite: 1]
   static const double _minContentPaneWidth =
-      ZetaBreakpoints.paneMinContent; // 360
-  static const double _collapseThreshold = 180.0;
-  static const String _prefKeyPaneWidth = 'revision_pane_width';
-  static const String _prefKeyPaneCollapsed = 'revision_pane_collapsed';
+      ZetaBreakpoints.paneMinContent; // 360[cite: 1]
+  static const double _collapseThreshold = 180.0; //[cite: 1]
+  static const String _prefKeyPaneWidth = 'revision_pane_width'; //[cite: 1]
+  static const String _prefKeyPaneCollapsed =
+      'revision_pane_collapsed'; //[cite: 1]
 
   double _paneWidth = _defaultPaneWidth;
   bool _hasCustomWidth = false;
   bool _isPaneCollapsed = false;
 
+  // ─── Pane Switching State ──────────────────────────────────────────────────
+  RevisionRightPaneMode _rightPaneMode = RevisionRightPaneMode.topics;
+  ChapterTopic? _activeTopicForNotes;
+
   // ─── Compact mobile hierarchical navigation state ──────────────────────────
   String? _selectedSubjectForMobile;
+  bool _isMobileNotesOpen = false;
   String? _lastSubjectId;
   int _previousSubjectIndex = 0;
   RevisionProvider? _revProvider;
@@ -46,6 +58,7 @@ class _RevisionPageState extends State<RevisionPage> {
   void initState() {
     super.initState();
     _selectedSubjectForMobile = null;
+    _isMobileNotesOpen = false;
     _loadSavedPaneSettings();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -63,6 +76,7 @@ class _RevisionPageState extends State<RevisionPage> {
   @override
   void deactivate() {
     _selectedSubjectForMobile = null;
+    _isMobileNotesOpen = false;
     final rev = _revProvider;
     if (rev != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -75,6 +89,7 @@ class _RevisionPageState extends State<RevisionPage> {
   @override
   void dispose() {
     _selectedSubjectForMobile = null;
+    _isMobileNotesOpen = false;
     final rev = _revProvider;
     if (rev != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -123,7 +138,6 @@ class _RevisionPageState extends State<RevisionPage> {
             : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)) +
         delta;
 
-    // Snap points
     final snapPoints = <double>[
       240.0,
       _defaultPaneWidth,
@@ -180,7 +194,6 @@ class _RevisionPageState extends State<RevisionPage> {
     _persistPaneSettings();
   }
 
-  /// Collapsed expand affordance (chevron strip on left edge)
   Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
     return Tooltip(
       message: 'Expand subjects pane',
@@ -216,12 +229,28 @@ class _RevisionPageState extends State<RevisionPage> {
     );
   }
 
+  void _openNotes({ChapterTopic? topic}) {
+    ZetaHaptics.light();
+    setState(() {
+      _activeTopicForNotes = topic;
+      _rightPaneMode = RevisionRightPaneMode.notes;
+      _isMobileNotesOpen = true;
+    });
+  }
+
+  void _closeNotes() {
+    ZetaHaptics.light();
+    setState(() {
+      _rightPaneMode = RevisionRightPaneMode.topics;
+      _isMobileNotesOpen = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isTwoPane = sizeClass.isMultiPane;
     final colorScheme = Theme.of(context).colorScheme;
-
     final revProvider = context.watch<RevisionProvider>();
 
     if (revProvider.isLoading) {
@@ -240,7 +269,7 @@ class _RevisionPageState extends State<RevisionPage> {
     return _buildTwoPaneLayout(context, revProvider, colorScheme);
   }
 
-  // ─── Single Pane (mobile/tablet portrait) ─────────────────────────────────
+  // ─── Single Pane (Mobile Android / Tablet Portrait) ────────────────────────
   Widget _buildSinglePaneLayout(
     BuildContext context,
     RevisionProvider revProvider,
@@ -254,17 +283,27 @@ class _RevisionPageState extends State<RevisionPage> {
               .firstOrNull
         : null;
 
-    final int currentSubjectIndex = selectedSubject != null ? 1 : 0;
+    int currentSubjectIndex = 0;
+    if (_isMobileNotesOpen && selectedSubject != null) {
+      currentSubjectIndex = 2;
+    } else if (selectedSubject != null) {
+      currentSubjectIndex = 1;
+    }
+
     final int prevIdx = _previousSubjectIndex;
-    if (_lastSubjectId != selectedSubject?.id) {
+    if (_lastSubjectId != '${selectedSubject?.id}_$_isMobileNotesOpen') {
       _previousSubjectIndex = currentSubjectIndex;
-      _lastSubjectId = selectedSubject?.id;
+      _lastSubjectId = '${selectedSubject?.id}_$_isMobileNotesOpen';
     }
 
     return PopScope(
-      canPop: selectedSubject == null,
+      canPop: selectedSubject == null && !_isMobileNotesOpen,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
+        if (_isMobileNotesOpen) {
+          _closeNotes();
+          return;
+        }
         if (_selectedSubjectForMobile != null) {
           ZetaHaptics.light();
           setState(() {
@@ -278,29 +317,22 @@ class _RevisionPageState extends State<RevisionPage> {
         previousIndex: prevIdx,
         transitionType: M3EPageTransitionType.sharedAxisX,
         duration: M3MotionDuration.medium2,
-        child: selectedSubject == null
-            ? SingleChildScrollView(
-                key: const ValueKey<String>('revision_compact_subjects'),
-                padding: EdgeInsets.fromLTRB(
-                  isCompact
-                      ? ZetaBreakpoints.marginCompact
-                      : ZetaBreakpoints.marginExpanded,
-                  16,
-                  isCompact
-                      ? ZetaBreakpoints.marginCompact
-                      : ZetaBreakpoints.marginExpanded,
-                  80,
+        child: currentSubjectIndex == 2 && selectedSubject != null
+            ? Scaffold(
+                key: ValueKey<String>(
+                  'revision_mobile_notes_${selectedSubject.id}_${_activeTopicForNotes?.id}',
                 ),
-                child: RevisionPane1(
-                  isSplitPane: false,
-                  onSubjectSelected: (sub) {
-                    setState(() {
-                      _selectedSubjectForMobile = sub.id;
-                    });
-                  },
+                backgroundColor: colorScheme.surface,
+                body: SafeArea(
+                  child: RevisionNotesPane(
+                    subject: selectedSubject,
+                    initialTopic: _activeTopicForNotes,
+                    onBack: _closeNotes,
+                  ),
                 ),
               )
-            : CustomScrollView(
+            : currentSubjectIndex == 1 && selectedSubject != null
+            ? CustomScrollView(
                 key: ValueKey<String>(
                   'revision_compact_topics_${selectedSubject.id}',
                 ),
@@ -333,8 +365,16 @@ class _RevisionPageState extends State<RevisionPage> {
                     ),
                     title: Text(selectedSubject.name),
                     actions: [
+                      M3EIconButton(
+                        variant: M3EIconButtonVariant.tonal,
+                        size: M3EIconButtonSize.sm,
+                        width: M3EIconButtonWidth.wide,
+                        icon: const Icon(Icons.description_outlined, size: 19),
+                        tooltip: 'Notes',
+                        onPressed: () => _openNotes(),
+                      ),
                       Padding(
-                        padding: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.only(right: 8, left: 4),
                         child: M3EIconButton(
                           onPressed: () {
                             ZetaHaptics.light();
@@ -363,17 +403,48 @@ class _RevisionPageState extends State<RevisionPage> {
                       isCompact ? 16 : 24,
                       80,
                     ),
-                    sliver: const SliverToBoxAdapter(
-                      child: RevisionPane2(isSplitPane: false),
+                    sliver: SliverToBoxAdapter(
+                      child: RevisionPane2(
+                        isSplitPane: false,
+                        onOpenNotes: (topic) => _openNotes(topic: topic),
+                      ),
                     ),
                   ),
                 ],
+              )
+            : SingleChildScrollView(
+                key: const ValueKey<String>('revision_compact_subjects'),
+                padding: EdgeInsets.fromLTRB(
+                  isCompact
+                      ? ZetaBreakpoints.marginCompact
+                      : ZetaBreakpoints.marginExpanded,
+                  16,
+                  isCompact
+                      ? ZetaBreakpoints.marginCompact
+                      : ZetaBreakpoints.marginExpanded,
+                  80,
+                ),
+                child: RevisionPane1(
+                  isSplitPane: false,
+                  onSubjectSelected: (sub) {
+                    setState(() {
+                      _selectedSubjectForMobile = sub.id;
+                    });
+                  },
+                  onOpenNotes: (sub) {
+                    setState(() {
+                      _selectedSubjectForMobile = sub.id;
+                      revProvider.selectSubject(sub.id);
+                    });
+                    _openNotes();
+                  },
+                ),
               ),
       ),
     );
   }
 
-  // ─── Two-Pane Layout (≥ 840dp) ─────────────────────────────────────────────
+  // ─── Two-Pane Layout (Desktop & Tablets ≥ 840dp) ───────────────────────────
   Widget _buildTwoPaneLayout(
     BuildContext context,
     RevisionProvider revProvider,
@@ -395,6 +466,7 @@ class _RevisionPageState extends State<RevisionPage> {
           maxAllowedWidth,
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final selectedSubject = revProvider.selectedSubject;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -405,14 +477,20 @@ class _RevisionPageState extends State<RevisionPage> {
             else
               SizedBox(
                 width: effectiveWidth,
-                child: const SingleChildScrollView(
-                  key: PageStorageKey<String>('revision_subjects_pane'),
-                  padding: EdgeInsets.fromLTRB(16, 40, 16, 24),
-                  child: RevisionPane1(isSplitPane: true),
+                child: SingleChildScrollView(
+                  key: const PageStorageKey<String>('revision_subjects_pane'),
+                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
+                  child: RevisionPane1(
+                    isSplitPane: true,
+                    onOpenNotes: (sub) {
+                      revProvider.selectSubject(sub.id);
+                      _openNotes();
+                    },
+                  ),
                 ),
               ),
 
-            // ─── Material 3 Draggable Pane Divider ─────────────────────
+            // ─── Draggable Divider ─────────────────────────────────────
             M3EPaneDivider(
               onDragUpdate: (delta) => _handlePaneDrag(delta, totalWidth),
               onDragEnd: _persistPaneSettings,
@@ -421,7 +499,7 @@ class _RevisionPageState extends State<RevisionPage> {
                   'Drag to resize · Double-tap to reset (${(_hasCustomWidth ? _paneWidth : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)).toInt()}dp)',
             ),
 
-            // ─── Right Pane: Topics (Pane 2) ───────────────────────────
+            // ─── Right Pane: Topics OR Notes Replacement Pane ─────────
             Expanded(
               child: Container(
                 margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
@@ -432,59 +510,93 @@ class _RevisionPageState extends State<RevisionPage> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: CustomScrollView(
-                  key: ValueKey<String>(
-                    'revision_topics_${revProvider.selectedSubject?.id ?? "none"}',
-                  ),
-                  slivers: [
-                    SliverAppBar.large(
-                      backgroundColor: isDark
-                          ? colorScheme.surfaceContainerHigh
-                          : colorScheme.surfaceContainer,
-                      pinned: true,
-                      automaticallyImplyLeading: false,
-                      scrolledUnderElevation: 2,
-                      title: Text(
-                        revProvider.selectedSubject?.name ?? 'Topics',
-                      ),
-                      actions: [
-                        if (revProvider.selectedSubject != null)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: M3EIconButton(
-                              onPressed: () {
-                                ZetaHaptics.light();
-                                AddTopicDialog.show(
-                                  context,
-                                  subjectId: revProvider.selectedSubject!.id,
-                                );
-                              },
-                              variant: M3EIconButtonVariant.filled,
-                              size: M3EIconButtonSize.sm,
-                              width: M3EIconButtonWidth.wide,
-                              icon: const Icon(
-                                Icons.add_rounded,
-                                size: 23,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              tooltip: 'Add Topic',
-                            ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child:
+                      _rightPaneMode == RevisionRightPaneMode.notes &&
+                          selectedSubject != null
+                      ? RevisionNotesPane(
+                          key: ValueKey(
+                            'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
                           ),
-                      ],
-                    ),
-                    if (revProvider.selectedSubject == null)
-                      const SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: RevisionPane2(isSplitPane: true),
-                      )
-                    else
-                      const SliverPadding(
-                        padding: EdgeInsets.fromLTRB(20, 4, 20, 80),
-                        sliver: SliverToBoxAdapter(
-                          child: RevisionPane2(isSplitPane: true),
+                          subject: selectedSubject,
+                          initialTopic: _activeTopicForNotes,
+                          onBack: _closeNotes,
+                        )
+                      : CustomScrollView(
+                          key: ValueKey<String>(
+                            'revision_topics_${selectedSubject?.id ?? "none"}',
+                          ),
+                          slivers: [
+                            SliverAppBar.large(
+                              backgroundColor: isDark
+                                  ? colorScheme.surfaceContainerHigh
+                                  : colorScheme.surfaceContainer,
+                              pinned: true,
+                              automaticallyImplyLeading: false,
+                              scrolledUnderElevation: 2,
+                              title: Text(selectedSubject?.name ?? 'Topics'),
+                              actions: [
+                                if (selectedSubject != null) ...[
+                                  M3EIconButton(
+                                    variant: M3EIconButtonVariant.tonal,
+                                    size: M3EIconButtonSize.sm,
+                                    width: M3EIconButtonWidth.wide,
+                                    icon: const Icon(
+                                      Icons.description_outlined,
+                                      size: 19,
+                                    ),
+                                    tooltip: 'Notes & Resources',
+                                    onPressed: () => _openNotes(),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: M3EIconButton(
+                                      onPressed: () {
+                                        ZetaHaptics.light();
+                                        AddTopicDialog.show(
+                                          context,
+                                          subjectId: selectedSubject.id,
+                                        );
+                                      },
+                                      variant: M3EIconButtonVariant.filled,
+                                      size: M3EIconButtonSize.sm,
+                                      width: M3EIconButtonWidth.wide,
+                                      icon: const Icon(
+                                        Icons.add_rounded,
+                                        size: 23,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      tooltip: 'Add Topic',
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (selectedSubject == null)
+                              const SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: RevisionPane2(isSplitPane: true),
+                              )
+                            else
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  20,
+                                  4,
+                                  20,
+                                  80,
+                                ),
+                                sliver: SliverToBoxAdapter(
+                                  child: RevisionPane2(
+                                    isSplitPane: true,
+                                    onOpenNotes: (topic) =>
+                                        _openNotes(topic: topic),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                  ],
                 ),
               ),
             ),

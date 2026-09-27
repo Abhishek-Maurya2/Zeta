@@ -15,11 +15,13 @@ import '../../components/segmented_column.dart';
 class RevisionPane1 extends StatelessWidget {
   final bool isSplitPane;
   final ValueChanged<Subject>? onSubjectSelected;
+  final ValueChanged<Subject>? onOpenNotes;
 
   const RevisionPane1({
     super.key,
     required this.isSplitPane,
     this.onSubjectSelected,
+    this.onOpenNotes,
   });
 
   @override
@@ -56,10 +58,7 @@ class RevisionPane1 extends StatelessWidget {
                     variant: M3EIconButtonVariant.tonal,
                     size: M3EIconButtonSize.sm,
                     width: M3EIconButtonWidth.wide,
-                    icon: const Icon(
-                      Icons.tune_rounded,
-                      size: 20,
-                    ),
+                    icon: const Icon(Icons.tune_rounded, size: 20),
                     tooltip: 'Revision Settings',
                   ),
                   const SizedBox(width: 6),
@@ -152,7 +151,7 @@ class RevisionPane1 extends StatelessWidget {
                 dueCount: dueCount,
                 onNotes: () {
                   ZetaHaptics.light();
-                  RevisionNotesSheet.show(context, subject: sub);
+                  onOpenNotes?.call(sub);
                 },
                 onEdit: () {
                   ZetaHaptics.light();
