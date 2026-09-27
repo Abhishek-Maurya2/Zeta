@@ -54,8 +54,19 @@ class WindowsTrayService {
     final result = await PreferencesService.instance.setBool('zeta_minimize_to_tray', value);
     try {
       await _channel.invokeMethod('setMinimizeToTray', {'enable': value});
+      if (!value) {
+        await _channel.invokeMethod('removeTray');
+      }
     } catch (_) {}
     return result;
+  }
+
+  /// Explicitly removes the tray icon from the Windows system tray.
+  Future<void> removeTray() async {
+    if (kIsWeb || !Platform.isWindows) return;
+    try {
+      await _channel.invokeMethod('removeTray');
+    } catch (_) {}
   }
 
   /// Initialize system tray support on Windows.
@@ -69,6 +80,9 @@ class WindowsTrayService {
       await _channel.invokeMethod('initTray', {
         'minimizeToTray': minimizeToTray,
       });
+      if (!minimizeToTray) {
+        await _channel.invokeMethod('removeTray');
+      }
     } catch (e) {
       debugPrint('[WindowsTrayService] initTray failed: $e');
     }

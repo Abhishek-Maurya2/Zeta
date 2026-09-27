@@ -26,6 +26,13 @@ class UserAvatar extends StatelessWidget {
   /// Optional tooltip message to display on hover/long-press.
   final String? tooltip;
 
+  /// Optional flag indicating whether there is an active sync or data error.
+  /// When true, renders an error badge indicator on the avatar.
+  final bool hasError;
+
+  /// Optional custom badge widget displayed over the avatar corner.
+  final Widget? badge;
+
   const UserAvatar({
     super.key,
     this.radius = 20,
@@ -35,6 +42,8 @@ class UserAvatar extends StatelessWidget {
     this.onTap,
     this.ringColor,
     this.tooltip,
+    this.hasError = false,
+    this.badge,
   });
 
   // In-memory cache for decoded base64 avatar bytes to avoid re-allocating

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,15 +7,13 @@ import 'package:provider/provider.dart';
 
 import '../../providers/pomodoro_provider.dart';
 import '../../services/ambient_mode_service.dart';
+import '../../theme/breakpoints.dart';
 import '../../utils/haptics.dart';
 
-/// Fullscreen Ambient Display (AOD) page.
-/// Completely takes over the screen across Web, Windows, Android, and iOS,
-/// and prevents device sleep while running.
+/// Fullscreen Ambient Display (AOD) page with a matrix/grid progress indicator.
 class PomodoroAmbientPage extends StatefulWidget {
   const PomodoroAmbientPage({super.key});
 
-  /// Opens the ambient mode taking over the entire root window/screen.
   static Future<void> open(BuildContext context) {
     return Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder(
@@ -37,13 +36,15 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   bool _controlsVisible = true;
   bool _isExiting = false;
 
+  // Grid configuration: 5x5 layout (25 total units)
+  static const int _gridCrossAxisCount = 5;
+  static const int _totalDots = 25;
+
   @override
   void initState() {
     super.initState();
-    // 1. Enter platform fullscreen and acquire wake lock
     AmbientModeService.enter();
 
-    // 2. Automatically start timer if paused
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final provider = context.read<PomodoroProvider>();
@@ -53,7 +54,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
       }
     });
 
-    // 3. Listen for browser/system-level fullscreen exit (e.g. Esc in web)
     AmbientModeService.setPlatformFullscreenListener((isFullscreen) {
       if (!isFullscreen && mounted && !_isExiting) {
         _isExiting = true;
@@ -113,20 +113,19 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
 
+    // Derive progress (0.0 to 1.0) directly or compute via provider values
+    final double progress = provider.progress.clamp(0.0, 1.0);
+    final int percentage = (progress * 100).round();
+    final int completedDots = (progress * _totalDots).floor();
+
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
+
     return CallbackShortcuts(
+      // Only keep exit shortcuts; Space/S keys are completely removed
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): _exitFullscreen,
         const SingleActivator(LogicalKeyboardKey.keyF): _exitFullscreen,
-        const SingleActivator(LogicalKeyboardKey.space): () {
-          ZetaHaptics.medium();
-          provider.toggleTimer();
-          _resetInactivityTimer();
-        },
-        const SingleActivator(LogicalKeyboardKey.keyS): () {
-          ZetaHaptics.medium();
-          provider.skipSession();
-          _resetInactivityTimer();
-        },
       },
       child: Focus(
         autofocus: true,
@@ -149,80 +148,100 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
               body: SafeArea(
                 child: Stack(
                   children: [
-                    // ─── Center: Enormous Clock & Progress ───────────────
-                    IgnorePointer(
-                      child: Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Progress Ring & Giant Countdown
-                            SizedBox(
-                              width: 320,
-                              height: 320,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  // Digital Countdown
-                                  Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          provider.formattedTime,
-                                          style: TextStyle(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            fontSize: 104,
-                                            fontWeight: FontWeight.w500,
-                                            letterSpacing: -1.0,
-                                            fontFeatures: const [
-                                              FontFeature.tabularFigures(),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                    // ─── Center: Dot Matrix Progress Indicator ───────
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: AnimatedOpacity(
+                          opacity: _controlsVisible ? 1.0 : 0.25,
+                          duration: const Duration(milliseconds: 300),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: 320,
+                              maxHeight: 320,
                             ),
-                          ],
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _totalDots,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: _gridCrossAxisCount,
+                                    crossAxisSpacing: 14,
+                                    mainAxisSpacing: 14,
+                                  ),
+                              itemBuilder: (context, index) {
+                                final bool isFilled = index < completedDots;
+
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 250),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: isFilled
+                                        ? Colors.white
+                                        : Colors.transparent,
+                                    border: Border.all(
+                                      color: isFilled
+                                          ? Colors.white
+                                          : Colors.white.withValues(alpha: 0.4),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ),
 
-                    // ─── Top Bar: Mode Title & Fullscreen Exit ───────────
+                    // ─── Top-Right: Exit Fullscreen Button ───────────
                     Positioned(
                       top: 16,
-                      left: 24,
                       right: 24,
                       child: AnimatedOpacity(
-                        opacity: _controlsVisible ? 1.0 : 0.15,
+                        opacity: _controlsVisible ? 1.0 : 0.25,
                         duration: const Duration(milliseconds: 300),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            // Exit Fullscreen Button
-                            IconButton.filledTonal(
-                              icon: const Icon(
-                                Icons.fullscreen_exit_rounded,
-                                color: Colors.white,
-                                size: 26,
-                              ),
-                              tooltip: 'Exit full screen (Esc)',
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(
-                                  alpha: 0.15,
-                                ),
-                                hoverColor: Colors.white.withValues(
-                                  alpha: 0.25,
-                                ),
-                              ),
-                              onPressed: _exitFullscreen,
+                        child: IconButton.filledTonal(
+                          icon: const Icon(
+                            Icons.fullscreen_exit_rounded,
+                            color: Colors.white,
+                            size: 26,
+                          ),
+                          tooltip: 'Exit full screen (Esc)',
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.15,
                             ),
-                          ],
+                            hoverColor: Colors.white.withValues(alpha: 0.25),
+                          ),
+                          onPressed: _exitFullscreen,
+                        ),
+                      ),
+                    ),
+
+                    // ─── Bottom-Left: Percentage Display ─────────────
+                    Positioned(
+                      bottom: 24,
+                      left: 24,
+                      child: AnimatedOpacity(
+                        opacity: _controlsVisible ? 1.0 : 0.25,
+                        duration: const Duration(milliseconds: 300),
+                        child: IgnorePointer(
+                          child: Text(
+                            "$percentage%",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: !isCompact ? 100 : 28,
+                              height: 1.0,
+                              fontFamily: 'headline',
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: !isCompact ? -4.0 : -0.9,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),

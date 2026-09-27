@@ -160,11 +160,12 @@ class _HomePageState extends State<HomePage> {
           onSelectDate: _handleSelectDate,
         ),
         const SizedBox(height: 24),
-        SummaryWidgets(
+        HomeSummaryCards(
           activeCount: activeCount,
           todayActiveCount: todayActiveCount,
           completionRate: completionRate,
           completedCount: completedCount,
+          onMoreTap: () => navProvider.setActivePage(PageId.tasks),
         ),
       ],
     );
@@ -189,8 +190,8 @@ class _HomePageState extends State<HomePage> {
               WeeklyCalendarStrip(
                 selectedDate: _selectedDate,
                 onSelectDate: _handleSelectDate,
-                weekOffset: _weekOffset,
-                onShiftWeek: _handleShiftWeek,
+                // weekOffset: _weekOffset,
+                // onShiftWeek: _handleShiftWeek,
                 onResetToToday: _handleResetToToday,
               ),
 

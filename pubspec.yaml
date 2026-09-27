@@ -72,6 +72,21 @@ flutter:
     - family: NotoSans
       fonts:
         - asset: assets/fonts/NotoSans-Variable.ttf
+    - family: NothingDot
+      fonts:
+        - asset: assets/fonts/nothing-dot.otf
+    - family: NothingHeadline
+      fonts:
+        - asset: assets/fonts/nothing-headline.otf
+    - family: Headline
+      fonts:
+        - asset: assets/fonts/nothing-headline.otf
+    - family: headline
+      fonts:
+        - asset: assets/fonts/nothing-headline.otf
+    - family: nothing-dot
+      fonts:
+        - asset: assets/fonts/nothing-dot.otf
 
 flutter_launcher_icons:
   android: true

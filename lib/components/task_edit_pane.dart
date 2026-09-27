@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
+import 'package:http/http.dart' as http;
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -13,18 +16,8 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
 import '../theme/success_colors.dart';
-import 'add_attachment_dialog.dart';
-import 'attachment_chip.dart';
 
-/// Modal pane / dialog for creating or editing a task.
-///
-/// Features Material 3 Expressive (M3E) design primitives:
-/// - [M3EBottomSheet] on compact viewports (< 600px)
-/// - Expressive rounded dialog on expanded viewports (≥ 600px)
-/// - [M3EButton] for primary (Save/Create), secondary (Cancel), and destructive (Move to Bin) actions
-/// - [M3EChip] for preset date selection (Today, Tomorrow, Next week) and custom date/time filters
-/// - [M3EIconButton] for close, add-subtask, and remove-subtask interactions
-/// - [M3EDatePicker] and [M3ETimePicker] for expressive scheduling dialogs
+/// Modal pane / dialog for creating or editing a task[cite: 1, 2].
 class TaskEditPane {
   static Future<void> show(
     BuildContext context, {
@@ -42,7 +35,6 @@ class TaskEditPane {
 
     if (isCompact) {
       final taskProvider = context.read<TaskProvider>();
-      // Docked Bottom Sheet on Compact (< 600dp)
       return showModalBottomSheet(
         context: context,
         useRootNavigator: true,
@@ -53,69 +45,78 @@ class TaskEditPane {
         barrierColor: Colors.black.withValues(alpha: 0.05),
         builder: (ctx) {
           final colorScheme = Theme.of(ctx).colorScheme;
+          final viewInsets = MediaQuery.of(ctx).viewInsets;
+          final maxHeight = MediaQuery.of(ctx).size.height * 0.90;
 
           return ChangeNotifierProvider.value(
             value: taskProvider,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, -4),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: 0.45),
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
+            child: AnimatedPadding(
+              padding: EdgeInsets.only(bottom: viewInsets.bottom),
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOut,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxHeight),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Drag Handle
-                        Center(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 12),
-                            width: 36,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.40,
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.shadow.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer.withValues(
+                            alpha: 0.45,
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(28),
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Center(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                width: 36,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.40),
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(2),
                             ),
-                          ),
+                            Flexible(
+                              child: TaskEditFormContent(
+                                task: task,
+                                initialTitle: initialTitle,
+                                initialDescription: initialDescription,
+                                initialDueDate: initialDueDate,
+                                initialDueTime: initialDueTime,
+                                initialHasTime: initialHasTime,
+                                initialSubtasks: initialSubtasks,
+                                initialAttachments: initialAttachments,
+                                onClose: () => Navigator.of(ctx).pop(),
+                              ),
+                            ),
+                          ],
                         ),
-                        Padding(
-                          padding: EdgeInsets.only(
-                            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-                          ),
-                          child: TaskEditFormContent(
-                            task: task,
-                            initialTitle: initialTitle,
-                            initialDescription: initialDescription,
-                            initialDueDate: initialDueDate,
-                            initialDueTime: initialDueTime,
-                            initialHasTime: initialHasTime,
-                            initialSubtasks: initialSubtasks,
-                            initialAttachments: initialAttachments,
-                            onClose: () => Navigator.of(ctx).pop(),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -125,8 +126,6 @@ class TaskEditPane {
         },
       );
     } else {
-      // Co-planar 2-pane split mode on Medium & Expanded+ (>= 600dp):
-      // Opens temporary resizable split side pane in TaskProvider
       context.read<TaskProvider>().openEditPane(
         task: task,
         initialTitle: initialTitle,
@@ -151,6 +150,7 @@ class TaskEditFormContent extends StatefulWidget {
   final List<Subtask>? initialSubtasks;
   final List<AttachmentItem>? initialAttachments;
   final VoidCallback? onClose;
+
   const TaskEditFormContent({
     super.key,
     this.task,
@@ -173,7 +173,13 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   late final TextEditingController _descController;
   final TextEditingController _newSubtaskController = TextEditingController();
   final TextEditingController _editSubtaskController = TextEditingController();
+  final TextEditingController _attachmentInputController =
+      TextEditingController();
+
+  final FocusNode _descFocusNode = FocusNode();
   final FocusNode _editSubtaskFocusNode = FocusNode();
+  final FocusNode _newSubtaskFocusNode = FocusNode();
+  final FocusNode _attachmentFocusNode = FocusNode();
 
   String? _editingSubtaskId;
   String? _dueDate;
@@ -183,7 +189,17 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   late List<AttachmentItem> _attachments;
   String? _errorMessage;
 
+  bool _showDescriptionSection = false;
+  bool _showSubtaskSection = false;
+  bool _showAttachmentInput = false;
+  bool _isFetchingAttachmentTitle = false;
+
   bool get isEditing => widget.task != null;
+  bool get _hasDueDateOrTime => _dueDate != null || _hasTime;
+  bool get _showDescription =>
+      _showDescriptionSection || _descController.text.trim().isNotEmpty;
+  bool get _showSubtasks => _showSubtaskSection || _subtasks.isNotEmpty;
+  bool get _showAttachments => _showAttachmentInput || _attachments.isNotEmpty;
 
   @override
   void initState() {
@@ -197,10 +213,11 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     _dueDate = widget.task?.dueDate != null
         ? TaskDateFormatter.formatString(widget.task!.dueDate!)
         : widget.initialDueDate;
-    _hasTime = widget.initialHasTime ??
+    _hasTime =
+        widget.initialHasTime ??
         ((widget.task?.hasTime ?? false) ||
-        (widget.task?.dueTime != null &&
-            widget.task!.dueTime!.trim().isNotEmpty));
+            (widget.task?.dueTime != null &&
+                widget.task!.dueTime!.trim().isNotEmpty));
     _dueTime = widget.initialDueTime ?? widget.task?.dueTime;
     if (_hasTime && (_dueTime == null || _dueTime!.isEmpty)) {
       _dueTime = '09:00 AM';
@@ -212,8 +229,18 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         ? widget.initialAttachments!.map((a) => a.copyWith()).toList()
         : widget.task?.attachments.map((a) => a.copyWith()).toList() ?? [];
 
+    if (_descController.text.trim().isNotEmpty) {
+      _showDescriptionSection = true;
+    }
+    if (_subtasks.isNotEmpty) {
+      _showSubtaskSection = true;
+    }
+
     _titleController.addListener(_syncDraft);
-    _descController.addListener(_syncDraft);
+    _descController.addListener(() {
+      setState(() {});
+      _syncDraft();
+    });
   }
 
   void _syncDraft() {
@@ -237,13 +264,138 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   @override
   void dispose() {
     _titleController.removeListener(_syncDraft);
-    _descController.removeListener(_syncDraft);
     _titleController.dispose();
     _descController.dispose();
+    _descFocusNode.dispose();
     _newSubtaskController.dispose();
     _editSubtaskController.dispose();
     _editSubtaskFocusNode.dispose();
+    _newSubtaskFocusNode.dispose();
+    _attachmentInputController.dispose();
+    _attachmentFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleDescriptionAction() {
+    ZetaHaptics.light();
+    setState(() {
+      _showDescriptionSection = true;
+    });
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (mounted) _descFocusNode.requestFocus();
+    });
+  }
+
+  void _handleAttachmentAction() {
+    ZetaHaptics.light();
+    setState(() {
+      _showAttachmentInput = !_showAttachmentInput;
+    });
+    if (_showAttachmentInput) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) _attachmentFocusNode.requestFocus();
+      });
+    }
+  }
+
+  Future<String?> _fetchPageTitle(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            },
+          )
+          .timeout(const Duration(seconds: 4));
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final match = RegExp(
+          r'<title[^>]*>(.*?)</title>',
+          caseSensitive: false,
+          dotAll: true,
+        ).firstMatch(response.body);
+
+        if (match != null) {
+          final raw = match.group(1) ?? '';
+          final cleaned = raw
+              .replaceAll(RegExp(r'\s+'), ' ')
+              .replaceAll('&amp;', '&')
+              .replaceAll('&lt;', '<')
+              .replaceAll('&gt;', '>')
+              .replaceAll('&quot;', '"')
+              .replaceAll('&#39;', "'")
+              .trim();
+          if (cleaned.isNotEmpty) return cleaned;
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _addAttachmentInline() async {
+    final text = _attachmentInputController.text.trim();
+    if (text.isEmpty) return;
+
+    final isUrl = RegExp(
+      r'^(https?:\/\/)?([\w\-]+(\.[\w\-]+)+.*)$',
+      caseSensitive: false,
+    ).hasMatch(text);
+
+    final formattedUrl =
+        isUrl && !text.startsWith('http://') && !text.startsWith('https://')
+        ? 'https://$text'
+        : text;
+
+    final placeholderDomain = isUrl
+        ? Uri.tryParse(formattedUrl)?.host ?? text
+        : text;
+    final attachmentId = 'att-${DateTime.now().millisecondsSinceEpoch}';
+
+    final tempItem = AttachmentItem(
+      id: attachmentId,
+      title: placeholderDomain,
+      url: formattedUrl,
+      type: AttachmentType.link,
+    );
+
+    setState(() {
+      _attachments.add(tempItem);
+      _attachmentInputController.clear();
+      _showAttachmentInput = false;
+      if (isUrl) _isFetchingAttachmentTitle = true;
+    });
+    ZetaHaptics.light();
+    _syncDraft();
+
+    if (isUrl) {
+      final fetchedTitle = await _fetchPageTitle(formattedUrl);
+      if (mounted && fetchedTitle != null && fetchedTitle.isNotEmpty) {
+        setState(() {
+          final idx = _attachments.indexWhere((a) => a.id == attachmentId);
+          if (idx != -1) {
+            _attachments[idx] = _attachments[idx].copyWith(title: fetchedTitle);
+          }
+          _isFetchingAttachmentTitle = false;
+        });
+        _syncDraft();
+      } else if (mounted) {
+        setState(() => _isFetchingAttachmentTitle = false);
+      }
+    }
+  }
+
+  void _handleSubtaskAction() {
+    ZetaHaptics.light();
+    setState(() {
+      _showSubtaskSection = true;
+    });
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _newSubtaskFocusNode.requestFocus();
+      }
+    });
   }
 
   void _addSubtask() {
@@ -261,6 +413,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         ),
       );
       _newSubtaskController.clear();
+      _showSubtaskSection = true;
     });
     _syncDraft();
   }
@@ -321,10 +474,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     _syncDraft();
   }
 
-  void reorderSubtaskForTesting(int oldIndex, int newIndex) {
-    _reorderSubtask(oldIndex, newIndex);
-  }
-
   void _removeSubtask(String id) {
     setState(() {
       if (_editingSubtaskId == id) {
@@ -332,6 +481,9 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         _editSubtaskController.clear();
       }
       _subtasks.removeWhere((s) => s.id == id);
+      if (_subtasks.isEmpty) {
+        _showSubtaskSection = false;
+      }
     });
     _syncDraft();
   }
@@ -525,14 +677,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
               ),
               child: child,
             ),
-            if (selected)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(borderRadius: radius),
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -546,16 +690,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   }) {
     final inputWidget = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: isCompact
-          ? const BoxDecoration(
-              // color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.35),
-              // borderRadius: BorderRadius.circular(16),
-              // border: Border.all(
-              //   color: colorScheme.outlineVariant.withValues(alpha: 0.25),
-              //   width: 1.0,
-              // ),
-            )
-          : null,
       child: Row(
         children: [
           Icon(
@@ -567,6 +701,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           Expanded(
             child: TextField(
               controller: _newSubtaskController,
+              focusNode: _newSubtaskFocusNode,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'Add a subtask...',
@@ -636,10 +771,21 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     final isEditingThis = _editingSubtaskId == st.id;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 1. Completion Checkbox
+          if (_subtasks.length > 1 && !isEditingThis)
+            Padding(
+              padding: const EdgeInsets.only(left: 6, right: 2),
+              child: Icon(
+                Icons.drag_indicator_rounded,
+                size: 18,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
+              ),
+            )
+          else
+            const SizedBox(width: 8),
           InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
@@ -648,21 +794,22 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             },
             child: Padding(
               padding: const EdgeInsets.all(6.0),
-              child: Icon(
-                st.completed
-                    ? Icons.check_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: 22,
-                color: st.completed
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  st.completed
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  key: ValueKey(st.completed),
+                  size: 20,
+                  color: st.completed
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
               ),
             ),
           ),
-
           const SizedBox(width: 4),
-
-          // 3. Title Text or Inline TextField
           Expanded(
             child: isEditingThis
                 ? Padding(
@@ -673,109 +820,112 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                       autofocus: true,
                       textInputAction: TextInputAction.done,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: colorScheme.onSurface,
                         fontWeight: FontWeight.w500,
                       ),
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
+                          horizontal: 8,
+                          vertical: 6,
                         ),
                         hintText: 'Subtask title...',
                         filled: true,
                         fillColor: colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.45),
+                            .withValues(alpha: 0.3),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
                             color: colorScheme.primary,
-                            width: 1.5,
+                            width: 1.2,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
                             color: colorScheme.primary,
-                            width: 1.5,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(
-                            color: colorScheme.outlineVariant.withValues(
-                              alpha: 0.5,
-                            ),
-                            width: 1.0,
+                            width: 1.2,
                           ),
                         ),
                       ),
                       onSubmitted: (_) => _saveEditedSubtask(st.id),
                     ),
                   )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
-                    ),
-                    child: Text(
-                      st.title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        decoration: st.completed
-                            ? TextDecoration.lineThrough
-                            : null,
-                        color: st.completed
-                            ? colorScheme.onSurfaceVariant
-                            : colorScheme.onSurface,
+                : InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () {
+                      ZetaHaptics.light();
+                      _startEditingSubtask(st);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      child: Text(
+                        st.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          decoration: st.completed
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: st.completed
+                              ? colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                )
+                              : colorScheme.onSurface,
+                          fontWeight: st.completed
+                              ? FontWeight.normal
+                              : FontWeight.w500,
+                        ),
                       ),
                     ),
                   ),
           ),
-
-          const SizedBox(width: 4),
-
-          // 4. Action Buttons
-          if (isEditingThis) ...[
-            M3EIconButton(
-              icon: const Icon(Icons.check_rounded, size: 20),
-              size: M3EIconButtonSize.xs,
-              variant: M3EIconButtonVariant.tonal,
-              tooltip: 'Save',
-              onPressed: () => _saveEditedSubtask(st.id),
+          const SizedBox(width: 6),
+          if (isEditingThis)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  M3EIconButton(
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    size: M3EIconButtonSize.xs,
+                    variant: M3EIconButtonVariant.tonal,
+                    tooltip: 'Save',
+                    onPressed: () => _saveEditedSubtask(st.id),
+                  ),
+                  const SizedBox(width: 4),
+                  M3EIconButton(
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    size: M3EIconButtonSize.xs,
+                    variant: M3EIconButtonVariant.standard,
+                    tooltip: 'Cancel',
+                    onPressed: _cancelEditingSubtask,
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: M3EIconButton(
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 16,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                size: M3EIconButtonSize.xs,
+                variant: M3EIconButtonVariant.standard,
+                tooltip: 'Delete subtask',
+                onPressed: () {
+                  ZetaHaptics.light();
+                  _removeSubtask(st.id);
+                },
+              ),
             ),
-            const SizedBox(width: 2),
-            M3EIconButton(
-              icon: const Icon(Icons.close_rounded, size: 20),
-              size: M3EIconButtonSize.xs,
-              variant: M3EIconButtonVariant.standard,
-              tooltip: 'Cancel',
-              onPressed: _cancelEditingSubtask,
-            ),
-          ] else ...[
-            M3EIconButton(
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              size: M3EIconButtonSize.xs,
-              variant: M3EIconButtonVariant.standard,
-              tooltip: 'Edit subtask',
-              onPressed: () {
-                ZetaHaptics.light();
-                _startEditingSubtask(st);
-              },
-            ),
-            M3EIconButton(
-              icon: const Icon(Icons.close_rounded, size: 20),
-              size: M3EIconButtonSize.xs,
-              variant: M3EIconButtonVariant.standard,
-              tooltip: 'Remove subtask',
-              onPressed: () {
-                ZetaHaptics.light();
-                _removeSubtask(st.id);
-              },
-            ),
-          ],
-          const SizedBox(width: 4),
         ],
       ),
     );
@@ -789,7 +939,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     if (_subtasks.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.only(top: 8),
       child: ReorderableListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -802,13 +952,13 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             animation: animation,
             builder: (BuildContext context, Widget? animChild) {
               final animValue = Curves.easeInOut.transform(animation.value);
-              final elevation = 6.0 * animValue;
+              final elevation = 4.0 * animValue;
               return Material(
                 elevation: elevation,
-                borderRadius: BorderRadius.circular(16),
-                shadowColor: colorScheme.shadow.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(14),
+                shadowColor: colorScheme.shadow.withValues(alpha: 0.25),
                 color: isCompact
-                    ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.85)
+                    ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.95)
                     : colorScheme.surfaceContainerLowest,
                 child: animChild,
               );
@@ -823,23 +973,46 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           return Padding(
             key: ValueKey(st.id),
             padding: EdgeInsets.only(
-              bottom: index == _subtasks.length - 1 ? 0 : 3,
+              bottom: index == _subtasks.length - 1 ? 0 : 2.5,
             ),
-            child: ClipRRect(
-              borderRadius: borderRadius,
-              child: Material(
-                color: isCompact
-                    ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
-                    : colorScheme.surfaceContainerLowest,
-                child: SubtaskReorderListener(
-                  index: index,
-                  enabled: _subtasks.length > 1 && _editingSubtaskId != st.id,
-                  child: _buildSubtaskTile(
-                    context: context,
-                    st: st,
+            child: Dismissible(
+              key: ValueKey('dismiss-${st.id}'),
+              direction: DismissDirection.endToStart,
+              onDismissed: (_) {
+                ZetaHaptics.medium();
+                _removeSubtask(st.id);
+              },
+              background: Container(
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  borderRadius: borderRadius,
+                  color: colorScheme.errorContainer.withValues(alpha: 0.7),
+                ),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  color: colorScheme.error,
+                  size: 20,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: borderRadius,
+                child: Material(
+                  color: isCompact
+                      ? colorScheme.surfaceContainerLowest.withValues(
+                          alpha: 0.4,
+                        )
+                      : colorScheme.surfaceContainerLowest,
+                  child: SubtaskReorderListener(
                     index: index,
-                    isCompact: isCompact,
-                    colorScheme: colorScheme,
+                    enabled: _subtasks.length > 1 && _editingSubtaskId != st.id,
+                    child: _buildSubtaskTile(
+                      context: context,
+                      st: st,
+                      index: index,
+                      isCompact: isCompact,
+                      colorScheme: colorScheme,
+                    ),
                   ),
                 ),
               ),
@@ -861,322 +1034,542 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
         mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── Header ───
-          if (!isCompact)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(width: 5),
-                M3EIconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  size: M3EIconButtonSize.sm,
-                  width: M3EIconButtonWidth.wide,
-                  decoration: M3EIconButtonDecoration(
-                    backgroundColor: WidgetStateProperty.all(
-                      colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
-                    ),
-                  ),
-                  tooltip: 'Close',
-                  onPressed: () {
-                    ZetaHaptics.light();
-                    _closePane();
-                  },
-                ),
-              ],
-            ),
-
-          // ─── Scrollable Fields ───
+          // ─── Scrollable Fields (Scrollbar Hidden) ───
           Flexible(
             fit: isCompact ? FlexFit.loose : FlexFit.tight,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. Task Title
-                  TextField(
-                    controller: _titleController,
-                    autofocus: true,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSurface,
-                      fontSize: 28,
-                    ),
-
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: 'Task Title',
-                      hintStyle: TextStyle(
-                        fontSize: 25,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.65,
-                        ),
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      errorText: _errorMessage,
-                    ),
-                    onChanged: (_) {
-                      if (_errorMessage != null) {
-                        setState(() => _errorMessage = null);
-                      }
-                    },
-                    onSubmitted: (_) => _handleSave(),
-                  ),
-
-                  const SizedBox(height: 22),
-
-                  // 2. Description (max 3 lines)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(top: 2),
-                        child: Icon(Icons.notes_rounded, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _descController,
-                          maxLines: 3,
-                          minLines: 1,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: colorScheme.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            isDense: true,
-                            hintText: 'Add details',
-
-                            hintStyle: Theme.of(context).textTheme.displayMedium
+            child: ScrollConfiguration(
+              behavior: ScrollConfiguration.of(context)
+                  .copyWith(scrollbars: false),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Task Title & Top-Right Close Button in 1 Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _titleController,
+                            autofocus: true,
+                            maxLines: 4,
+                            minLines: 1,
+                            style: Theme.of(context).textTheme.displaySmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 17,
-                                  color: colorScheme.onSurfaceVariant.withAlpha(
-                                    150,
-                                  ),
+                                  color: colorScheme.onSurface,
+                                  fontSize: 26,
+                                  height: 1.25,
                                 ),
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: 'Task Title',
+                              hintStyle: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.65,
+                                ),
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              errorText: _errorMessage,
+                            ),
+                            onChanged: (_) {
+                              if (_errorMessage != null) {
+                                setState(() => _errorMessage = null);
+                              }
+                            },
+                            onSubmitted: (_) => _handleSave(),
                           ),
                         ),
+                        if (!isCompact) ...[
+                          const SizedBox(width: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2.0),
+                            child: M3EIconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              size: M3EIconButtonSize.sm,
+                              width: M3EIconButtonWidth.wide,
+                              decoration: M3EIconButtonDecoration(
+                                backgroundColor: WidgetStateProperty.all(
+                                  colorScheme.surfaceContainerLowest.withValues(
+                                    alpha: 0.7,
+                                  ),
+                                ),
+                              ),
+                              onPressed: () {
+                                ZetaHaptics.light();
+                                _closePane();
+                              },
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    // ─── 2. Notes / Description Section (Below Title) ───
+                    if (_showDescription) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Icon(
+                              Icons.notes_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _descController,
+                              focusNode: _descFocusNode,
+                              maxLines: 4,
+                              minLines: 1,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: colorScheme.onSurface,
+                              ),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                hintText: 'Add details or notes...',
+                                hintStyle: Theme.of(context)
+                                    .textTheme
+                                    .displayMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: colorScheme.onSurfaceVariant
+                                          .withAlpha(150),
+                                    ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          if (_descController.text.trim().isEmpty)
+                            M3EIconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              size: M3EIconButtonSize.xs,
+                              variant: M3EIconButtonVariant.standard,
+                              tooltip: 'Hide notes',
+                              onPressed: () {
+                                setState(() {
+                                  _showDescriptionSection = false;
+                                });
+                              },
+                            ),
+                        ],
                       ),
                     ],
-                  ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
-                  // 2.5 Attachments
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Icon(
-                          Icons.attach_file_rounded,
-                          size: 20,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Attachments',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: colorScheme.onSurface,
-                                      ),
-                                ),
-                                M3EButton.icon(
-                                  onPressed: () async {
-                                    ZetaHaptics.light();
-                                    final item = await AddAttachmentDialog.show(context);
-                                    if (item != null) {
-                                      setState(() {
-                                        _attachments.add(item);
-                                      });
-                                    }
-                                  },
-                                  label: const Text('Add Link'),
-                                  icon: const Icon(Icons.add_link_rounded, size: 16),
-                                  size: M3EButtonSize.sm,
-                                  style: M3EButtonStyle.tonal,
-                                ),
-                              ],
-                            ),
-                            if (_attachments.isNotEmpty) ...[
-                              const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                children: _attachments.map((att) {
-                                  return AttachmentChip(
-                                    attachment: att,
-                                    onDelete: () {
-                                      setState(() {
-                                        _attachments.removeWhere((a) => a.id == att.id);
-                                      });
-                                    },
-                                  );
-                                }).toList(),
+                    // ─── 3. Actions Button Group (Below Description) ───
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        height: 48,
+                        child: M3EButtonGroup(
+                          type: M3EButtonGroupType.standard,
+                          style: M3EButtonStyle.tonal,
+                          size: M3EButtonSize.sm,
+                          shape: M3EButtonShape.round,
+                          neighborSquish: true,
+                          selectedIndex: null,
+                          onSelectedIndexChanged: (int? index) {
+                            if (index == null) return;
+                            ZetaHaptics.medium();
+                            switch (index) {
+                              case 0:
+                                _handleDescriptionAction();
+                              case 1:
+                                _handleAttachmentAction();
+                              case 2:
+                                _pickDate();
+                              case 3:
+                                _pickTime();
+                              case 4:
+                                _handleSubtaskAction();
+                            }
+                          },
+                          actions: [
+                            M3EButtonGroupAction(
+                              width: 60,
+                              icon: const Icon(Icons.notes_rounded, size: 20),
+                              tooltip: 'Add notes',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: _showDescription
+                                    ? colorScheme.primaryContainer
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                foregroundColor: _showDescription
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
                               ),
-                            ],
+                            ),
+                            M3EButtonGroupAction(
+                              width: 60,
+                              icon: const Icon(
+                                Icons.attach_file_rounded,
+                                size: 20,
+                              ),
+                              tooltip: 'Add attachment',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: _showAttachments
+                                    ? colorScheme.primaryContainer
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                foregroundColor: _showAttachments
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            M3EButtonGroupAction(
+                              width: 60,
+                              icon: const Icon(
+                                Icons.calendar_month_rounded,
+                                size: 20,
+                              ),
+                              tooltip: 'Set due date',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: _dueDate != null
+                                    ? colorScheme.primaryContainer
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                foregroundColor: _dueDate != null
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            M3EButtonGroupAction(
+                              width: 60,
+                              icon: const Icon(
+                                Icons.schedule_rounded,
+                                size: 20,
+                              ),
+                              tooltip: 'Set due time',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: _hasTime
+                                    ? colorScheme.primaryContainer
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                foregroundColor: _hasTime
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            M3EButtonGroupAction(
+                              width: 60,
+                              icon: const Icon(
+                                Icons.checklist_rounded,
+                                size: 20,
+                              ),
+                              tooltip: 'Add subtasks',
+                              decoration: M3EToggleButtonDecoration.styleFrom(
+                                backgroundColor: _showSubtasks
+                                    ? colorScheme.primaryContainer
+                                    : colorScheme.surfaceContainerHighest
+                                          .withValues(alpha: 0.5),
+                                foregroundColor: _showSubtasks
+                                    ? colorScheme.onPrimaryContainer
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
 
-                  const SizedBox(height: 25),
-
-                  // 3. Due Date & Time Section
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.event_outlined,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: 15),
-                      Text(
-                        'Due Date & Time',
-                        style: Theme.of(context).textTheme.displayMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                              color: colorScheme.primary,
+                    // ─── 4. Attachments Section (Inline - Full Width) ───
+                    if (_showAttachments) ...[
+                      const SizedBox(height: 20),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.attach_file_rounded,
+                                size: 20,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'Attachments',
+                                style: Theme.of(context).textTheme.displayMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                      color: colorScheme.primary,
+                                    ),
+                              ),
+                              if (_isFetchingAttachmentTitle) ...[
+                                const SizedBox(width: 10),
+                                SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              if (!_showAttachmentInput)
+                                M3EIconButton(
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  size: M3EIconButtonSize.xs,
+                                  variant: M3EIconButtonVariant.standard,
+                                  tooltip: 'Add link',
+                                  onPressed: () {
+                                    setState(() => _showAttachmentInput = true);
+                                    Future.delayed(
+                                      const Duration(milliseconds: 80),
+                                      () {
+                                        if (mounted) {
+                                          _attachmentFocusNode.requestFocus();
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          if (_showAttachmentInput) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.link_rounded,
+                                    size: 18,
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.7),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _attachmentInputController,
+                                      focusNode: _attachmentFocusNode,
+                                      style: const TextStyle(fontSize: 14),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        hintText: 'Paste link or note...',
+                                        hintStyle: TextStyle(
+                                          fontSize: 13,
+                                          color: colorScheme.onSurfaceVariant
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                        border: InputBorder.none,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              vertical: 8,
+                                            ),
+                                      ),
+                                      onSubmitted: (_) =>
+                                          _addAttachmentInline(),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  M3EIconButton(
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                      size: 18,
+                                    ),
+                                    size: M3EIconButtonSize.xs,
+                                    variant: M3EIconButtonVariant.tonal,
+                                    tooltip: 'Attach',
+                                    onPressed: _addAttachmentInline,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  M3EIconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 18,
+                                    ),
+                                    size: M3EIconButtonSize.xs,
+                                    variant: M3EIconButtonVariant.standard,
+                                    tooltip: 'Cancel',
+                                    onPressed: () {
+                                      setState(() {
+                                        _attachmentInputController.clear();
+                                        _showAttachmentInput = false;
+                                      });
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
+                          ],
+                          if (_attachments.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: _attachments.map((att) {
+                                return AttachmentChip(
+                                  attachment: att,
+                                  maxTitleLength: 18,
+                                  onDelete: () {
+                                    setState(() {
+                                      _attachments.removeWhere(
+                                        (a) => a.id == att.id,
+                                      );
+                                    });
+                                    _syncDraft();
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ],
                       ),
-                      if (_dueDate != null) ...[
-                        const Spacer(),
-                        Text(
-                          _dueDate! +
-                              (_hasTime && _dueTime != null
-                                  ? ' at $_dueTime'
-                                  : ''),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                    ],
+
+                    // ─── 5. Due Date & Time Section (Visible if set) ───
+                    if (_hasDueDateOrTime) ...[
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.event_outlined,
+                            size: 20,
                             color: colorScheme.primary,
                           ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  // M3E Chips for Due Date Presets + Time
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      if (_dueDate != null)
-                        _buildGlassChip(
-                          isCompact: isCompact,
-                          colorScheme: colorScheme,
-                          selected: true,
-                          child: M3EChip(
-                            type: M3EChipType.filter,
-                            label: _dueDate!,
-                            leading: const Icon(
-                              Icons.edit_calendar_rounded,
-                              size: 16,
+                          const SizedBox(width: 12),
+                          Text(
+                            'Due Date & Time',
+                            style: Theme.of(context).textTheme.displayMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: colorScheme.primary,
+                                ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (_dueDate != null)
+                            _buildGlassChip(
+                              isCompact: isCompact,
+                              colorScheme: colorScheme,
+                              selected: true,
+                              child: M3EChip(
+                                type: M3EChipType.filter,
+                                label: _dueDate!,
+                                leading: const Icon(
+                                  Icons.edit_calendar_rounded,
+                                  size: 16,
+                                ),
+                                selected: true,
+                                onPressed: _pickDate,
+                                onDeleted: () => setState(() {
+                                  _dueDate = null;
+                                  _syncDraft();
+                                }),
+                              ),
                             ),
-                            selected: true,
-                            onPressed: _pickDate,
-                            onDeleted: () => setState(() {
-                              _dueDate = null;
-                              _hasTime = false;
-                              _dueTime = null;
-                            }),
-                          ),
-                        )
-                      else
-                        _buildGlassChip(
-                          isCompact: isCompact,
-                          colorScheme: colorScheme,
-                          selected: false,
-                          child: M3EChip(
-                            type: M3EChipType.assist,
-                            label: 'Pick date',
-                            leading: const Icon(
-                              Icons.calendar_month_rounded,
-                              size: 16,
-                            ),
-                            onPressed: _pickDate,
-                          ),
-                        ),
-                      _buildGlassChip(
-                        isCompact: isCompact,
-                        colorScheme: colorScheme,
-                        selected: _hasTime,
-                        child: M3EChip(
-                          type: _hasTime
-                              ? M3EChipType.filter
-                              : M3EChipType.assist,
-                          label: _hasTime && _dueTime != null
-                              ? _dueTime!
-                              : 'Add Time',
-                          leading: Icon(
-                            _hasTime
-                                ? Icons.schedule_rounded
-                                : Icons.alarm_add_rounded,
-                            size: 16,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          selected: _hasTime,
-                          onPressed: _pickTime,
-                          onDeleted: _hasTime
-                              ? () => setState(() {
+                          if (_hasTime)
+                            _buildGlassChip(
+                              isCompact: isCompact,
+                              colorScheme: colorScheme,
+                              selected: true,
+                              child: M3EChip(
+                                type: M3EChipType.filter,
+                                label: _dueTime ?? 'Time',
+                                leading: Icon(
+                                  Icons.schedule_rounded,
+                                  size: 16,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                selected: true,
+                                onPressed: _pickTime,
+                                onDeleted: () => setState(() {
                                   _hasTime = false;
                                   _dueTime = null;
-                                })
-                              : null,
-                        ),
+                                  _syncDraft();
+                                }),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
-                  ),
 
-                  const SizedBox(height: 20),
+                    // ─── 6. Subtasks Section (Visible when requested or not empty) ───
+                    if (_showSubtasks) ...[
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Subtasks',
+                            style: Theme.of(context).textTheme.displayMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                  color: colorScheme.primary,
+                                ),
+                          ),
+                          if (_subtasks.isEmpty)
+                            M3EIconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              size: M3EIconButtonSize.xs,
+                              variant: M3EIconButtonVariant.standard,
+                              tooltip: 'Hide subtasks',
+                              onPressed: () {
+                                setState(() {
+                                  _showSubtaskSection = false;
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSubtaskInput(
+                        context: context,
+                        isCompact: isCompact,
+                        colorScheme: colorScheme,
+                      ),
+                      _buildSubtasksList(
+                        context: context,
+                        isCompact: isCompact,
+                        colorScheme: colorScheme,
+                      ),
+                    ],
 
-                  // 4. Subtasks Section
-                  Text(
-                    'Subtasks',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  _buildSubtaskInput(
-                    context: context,
-                    isCompact: isCompact,
-                    colorScheme: colorScheme,
-                  ),
-
-                  _buildSubtasksList(
-                    context: context,
-                    isCompact: isCompact,
-                    colorScheme: colorScheme,
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1194,76 +1587,131 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                 _buildGlassButton(
                   isCompact: isCompact,
                   borderColor: colorScheme.error.withValues(alpha: 0.35),
-                  child: M3EButton.icon(
-                    onPressed: _handleDelete,
-                    size: M3EButtonSize.md,
-                    decoration: M3EButtonDecoration(
-                      backgroundColor: WidgetStatePropertyAll(
-                        isCompact
-                            ? colorScheme.errorContainer.withValues(alpha: 0.6)
-                            : colorScheme.errorContainer,
-                      ),
-                      foregroundColor: WidgetStatePropertyAll(
-                        colorScheme.onErrorContainer,
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.delete_outline_rounded,
-                      size: 20,
-                      color: colorScheme.error,
-                    ),
-                    label: const Text('Delete'),
-                  ),
+                  borderRadius: isCompact ? 16.0 : 24.0,
+                  child: isCompact
+                      ? M3EIconButton(
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            size: 25,
+                            color: colorScheme.error,
+                          ),
+                          size: M3EIconButtonSize.md,
+                          width: M3EIconButtonWidth.wide,
+                          variant: M3EIconButtonVariant.tonal,
+                          decoration: M3EIconButtonDecoration(
+                            backgroundColor: WidgetStatePropertyAll(
+                              colorScheme.errorContainer.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          onPressed: _handleDelete,
+                        )
+                      : M3EButton.icon(
+                          onPressed: _handleDelete,
+                          size: M3EButtonSize.md,
+                          decoration: M3EButtonDecoration(
+                            backgroundColor: WidgetStatePropertyAll(
+                              colorScheme.errorContainer,
+                            ),
+                            foregroundColor: WidgetStatePropertyAll(
+                              colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            size: 25,
+                            color: colorScheme.error,
+                          ),
+                          label: const Text('Delete'),
+                        ),
                 )
               else
                 _buildGlassButton(
                   isCompact: isCompact,
                   borderColor: colorScheme.error.withValues(alpha: 0.35),
-                  child: M3EButton(
-                    onPressed: () {
-                      ZetaHaptics.light();
-                      _closePane();
-                    },
-                    size: M3EButtonSize.md,
-                    decoration: M3EButtonDecoration(
-                      backgroundColor: WidgetStatePropertyAll(
-                        isCompact
-                            ? colorScheme.errorContainer.withValues(alpha: 0.9)
-                            : colorScheme.errorContainer,
-                      ),
-                      foregroundColor: WidgetStatePropertyAll(
-                        colorScheme.onErrorContainer,
-                      ),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(fontSize: 16)),
-                  ),
+                  borderRadius: isCompact ? 16.0 : 24.0,
+                  child: isCompact
+                      ? M3EIconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            size: 25,
+                            color: colorScheme.onErrorContainer,
+                          ),
+                          size: M3EIconButtonSize.md,
+                          width: M3EIconButtonWidth.wide,
+                          variant: M3EIconButtonVariant.tonal,
+                          decoration: M3EIconButtonDecoration(
+                            backgroundColor: WidgetStatePropertyAll(
+                              colorScheme.errorContainer.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          onPressed: () {
+                            ZetaHaptics.light();
+                            _closePane();
+                          },
+                        )
+                      : M3EButton(
+                          onPressed: () {
+                            ZetaHaptics.light();
+                            _closePane();
+                          },
+                          size: M3EButtonSize.md,
+                          decoration: M3EButtonDecoration(
+                            backgroundColor: WidgetStatePropertyAll(
+                              colorScheme.errorContainer,
+                            ),
+                            foregroundColor: WidgetStatePropertyAll(
+                              colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
                 ),
               _buildGlassButton(
                 isCompact: isCompact,
                 borderColor: colorScheme.success.withValues(alpha: 0.35),
-                child: M3EButton.icon(
-                  onPressed: _handleSave,
-                  decoration: M3EButtonDecoration(
-                    backgroundColor: WidgetStatePropertyAll(
-                      isCompact
-                          ? colorScheme.success.withValues(alpha: 0.80)
-                          : colorScheme.success,
-                    ),
-                    foregroundColor: WidgetStatePropertyAll(
-                      colorScheme.onSuccess,
-                    ),
-                  ),
-                  size: M3EButtonSize.md,
-                  icon: Icon(
-                    isEditing ? Icons.check_rounded : Icons.add_rounded,
-                    size: 20,
-                    color: colorScheme.onSuccess,
-                  ),
-                  label: Text(
-                    isEditing ? 'Save Task' : 'Create Task',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
+                borderRadius: isCompact ? 16.0 : 24.0,
+                child: isCompact
+                    ? M3EIconButton(
+                        icon: Icon(
+                          isEditing ? Icons.check_rounded : Icons.add_rounded,
+                          size: 25,
+                          color: colorScheme.onSuccess,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        size: M3EIconButtonSize.md,
+                        width: M3EIconButtonWidth.wide,
+                        variant: M3EIconButtonVariant.tonal,
+                        decoration: M3EIconButtonDecoration(
+                          backgroundColor: WidgetStatePropertyAll(
+                            colorScheme.success.withValues(alpha: 0.80),
+                          ),
+                        ),
+                        onPressed: _handleSave,
+                      )
+                    : M3EButton.icon(
+                        onPressed: _handleSave,
+                        decoration: M3EButtonDecoration(
+                          backgroundColor: WidgetStatePropertyAll(
+                            colorScheme.success,
+                          ),
+                          foregroundColor: WidgetStatePropertyAll(
+                            colorScheme.onSuccess,
+                          ),
+                        ),
+                        size: M3EButtonSize.md,
+                        icon: Icon(
+                          isEditing ? Icons.check_rounded : Icons.add_rounded,
+                          size: 25,
+                          color: colorScheme.onSuccess,
+                        ),
+                        label: Text(
+                          isEditing ? 'Save' : 'Create',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
               ),
             ],
           ),
@@ -1273,11 +1721,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   }
 }
 
-/// Adaptive reorder listener that supports:
-/// - Immediate click-and-drag on mouse (Windows/macOS/Linux/Web): allows immediate reorder drag
-///   without requiring an awkward long press or failing due to sensor jitter.
-/// - Delayed drag on touch (Android/iOS): 250ms touch-and-hold initiates reorder while letting quick taps pass through.
-/// - HitTestBehavior.opaque: ensures empty spaces across the entire tile intercept pointer events.
+/// Adaptive reorder listener that supports drag-and-drop operations[cite: 2].
 class SubtaskReorderListener extends StatelessWidget {
   final int index;
   final bool enabled;
@@ -1309,11 +1753,11 @@ class SubtaskReorderListener extends StatelessWidget {
 
               final MultiDragGestureRecognizer recognizer =
                   event.kind == PointerDeviceKind.mouse
-                      ? ImmediateMultiDragGestureRecognizer(debugOwner: this)
-                      : DelayedMultiDragGestureRecognizer(
-                          delay: const Duration(milliseconds: 250),
-                          debugOwner: this,
-                        );
+                  ? ImmediateMultiDragGestureRecognizer(debugOwner: this)
+                  : DelayedMultiDragGestureRecognizer(
+                      delay: const Duration(milliseconds: 250),
+                      debugOwner: this,
+                    );
 
               recognizer.gestureSettings = gestureSettings;
               list.startItemDragReorder(
@@ -1331,3 +1775,107 @@ class SubtaskReorderListener extends StatelessWidget {
   }
 }
 
+/// Attachment Chip styled consistently with M3E date/time filter chips,
+/// displaying the page's favicon and truncated title to prevent RenderFlex overflow.
+class AttachmentChip extends StatelessWidget {
+  final AttachmentItem attachment;
+  final VoidCallback onDelete;
+  final int maxTitleLength;
+
+  const AttachmentChip({
+    super.key,
+    required this.attachment,
+    required this.onDelete,
+    this.maxTitleLength = 18,
+  });
+
+  String _getDomain(String url) {
+    try {
+      final uri = Uri.parse(
+        url.startsWith('http://') || url.startsWith('https://')
+            ? url
+            : 'https://$url',
+      );
+      return uri.host.replaceFirst(RegExp(r'^www\.'), '');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  String _getDisplayTitle() {
+    String rawTitle = '';
+    if (attachment.title.isNotEmpty && attachment.title != attachment.url) {
+      rawTitle = attachment.title;
+    } else {
+      final domain = _getDomain(attachment.url);
+      rawTitle = domain.isNotEmpty ? domain : attachment.url;
+    }
+
+    if (rawTitle.length > maxTitleLength) {
+      return '${rawTitle.substring(0, maxTitleLength)}…';
+    }
+    return rawTitle;
+  }
+
+  Widget _buildFavicon(String domain, ColorScheme colorScheme) {
+    if (domain.isEmpty) {
+      return Icon(
+        Icons.link_rounded,
+        size: 16,
+        color: colorScheme.onSurfaceVariant,
+      );
+    }
+
+    final faviconUrl =
+        'https://www.google.com/s2/favicons?sz=32&domain_url=$domain';
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Image.network(
+        faviconUrl,
+        width: 16,
+        height: 16,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(
+          Icons.public_rounded,
+          size: 16,
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
+    final domain = _getDomain(attachment.url);
+    final displayTitle = _getDisplayTitle();
+
+    final chipWidget = M3EChip(
+      type: M3EChipType.filter,
+      selected: true,
+      label: displayTitle,
+      leading: _buildFavicon(domain, colorScheme),
+      onDeleted: onDelete,
+      onPressed: () {},
+    );
+
+    if (!isCompact) return chipWidget;
+
+    final radius = BorderRadius.circular(8.0);
+    return ClipRRect(
+      borderRadius: radius,
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            color: colorScheme.primary.withValues(alpha: 0.12),
+          ),
+          child: chipWidget,
+        ),
+      ),
+    );
+  }
+}

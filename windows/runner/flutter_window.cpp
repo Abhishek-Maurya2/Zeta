@@ -146,10 +146,13 @@ bool FlutterWindow::OnCreate() {
             auto it = args->find(flutter::EncodableValue("enable"));
             if (it != args->end()) {
               if (const auto* val = std::get_if<bool>(&it->second)) {
-                this->minimize_to_tray_ = *val;
+                this->InitTray(*val);
               }
             }
           }
+          result->Success();
+        } else if (call.method_name() == "removeTray") {
+          this->RemoveTray();
           result->Success();
         } else if (call.method_name() == "isWindowVisible") {
           HWND hwnd = GetHandle();
@@ -288,11 +291,15 @@ void FlutterWindow::OnDestroy() {
 // ─── System Tray Implementation ─────────────────────────────────────────────
 
 void FlutterWindow::InitTray(bool minimize_to_tray) {
-  if (tray_initialized_) {
-    minimize_to_tray_ = minimize_to_tray;
+  minimize_to_tray_ = minimize_to_tray;
+  if (!minimize_to_tray) {
+    RemoveTray();
     return;
   }
-  minimize_to_tray_ = minimize_to_tray;
+
+  if (tray_initialized_) {
+    return;
+  }
 
   HWND hwnd = GetHandle();
   if (!hwnd) return;
