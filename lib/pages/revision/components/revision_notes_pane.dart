@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:convert';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -11,10 +11,240 @@ import '../../../models/note_item.dart';
 import '../../../models/revision.dart';
 import '../../../providers/revision_provider.dart';
 import '../../../services/url_metadata_service.dart';
-import '../../../theme/breakpoints.dart';
 import '../../../utils/haptics.dart';
 
-/// Clean Document-style Note Workspace without Markdown syntax or bloated margins.
+/// Selection-aware rich text attribute.
+enum DocStyleAttr {
+  bold,
+  italic,
+  underline,
+  strikethrough,
+  title,
+  heading1,
+  heading2,
+}
+
+/// Represents an active style over an index range [start, end].
+class DocStyleSpan {
+  int start;
+  int end;
+  final Set<DocStyleAttr> attributes;
+  final double? fontSize;
+
+  DocStyleSpan({
+    required this.start,
+    required this.end,
+    Set<DocStyleAttr>? attributes,
+    this.fontSize,
+  }) : attributes = attributes ?? <DocStyleAttr>{};
+
+  DocStyleSpan copyWith({
+    int? start,
+    int? end,
+    Set<DocStyleAttr>? attributes,
+    double? fontSize,
+  }) {
+    return DocStyleSpan(
+      start: start ?? this.start,
+      end: end ?? this.end,
+      attributes: attributes ?? Set.from(this.attributes),
+      fontSize: fontSize ?? this.fontSize,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    's': start,
+    'e': end,
+    'a': attributes.map((a) => a.name).toList(),
+    if (fontSize != null) 'fs': fontSize,
+  };
+
+  factory DocStyleSpan.fromJson(Map<String, dynamic> json) => DocStyleSpan(
+    start: json['s'] as int? ?? 0,
+    end: json['e'] as int? ?? 0,
+    attributes:
+        (json['a'] as List<dynamic>?)
+            ?.map((e) => DocStyleAttr.values.firstWhere((val) => val.name == e))
+            .toSet() ??
+        <DocStyleAttr>{},
+    fontSize: (json['fs'] as num?)?.toDouble(),
+  );
+}
+
+/// Rich controller that builds non-markdown selection-based TextSpans.
+class RichDocEditingController extends TextEditingController {
+  List<DocStyleSpan> spans = [];
+
+  RichDocEditingController({super.text});
+
+  /// Loads raw content or formatted payload.
+  void loadFormattedText(String raw) {
+    if (raw.startsWith('{"zeta_doc_v1":')) {
+      try {
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        text = decoded['body'] as String? ?? '';
+        final rawSpans = decoded['spans'] as List<dynamic>? ?? [];
+        spans = rawSpans
+            .map((s) => DocStyleSpan.fromJson(s as Map<String, dynamic>))
+            .toList();
+        return;
+      } catch (_) {}
+    }
+    text = raw;
+    spans = [];
+  }
+
+  /// Exports text alongside its span format state.
+  String exportFormattedText() {
+    if (spans.isEmpty) return text;
+    return jsonEncode({
+      'zeta_doc_v1': true,
+      'body': text,
+      'spans': spans.map((s) => s.toJson()).toList(),
+    });
+  }
+
+  /// Toggles a style for only the selected range.
+  void toggleSelectionStyle(DocStyleAttr attr) {
+    final sel = selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+
+    final start = sel.start < sel.end ? sel.start : sel.end;
+    final end = sel.start < sel.end ? sel.end : sel.start;
+
+    final existingIndex = spans.indexWhere(
+      (s) => s.start == start && s.end == end,
+    );
+
+    if (existingIndex != -1) {
+      final s = spans[existingIndex];
+      if (s.attributes.contains(attr)) {
+        s.attributes.remove(attr);
+      } else {
+        s.attributes.add(attr);
+      }
+      if (s.attributes.isEmpty && s.fontSize == null) {
+        spans.removeAt(existingIndex);
+      }
+    } else {
+      // Split overlapping spans and insert targeted span
+      spans.add(DocStyleSpan(start: start, end: end, attributes: {attr}));
+    }
+
+    _normalizeSpans();
+    notifyListeners();
+  }
+
+  /// Sets font size specifically for the selected text.
+  void setSelectionFontSize(double size) {
+    final sel = selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+
+    final start = sel.start < sel.end ? sel.start : sel.end;
+    final end = sel.start < sel.end ? sel.end : sel.start;
+
+    final existingIndex = spans.indexWhere(
+      (s) => s.start == start && s.end == end,
+    );
+    if (existingIndex != -1) {
+      spans[existingIndex] = spans[existingIndex].copyWith(fontSize: size);
+    } else {
+      spans.add(DocStyleSpan(start: start, end: end, fontSize: size));
+    }
+    _normalizeSpans();
+    notifyListeners();
+  }
+
+  void _normalizeSpans() {
+    spans.removeWhere((s) => s.start >= s.end || s.start >= text.length);
+    for (final s in spans) {
+      if (s.end > text.length) s.end = text.length;
+    }
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final baseStyle =
+        style ?? TextStyle(color: colorScheme.onSurface, fontSize: 15.0);
+
+    if (text.isEmpty) {
+      return TextSpan(text: '', style: baseStyle);
+    }
+
+    if (spans.isEmpty) {
+      return TextSpan(text: text, style: baseStyle);
+    }
+
+    final children = <TextSpan>[];
+    int cursor = 0;
+
+    final sorted = List<DocStyleSpan>.from(spans)
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    for (final span in sorted) {
+      if (span.start > cursor) {
+        children.add(
+          TextSpan(text: text.substring(cursor, span.start), style: baseStyle),
+        );
+      }
+
+      final start = span.start.clamp(0, text.length);
+      final end = span.end.clamp(0, text.length);
+
+      if (start < end) {
+        var styled = baseStyle;
+        if (span.attributes.contains(DocStyleAttr.bold)) {
+          styled = styled.copyWith(fontWeight: FontWeight.bold);
+        }
+        if (span.attributes.contains(DocStyleAttr.italic)) {
+          styled = styled.copyWith(fontStyle: FontStyle.italic);
+        }
+        if (span.attributes.contains(DocStyleAttr.underline)) {
+          styled = styled.copyWith(decoration: TextDecoration.underline);
+        }
+        if (span.attributes.contains(DocStyleAttr.strikethrough)) {
+          styled = styled.copyWith(decoration: TextDecoration.lineThrough);
+        }
+        if (span.attributes.contains(DocStyleAttr.title)) {
+          styled = styled.copyWith(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: colorScheme.primary,
+          );
+        }
+        if (span.attributes.contains(DocStyleAttr.heading1)) {
+          styled = styled.copyWith(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: colorScheme.primary,
+          );
+        }
+        if (span.attributes.contains(DocStyleAttr.heading2)) {
+          styled = styled.copyWith(fontSize: 17, fontWeight: FontWeight.w600);
+        }
+        if (span.fontSize != null) {
+          styled = styled.copyWith(fontSize: span.fontSize);
+        }
+
+        children.add(TextSpan(text: text.substring(start, end), style: styled));
+        cursor = end;
+      }
+    }
+
+    if (cursor < text.length) {
+      children.add(TextSpan(text: text.substring(cursor), style: baseStyle));
+    }
+
+    return TextSpan(style: baseStyle, children: children);
+  }
+}
+
+/// Document-style Notes Workspace with selection-only rich formatting.
 class RevisionNotesPane extends StatefulWidget {
   final Subject subject;
   final ChapterTopic? initialTopic;
@@ -35,7 +265,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
   String? _selectedViewId;
 
   late final TextEditingController _titleController;
-  late final TextEditingController _docController;
+  late final RichDocEditingController _docController;
   final TextEditingController _attachmentInputController =
       TextEditingController();
   final FocusNode _editorFocusNode = FocusNode();
@@ -44,14 +274,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
   late List<AttachmentItem> _currentAttachments;
   bool _showAttachmentInput = false;
 
-  // Active formatting state
   double _currentFontSize = 15.0;
   String _currentStyleType = 'Body';
   TextAlign _currentAlignment = TextAlign.left;
-  bool _isBold = false;
-  bool _isItalic = false;
-  bool _isUnderline = false;
-  bool _isStrike = false;
 
   Timer? _autoSaveDebounce;
 
@@ -60,7 +285,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     super.initState();
     _selectedViewId = widget.initialTopic?.id;
     _titleController = TextEditingController();
-    _docController = TextEditingController();
+    _docController = RichDocEditingController();
     _initEditorState();
 
     _titleController.addListener(_onTextChanged);
@@ -77,7 +302,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     if (_selectedViewId == null || _selectedViewId == '__all__') {
       final note = currentSubject.note;
       _titleController.text = note?.title ?? currentSubject.name;
-      _docController.text = note?.content ?? '';
+      _docController.loadFormattedText(note?.content ?? '');
       _currentAttachments = [
         ...currentSubject.attachments,
         ...?note?.attachments,
@@ -89,7 +314,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
       );
       final note = topic.note;
       _titleController.text = note?.title ?? topic.title;
-      _docController.text = note?.content ?? topic.description ?? '';
+      _docController.loadFormattedText(
+        note?.content ?? topic.description ?? '',
+      );
       _currentAttachments = [...topic.attachments, ...?note?.attachments];
     }
   }
@@ -115,7 +342,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     if (!mounted) return;
     final revProvider = context.read<RevisionProvider>();
     final title = _titleController.text.trim();
-    final content = _docController.text;
+    final content = _docController.exportFormattedText();
 
     if (_selectedViewId == null) {
       final currentSubject = revProvider.subjects.firstWhere(
@@ -156,29 +383,22 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     }
   }
 
-  void _applyHeadingStyle(String style) {
-    setState(() {
-      _currentStyleType = style;
-      switch (style) {
-        case 'Title':
-          _currentFontSize = 24.0;
-          _isBold = true;
-          break;
-        case 'Heading 1':
-          _currentFontSize = 20.0;
-          _isBold = true;
-          break;
-        case 'Heading 2':
-          _currentFontSize = 17.0;
-          _isBold = true;
-          break;
-        default:
-          _currentFontSize = 15.0;
-          _isBold = false;
-          break;
-      }
-    });
+  void _applyHeadingToSelection(String style) {
+    setState(() => _currentStyleType = style);
     ZetaHaptics.selection();
+    switch (style) {
+      case 'Title':
+        _docController.toggleSelectionStyle(DocStyleAttr.title);
+        break;
+      case 'Heading 1':
+        _docController.toggleSelectionStyle(DocStyleAttr.heading1);
+        break;
+      case 'Heading 2':
+        _docController.toggleSelectionStyle(DocStyleAttr.heading2);
+        break;
+      default:
+        break;
+    }
   }
 
   void _insertListPrefix(String prefix) {
@@ -281,13 +501,13 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
           // ─── 1. Header Dropdown ──────────────────────────────────────────
           _buildHeaderDropdown(context, subject, subjectTopics),
 
-          // ─── 2. Google Docs-style Toolstrip ──────────────────────────────
+          // ─── 2. Google Docs Toolstrip ───────────────────────────────────
           if (_selectedViewId != '__all__')
             _buildFormatStrip(context, colorScheme),
 
           const Divider(height: 1),
 
-          // ─── 3. Clean Document Canvas ────────────────────────────────────
+          // ─── 3. Natural Document Canvas ──────────────────────────────────
           Expanded(
             child: ScrollConfiguration(
               behavior: ScrollConfiguration.of(context)
@@ -324,7 +544,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       color: colorScheme.surface,
       child: Row(
         children: [
@@ -396,21 +616,20 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
   Widget _buildFormatStrip(BuildContext context, ColorScheme colorScheme) {
     return Container(
-      height: 42,
+      height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       color: colorScheme.surfaceContainerLow,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // Style Selector Popup
             PopupMenuButton<String>(
               tooltip: 'Text style',
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               initialValue: _currentStyleType,
-              onSelected: _applyHeadingStyle,
+              onSelected: _applyHeadingToSelection,
               itemBuilder: (ctx) => [
                 const PopupMenuItem(value: 'Body', child: Text('Body text')),
                 const PopupMenuItem(
@@ -457,10 +676,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                 ),
               ),
             ),
-
             const SizedBox(width: 8),
 
-            // Font Point Stepper
+            // Font Point Stepper for Selection
             Container(
               height: 28,
               decoration: BoxDecoration(
@@ -474,12 +692,13 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                   InkWell(
                     onTap: () {
                       ZetaHaptics.light();
-                      setState(() {
-                        _currentFontSize = (_currentFontSize - 1).clamp(
+                      setState(
+                        () => _currentFontSize = (_currentFontSize - 1).clamp(
                           11.0,
                           32.0,
-                        );
-                      });
+                        ),
+                      );
+                      _docController.setSelectionFontSize(_currentFontSize);
                     },
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6),
@@ -496,12 +715,13 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                   InkWell(
                     onTap: () {
                       ZetaHaptics.light();
-                      setState(() {
-                        _currentFontSize = (_currentFontSize + 1).clamp(
+                      setState(
+                        () => _currentFontSize = (_currentFontSize + 1).clamp(
                           11.0,
                           32.0,
-                        );
-                      });
+                        ),
+                      );
+                      _docController.setSelectionFontSize(_currentFontSize);
                     },
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 6),
@@ -514,7 +734,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
             const VerticalDivider(width: 14, indent: 8, endIndent: 8),
 
-            // Bold, Italic, Underline, Strikethrough Group
+            // Selection-Only Formatting Buttons
             M3EButtonGroup(
               type: M3EButtonGroupType.standard,
               style: M3EButtonStyle.tonal,
@@ -525,34 +745,31 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
               onSelectedIndexChanged: (int? index) {
                 if (index == null) return;
                 ZetaHaptics.light();
-                setState(() {
-                  switch (index) {
-                    case 0:
-                      _isBold = !_isBold;
-                      break;
-                    case 1:
-                      _isItalic = !_isItalic;
-                      break;
-                    case 2:
-                      _isUnderline = !_isUnderline;
-                      break;
-                    case 3:
-                      _isStrike = !_isStrike;
-                      break;
-                  }
-                });
+                switch (index) {
+                  case 0:
+                    _docController.toggleSelectionStyle(DocStyleAttr.bold);
+                    break;
+                  case 1:
+                    _docController.toggleSelectionStyle(DocStyleAttr.italic);
+                    break;
+                  case 2:
+                    _docController.toggleSelectionStyle(DocStyleAttr.underline);
+                    break;
+                  case 3:
+                    _docController.toggleSelectionStyle(
+                      DocStyleAttr.strikethrough,
+                    );
+                    break;
+                }
               },
-              actions: [
+              actions: const [
                 M3EButtonGroupAction(
                   width: 32,
                   icon: Text(
                     'B',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: _isBold ? colorScheme.primary : null,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w900),
                   ),
-                  tooltip: 'Bold',
+                  tooltip: 'Bold selection',
                 ),
                 M3EButtonGroupAction(
                   width: 32,
@@ -561,10 +778,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                     style: TextStyle(
                       fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.bold,
-                      color: _isItalic ? colorScheme.primary : null,
                     ),
                   ),
-                  tooltip: 'Italic',
+                  tooltip: 'Italic selection',
                 ),
                 M3EButtonGroupAction(
                   width: 32,
@@ -573,10 +789,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                     style: TextStyle(
                       decoration: TextDecoration.underline,
                       fontWeight: FontWeight.bold,
-                      color: _isUnderline ? colorScheme.primary : null,
                     ),
                   ),
-                  tooltip: 'Underline',
+                  tooltip: 'Underline selection',
                 ),
                 M3EButtonGroupAction(
                   width: 32,
@@ -585,17 +800,15 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                     style: TextStyle(
                       decoration: TextDecoration.lineThrough,
                       fontWeight: FontWeight.bold,
-                      color: _isStrike ? colorScheme.primary : null,
                     ),
                   ),
-                  tooltip: 'Strikethrough',
+                  tooltip: 'Strikethrough selection',
                 ),
               ],
             ),
 
             const VerticalDivider(width: 14, indent: 8, endIndent: 8),
 
-            // Alignment & Lists
             IconButton(
               icon: Icon(
                 _currentAlignment == TextAlign.center
@@ -642,11 +855,10 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
   Widget _buildEditorCanvas(BuildContext context, ColorScheme colorScheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Document Title
           TextField(
             controller: _titleController,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -661,10 +873,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
               contentPadding: EdgeInsets.symmetric(vertical: 4),
             ),
           ),
+          const SizedBox(height: 4),
 
-          const SizedBox(height: 6),
-
-          // Inline Link Drawer
+          // Inline Resource Link Drawer
           if (_showAttachmentInput) ...[
             Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -719,10 +930,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
             ),
           ],
 
-          // Attachments Group
           if (_currentAttachments.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 6),
               child: Wrap(
                 spacing: 6,
                 runSpacing: 4,
@@ -745,7 +955,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
           const Divider(height: 1),
 
-          // Natural Text Editor Body
+          // Selection-styled Rich Text Area
           Expanded(
             child: TextField(
               controller: _docController,
@@ -755,12 +965,6 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
               textAlign: _currentAlignment,
               style: TextStyle(
                 fontSize: _currentFontSize,
-                fontWeight: _isBold ? FontWeight.bold : FontWeight.normal,
-                fontStyle: _isItalic ? FontStyle.italic : FontStyle.normal,
-                decoration: TextDecoration.combine([
-                  if (_isUnderline) TextDecoration.underline,
-                  if (_isStrike) TextDecoration.lineThrough,
-                ]),
                 height: 1.5,
                 color: colorScheme.onSurface,
               ),
@@ -796,9 +1000,9 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       itemCount: topics.length,
-      separatorBuilder: (_, __) => const Divider(height: 24),
+      separatorBuilder: (_, __) => const Divider(height: 20),
       itemBuilder: (context, index) {
         final topic = topics[index];
         final content = topic.note?.content.isNotEmpty == true
@@ -825,7 +1029,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               content.isNotEmpty
                   ? content

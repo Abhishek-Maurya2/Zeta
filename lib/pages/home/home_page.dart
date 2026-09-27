@@ -151,21 +151,21 @@ class _HomePageState extends State<HomePage> {
       ],
     );
 
-    // Right Column: Streak Calendar + Summary Widgets
+    // Right Column: Summary Widgets (with Streak Calendar integrated)
     final rightColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        StreakCalendarCard(
+        HomeSummaryCards(
           selectedDate: _selectedDate,
           onSelectDate: _handleSelectDate,
-        ),
-        const SizedBox(height: 24),
-        HomeSummaryCards(
           activeCount: activeCount,
           todayActiveCount: todayActiveCount,
           completionRate: completionRate,
           completedCount: completedCount,
           onMoreTap: () => navProvider.setActivePage(PageId.tasks),
+          onOpenPomodoroAnalysis: () {
+            navProvider.setActivePage(PageId.pomodoro);
+          },
         ),
       ],
     );

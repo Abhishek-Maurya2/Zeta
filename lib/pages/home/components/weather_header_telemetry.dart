@@ -373,129 +373,149 @@ class _WeatherFlyoutCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ─── Header: Weather Icon + Temp + City ──────────────────────
+                // ─── Header: [Temp Column + Bottom Location/Status] ──── Icon at Top Right ──
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    WeatherIcon(
-                      name: weather?.iconName ?? 'clear_day',
-                      size: 50,
-                      isDay: weather?.isEffectivelyDay,
-                    ),
-                    const SizedBox(width: 20),
+                    // Left & Middle: Temp (with H/L) + Location & Status at bottom
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // location
-                          Row(
+                          // 1. Pointed & Stretched Large Temperature with tightly spaced High/Low
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 14,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
+                              const SizedBox(height: 6),
+                              Transform.scale(
+                                scaleY: 1.25,
+                                alignment: Alignment.bottomLeft,
                                 child: Text(
-                                  city,
-                                  style: textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                '$temp°C',
-                                style: TextStyle(
-                                  fontFamily: 'GoogleSansFlex',
-                                  fontSize: 30,
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontVariations: const [
-                                    FontVariation('wght', 900),
-                                    FontVariation('wdth', 110),
-                                    FontVariation('ROND', 100),
-                                    FontVariation('opsz', 220),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  condition,
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w500,
+                                  '$temp°',
+                                  style: TextStyle(
+                                    fontFamily: 'GoogleSansFlex',
+                                    fontSize: 88,
+                                    height: 1.0,
                                     color: colorScheme.onSurfaceVariant,
+                                    fontVariations: const [
+                                      FontVariation('wght', 600),
+                                      FontVariation('wdth', 80),
+                                      FontVariation('ROND', 10),
+                                      FontVariation('opsz', 144),
+                                      FontVariation('slnt', 0),
+                                    ],
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (minTemp != null && maxTemp != null) ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 2.0,
+                                    top: 2.0,
+                                  ),
+                                  child: Text(
+                                    'H: $maxTemp°  •  L: $minTemp°',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      fontSize: 10,
+                                      color: colorScheme.outline,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                          if (minTemp != null && maxTemp != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              'H: $maxTemp°  •  L: $minTemp°',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.outline,
-                                fontWeight: FontWeight.w500,
+                          const SizedBox(width: 8),
+
+                          // 2. Small Text Column: Location + Status (Pinned to Bottom next to temperature)
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 24.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_rounded,
+                                        size: 13,
+                                        color: colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Expanded(
+                                        child: Text(
+                                          city,
+                                          style: textTheme.labelSmall?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.onSurface,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    condition,
+                                    style: textTheme.labelSmall?.copyWith(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
+                          ),
                         ],
                       ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // 3. Weather Icon pinned to the top-right corner
+                    WeatherIcon(
+                      name: weather?.iconName ?? 'clear_day',
+                      size: 44,
+                      isDay: weather?.isEffectivelyDay,
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
 
-                // ─── Quick Stats Row (Humidity, Wind) ────────────────────────
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? colorScheme.tertiary.withValues(alpha: 0.1)
-                        : colorScheme.tertiaryFixedDim.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _StatBadge(
+                // ─── Quick Stats Grid (Humidity, Wind) ───────────────────────────
+                Row(
+                  children: [
+                    Expanded(
+                      child: _StatCard(
                         icon: Icons.water_drop_rounded,
                         iconColor: Colors.blue.shade400,
                         label: 'Humidity',
                         value: '$humidity%',
+                        colorScheme: colorScheme,
+                        isDark: isDark,
                       ),
-                      Container(
-                        height: 24,
-                        width: 1,
-                        color: colorScheme.tertiary,
-                      ),
-                      _StatBadge(
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _StatCard(
                         icon: Icons.air_rounded,
                         iconColor: Colors.teal.shade300,
-                        label: 'Wind',
+                        label: 'Wind Speed',
                         value: '$wind km/h',
+                        colorScheme: colorScheme,
+                        isDark: isDark,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
 
                 // ─── 24-Hour Forecast Horizontal Strip ───────────────────────
@@ -671,6 +691,85 @@ class _WeatherFlyoutCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Expressive Stat Card for Humidity and Wind Speed
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String label;
+  final String value;
+  final ColorScheme colorScheme;
+  final bool isDark;
+
+  const _StatCard({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    required this.colorScheme,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(
+          alpha: isDark ? 0.25 : 0.45,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: textTheme.labelSmall?.copyWith(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
