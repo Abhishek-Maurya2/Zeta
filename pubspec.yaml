@@ -1,7 +1,7 @@
 name: zeta
 description: "Zeta - Task Managment App with Material 3 Expressive"
 publish_to: "none"
-version: 1.3.4
+version: 1.3.
 
 environment:
   sdk: ^3.13.3
