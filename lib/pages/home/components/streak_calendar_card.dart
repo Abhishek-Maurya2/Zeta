@@ -7,6 +7,7 @@ import '../../../providers/task_provider.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
+import '../../../theme/breakpoints.dart';
 
 class StreakCalendarCard extends StatefulWidget {
   final DateTime selectedDate;
@@ -17,7 +18,7 @@ class StreakCalendarCard extends StatefulWidget {
     super.key,
     required this.selectedDate,
     required this.onSelectDate,
-    this.width = 350,
+    this.width = 100,
   });
 
   @override
@@ -136,9 +137,12 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     const weekLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     final todayWeekdayIndex = today.weekday % 7;
 
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
+
     final cardContent = Container(
-      width: widget.width,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      width: 100,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(28),
@@ -159,7 +163,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                   Text(
                     '$currentStreak',
                     style: TextStyle(
-                      fontSize: 95,
+                      fontSize: 70,
                       fontFamily: 'headline',
                       height: 0.95,
                       fontWeight: FontWeight.w900,
@@ -172,7 +176,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                         ? (currentStreak == 1 ? 'DAY STREAK' : 'DAYS STREAK')
                         : 'NO ACTIVE STREAK',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 12,
                       fontFamily: 'GoogleSansFlex',
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
@@ -192,84 +196,34 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // ─── 2. Controls Above Weeks: Displayed Month/Year & Buttons ─────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                '${DateTimeUtils.monthsShort[_displayedMonth.month - 1]} ${_displayedMonth.year}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              Row(
-                children: [
-                  M3EIconButton(
-                    size: M3EIconButtonSize.xs,
-                    width: M3EIconButtonWidth.narrow,
-                    decoration: M3EIconButtonDecoration(
-                      backgroundColor: WidgetStateProperty.all(
-                        colorScheme.onSurface.withValues(alpha: 0.07),
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.chevron_left_rounded,
-                      size: 22,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: _prevMonth,
-                  ),
-                  const SizedBox(width: 4),
-                  M3EIconButton(
-                    size: M3EIconButtonSize.xs,
-                    width: M3EIconButtonWidth.narrow,
-                    decoration: M3EIconButtonDecoration(
-                      backgroundColor: WidgetStateProperty.all(
-                        colorScheme.onSurface.withValues(alpha: 0.07),
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.chevron_right_rounded,
-                      size: 22,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: _nextMonth,
-                  ),
-                ],
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
+          if (!isCompact) const SizedBox(height: 16),
 
           // ─── 3. Weekday Letters (Sunday First: S M T W T F S) ────────────
-          Row(
-            children: weekLabels.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final dayLabel = entry.value;
-              final isTodayWeekday = idx == todayWeekdayIndex;
+          if (!isCompact)
+            Row(
+              children: weekLabels.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final dayLabel = entry.value;
+                final isTodayWeekday = idx == todayWeekdayIndex;
 
-              return Expanded(
-                child: Center(
-                  child: Text(
-                    dayLabel,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isTodayWeekday
-                          ? coralOrange
-                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                return Expanded(
+                  child: Center(
+                    child: Text(
+                      dayLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isTodayWeekday
+                            ? coralOrange
+                            : colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.5,
+                              ),
+                      ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-          ),
+                );
+              }).toList(),
+            ),
 
           const SizedBox(height: 12),
 
@@ -324,7 +278,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     return Column(
       children: List.generate(rowCount, (rowIdx) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 1),
           child: Row(
             children: List.generate(7, (colIdx) {
               final cellIdx = rowIdx * 7 + colIdx;
@@ -391,6 +345,9 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                         ? colorScheme.onSurface
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.7));
 
+              final sizeClass = ZetaWindowSizeClass.of(context);
+              final isCompact = sizeClass.isCompact;
+
               return Expanded(
                 child: Center(
                   child: GestureDetector(
@@ -400,8 +357,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       widget.onSelectDate(cellDate);
                     },
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
                         color: circleColor,
                         border: isSelected && !isToday

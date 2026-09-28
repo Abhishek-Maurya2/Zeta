@@ -67,14 +67,15 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
     final textMuted = isDark
         ? const Color(0xFF8B929A)
         : const Color(0xFF757572);
-    const orangeAccent = Color(0xFFFF4815);
+    final orangeAccent = isDark
+        ? const Color(0xFFFF4815)
+        : const Color(0xFFE03E0A);
 
     final selectedFocus = values[selectedIdx].round();
-    final selectedDayLabel = days[selectedIdx]['label'] as String;
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 280),
+      constraints: const BoxConstraints(maxHeight: 320, maxWidth: 220),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(28),
@@ -96,7 +97,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
               children: [
                 // Top subtitle (e.g. Year or Date Range)
                 Text(
-                  '${now.year} • PAST 7 DAYS',
+                  ' PAST 7 DAYS',
                   style: TextStyle(
                     fontFamily: 'GoogleSansFlex',
                     fontSize: 12,
@@ -112,13 +113,12 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                   _hoveredDayIndex != null
                       ? PomodoroChartCanvas.formatDuration(selectedFocus)
                             .toUpperCase()
-                      : '${totalHours.toStringAsFixed(1)} HRS',
+                      : '${totalHours.toStringAsFixed(2)} hrs',
                   style: TextStyle(
                     fontFamily: 'headline',
                     fontSize: 36,
                     height: 1.05,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -1.5,
                     color: textColor,
                   ),
                 ),
@@ -129,7 +129,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                   children: [
                     Text(
                       _hoveredDayIndex != null
-                          ? '$selectedDayLabel • ${days[selectedIdx]['tooltipLabel']}'
+                          ? '${days[selectedIdx]['tooltipLabel']}'
                           : 'MAX ${PomodoroChartCanvas.formatDuration(maxMinutes.round())}',
                       style: TextStyle(
                         fontFamily: 'RobotoMono',
@@ -156,7 +156,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
             left: 0,
             right: 0,
             bottom: 0,
-            height: 170,
+            height: 280,
             child: GestureDetector(
               onHorizontalDragUpdate: (details) {
                 final box = context.findRenderObject() as RenderBox?;
@@ -190,6 +190,9 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                       ? const Color(0xFF383B40)
                       : const Color(0xFF8F939A),
                   accentColor: orangeAccent,
+                  dotContrastColor: isDark
+                      ? Colors.white.withValues(alpha: 0.9)
+                      : Colors.white,
                   lineWidth: 1.25,
                   stripeSpacing: 4.8,
                 ),
@@ -209,6 +212,7 @@ class _HatchedTerrainPainter extends CustomPainter {
   final int selectedIndex;
   final Color hatchColor;
   final Color accentColor;
+  final Color dotContrastColor;
   final double lineWidth;
   final double stripeSpacing;
 
@@ -217,6 +221,7 @@ class _HatchedTerrainPainter extends CustomPainter {
     required this.selectedIndex,
     required this.hatchColor,
     required this.accentColor,
+    required this.dotContrastColor,
     required this.lineWidth,
     required this.stripeSpacing,
   });
@@ -301,7 +306,7 @@ class _HatchedTerrainPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(needlePoint.dx, needlePoint.dy),
         3.0,
-        Paint()..color = Colors.white.withValues(alpha: 0.9),
+        Paint()..color = dotContrastColor,
       );
     }
   }

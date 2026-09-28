@@ -5,8 +5,9 @@ import 'completed_tasks_card.dart';
 import 'completion_rate_card.dart';
 import 'days_left_counter_card.dart';
 import 'streak_calendar_card.dart';
-import 'today_milestones_card.dart';
+import 'mock_test_tracker_card.dart';
 import 'pomodoro_week_terrain_card.dart'; // Newly added widget
+import '../../../theme/breakpoints.dart';
 
 // Re-export standalone components so consumers can import via this module
 export 'active_tasks_card.dart';
@@ -16,6 +17,7 @@ export 'days_left_counter_card.dart';
 export 'streak_calendar_card.dart';
 export 'today_milestones_card.dart';
 export 'pomodoro_week_terrain_card.dart';
+export 'mock_test_tracker_card.dart';
 
 /// Aggregates and arranges the homepage dashboard summary cards.
 class HomeSummaryCards extends StatelessWidget {
@@ -38,6 +40,9 @@ class HomeSummaryCards extends StatelessWidget {
   final DateTime? startDate;
   final String targetTitle;
 
+  // Mock Test Radar Callback
+  final void Function(MockEntryRecord record)? onSaveMockTest;
+
   const HomeSummaryCards({
     super.key,
     required this.activeCount,
@@ -52,40 +57,27 @@ class HomeSummaryCards extends StatelessWidget {
     this.targetDate,
     this.startDate,
     this.targetTitle = 'Sprint Target',
+    this.onSaveMockTest,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      // crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // ─── 1. Streak Calendar Card ─────────────────────────────
         StreakCalendarCard(
           selectedDate: selectedDate,
           onSelectDate: onSelectDate,
-          width: double.infinity,
+          width: 250,
         ),
         const SizedBox(height: 14),
 
-        // ─── 2. Focus Terrain Widget (Past 6 + Current Day) ──────
-        PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
-        const SizedBox(height: 14),
-
-        // ─── 3. Days Left Counter Card ───────────────────────────
-        DaysLeftCounterCard(
-          title: targetTitle,
-          startDate:
-              startDate ?? DateTime.now().subtract(const Duration(days: 7)),
-          targetDate:
-              targetDate ?? DateTime.now().add(const Duration(days: 14)),
-        ),
-        const SizedBox(height: 14),
-
-        // ─── 4. Active Tasks (Top Green Card) ────────────────────
-        ActiveTasksCard(
-          activeCount: activeCount,
-          todayActiveCount: todayActiveCount,
-        ),
+        // ─── 2. UPSC Mock Radar (Prelims & Mains Horizontal Bars) ───
+        MockTestRadarCard(onSaveTest: onSaveMockTest),
+        const SizedBox(height: 16),
         const SizedBox(height: 14),
 
         // ─── 5. Completion Rate & Completed Tasks Row ────────────
@@ -100,14 +92,20 @@ class HomeSummaryCards extends StatelessWidget {
                 onOptionsTap: onOptionsTap,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(child: CompletedTasksCard(completedCount: completedCount)),
+            const SizedBox(width: 10),
+            // ─── 2. Focus Terrain Widget (Past 6 + Current Day) ──────
+            PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
           ],
         ),
         const SizedBox(height: 14),
-
-        // ─── 6. Today Milestones Card ────────────────────────────
-        TodayMilestonesCard(todayActiveCount: todayActiveCount),
+        // ─── 3. Days Left Counter Card ───────────────────────────
+        DaysLeftCounterCard(
+          title: targetTitle,
+          startDate:
+              startDate ?? DateTime.now().subtract(const Duration(days: 7)),
+          targetDate:
+              targetDate ?? DateTime.now().add(const Duration(days: 14)),
+        ),
       ],
     );
   }

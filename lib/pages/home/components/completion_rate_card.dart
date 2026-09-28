@@ -36,7 +36,7 @@ class CompletionRateCard extends StatelessWidget {
         onTap: onMoreTap,
         borderRadius: BorderRadius.circular(28),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(8, 15, 8, 0),
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(28),
@@ -49,13 +49,17 @@ class CompletionRateCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Completion\nRate',
+                    'Done\n%',
                     style: TextStyle(
                       fontFamily: 'GoogleSansFlex',
-                      fontSize: 16,
-                      height: 1.15,
+                      fontSize: 22,
+                      letterSpacing: -2,
                       color: cardTextDark,
-                      fontVariations: const [FontVariation('wght', 900)],
+                      fontVariations: const [
+                        FontVariation('wght', 900),
+                        FontVariation('wdth', 130),
+                        FontVariation('ROND', 100),
+                      ],
                     ),
                   ),
                   if (onOptionsTap != null)
@@ -71,22 +75,22 @@ class CompletionRateCard extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Center(
                 child: SizedBox(
-                  width: 100,
-                  height: 100,
+                  width: 150,
+                  height: 150,
                   child: CustomPaint(
                     painter: _DonutChartPainter(
                       progressRatio: clampedRate / 100,
                       primaryColor: primaryOrange,
                       trackColor: secondaryYellow,
-                      strokeWidth: 20,
+                      strokeWidth: 30,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -97,17 +101,17 @@ class CompletionRateCard extends StatelessWidget {
                       text: '$clampedRate',
                       style: TextStyle(
                         fontFamily: 'headline',
-                        fontSize: 38,
+                        fontSize: 50,
                         color: cardTextDark,
                         fontWeight: FontWeight.w900,
                       ),
-                      children: [
+                      children: const [
                         TextSpan(
                           text: ' %',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 30,
                             fontWeight: FontWeight.w800,
-                            color: cardTextDark,
+                            color: primaryOrange,
                           ),
                         ),
                       ],
