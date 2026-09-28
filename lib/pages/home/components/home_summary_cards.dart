@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'active_tasks_card.dart';
-import 'completed_tasks_card.dart';
 import 'completion_rate_card.dart';
 import 'days_left_counter_card.dart';
 import 'streak_calendar_card.dart';
 import 'mock_test_tracker_card.dart';
 import 'pomodoro_week_terrain_card.dart'; // Newly added widget
-import '../../../theme/breakpoints.dart';
 
 // Re-export standalone components so consumers can import via this module
 export 'active_tasks_card.dart';
@@ -62,24 +59,9 @@ class HomeSummaryCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sizeClass = ZetaWindowSizeClass.of(context);
-    final isCompact = sizeClass.isCompact;
     return Column(
       // crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ─── 1. Streak Calendar Card ─────────────────────────────
-        StreakCalendarCard(
-          selectedDate: selectedDate,
-          onSelectDate: onSelectDate,
-          width: 250,
-        ),
-        const SizedBox(height: 14),
-
-        // ─── 2. UPSC Mock Radar (Prelims & Mains Horizontal Bars) ───
-        MockTestRadarCard(onSaveTest: onSaveMockTest),
-        const SizedBox(height: 16),
-        const SizedBox(height: 14),
-
         // ─── 5. Completion Rate & Completed Tasks Row ────────────
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,6 +78,22 @@ class HomeSummaryCards extends StatelessWidget {
             // ─── 2. Focus Terrain Widget (Past 6 + Current Day) ──────
             PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
           ],
+        ),
+        const SizedBox(height: 14),
+        // ─── 1. Streak Calendar + Mock Radar (responsive) ────────
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final streakCard = StreakCalendarCard(
+              selectedDate: selectedDate,
+              onSelectDate: onSelectDate,
+              width: null, // let parent dictate width
+            );
+            final mockCard = MockTestRadarCard(onSaveTest: onSaveMockTest);
+
+            return Column(
+              children: [streakCard, const SizedBox(height: 14), mockCard],
+            );
+          },
         ),
         const SizedBox(height: 14),
         // ─── 3. Days Left Counter Card ───────────────────────────

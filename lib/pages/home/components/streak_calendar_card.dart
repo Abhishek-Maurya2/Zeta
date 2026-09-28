@@ -141,7 +141,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     final isCompact = sizeClass.isCompact;
 
     final cardContent = Container(
-      width: 100,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
@@ -165,18 +164,18 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                     style: TextStyle(
                       fontSize: 70,
                       fontFamily: 'headline',
-                      height: 0.95,
+
                       fontWeight: FontWeight.w900,
                       color: colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 5),
                   Text(
                     hasActiveStreak
                         ? (currentStreak == 1 ? 'DAY STREAK' : 'DAYS STREAK')
                         : 'NO ACTIVE STREAK',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontFamily: 'GoogleSansFlex',
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.2,
@@ -189,7 +188,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
               ),
               Icon(
                 Icons.local_fire_department_rounded,
-                size: 44,
+                size: 60,
                 color: hasActiveStreak
                     ? coralOrange
                     : colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
@@ -199,31 +198,28 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
           if (!isCompact) const SizedBox(height: 16),
 
           // ─── 3. Weekday Letters (Sunday First: S M T W T F S) ────────────
-          if (!isCompact)
-            Row(
-              children: weekLabels.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final dayLabel = entry.value;
-                final isTodayWeekday = idx == todayWeekdayIndex;
+          Row(
+            children: weekLabels.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final dayLabel = entry.value;
+              final isTodayWeekday = idx == todayWeekdayIndex;
 
-                return Expanded(
-                  child: Center(
-                    child: Text(
-                      dayLabel,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: isTodayWeekday
-                            ? coralOrange
-                            : colorScheme.onSurfaceVariant.withValues(
-                                alpha: 0.5,
-                              ),
-                      ),
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    dayLabel,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isTodayWeekday
+                          ? coralOrange
+                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
                   ),
-                );
-              }).toList(),
-            ),
+                ),
+              );
+            }).toList(),
+          ),
 
           const SizedBox(height: 12),
 
@@ -357,8 +353,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                       widget.onSelectDate(cellDate);
                     },
                     child: Container(
-                      width: 30,
-                      height: 30,
+                      width: 35,
+                      height: 35,
                       decoration: BoxDecoration(
                         color: circleColor,
                         border: isSelected && !isToday

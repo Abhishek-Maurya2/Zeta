@@ -3,6 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../theme/app_theme.dart'; // Adjust path if needed
+
+import '../../../providers/theme_provider.dart'; // Adjust path as needed
+
 import '../../../providers/pomodoro_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../pomodoro/components/pomodoro_chart_canvas.dart';
@@ -59,7 +63,29 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
         ? _hoveredDayIndex!
         : maxIndex;
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode(context);
+
+    // Resolve colorScheme dynamically based on the active dark/light mode
+    final themeData = isDark
+        ? AppTheme.dark(
+            themeProvider.seedColor,
+            themeProvider.variant,
+            themeProvider.cornerStyle,
+            themeProvider.highContrast,
+            themeProvider.compactDensity,
+            themeProvider.animations,
+          )
+        : AppTheme.light(
+            themeProvider.seedColor,
+            themeProvider.variant,
+            themeProvider.cornerStyle,
+            themeProvider.highContrast,
+            themeProvider.compactDensity,
+            themeProvider.animations,
+          );
+
+    final colorScheme = themeData.colorScheme;
 
     // Palette matching the editorial off-white aesthetic
     final cardBg = isDark ? const Color(0xFF161719) : const Color(0xFFF7F6F2);
@@ -79,12 +105,6 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
-          width: 1,
-        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -187,8 +207,8 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                   values: values,
                   selectedIndex: selectedIdx,
                   hatchColor: isDark
-                      ? const Color(0xFF383B40)
-                      : const Color(0xFF8F939A),
+                      ? const Color.fromARGB(255, 128, 134, 143)
+                      : const Color.fromARGB(255, 104, 107, 113),
                   accentColor: orangeAccent,
                   dotContrastColor: isDark
                       ? Colors.white.withValues(alpha: 0.9)
