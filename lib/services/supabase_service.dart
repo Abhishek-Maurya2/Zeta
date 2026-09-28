@@ -12,7 +12,7 @@ class SupabaseService {
 
   static const String supaUrl = 'https://uewczwnrchvmvmccrdqf.supabase.co';
   static const String supaAnonKey =
-      'sb_publishable_41OOohizBAgv9RJMp-lsXg_vLbR_mcX';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVld2N6d25yY2h2bXZtY2NyZHFmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNTkyNTksImV4cCI6MjEwMzkzNTI1OX0.9vjUcxJ0Wy2JsBAZ-vjB0H8Sn3bnPpEIU28Dm9v0No8';
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;

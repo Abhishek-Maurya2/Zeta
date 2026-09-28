@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
+import 'supabase_service.dart';
+
 /// Central network connectivity service that provides fast-fail checks,
 /// tracks online/offline transitions, and eliminates long network hangs.
 class NetworkService {
@@ -61,9 +63,12 @@ class NetworkService {
 
     try {
       if (kIsWeb) {
-        // Fast ping to a reliable lightweight endpoint
+        // Ping PostgREST REST endpoint with apikey header which sends CORS headers for web origins
         final res = await http
-            .head(Uri.parse('https://uewczwnrchvmvmccrdqf.supabase.co'))
+            .head(
+              Uri.parse('${SupabaseService.supaUrl}/rest/v1/'),
+              headers: {'apikey': SupabaseService.supaAnonKey},
+            )
             .timeout(const Duration(milliseconds: 1500));
         reachable = res.statusCode > 0;
       } else {

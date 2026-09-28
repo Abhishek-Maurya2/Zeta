@@ -75,8 +75,14 @@ serve(async (req: Request) => {
 
       const redirectLocation = assetRes.headers.get("location");
       if (redirectLocation) {
-        // Redirect client to Amazon S3 pre-signed URL directly
-        return Response.redirect(redirectLocation, 302);
+        // Redirect client to Amazon S3 pre-signed URL directly with CORS headers
+        return new Response(null, {
+          status: 302,
+          headers: {
+            ...corsHeaders,
+            "Location": redirectLocation,
+          },
+        });
       } else {
         // Stream binary directly
         return new Response(assetRes.body, {
