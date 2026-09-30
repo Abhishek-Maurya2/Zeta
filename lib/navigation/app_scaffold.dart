@@ -12,6 +12,8 @@ import '../utils/app_snackbar.dart';
 import '../utils/haptics.dart';
 import '../utils/windows_title_bar.dart';
 import '../services/windows_tray_service.dart';
+import '../services/app_exit_service.dart';
+import '../pages/pomodoro/components/pomodoro_exit_dialog.dart';
 
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
@@ -453,7 +455,12 @@ class _AppScaffoldState extends State<AppScaffold>
           : Brightness.dark,
     );
 
+    final isPomodoroRunning = context.select<PomodoroProvider, bool>(
+      (p) => p.isRunning,
+    );
+
     final canPop =
+        !isPomodoroRunning &&
         !isSelectionMode &&
         !isEditPaneOpen &&
         navProvider.activePage == PageId.home &&
@@ -462,7 +469,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     return PopScope(
       canPop: canPop,
-      onPopInvokedWithResult: (didPop, result) {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
         // 0. If task edit split side pane is open, close it first
@@ -494,13 +501,31 @@ class _AppScaffoldState extends State<AppScaffold>
           return;
         }
 
-        // 4. If on any other page (including Settings main page), return to Home page
+        // 4. If on Pomodoro page and Pomodoro is actively running, ask before closing app / ending session
+        if (navProvider.activePage == PageId.pomodoro && isPomodoroRunning) {
+          final shouldExit = await confirmExitIfPomodoroRunning(context);
+          if (shouldExit) {
+            await AppExitService.instance.exitApp();
+          }
+          return;
+        }
+
+        // 5. If on any other page (including Settings main page), return to Home page
         if (navProvider.activePage != PageId.home) {
           ZetaHaptics.light();
           if (navProvider.activePage == PageId.revision) {
             context.read<RevisionProvider>().selectSubject(null);
           }
           navProvider.setActivePage(PageId.home);
+          return;
+        }
+
+        // 6. User is on Home page and attempting to exit the app while Pomodoro is running
+        if (isPomodoroRunning) {
+          final shouldExit = await confirmExitIfPomodoroRunning(context);
+          if (shouldExit) {
+            await AppExitService.instance.exitApp();
+          }
           return;
         }
       },

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'components/weekly_calendar_strip.dart';
 import 'components/todays_focus_card.dart';
 import 'components/recent_tasks_section.dart';
-import 'components/streak_calendar_card.dart';
 import 'components/summary_widgets.dart';
 import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
@@ -190,8 +189,8 @@ class _HomePageState extends State<HomePage> {
               WeeklyCalendarStrip(
                 selectedDate: _selectedDate,
                 onSelectDate: _handleSelectDate,
-                // weekOffset: _weekOffset,
-                // onShiftWeek: _handleShiftWeek,
+                weekOffset: _weekOffset,
+                onShiftWeek: _handleShiftWeek,
                 onResetToToday: _handleResetToToday,
               ),
 

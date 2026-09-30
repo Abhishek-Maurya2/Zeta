@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'preferences_service.dart';
+import 'app_exit_service.dart';
 
 /// Manages the Windows system tray icon, minimize-to-tray behavior, and
 /// startup-on-boot registration.
@@ -110,12 +111,57 @@ class WindowsTrayService {
         _isWindowInTray = true;
         onWindowEnteredTray?.call();
         break;
+      case 'windowCloseRequested':
+        await _handleWindowCloseRequested();
+        break;
+      case 'trayQuitRequested':
       case 'trayQuit':
-        // Native tray "Quit" was clicked — actually exit the app.
-        exit(0);
+        await _handleTrayQuitRequested();
+        break;
       default:
         break;
     }
+  }
+
+  Future<void> _handleWindowCloseRequested() async {
+    final running = AppExitService.instance.isPomodoroRunning;
+    if (running) {
+      await showWindow();
+      final shouldExit = await AppExitService.instance.confirmExit();
+      if (shouldExit) {
+        await forceClose();
+      }
+      return;
+    }
+
+    if (minimizeToTray) {
+      await hideToTray();
+    } else {
+      await forceClose();
+    }
+  }
+
+  Future<void> _handleTrayQuitRequested() async {
+    final running = AppExitService.instance.isPomodoroRunning;
+    if (running) {
+      await showWindow();
+      final shouldExit = await AppExitService.instance.confirmExit();
+      if (shouldExit) {
+        await forceClose();
+      }
+      return;
+    }
+
+    await forceClose();
+  }
+
+  /// Forces the native Windows window to close and terminates the process.
+  Future<void> forceClose() async {
+    if (kIsWeb || !Platform.isWindows) return;
+    try {
+      await _channel.invokeMethod('forceClose');
+    } catch (_) {}
+    exit(0);
   }
 
   /// Shows the main window if it's hidden (e.g., after minimize-to-tray).

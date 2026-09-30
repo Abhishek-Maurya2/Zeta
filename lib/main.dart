@@ -27,6 +27,7 @@ import 'database/database_provider.dart';
 import 'database/migration_service.dart';
 import 'services/quick_actions_service.dart';
 import 'services/windows_tray_service.dart';
+import 'services/app_exit_service.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/auth_gate.dart';
 
@@ -35,6 +36,7 @@ bool get _isTestMode =>
 
 void main([List<String> args = const <String>[]]) async {
   WidgetsFlutterBinding.ensureInitialized();
+  AppExitService.instance.init();
   if (kIsWeb) {
     unawaited(BrowserContextMenu.disableContextMenu());
   }
@@ -144,6 +146,7 @@ class _ZetaAppShell extends StatelessWidget {
             : effectiveLightSeed;
 
         return MaterialApp(
+          navigatorKey: AppExitService.navigatorKey,
           title: 'Zeta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,

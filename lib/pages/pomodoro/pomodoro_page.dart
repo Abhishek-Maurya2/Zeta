@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../utils/haptics.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../theme/breakpoints.dart';
@@ -327,7 +328,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                     setState(() {
                                       _secondaryTab =
                                           SecondaryPaneTab.values[idx];
-                                    provider.setActiveTab(SecondaryPaneTab.values[idx].name);
+                                      provider.setActiveTab(
+                                        SecondaryPaneTab.values[idx].name,
+                                      );
                                     });
                                   }
                                 },
@@ -367,9 +370,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                               minHeight: 32,
                             ),
                             onPressed: () {
-                              setState(
-                                () => _isSupportingPaneCollapsed = true,
-                              );
+                              setState(() => _isSupportingPaneCollapsed = true);
                               _persistPaneSettings();
                             },
                           ),

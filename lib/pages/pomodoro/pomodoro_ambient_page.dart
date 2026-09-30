@@ -135,7 +135,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
             if (didPop) {
               _isExiting = true;
               AmbientModeService.setPlatformFullscreenListener(null);
-              AmbientModeService.exit();
+              unawaited(AmbientModeService.exit());
             }
           },
           child: MouseRegion(

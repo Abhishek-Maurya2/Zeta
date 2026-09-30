@@ -208,6 +208,9 @@ bool FlutterWindow::OnCreate() {
             RegCloseKey(hkey);
           }
           result->Success(flutter::EncodableValue(success));
+        } else if (call.method_name() == "forceClose") {
+          this->ForceClose();
+          result->Success();
         } else {
           result->NotImplemented();
         }
@@ -357,6 +360,14 @@ void FlutterWindow::RemoveTray() {
   }
 }
 
+void FlutterWindow::ForceClose() {
+  RemoveTray();
+  HWND hwnd = GetHandle();
+  if (hwnd) {
+    DestroyWindow(hwnd);
+  }
+}
+
 LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
@@ -376,8 +387,12 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
       flutter_controller_->engine()->ReloadSystemFonts();
       break;
 
-    // ─── Minimize to Tray on Close ────────────────────────────────────────
+    // ─── Window Close / Minimize to Tray ──────────────────────────────────
     case WM_CLOSE:
+      if (title_bar_channel_) {
+        title_bar_channel_->InvokeMethod("windowCloseRequested", nullptr);
+        return 0;  // Prevent default close/destroy so Flutter can confirm or minimize
+      }
       if (tray_initialized_ && minimize_to_tray_) {
         HideToTray();
         return 0;  // Prevent default close/destroy
@@ -398,14 +413,14 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
         if (cmd == 1) {
           ShowFromTray();
         } else if (cmd == 2) {
-          // Real quit: notify Flutter side, then destroy
+          // Real quit: notify Flutter side to confirm or quit
           if (title_bar_channel_) {
             title_bar_channel_->InvokeMethod(
-                "trayQuit",
+                "trayQuitRequested",
                 std::make_unique<flutter::EncodableValue>(true));
+          } else {
+            ForceClose();
           }
-          RemoveTray();
-          DestroyWindow(hwnd);
         }
       }
       return 0;

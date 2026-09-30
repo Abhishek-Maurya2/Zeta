@@ -25,6 +25,7 @@ class FlutterWindow : public Win32Window {
   void ShowFromTray();
   void HideToTray();
   void RemoveTray();
+  void ForceClose();
 
  protected:
   // Win32Window:
