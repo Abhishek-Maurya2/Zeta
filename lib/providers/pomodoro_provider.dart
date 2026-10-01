@@ -10,7 +10,8 @@ import '../utils/haptics.dart';
 import '../repositories/pomodoro_repository.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
-  static const String _settingsKey = 'zeta_pomodoro_settings_v1';
+  static const String _settingsKey = PreferencesService.keyPomodoroSettings;
+  static const String _stateKey = PreferencesService.keyPomodoroState;
   static const int _maxLogEntries = 1000;
 
   final PomodoroRepository _repository;
@@ -138,9 +139,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Synchronizes local sessions with Supabase database.
-  ///
-  /// The repository owns the complete paginated reconciliation. Completion
-  /// time is not a reliable incremental cursor for backdated remote sessions.
   Future<void> syncWithCloud({bool force = false}) async {
     if (_isCloudSyncing) return;
     _isCloudSyncing = true;
@@ -183,8 +181,43 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // Re-generate queue with restored settings
       _queue = generateQueue(_settings);
-      _activeQueueIndex = 0;
-      _syncWithCurrentQueueItem();
+
+      // Restore active timer state (session index, remaining/elapsed time)
+      final stateRaw = prefs.getString(_stateKey);
+      if (stateRaw != null) {
+        final stateMap = jsonDecode(stateRaw) as Map<String, dynamic>;
+        final savedIndex = stateMap['activeQueueIndex'] as int? ?? 0;
+        final savedTimeLeft = stateMap['timeLeft'] as int?;
+        final savedTotalDuration = stateMap['totalDuration'] as int?;
+
+        if (savedIndex >= 0 && savedIndex < _queue.length) {
+          _activeQueueIndex = savedIndex;
+        } else {
+          _activeQueueIndex = 0;
+        }
+
+        final queueItem = _queue[_activeQueueIndex];
+        final queueDurationSeconds = queueItem.durationMinutes * 60;
+        _totalDuration = (savedTotalDuration != null && savedTotalDuration > 0)
+            ? savedTotalDuration
+            : queueDurationSeconds;
+
+        if (savedTimeLeft != null &&
+            savedTimeLeft > 0 &&
+            savedTimeLeft <= _totalDuration) {
+          _timeLeft = savedTimeLeft;
+        } else {
+          _timeLeft = _totalDuration;
+        }
+
+        // Restored timer is paused so user can review and resume cleanly
+        _isRunning = false;
+        _targetEndTime = null;
+      } else {
+        _activeQueueIndex = 0;
+        _syncWithCurrentQueueItem();
+      }
+
       if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('PomodoroProvider: _loadFromStorage error - $e');
@@ -195,6 +228,23 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final prefs = PreferencesService.instance;
       await prefs.setString(_settingsKey, jsonEncode(_settings.toJson()));
+    } catch (_) {}
+  }
+
+  Future<void> _saveActiveState() async {
+    try {
+      final prefs = PreferencesService.instance;
+      final stateData = <String, dynamic>{
+        'activeQueueIndex': _activeQueueIndex,
+        'timeLeft': _timeLeft,
+        'totalDuration': _totalDuration,
+        'mode': mode.toJsonString(),
+        'isRunning': _isRunning,
+        'savedAt': DateTime.now().millisecondsSinceEpoch,
+        if (_targetEndTime != null)
+          'targetEndTime': _targetEndTime!.millisecondsSinceEpoch,
+      };
+      await prefs.setString(_stateKey, jsonEncode(stateData));
     } catch (_) {}
   }
 
@@ -224,6 +274,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _targetEndTime = DateTime.now().add(Duration(seconds: _timeLeft));
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _saveActiveState();
     notifyListeners();
     _updateLiveNotification(force: true);
   }
@@ -234,6 +285,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _targetEndTime = null;
     _timer?.cancel();
     _timer = null;
+    _saveActiveState();
     notifyListeners();
     _updateLiveNotification(force: true);
   }
@@ -250,6 +302,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _recordPartialSessionIfEligible();
     pauseTimer();
     _syncWithCurrentQueueItem();
+    _saveActiveState();
     NotificationService.instance.cancelPomodoroProgress();
     notifyListeners();
   }
@@ -270,6 +323,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     NotificationService.instance.cancelPomodoroProgress();
     _activeQueueIndex = index;
     _syncWithCurrentQueueItem();
+    _saveActiveState();
     notifyListeners();
   }
 
@@ -285,6 +339,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _timeLeft = remaining;
         notifyListeners();
         _updateLiveNotification();
+        _saveActiveState();
       }
     }
   }
@@ -308,6 +363,11 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _tick();
       }
       syncWithCloud();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _saveActiveState();
     }
   }
 
@@ -364,6 +424,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     _syncWithCurrentQueueItem();
+    _saveActiveState();
 
     if (autoStart && !userInitiated) {
       startTimer();
@@ -417,6 +478,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (!_isRunning) {
         _syncWithCurrentQueueItem();
       }
+      _saveActiveState();
     }
     _updateLiveNotification(force: true);
     notifyListeners();
@@ -432,14 +494,13 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-
-
   @override
   void dispose() {
     _isDisposed = true;
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
+    _saveActiveState();
     _timer?.cancel();
     if (NotificationService.instance.onPomodoroAction != null) {
       NotificationService.instance.onPomodoroAction = null;
@@ -448,3 +509,4 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     super.dispose();
   }
 }
+

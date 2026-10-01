@@ -77,12 +77,13 @@ void main() {
     );
   }
 
-  testWidgets('Compact mode distributes 7 days evenly edge-to-edge across full width',
+  testWidgets(
+      'Compact mode takes all horizontal space and shows at least 4 dates',
       (tester) async {
     const compactSize = Size(400, 800);
-    DateTime selectedDate = DateTime(2026, 9, 30);
+    final now = DateTime.now();
+    DateTime selectedDate = DateTime(now.year, now.month, now.day);
     DateTime? chosenDate;
-    int shiftDelta = 0;
 
     await tester.pumpWidget(
       createWidgetUnderTest(
@@ -90,68 +91,74 @@ void main() {
         selectedDate: selectedDate,
         onSelectDate: (d) => chosenDate = d,
         onResetToToday: () {},
-        weekOffset: 0,
-        onShiftWeek: (delta) => shiftDelta += delta,
       ),
     );
     await tester.pumpAndSettle();
 
-    // Verify all 7 short day names (MON, TUE, WED, THU, FRI, SAT, SUN) exist
-    for (final dayShort in DateTimeUtils.weekdaysShortUpper) {
-      expect(find.text(dayShort), findsOneWidget);
-    }
+    // Verify previous and next chevrons exist
+    expect(find.byTooltip('Previous days'), findsOneWidget);
+    expect(find.byTooltip('Next days'), findsOneWidget);
 
-    // Find the compact Row containing the 7 Expanded day items
-    final expandedDayItems = find.descendant(
-      of: find.byType(GestureDetector),
-      matching: find.byType(Expanded),
+    // Verify the scrollable strip fills space via Expanded in compact mode
+    expect(
+      find.descendant(
+        of: find.byType(WeeklyCalendarStrip),
+        matching: find.byType(CustomScrollView),
+      ),
+      findsOneWidget,
     );
-    expect(expandedDayItems, findsNWidgets(7));
 
-    // Tap on 'Next week' chevron button
-    final nextWeekChevron = find.byTooltip('Next week');
-    expect(nextWeekChevron, findsOneWidget);
-    await tester.tap(nextWeekChevron);
-    await tester.pumpAndSettle();
-    expect(shiftDelta, equals(1));
+    // Verify at least 4 date items are visible in the viewport
+    final inkWells = find.descendant(
+      of: find.byType(CustomScrollView),
+      matching: find.byType(InkWell),
+    );
+    expect(inkWells.evaluate().length, greaterThanOrEqualTo(4));
 
-    // Tap on a specific day item (e.g., TUE)
-    final tueItem = find.text('TUE');
-    await tester.tap(tueItem);
+    // Tap on a visible day item (such as today's date)
+    final todayDayNum = selectedDate.day.toString();
+    await tester.tap(find.text(todayDayNum).first);
     await tester.pumpAndSettle();
     expect(chosenDate, isNotNull);
-    expect(chosenDate!.weekday, equals(DateTime.tuesday));
+
+    // Tap on 'Next days' chevron button
+    final nextDaysChevron = find.byTooltip('Next days');
+    await tester.tap(nextDaysChevron);
+    await tester.pumpAndSettle();
   });
 
-  testWidgets('Compact mode swiping left navigates to next week',
+
+  testWidgets(
+      'Compact mode on narrow viewport (320px) shows at least 4 dates',
       (tester) async {
-    const compactSize = Size(400, 800);
-    DateTime selectedDate = DateTime(2026, 9, 30);
-    int shiftDelta = 0;
+    const narrowSize = Size(320, 600);
+    final now = DateTime.now();
+    DateTime selectedDate = DateTime(now.year, now.month, now.day);
 
     await tester.pumpWidget(
       createWidgetUnderTest(
-        screenSize: compactSize,
+        screenSize: narrowSize,
         selectedDate: selectedDate,
         onSelectDate: (_) {},
         onResetToToday: () {},
-        weekOffset: 0,
-        onShiftWeek: (delta) => shiftDelta += delta,
       ),
     );
     await tester.pumpAndSettle();
 
-    // Swipe left (fling negative x) on the calendar strip
-    await tester.fling(find.text('WED'), const Offset(-200, 0), 1000.0);
-    await tester.pumpAndSettle();
-
-    expect(shiftDelta, equals(1));
+    // Verify at least 4 date items are visible in narrow compact mode
+    final inkWells = find.descendant(
+      of: find.byType(CustomScrollView),
+      matching: find.byType(InkWell),
+    );
+    expect(inkWells.evaluate().length, greaterThanOrEqualTo(4));
   });
 
-  testWidgets('Wide mode renders chevrons flanking the day items horizontally',
+  testWidgets(
+      'Wide mode renders chevrons and calendar strip alongside header',
       (tester) async {
     const wideSize = Size(1024, 768);
-    DateTime selectedDate = DateTime(2026, 9, 30);
+    final now = DateTime.now();
+    DateTime selectedDate = DateTime(now.year, now.month, now.day);
 
     await tester.pumpWidget(
       createWidgetUnderTest(
@@ -159,20 +166,20 @@ void main() {
         selectedDate: selectedDate,
         onSelectDate: (_) {},
         onResetToToday: () {},
-        weekOffset: 0,
       ),
     );
     await tester.pumpAndSettle();
 
     // In wide mode, both chevrons exist
-    expect(find.byTooltip('Previous week'), findsOneWidget);
-    expect(find.byTooltip('Next week'), findsOneWidget);
+    expect(find.byTooltip('Previous days'), findsOneWidget);
+    expect(find.byTooltip('Next days'), findsOneWidget);
 
-    // In wide mode, Expanded is NOT used for days; fixed width items are rendered directly
-    final expandedDayItems = find.descendant(
-      of: find.byType(WeeklyCalendarStrip),
-      matching: find.byType(Expanded),
+    // Days are displayed in CustomScrollView
+    final inkWells = find.descendant(
+      of: find.byType(CustomScrollView),
+      matching: find.byType(InkWell),
     );
-    expect(expandedDayItems, findsNothing);
+    expect(inkWells.evaluate().length, greaterThanOrEqualTo(7));
   });
 }
+

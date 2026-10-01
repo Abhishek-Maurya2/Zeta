@@ -61,6 +61,7 @@ class PreferencesService {
   static const String keySoundEffects = 'zeta_sound_effects';
   static const String keyTaskSortBy = 'zeta_task_sort_by_v1';
   static const String keyPomodoroSettings = 'zeta_pomodoro_settings_v1';
+  static const String keyPomodoroState = 'zeta_pomodoro_active_state_v1';
   static const String keyRevisionSettings = 'zeta_revision_settings_v1';
   static const String keyPendingPermanentDeletions =
       'zeta_pending_permanent_deletions_v1';
@@ -78,9 +79,11 @@ class PreferencesService {
   // ─── Cross-Device Resume Keys ──────────────────────────────────────────────
   static const String keyCrossDeviceEnabled = 'zeta_cross_device_enabled';
   static const String keyCrossDeviceRole = 'zeta_cross_device_role';
-  static const String keyCrossDeviceShowToasts = 'zeta_cross_device_show_toasts';
+  static const String keyCrossDeviceShowToasts =
+      'zeta_cross_device_show_toasts';
   static const String keyCrossDeviceDeviceName = 'zeta_cross_device_name';
-  static const String keyCrossDeviceCooldownSec = 'zeta_cross_device_cooldown_sec';
+  static const String keyCrossDeviceCooldownSec =
+      'zeta_cross_device_cooldown_sec';
 
   static String accountScopedKey(String key, String userId) => '$key.$userId';
 
