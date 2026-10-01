@@ -259,7 +259,7 @@ class TodaysFocusCard extends StatelessWidget {
                   size: 27,
                 ),
                 label: const Text(
-                  'Add new task',
+                  'Add New Task',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: M3EButtonStyle.filled,

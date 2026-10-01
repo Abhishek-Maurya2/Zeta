@@ -68,7 +68,7 @@ class TasksPage extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge
-                    ? 960
+                    ? 1000
                     : 860,
               ),
               child: Column(

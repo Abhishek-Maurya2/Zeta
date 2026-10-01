@@ -174,7 +174,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 0),
         child: Tooltip(
           message:
               '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
@@ -443,7 +443,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
                               final int visibleDays =
                                   (stripWidth / _baseItemExtent)
                                       .floor()
-                                      .clamp(4, 7);
+                                      .clamp(5, 7);
                               final double itemExtent =
                                   stripWidth / visibleDays;
                               _effectiveItemExtent = itemExtent;

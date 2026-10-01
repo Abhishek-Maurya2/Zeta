@@ -28,6 +28,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _timer;
   bool _isDisposed = false;
   bool _isCloudSyncing = false;
+  DateTime _lastSaveTime = DateTime(2000);
 
   PomodoroProvider({
     PomodoroRepository? repository,
@@ -329,7 +330,8 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _tick() {
     if (!_isRunning || _targetEndTime == null) return;
-    final remaining = _targetEndTime!.difference(DateTime.now()).inSeconds;
+    final now = DateTime.now();
+    final remaining = _targetEndTime!.difference(now).inSeconds;
     if (remaining <= 0) {
       _timeLeft = 0;
       notifyListeners();
@@ -339,7 +341,11 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _timeLeft = remaining;
         notifyListeners();
         _updateLiveNotification();
-        _saveActiveState();
+        // Throttle disk writes to at most every 50 seconds
+        if (now.difference(_lastSaveTime).inSeconds >= 50) {
+          _lastSaveTime = now;
+          _saveActiveState();
+        }
       }
     }
   }

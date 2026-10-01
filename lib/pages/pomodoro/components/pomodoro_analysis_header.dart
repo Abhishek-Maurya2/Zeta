@@ -106,9 +106,11 @@ class PomodoroAnalysisHeader extends StatelessWidget {
         // ─── Range Selector: Centered Above Period Title [D W M Y] ────
         Center(
           child: M3EButtonGroup(
-            type: M3EButtonGroupType.connected,
+            type: M3EButtonGroupType.standard,
+            shape: M3EButtonShape.square,
             size: M3EButtonSize.custom(height: 40),
-            style: M3EButtonStyle.tonal,
+            density: M3EButtonGroupDensity.compact,
+            style: M3EButtonStyle.filled,
             selectedIndex: range.index,
             onSelectedIndexChanged: (idx) {
               if (idx != null) {
@@ -120,6 +122,20 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               final isSelected = range == r;
               return M3EButtonGroupAction(
                 label: Text(isSelected ? r.fullLabel : r.shortLabel),
+                decoration: M3EToggleButtonDecoration(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return colorScheme.primary;
+                    }
+                    return colorScheme.tertiaryContainer;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return colorScheme.onPrimary;
+                    }
+                    return colorScheme.onTertiaryContainer;
+                  }),
+                ),
               );
             }).toList(),
           ),
@@ -137,13 +153,20 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 _formatPeriodTitle(now),
                 style: textTheme.displaySmall?.copyWith(
                   color: colorScheme.onSurface,
+                  letterSpacing: -0.8
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             M3EButtonGroup(
               type: M3EButtonGroupType.standard,
-              size: M3EButtonSize.md,
+              size: M3EButtonSize.custom(
+                height: 50,
+                hPadding: 10,
+                iconSize: 32,
+                iconGap: 5,
+              ),
+              shape: M3EButtonShape.round,
               density: M3EButtonGroupDensity.compact,
               selectedIndex: null,
               onSelectedIndexChanged: (idx) {
@@ -167,7 +190,6 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                     size: 25,
                     fontWeight: FontWeight.w600,
                   ),
-                  tooltip: 'Previous period',
                 ),
                 M3EButtonGroupAction(
                   icon: Icon(
@@ -178,7 +200,6 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                         ? null
                         : colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
-                  tooltip: 'Next period',
                 ),
                 M3EButtonGroupAction(
                   icon: Icon(
@@ -190,7 +211,6 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                         : colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
                   width: 55,
-                  tooltip: 'Jump to current',
                 ),
               ],
             ),
