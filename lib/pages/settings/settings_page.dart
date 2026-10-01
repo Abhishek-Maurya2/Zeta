@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../components/segmented_column.dart';
-import '../../components/m3e_pane_divider.dart';
+import '../../components/m3e_split_pane.dart';
 import '../../utils/haptics.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/update_provider.dart';
@@ -77,57 +77,6 @@ class _SettingsPageState extends State<SettingsPage> {
       await prefs.setDouble(_prefKeyPaneWidth, _paneWidth);
       await prefs.setBool(_prefKeyPaneCollapsed, _isPaneCollapsed);
     } catch (_) {}
-  }
-
-  void _handlePaneDrag(double delta, double totalWidth) {
-    final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0).clamp(
-      _minPaneWidth,
-      totalWidth * 0.6,
-    );
-
-    // In Settings, dragging right (delta > 0) widens the left pane;
-    // dragging left (delta < 0) narrows the left pane.
-    var targetWidth =
-        (_hasCustomWidth
-            ? _paneWidth
-            : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)) +
-        delta;
-
-    // Check canonical snap points: 280, 310, 360, 412, and 50% split
-    final snapPoints = <double>[
-      280.0,
-      _defaultPaneWidth,
-      _largePaneWidth,
-      412.0,
-      totalWidth * 0.5,
-    ];
-
-    const double snapThreshold = 12.0;
-    for (final snap in snapPoints) {
-      if ((targetWidth - snap).abs() <= snapThreshold) {
-        targetWidth = snap;
-        break;
-      }
-    }
-
-    // Collapse check if dragged past collapse threshold
-    if (targetWidth < _collapseThreshold) {
-      setState(() {
-        _isPaneCollapsed = true;
-        _hasCustomWidth = true;
-      });
-      ZetaHaptics.light();
-      return;
-    }
-
-    final clampedWidth = targetWidth.clamp(_minPaneWidth, maxAllowedWidth);
-    if (clampedWidth != _paneWidth || !_hasCustomWidth) {
-      setState(() {
-        _paneWidth = clampedWidth;
-        _hasCustomWidth = true;
-        _isPaneCollapsed = false;
-      });
-    }
   }
 
   void _handlePaneDoubleTap(double totalWidth) {
@@ -347,101 +296,171 @@ class _SettingsPageState extends State<SettingsPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final textTheme = Theme.of(context).textTheme;
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_isPaneCollapsed) ...[
+        if (_isPaneCollapsed) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               _buildCollapsedExpandAffordance(colorScheme),
-            ] else ...[
-              // Left Pane: Primary Settings Navigation Pane
-              SizedBox(
-                width: effectiveWidth,
-                child: CustomScrollView(
-                  key: const PageStorageKey<String>('settings_wide_nav'),
-                  slivers: [
-                    SliverAppBar.large(
-                      pinned: true,
-                      automaticallyImplyLeading: false,
-                      scrolledUnderElevation: 2,
-                      shape: _appBarShape,
-                      title: Text('Settings', style: textTheme.displaySmall),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                      sliver: SliverToBoxAdapter(
-                        child: _buildCategoryList(
-                          context,
-                          activeCategory: activeCategory,
-                          isTwoPane: true,
-                        ),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? colorScheme.surfaceContainerHigh
+                        : colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: M3EPageTransition(
+                    currentIndex: activeCategory?.index ?? 0,
+                    previousIndex: 0,
+                    transitionType: M3EPageTransitionType.fadeThrough,
+                    duration: M3MotionDuration.medium2,
+                    child: CustomScrollView(
+                      key: ValueKey<String>(
+                        'settings_wide_detail_${activeCategory?.name ?? "default"}',
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Material 3 Draggable Pane Divider
-              M3EPaneDivider(
-                onDragUpdate: (delta) => _handlePaneDrag(delta, totalWidth),
-                onDragEnd: _persistPaneSettings,
-                onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
-                tooltip:
-                    'Drag to resize navigation · Double-tap to reset (${(totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth).toInt()}dp)',
-              ),
-            ],
-
-            // Right Pane: Secondary Elevated Supporting Pane
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? colorScheme.surfaceContainerHigh
-                      : colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: M3EPageTransition(
-                  currentIndex: activeCategory?.index ?? 0,
-                  previousIndex: 0,
-                  transitionType: M3EPageTransitionType.fadeThrough,
-                  duration: M3MotionDuration.medium2,
-                  child: CustomScrollView(
-                    key: ValueKey<String>(
-                      'settings_wide_detail_${activeCategory?.name ?? "default"}',
-                    ),
-                    slivers: [
-                      SliverAppBar.large(
-                        backgroundColor: isDark
-                            ? colorScheme.surfaceContainerHigh
-                            : colorScheme.surfaceContainer,
-                        scrolledUnderElevation: 2,
-                        title: Text(
-                          activeCategoryMeta?.label ?? 'Settings',
-                          style: textTheme.displaySmall,
+                      slivers: [
+                        SliverAppBar.large(
+                          backgroundColor: isDark
+                              ? colorScheme.surfaceContainerHigh
+                              : colorScheme.surfaceContainer,
+                          scrolledUnderElevation: 2,
+                          title: Text(
+                            activeCategoryMeta?.label ?? 'Settings',
+                            style: textTheme.displaySmall,
+                          ),
                         ),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
-                        sliver: SliverToBoxAdapter(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 820),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 20),
-                                _buildCategoryContent(activeCategory),
-                              ],
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
+                          sliver: SliverToBoxAdapter(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 820),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 20),
+                                  _buildCategoryContent(activeCategory),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
+            ],
+          );
+        }
+
+        final currentPercentage = (effectiveWidth / totalWidth) * 100;
+        final minPercent = (_minPaneWidth / totalWidth) * 100;
+        final maxPercent = (maxAllowedWidth / totalWidth) * 100;
+
+        final snapPointsPercent = <double>[
+          (280.0 / totalWidth) * 100,
+          (_defaultPaneWidth / totalWidth) * 100,
+          (_largePaneWidth / totalWidth) * 100,
+          (412.0 / totalWidth) * 100,
+          (totalWidth * 0.5 / totalWidth) * 100,
+        ];
+
+        return M3ESplitPane(
+          value: currentPercentage.clamp(minPercent, maxPercent),
+          min: minPercent,
+          max: maxPercent,
+          detents: snapPointsPercent,
+          label: 'Drag to resize navigation · Double-tap to reset (${(totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth).toInt()}dp)',
+          onChanged: (val) {
+             final newWidth = totalWidth * (val / 100);
+             if (newWidth < _collapseThreshold) {
+                setState(() {
+                  _isPaneCollapsed = true;
+                  _hasCustomWidth = true;
+                });
+                ZetaHaptics.light();
+             } else {
+                setState(() {
+                  _paneWidth = newWidth;
+                  _hasCustomWidth = true;
+                  _isPaneCollapsed = false;
+                });
+             }
+          },
+          onChangeEnd: (val) => _persistPaneSettings(),
+          onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+          start: CustomScrollView(
+            key: const PageStorageKey<String>('settings_wide_nav'),
+            slivers: [
+              SliverAppBar.large(
+                pinned: true,
+                automaticallyImplyLeading: false,
+                scrolledUnderElevation: 2,
+                shape: _appBarShape,
+                title: Text('Settings', style: textTheme.displaySmall),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                sliver: SliverToBoxAdapter(
+                  child: _buildCategoryList(
+                    context,
+                    activeCategory: activeCategory,
+                    isTwoPane: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          end: Container(
+            margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? colorScheme.surfaceContainerHigh
+                  : colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
+            clipBehavior: Clip.antiAlias,
+            child: M3EPageTransition(
+              currentIndex: activeCategory?.index ?? 0,
+              previousIndex: 0,
+              transitionType: M3EPageTransitionType.fadeThrough,
+              duration: M3MotionDuration.medium2,
+              child: CustomScrollView(
+                key: ValueKey<String>(
+                  'settings_wide_detail_${activeCategory?.name ?? "default"}',
+                ),
+                slivers: [
+                  SliverAppBar.large(
+                    backgroundColor: isDark
+                        ? colorScheme.surfaceContainerHigh
+                        : colorScheme.surfaceContainer,
+                    scrolledUnderElevation: 2,
+                    title: Text(
+                      activeCategoryMeta?.label ?? 'Settings',
+                      style: textTheme.displaySmall,
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
+                    sliver: SliverToBoxAdapter(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 820),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20),
+                            _buildCategoryContent(activeCategory),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

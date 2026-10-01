@@ -32,11 +32,19 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     }
   }
 
+#ifdef NDEBUG
+  const wchar_t* kMutexName = L"ZetaApp_SingleInstance_Mutex";
+  const wchar_t* kWindowTitle = L"Zeta";
+#else
+  const wchar_t* kMutexName = L"ZetaApp_SingleInstance_Mutex_Dev";
+  const wchar_t* kWindowTitle = L"Zeta (Dev)";
+#endif
+
   // Single-instance management: forward command line arguments to running instance
   HANDLE single_instance_mutex =
-      ::CreateMutexW(nullptr, TRUE, L"ZetaApp_SingleInstance_Mutex");
+      ::CreateMutexW(nullptr, TRUE, kMutexName);
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
-    HWND existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", L"Zeta");
+    HWND existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", kWindowTitle);
     if (existing_hwnd) {
       if (::IsIconic(existing_hwnd)) {
         ::ShowWindow(existing_hwnd, SW_RESTORE);
@@ -83,7 +91,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"Zeta", origin, size)) {
+  if (!window.Create(kWindowTitle, origin, size)) {
     if (single_instance_mutex) {
       ::CloseHandle(single_instance_mutex);
     }

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../utils/haptics.dart';
 import '../../../theme/motion_tokens.dart';
@@ -8,33 +10,23 @@ import '../../../theme/motion_tokens.dart';
 enum TargetTimeFrame { days, weeks, months }
 
 class DaysLeftCounterCard extends StatefulWidget {
-  final String title;
-  final DateTime targetDate;
-  final DateTime startDate;
-  final void Function(
-    String newTitle,
-    DateTime newTargetDate,
-    DateTime newStartDate,
-  )?
-  onConfigChanged;
-
-  const DaysLeftCounterCard({
-    super.key,
-    this.title = 'Target Goal',
-    required this.targetDate,
-    required this.startDate,
-    this.onConfigChanged,
-  });
+  const DaysLeftCounterCard({super.key});
 
   @override
   State<DaysLeftCounterCard> createState() => _DaysLeftCounterCardState();
 }
 
 class _DaysLeftCounterCardState extends State<DaysLeftCounterCard> {
-  late String _title;
+  String _title = 'Target Goal';
   late DateTime _targetDate;
   late DateTime _startDate;
   TargetTimeFrame _selectedUnit = TargetTimeFrame.days;
+
+
+  // SharedPreferences keys
+  static const _kTitle = 'days_counter_title';
+  static const _kStartDate = 'days_counter_start_date';
+  static const _kTargetDate = 'days_counter_target_date';
 
   // Discrete pill segment count across linear bar & semicircle arch
   static const int _totalSegments = 26;
@@ -52,9 +44,36 @@ class _DaysLeftCounterCardState extends State<DaysLeftCounterCard> {
   @override
   void initState() {
     super.initState();
-    _title = widget.title;
-    _targetDate = widget.targetDate;
-    _startDate = widget.startDate;
+    final now = DateTime.now();
+    _startDate = now;
+    _targetDate = now.add(const Duration(days: 30));
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedTitle = prefs.getString(_kTitle);
+    final savedStart = prefs.getString(_kStartDate);
+    final savedTarget = prefs.getString(_kTargetDate);
+
+    if (mounted) {
+      setState(() {
+        if (savedTitle != null) _title = savedTitle;
+        if (savedStart != null) {
+          _startDate = DateTime.tryParse(savedStart) ?? _startDate;
+        }
+        if (savedTarget != null) {
+          _targetDate = DateTime.tryParse(savedTarget) ?? _targetDate;
+        }
+      });
+    }
+  }
+
+  Future<void> _saveToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kTitle, _title);
+    await prefs.setString(_kStartDate, _startDate.toIso8601String());
+    await prefs.setString(_kTargetDate, _targetDate.toIso8601String());
   }
 
   int get _rawDaysLeft {
@@ -287,7 +306,7 @@ class _DaysLeftCounterCardState extends State<DaysLeftCounterCard> {
         _startDate = tempStart;
         _targetDate = tempTarget;
       });
-      widget.onConfigChanged?.call(_title, _targetDate, _startDate);
+      unawaited(_saveToPrefs());
     }
     titleController.dispose();
   }

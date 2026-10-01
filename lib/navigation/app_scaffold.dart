@@ -28,7 +28,7 @@ import 'components/pull_to_refresh_container.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../components/m3e_pane_divider.dart';
+import '../components/m3e_split_pane.dart';
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
@@ -650,106 +650,73 @@ class _AppScaffoldState extends State<AppScaffold>
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.stretch,
-                                            children: [
-                                              Expanded(
-                                                child: BodyPane(
+                                          child: !isEditPaneOpen
+                                              ? BodyPane(
                                                   activePage:
                                                       navProvider.activePage,
-                                                ),
-                                              ),
-                                              if (isEditPaneOpen) ...[
-                                                M3EPaneDivider(
-                                                  onDragUpdate: (delta) {
-                                                    setState(() {
-                                                      _taskEditPaneWidth =
-                                                          (_taskEditPaneWidth -
-                                                                  delta)
-                                                              .clamp(
-                                                                300.0,
-                                                                600.0,
-                                                              );
-                                                    });
-                                                  },
-                                                  onDoubleTap: () {
-                                                    setState(() {
-                                                      _taskEditPaneWidth =
-                                                          380.0;
-                                                    });
-                                                    ZetaHaptics.medium();
-                                                  },
-                                                  tooltip: 'Drag to resize task pane · Double-tap to reset (380dp)',
-                                                ),
-                                                SizedBox(
-                                                  width: _taskEditPaneWidth,
-                                                  child: Container(
-                                                    margin:
-                                                        const EdgeInsets.fromLTRB(
-                                                          0,
-                                                          16,
-                                                          16,
-                                                          6,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: isDark
-                                                          ? colorScheme
-                                                                .surfaceContainerHigh
-                                                          : colorScheme
-                                                                .surfaceContainer,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            20,
-                                                          ),
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: colorScheme
-                                                              .shadow
-                                                              .withValues(
-                                                                alpha: 0.08,
-                                                              ),
-                                                          blurRadius: 16,
-                                                          offset: const Offset(
-                                                            0,
-                                                            6,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    clipBehavior:
-                                                        Clip.antiAlias,
-                                                    child: SafeArea(
-                                                      child: Consumer<TaskProvider>(
-                                                        builder: (context, tp, _) =>
-                                                            TaskEditFormContent(
-                                                              key: ValueKey(
-                                                                '${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}',
-                                                              ),
-                                                              task: tp
-                                                                  .editingTask,
-                                                              initialTitle: tp
-                                                                  .editingInitialTitle,
-                                                              initialDescription: tp
-                                                                  .editingInitialDescription,
-                                                              initialDueDate: tp
-                                                                  .editingInitialDueDate,
-                                                              initialDueTime: tp
-                                                                  .editingInitialDueTime,
-                                                              initialHasTime: tp
-                                                                  .editingInitialHasTime,
-                                                              initialSubtasks: tp
-                                                                  .editingInitialSubtasks,
-                                                              onClose: () => tp
-                                                                  .closeEditPane(),
+                                                )
+                                              : LayoutBuilder(
+                                                  builder: (context, constraints) {
+                                                    final totalWidth = constraints.maxWidth;
+                                                    final minWidth = (totalWidth - 600.0 - 24.0).clamp(200.0, totalWidth - 300.0);
+                                                    final maxWidth = (totalWidth - 300.0 - 24.0).clamp(minWidth, totalWidth - 200.0);
+                                                    final currentStartWidth = (totalWidth - _taskEditPaneWidth - 24.0).clamp(minWidth, maxWidth);
+                                                    final currentPercent = (currentStartWidth / totalWidth) * 100.0;
+                                                    final minPercent = (minWidth / totalWidth) * 100.0;
+                                                    final maxPercent = (maxWidth / totalWidth) * 100.0;
+
+                                                    return M3ESplitPane(
+                                                      value: currentPercent.clamp(minPercent, maxPercent),
+                                                      min: minPercent,
+                                                      max: maxPercent,
+                                                      onChanged: (val) {
+                                                        final newWidth = totalWidth - (totalWidth * (val / 100.0)) - 24.0;
+                                                        setState(() {
+                                                          _taskEditPaneWidth = newWidth.clamp(300.0, 600.0);
+                                                        });
+                                                      },
+                                                      onDoubleTap: () {
+                                                        setState(() {
+                                                          _taskEditPaneWidth = 380.0;
+                                                        });
+                                                        ZetaHaptics.medium();
+                                                      },
+                                                      start: BodyPane(activePage: navProvider.activePage),
+                                                      end: Container(
+                                                        margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+                                                        decoration: BoxDecoration(
+                                                          color: isDark
+                                                              ? colorScheme.surfaceContainerHigh
+                                                              : colorScheme.surfaceContainer,
+                                                          borderRadius: BorderRadius.circular(20),
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: colorScheme.shadow.withValues(alpha: 0.08),
+                                                              blurRadius: 16,
+                                                              offset: const Offset(0, 6),
                                                             ),
+                                                          ],
+                                                        ),
+                                                        clipBehavior: Clip.antiAlias,
+                                                        child: SafeArea(
+                                                          child: Consumer<TaskProvider>(
+                                                            builder: (context, tp, _) => TaskEditFormContent(
+                                                              key: ValueKey('${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}'),
+                                                              task: tp.editingTask,
+                                                              initialTitle: tp.editingInitialTitle,
+                                                              initialDescription: tp.editingInitialDescription,
+                                                              initialDueDate: tp.editingInitialDueDate,
+                                                              initialDueTime: tp.editingInitialDueTime,
+                                                              initialHasTime: tp.editingInitialHasTime,
+                                                              initialSubtasks: tp.editingInitialSubtasks,
+                                                              onClose: () => tp.closeEditPane(),
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ),
+                                                    );
+                                                  },
                                                 ),
-                                              ],
-                                            ],
-                                          ),
                                         ),
                                         Positioned(
                                           left: 0,

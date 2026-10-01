@@ -6,7 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../utils/haptics.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../theme/breakpoints.dart';
-import '../../components/m3e_pane_divider.dart';
+import '../../components/m3e_split_pane.dart';
 import '../../services/preferences_service.dart';
 import 'pomodoro_timer_pane.dart';
 import 'pomodoro_queue_pane.dart';
@@ -101,59 +101,6 @@ class _PomodoroPageState extends State<PomodoroPage> {
       await prefs.setDouble(_prefKeyPaneWidth, _supportingPaneWidth);
       await prefs.setBool(_prefKeyPaneCollapsed, _isSupportingPaneCollapsed);
     } catch (_) {}
-  }
-
-  void _handlePaneDrag(double delta, double totalWidth) {
-    final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0).clamp(
-      _minSupportingPaneWidth,
-      totalWidth * 0.75,
-    );
-
-    // Dragging left (delta < 0) widens right pane; dragging right (delta > 0) narrows it.
-    var targetWidth =
-        (_hasCustomWidth
-            ? _supportingPaneWidth
-            : (totalWidth >= 1200
-                  ? _largeSupportingPaneWidth
-                  : _defaultSupportingPaneWidth)) -
-        delta;
-
-    // Check canonical snap points: 360, 412, and 50% split
-    final snapPoints = <double>[
-      _defaultSupportingPaneWidth,
-      _largeSupportingPaneWidth,
-      totalWidth * 0.5,
-    ];
-
-    const double snapThreshold = 12.0;
-    for (final snap in snapPoints) {
-      if ((targetWidth - snap).abs() <= snapThreshold) {
-        targetWidth = snap;
-        break;
-      }
-    }
-
-    // Collapse check if dragged past collapse threshold
-    if (targetWidth < _collapseThreshold) {
-      setState(() {
-        _isSupportingPaneCollapsed = true;
-        _hasCustomWidth = true;
-      });
-      HapticFeedback.lightImpact();
-      return;
-    }
-
-    final clampedWidth = targetWidth.clamp(
-      _minSupportingPaneWidth,
-      maxAllowedWidth,
-    );
-    if (clampedWidth != _supportingPaneWidth || !_hasCustomWidth) {
-      setState(() {
-        _supportingPaneWidth = clampedWidth;
-        _hasCustomWidth = true;
-        _isSupportingPaneCollapsed = false;
-      });
-    }
   }
 
   void _handlePaneDoubleTap(double totalWidth) {
@@ -259,136 +206,154 @@ class _PomodoroPageState extends State<PomodoroPage> {
           );
         }
 
-        return Row(
-          children: [
-            // Left Pane: Primary Focus Pane (Timer)
-            Expanded(child: PomodoroTimerPane(onToggleAod: _enterAodMode)),
+        final startSize = totalWidth - effectiveWidth - 24;
+        final currentPercentage = (startSize / totalWidth) * 100;
+        final minPercent = ((totalWidth - maxAllowedWidth - 24) / totalWidth) * 100;
+        final maxPercent = ((totalWidth - _minSupportingPaneWidth - 24) / totalWidth) * 100;
 
-            // Material 3 Draggable Pane Divider
-            M3EPaneDivider(
-              onDragUpdate: (delta) => _handlePaneDrag(delta, totalWidth),
-              onDragEnd: _persistPaneSettings,
-              onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+        final snapPointsPercent = <double>[
+          ((totalWidth - _defaultSupportingPaneWidth - 24) / totalWidth) * 100,
+          ((totalWidth - _largeSupportingPaneWidth - 24) / totalWidth) * 100,
+          ((totalWidth - (totalWidth * 0.5) - 24) / totalWidth) * 100,
+        ];
+
+        return M3ESplitPane(
+          value: currentPercentage.clamp(minPercent, maxPercent),
+          min: minPercent,
+          max: maxPercent,
+          detents: snapPointsPercent,
+          onChanged: (val) {
+             final newEffective = totalWidth - (totalWidth * (val / 100)) - 24;
+             if (newEffective < _collapseThreshold) {
+                setState(() {
+                  _isSupportingPaneCollapsed = true;
+                  _hasCustomWidth = true;
+                });
+                HapticFeedback.lightImpact();
+             } else {
+                setState(() {
+                  _supportingPaneWidth = newEffective;
+                  _hasCustomWidth = true;
+                  _isSupportingPaneCollapsed = false;
+                });
+             }
+          },
+          onChangeEnd: (val) => _persistPaneSettings(),
+          onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+          start: PomodoroTimerPane(onToggleAod: _enterAodMode),
+          end: Container(
+            margin: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? colorScheme.surfaceContainerHigh
+                  : colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
             ),
-
-            // Right Pane: Secondary Supporting Pane (Up next or Analysis)
-            SizedBox(
-              width: effectiveWidth,
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(0, 16, 16, 16),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? colorScheme.surfaceContainerHigh
-                      : colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top Secondary Toolbar
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: M3EButtonGroup(
-                                type: M3EButtonGroupType.connected,
-                                size: M3EButtonSize.sm,
-                                style: M3EButtonStyle.filled,
-                                decoration: M3EToggleButtonDecoration(
-                                  backgroundColor:
-                                      WidgetStateProperty.resolveWith((states) {
-                                        if (states.contains(
-                                          WidgetState.selected,
-                                        )) {
-                                          return colorScheme.primary;
-                                        }
-                                        return colorScheme.tertiaryContainer;
-                                      }),
-                                  foregroundColor:
-                                      WidgetStateProperty.resolveWith((states) {
-                                        if (states.contains(
-                                          WidgetState.selected,
-                                        )) {
-                                          return colorScheme.onPrimary;
-                                        }
-                                        return colorScheme.onTertiaryContainer;
-                                      }),
-                                ),
-                                selectedIndex: _secondaryTab.index,
-                                onSelectedIndexChanged: (idx) {
-                                  if (idx != null) {
-                                    ZetaHaptics.selection();
-                                    setState(() {
-                                      _secondaryTab =
-                                          SecondaryPaneTab.values[idx];
-                                      provider.setActiveTab(
-                                        SecondaryPaneTab.values[idx].name,
-                                      );
-                                    });
-                                  }
-                                },
-                                actions: [
-                                  M3EButtonGroupAction(
-                                    icon: const Icon(
-                                      Icons.checklist_rounded,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      'Up next (${provider.queue.length})',
-                                    ),
-                                  ),
-                                  const M3EButtonGroupAction(
-                                    icon: Icon(
-                                      Icons.insights_rounded,
-                                      size: 16,
-                                    ),
-                                    label: Text('Analysis'),
-                                  ),
-                                ],
-                              ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Top Secondary Toolbar
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: M3EButtonGroup(
+                            type: M3EButtonGroupType.connected,
+                            size: M3EButtonSize.sm,
+                            style: M3EButtonStyle.filled,
+                            decoration: M3EToggleButtonDecoration(
+                              backgroundColor:
+                                  WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(
+                                      WidgetState.selected,
+                                    )) {
+                                      return colorScheme.primary;
+                                    }
+                                    return colorScheme.tertiaryContainer;
+                                  }),
+                              foregroundColor:
+                                  WidgetStateProperty.resolveWith((states) {
+                                    if (states.contains(
+                                      WidgetState.selected,
+                                    )) {
+                                      return colorScheme.onPrimary;
+                                    }
+                                    return colorScheme.onTertiaryContainer;
+                                  }),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          // Collapse Button
-                          IconButton(
-                            icon: const Icon(
-                              Icons.view_sidebar_outlined,
-                              size: 18,
-                            ),
-                            tooltip: 'Collapse supporting pane',
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 32,
-                              minHeight: 32,
-                            ),
-                            onPressed: () {
-                              setState(() => _isSupportingPaneCollapsed = true);
-                              _persistPaneSettings();
+                            selectedIndex: _secondaryTab.index,
+                            onSelectedIndexChanged: (idx) {
+                              if (idx != null) {
+                                ZetaHaptics.selection();
+                                setState(() {
+                                  _secondaryTab =
+                                      SecondaryPaneTab.values[idx];
+                                  provider.setActiveTab(
+                                    SecondaryPaneTab.values[idx].name,
+                                  );
+                                });
+                              }
                             },
+                            actions: [
+                              M3EButtonGroupAction(
+                                icon: const Icon(
+                                  Icons.checklist_rounded,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  'Up next (${provider.queue.length})',
+                                ),
+                              ),
+                              const M3EButtonGroupAction(
+                                icon: Icon(
+                                  Icons.insights_rounded,
+                                  size: 16,
+                                ),
+                                label: Text('Analysis'),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-
-                    // Pane Body
-                    Expanded(
-                      child: _secondaryTab == SecondaryPaneTab.queue
-                          ? const PomodoroQueuePane(isSplitPane: true)
-                          : const PomodoroAnalysisPane(isSplitPane: true),
-                    ),
-                  ],
+                      const SizedBox(width: 4),
+                      // Collapse Button
+                      IconButton(
+                        icon: const Icon(
+                          Icons.view_sidebar_outlined,
+                          size: 18,
+                        ),
+                        tooltip: 'Collapse supporting pane',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        onPressed: () {
+                          setState(() => _isSupportingPaneCollapsed = true);
+                          _persistPaneSettings();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+                // Pane Body
+                Expanded(
+                  child: _secondaryTab == SecondaryPaneTab.queue
+                      ? const PomodoroQueuePane(isSplitPane: true)
+                      : const PomodoroAnalysisPane(isSplitPane: true),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

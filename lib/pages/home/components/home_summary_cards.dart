@@ -32,11 +32,6 @@ class HomeSummaryCards extends StatelessWidget {
   final DateTime selectedDate;
   final ValueChanged<DateTime> onSelectDate;
 
-  // Days Left Target Goal Parameters
-  final DateTime? targetDate;
-  final DateTime? startDate;
-  final String targetTitle;
-
   // Mock Test Radar Callback
   final void Function(MockEntryRecord record)? onSaveMockTest;
 
@@ -51,9 +46,6 @@ class HomeSummaryCards extends StatelessWidget {
     this.onMoreTap,
     this.onOptionsTap,
     this.onOpenPomodoroAnalysis,
-    this.targetDate,
-    this.startDate,
-    this.targetTitle = 'Sprint Target',
     this.onSaveMockTest,
   });
 
@@ -75,8 +67,9 @@ class HomeSummaryCards extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            // ─── 2. Focus Terrain Widget (Past 6 + Current Day) ──────
-            PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
+            Expanded(
+              child: PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
+            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -97,16 +90,11 @@ class HomeSummaryCards extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         // ─── 3. Days Left Counter Card ───────────────────────────
-        DaysLeftCounterCard(
-          title: targetTitle,
-          startDate:
-              startDate ?? DateTime.now().subtract(const Duration(days: 7)),
-          targetDate:
-              targetDate ?? DateTime.now().add(const Duration(days: 14)),
-        ),
+        const DaysLeftCounterCard(),
       ],
     );
   }
 }
 
 typedef SummaryWidgets = HomeSummaryCards;
+

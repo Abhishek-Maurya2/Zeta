@@ -9,7 +9,7 @@ import 'components/revision_notes_pane.dart';
 import '../../theme/breakpoints.dart';
 import '../../theme/motion_tokens.dart';
 import '../../utils/haptics.dart';
-import '../../components/m3e_pane_divider.dart';
+import '../../components/m3e_split_pane.dart';
 import '../../components/m3e_page_transition.dart';
 import '../../models/revision.dart';
 import 'revision_pane1.dart';
@@ -124,51 +124,6 @@ class _RevisionPageState extends State<RevisionPage> {
       await prefs.setDouble(_prefKeyPaneWidth, _paneWidth);
       await prefs.setBool(_prefKeyPaneCollapsed, _isPaneCollapsed);
     } catch (_) {}
-  }
-
-  void _handlePaneDrag(double delta, double totalWidth) {
-    final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0).clamp(
-      _minPaneWidth,
-      totalWidth * 0.6,
-    );
-
-    var targetWidth =
-        (_hasCustomWidth
-            ? _paneWidth
-            : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)) +
-        delta;
-
-    final snapPoints = <double>[
-      240.0,
-      _defaultPaneWidth,
-      _largePaneWidth,
-      totalWidth * 0.5,
-    ];
-    const double snapThreshold = 12.0;
-    for (final snap in snapPoints) {
-      if ((targetWidth - snap).abs() <= snapThreshold) {
-        targetWidth = snap;
-        break;
-      }
-    }
-
-    if (targetWidth < _collapseThreshold) {
-      setState(() {
-        _isPaneCollapsed = true;
-        _hasCustomWidth = true;
-      });
-      ZetaHaptics.light();
-      return;
-    }
-
-    final clampedWidth = targetWidth.clamp(_minPaneWidth, maxAllowedWidth);
-    if (clampedWidth != _paneWidth || !_hasCustomWidth) {
-      setState(() {
-        _paneWidth = clampedWidth;
-        _hasCustomWidth = true;
-        _isPaneCollapsed = false;
-      });
-    }
   }
 
   void _handlePaneDoubleTap(double totalWidth) {
@@ -468,139 +423,257 @@ class _RevisionPageState extends State<RevisionPage> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final selectedSubject = revProvider.selectedSubject;
 
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ─── Left Pane: Subjects (Pane 1) ──────────────────────────
-            if (_isPaneCollapsed)
-              _buildCollapsedExpandAffordance(colorScheme)
-            else
-              SizedBox(
-                width: effectiveWidth,
-                child: SingleChildScrollView(
-                  key: const PageStorageKey<String>('revision_subjects_pane'),
-                  padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
-                  child: RevisionPane1(
-                    isSplitPane: true,
-                    onOpenNotes: (sub) {
-                      revProvider.selectSubject(sub.id);
-                      _openNotes();
-                    },
+        if (_isPaneCollapsed) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildCollapsedExpandAffordance(colorScheme),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? colorScheme.surfaceContainerHigh
+                        : colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-              ),
-
-            // ─── Draggable Divider ─────────────────────────────────────
-            M3EPaneDivider(
-              onDragUpdate: (delta) => _handlePaneDrag(delta, totalWidth),
-              onDragEnd: _persistPaneSettings,
-              onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
-              tooltip:
-                  'Drag to resize · Double-tap to reset (${(_hasCustomWidth ? _paneWidth : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)).toInt()}dp)',
-            ),
-
-            // ─── Right Pane: Topics OR Notes Replacement Pane ─────────
-            Expanded(
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? colorScheme.surfaceContainerHigh
-                      : colorScheme.surfaceContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child:
-                      _rightPaneMode == RevisionRightPaneMode.notes &&
-                          selectedSubject != null
-                      ? RevisionNotesPane(
-                          key: ValueKey(
-                            'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
-                          ),
-                          subject: selectedSubject,
-                          initialTopic: _activeTopicForNotes,
-                          onBack: _closeNotes,
-                        )
-                      : CustomScrollView(
-                          key: ValueKey<String>(
-                            'revision_topics_${selectedSubject?.id ?? "none"}',
-                          ),
-                          slivers: [
-                            SliverAppBar.large(
-                              backgroundColor: isDark
-                                  ? colorScheme.surfaceContainerHigh
-                                  : colorScheme.surfaceContainer,
-                              pinned: true,
-                              automaticallyImplyLeading: false,
-                              scrolledUnderElevation: 2,
-                              title: Text(selectedSubject?.name ?? 'Topics'),
-                              actions: [
-                                if (selectedSubject != null) ...[
-                                  M3EIconButton(
-                                    variant: M3EIconButtonVariant.tonal,
-                                    size: M3EIconButtonSize.sm,
-                                    width: M3EIconButtonWidth.wide,
-                                    icon: const Icon(
-                                      Icons.description_outlined,
-                                      size: 19,
-                                    ),
-                                    tooltip: 'Notes & Resources',
-                                    onPressed: () => _openNotes(),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: M3EIconButton(
-                                      onPressed: () {
-                                        ZetaHaptics.light();
-                                        AddTopicDialog.show(
-                                          context,
-                                          subjectId: selectedSubject.id,
-                                        );
-                                      },
-                                      variant: M3EIconButtonVariant.filled,
+                  clipBehavior: Clip.antiAlias,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: _rightPaneMode == RevisionRightPaneMode.notes &&
+                            selectedSubject != null
+                        ? RevisionNotesPane(
+                            key: ValueKey(
+                              'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
+                            ),
+                            subject: selectedSubject,
+                            initialTopic: _activeTopicForNotes,
+                            onBack: _closeNotes,
+                          )
+                        : CustomScrollView(
+                            key: ValueKey<String>(
+                              'revision_topics_${selectedSubject?.id ?? "none"}',
+                            ),
+                            slivers: [
+                              SliverAppBar.large(
+                                backgroundColor: isDark
+                                    ? colorScheme.surfaceContainerHigh
+                                    : colorScheme.surfaceContainer,
+                                pinned: true,
+                                automaticallyImplyLeading: false,
+                                scrolledUnderElevation: 2,
+                                title: Text(selectedSubject?.name ?? 'Topics'),
+                                actions: [
+                                  if (selectedSubject != null) ...[
+                                    M3EIconButton(
+                                      variant: M3EIconButtonVariant.tonal,
                                       size: M3EIconButtonSize.sm,
                                       width: M3EIconButtonWidth.wide,
                                       icon: const Icon(
-                                        Icons.add_rounded,
-                                        size: 23,
-                                        fontWeight: FontWeight.w600,
+                                        Icons.description_outlined,
+                                        size: 19,
                                       ),
-                                      tooltip: 'Add Topic',
+                                      tooltip: 'Notes & Resources',
+                                      onPressed: () => _openNotes(),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: M3EIconButton(
+                                        onPressed: () {
+                                          ZetaHaptics.light();
+                                          AddTopicDialog.show(
+                                            context,
+                                            subjectId: selectedSubject.id,
+                                          );
+                                        },
+                                        variant: M3EIconButtonVariant.filled,
+                                        size: M3EIconButtonSize.sm,
+                                        width: M3EIconButtonWidth.wide,
+                                        icon: const Icon(
+                                          Icons.add_rounded,
+                                          size: 23,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        tooltip: 'Add Topic',
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              if (selectedSubject == null)
+                                const SliverFillRemaining(
+                                  hasScrollBody: false,
+                                  child: RevisionPane2(isSplitPane: true),
+                                )
+                              else
+                                SliverPadding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    4,
+                                    20,
+                                    80,
+                                  ),
+                                  sliver: SliverToBoxAdapter(
+                                    child: RevisionPane2(
+                                      isSplitPane: true,
+                                      onOpenNotes: (topic) =>
+                                          _openNotes(topic: topic),
                                     ),
                                   ),
-                                ],
-                              ],
-                            ),
-                            if (selectedSubject == null)
-                              const SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: RevisionPane2(isSplitPane: true),
-                              )
-                            else
-                              SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  20,
-                                  4,
-                                  20,
-                                  80,
                                 ),
-                                sliver: SliverToBoxAdapter(
-                                  child: RevisionPane2(
-                                    isSplitPane: true,
-                                    onOpenNotes: (topic) =>
-                                        _openNotes(topic: topic),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                            ],
+                          ),
+                  ),
                 ),
               ),
+            ],
+          );
+        }
+
+        final currentPercentage = (effectiveWidth / totalWidth) * 100;
+        final minPercent = (_minPaneWidth / totalWidth) * 100;
+        final maxPercent = (maxAllowedWidth / totalWidth) * 100;
+
+        final snapPointsPercent = <double>[
+          (240.0 / totalWidth) * 100,
+          (_defaultPaneWidth / totalWidth) * 100,
+          (_largePaneWidth / totalWidth) * 100,
+          (totalWidth * 0.5 / totalWidth) * 100,
+        ];
+
+        return M3ESplitPane(
+          value: currentPercentage.clamp(minPercent, maxPercent),
+          min: minPercent,
+          max: maxPercent,
+          detents: snapPointsPercent,
+          label: 'Drag to resize · Double-tap to reset (${(_hasCustomWidth ? _paneWidth : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)).toInt()}dp)',
+          onChanged: (val) {
+             final newWidth = totalWidth * (val / 100);
+             if (newWidth < _collapseThreshold) {
+                setState(() {
+                  _isPaneCollapsed = true;
+                  _hasCustomWidth = true;
+                });
+                ZetaHaptics.light();
+             } else {
+                setState(() {
+                  _paneWidth = newWidth;
+                  _hasCustomWidth = true;
+                  _isPaneCollapsed = false;
+                });
+             }
+          },
+          onChangeEnd: (val) => _persistPaneSettings(),
+          onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+          start: SingleChildScrollView(
+            key: const PageStorageKey<String>('revision_subjects_pane'),
+            padding: const EdgeInsets.fromLTRB(16, 40, 16, 24),
+            child: RevisionPane1(
+              isSplitPane: true,
+              onOpenNotes: (sub) {
+                revProvider.selectSubject(sub.id);
+                _openNotes();
+              },
             ),
-          ],
+          ),
+          end: Container(
+            margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? colorScheme.surfaceContainerHigh
+                  : colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _rightPaneMode == RevisionRightPaneMode.notes &&
+                      selectedSubject != null
+                  ? RevisionNotesPane(
+                      key: ValueKey(
+                        'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
+                      ),
+                      subject: selectedSubject,
+                      initialTopic: _activeTopicForNotes,
+                      onBack: _closeNotes,
+                    )
+                  : CustomScrollView(
+                      key: ValueKey<String>(
+                        'revision_topics_${selectedSubject?.id ?? "none"}',
+                      ),
+                      slivers: [
+                        SliverAppBar.large(
+                          backgroundColor: isDark
+                              ? colorScheme.surfaceContainerHigh
+                              : colorScheme.surfaceContainer,
+                          pinned: true,
+                          automaticallyImplyLeading: false,
+                          scrolledUnderElevation: 2,
+                          title: Text(selectedSubject?.name ?? 'Topics'),
+                          actions: [
+                            if (selectedSubject != null) ...[
+                              M3EIconButton(
+                                variant: M3EIconButtonVariant.tonal,
+                                size: M3EIconButtonSize.sm,
+                                width: M3EIconButtonWidth.wide,
+                                icon: const Icon(
+                                  Icons.description_outlined,
+                                  size: 19,
+                                ),
+                                tooltip: 'Notes & Resources',
+                                onPressed: () => _openNotes(),
+                              ),
+                              const SizedBox(width: 6),
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: M3EIconButton(
+                                  onPressed: () {
+                                    ZetaHaptics.light();
+                                    AddTopicDialog.show(
+                                      context,
+                                      subjectId: selectedSubject.id,
+                                    );
+                                  },
+                                  variant: M3EIconButtonVariant.filled,
+                                  size: M3EIconButtonSize.sm,
+                                  width: M3EIconButtonWidth.wide,
+                                  icon: const Icon(
+                                    Icons.add_rounded,
+                                    size: 23,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  tooltip: 'Add Topic',
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        if (selectedSubject == null)
+                          const SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: RevisionPane2(isSplitPane: true),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(
+                              20,
+                              4,
+                              20,
+                              80,
+                            ),
+                            sliver: SliverToBoxAdapter(
+                              child: RevisionPane2(
+                                isSplitPane: true,
+                                onOpenNotes: (topic) =>
+                                    _openNotes(topic: topic),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+          ),
         );
       },
     );
