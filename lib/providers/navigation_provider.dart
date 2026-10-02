@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+
 import '../pages/settings/components/settings_category.dart';
 
 /// Page identifiers mirroring Sharva's PageId type.
@@ -85,10 +86,40 @@ class NavDestination {
 }
 
 const List<NavDestination> kNavDestinations = [
-  NavDestination(id: PageId.home, label: 'Home', icon: Icons.home_outlined, selectedIcon: Icons.home),
-  NavDestination(id: PageId.tasks, label: 'Tasks', icon: Icons.check_circle_outline, selectedIcon: Icons.check_circle),
-  NavDestination(id: PageId.revision, label: 'Subjects', icon: Icons.menu_book_outlined, selectedIcon: Icons.menu_book),
-  NavDestination(id: PageId.pomodoro, label: 'Pomodoro', icon: Icons.timer_outlined, selectedIcon: Icons.timer),
-  NavDestination(id: PageId.bin, label: 'Bin', icon: Icons.delete_outline, selectedIcon: Icons.delete),
-  NavDestination(id: PageId.settings, label: 'Settings', icon: Icons.settings_outlined, selectedIcon: Icons.settings),
+  NavDestination(
+    id: PageId.home,
+    label: 'Home',
+    icon: Icons.home_outlined,
+    selectedIcon: Icons.home,
+  ),
+  NavDestination(
+    id: PageId.tasks,
+    label: 'Tasks',
+    icon: Icons.check_circle_outline_rounded,
+    selectedIcon: Icons.task_alt_rounded,
+  ),
+  NavDestination(
+    id: PageId.revision,
+    label: 'Subjects',
+    icon: Icons.menu_book_outlined,
+    selectedIcon: Icons.menu_book,
+  ),
+  NavDestination(
+    id: PageId.pomodoro,
+    label: 'Pomodoro',
+    icon: Icons.timer_outlined,
+    selectedIcon: Icons.timer,
+  ),
+  NavDestination(
+    id: PageId.bin,
+    label: 'Bin',
+    icon: Icons.delete_outline,
+    selectedIcon: Icons.delete,
+  ),
+  NavDestination(
+    id: PageId.settings,
+    label: 'Settings',
+    icon: Icons.settings_outlined,
+    selectedIcon: Icons.settings,
+  ),
 ];

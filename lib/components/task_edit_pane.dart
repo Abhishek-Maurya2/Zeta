@@ -1045,10 +1045,8 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // 1. Task Title & Top-Right Close Button in 1 Row
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Expanded(
                           child: TextField(
@@ -1076,7 +1074,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
+                              contentPadding: const EdgeInsets.only(top: 4),
                               errorText: _errorMessage,
                             ),
                             onChanged: (_) {
@@ -1089,24 +1087,21 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                         ),
                         if (!isCompact) ...[
                           const SizedBox(width: 12),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2.0),
-                            child: M3EIconButton(
-                              icon: const Icon(Icons.close_rounded),
-                              size: M3EIconButtonSize.sm,
-                              width: M3EIconButtonWidth.wide,
-                              decoration: M3EIconButtonDecoration(
-                                backgroundColor: WidgetStateProperty.all(
-                                  colorScheme.surfaceContainerLowest.withValues(
-                                    alpha: 0.7,
-                                  ),
+                          M3EIconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            size: M3EIconButtonSize.sm,
+                            width: M3EIconButtonWidth.wide,
+                            decoration: M3EIconButtonDecoration(
+                              backgroundColor: WidgetStateProperty.all(
+                                colorScheme.surfaceContainerLowest.withValues(
+                                  alpha: 0.7,
                                 ),
                               ),
-                              onPressed: () {
-                                ZetaHaptics.light();
-                                _closePane();
-                              },
                             ),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              _closePane();
+                            },
                           ),
                         ],
                       ],
