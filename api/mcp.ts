@@ -315,13 +315,12 @@ async function executeTool(name: string, args: Record<string, any>) {
         const status = args?.status || 'pending';
         let query = supabase
           .from('tasks')
-          .select('id, title, description, completed, due_date, due_time, subtasks, created_at')
+          .select('id, title, description, completed, due_date, has_time, subtasks, created_at')
           .eq('user_id', userId)
           .is('deleted_at', null);
 
         if (status === 'pending') query = query.eq('completed', false);
         if (status === 'completed') query = query.eq('completed', true);
-        if (args?.due_date) query = query.eq('due_date', args.due_date);
 
         const { data, error } = await query.order('due_date', { ascending: true, nullsFirst: false });
 
@@ -335,7 +334,13 @@ async function executeTool(name: string, args: Record<string, any>) {
         const taskList = data
           .map((t) => {
             const statusMark = t.completed ? '[x]' : '[ ]';
-            const due = t.due_date ? ` (Due: ${t.due_date}${t.due_time ? ' ' + t.due_time : ''})` : '';
+            let due = '';
+            if (t.due_date) {
+              const d = new Date(t.due_date);
+              const datePart = d.toISOString().substring(0, 10);
+              const timePart = t.has_time ? ` ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} UTC` : '';
+              due = ` (Due: ${datePart}${timePart})`;
+            }
             const desc = t.description ? `\n    Notes: ${t.description}` : '';
 
             // Render subtasks checklist
@@ -374,15 +379,26 @@ async function executeTool(name: string, args: Record<string, any>) {
             }))
           : [];
 
+        let parsedDueDate: string | null = null;
+        let effectiveHasTime = false;
+
+        if (args?.due_date) {
+          if (args?.due_time) {
+            effectiveHasTime = true;
+            parsedDueDate = new Date(`${args.due_date}T${args.due_time}:00Z`).toISOString();
+          } else {
+            parsedDueDate = new Date(`${args.due_date}T12:00:00Z`).toISOString();
+          }
+        }
+
         const newTask = {
           id: crypto.randomUUID(),
           user_id: userId,
           title: title.trim(),
           description: args?.description ? String(args.description).trim() : null,
           completed: false,
-          due_date: args?.due_date || null,
-          due_time: args?.due_time || null,
-          has_time: Boolean(args?.due_time),
+          due_date: parsedDueDate,
+          has_time: effectiveHasTime,
           subtasks,
           attachments: [],
           created_at: now,
@@ -400,7 +416,7 @@ async function executeTool(name: string, args: Record<string, any>) {
             {
               type: 'text',
               text: `✅ Task created: "${data.title}"\nID: ${data.id}${
-                data.due_date ? `\nDue: ${data.due_date} ${data.due_time || ''}` : ''
+                data.due_date ? `\nDue: ${data.due_date.substring(0, 10)}` : ''
               }${subtaskSummary}`,
             },
           ],
@@ -438,10 +454,14 @@ async function executeTool(name: string, args: Record<string, any>) {
         const updates: Record<string, any> = { updated_at: new Date().toISOString() };
         if (args.title !== undefined) updates.title = args.title;
         if (args.description !== undefined) updates.description = args.description;
-        if (args.due_date !== undefined) updates.due_date = args.due_date;
-        if (args.due_time !== undefined) {
-          updates.due_time = args.due_time;
-          updates.has_time = Boolean(args.due_time);
+        if (args.due_date !== undefined) {
+          if (args.due_time) {
+            updates.due_date = new Date(`${args.due_date}T${args.due_time}:00Z`).toISOString();
+            updates.has_time = true;
+          } else {
+            updates.due_date = new Date(`${args.due_date}T12:00:00Z`).toISOString();
+            updates.has_time = false;
+          }
         }
 
         const { data, error } = await supabase
