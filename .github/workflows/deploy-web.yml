@@ -83,12 +83,25 @@ jobs:
         run: |
           mkdir -p .vercel/output/static
           cp -r build/web/* .vercel/output/static/
+
+          # Build and package the MCP Serverless Function for Vercel
+          mkdir -p .vercel/output/functions/api/mcp.func
+          npx --yes esbuild api/mcp.ts --bundle --platform=node --target=node20 --outfile=.vercel/output/functions/api/mcp.func/index.js
+          cat << 'EOF' > .vercel/output/functions/api/mcp.func/.vc-config.json
+          {
+            "runtime": "nodejs20.x",
+            "handler": "index.js",
+            "launcherType": "Nodejs",
+            "shouldAddHelpers": true
+          }
+          EOF
+
           cat << 'EOF' > .vercel/output/config.json
           {
             "version": 3,
             "routes": [
               { "handle": "filesystem" },
-              { "src": "/(.*)", "dest": "/index.html" }
+              { "src": "/((?!api/).*)", "dest": "/index.html" }
             ]
           }
           EOF
