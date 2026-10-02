@@ -245,6 +245,78 @@ const MCP_TOOLS = [
     },
   },
   {
+    name: 'update_subject',
+    description: 'Update the name or color of an existing study subject in Zeta',
+    inputSchema: {
+      type: 'object',
+      required: ['subject_id'],
+      properties: {
+        subject_id: {
+          type: 'string',
+          description: 'UUID of the subject to update',
+        },
+        name: {
+          type: 'string',
+          description: 'New name for the subject',
+        },
+        color: {
+          type: 'string',
+          description: 'New hex color string (e.g. "#1E88E5")',
+        },
+      },
+    },
+  },
+  {
+    name: 'delete_subject',
+    description: 'Delete a study subject and all its associated topics from Zeta',
+    inputSchema: {
+      type: 'object',
+      required: ['subject_id'],
+      properties: {
+        subject_id: {
+          type: 'string',
+          description: 'UUID of the subject to delete',
+        },
+      },
+    },
+  },
+  {
+    name: 'update_topic',
+    description: 'Update the title or description of a study topic in Zeta',
+    inputSchema: {
+      type: 'object',
+      required: ['topic_id'],
+      properties: {
+        topic_id: {
+          type: 'string',
+          description: 'UUID of the topic to update',
+        },
+        title: {
+          type: 'string',
+          description: 'New title for the topic',
+        },
+        description: {
+          type: 'string',
+          description: 'New description or notes',
+        },
+      },
+    },
+  },
+  {
+    name: 'delete_topic',
+    description: 'Delete a study topic from Zeta',
+    inputSchema: {
+      type: 'object',
+      required: ['topic_id'],
+      properties: {
+        topic_id: {
+          type: 'string',
+          description: 'UUID of the topic to delete',
+        },
+      },
+    },
+  },
+  {
     name: 'log_topic_revision',
     description: 'Log that you revised a topic today. Advances its spaced repetition stage (+5d, +10d, +20d, +40d) and schedules the next review',
     inputSchema: {
@@ -638,6 +710,52 @@ async function executeTool(name: string, args: Record<string, any>) {
               text: `✅ Subject created: "${data.name}" (ID: ${data.id})`,
             },
           ],
+      case 'update_subject': {
+        const subjectId = args?.subject_id;
+        if (!subjectId) throw new Error('subject_id is required');
+
+        const updates: Record<string, any> = {};
+        if (args.name !== undefined) updates.name = args.name.trim();
+        if (args.color !== undefined) updates.color = args.color.trim();
+
+        const { data, error } = await supabase
+          .from('revision_subjects')
+          .update(updates)
+          .eq('id', subjectId)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `✅ Subject updated: "${data.name}" (ID: ${data.id})`,
+            },
+          ],
+        };
+      }
+
+      case 'delete_subject': {
+        const subjectId = args?.subject_id;
+        if (!subjectId) throw new Error('subject_id is required');
+
+        // Delete subject (associated topics will cascade delete)
+        const { error } = await supabase
+          .from('revision_subjects')
+          .delete()
+          .eq('id', subjectId)
+          .eq('user_id', userId);
+
+        if (error) throw error;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `🗑️ Subject ${subjectId} and all associated topics deleted.`,
+            },
+          ],
         };
       }
 
@@ -724,6 +842,51 @@ async function executeTool(name: string, args: Record<string, any>) {
             {
               type: 'text',
               text: `✅ Topic created: "${data.title}" under Subject ID ${subject_id}.\nReady for initial revision today!`,
+            },
+          ],
+      case 'update_topic': {
+        const topicId = args?.topic_id;
+        if (!topicId) throw new Error('topic_id is required');
+
+        const updates: Record<string, any> = {};
+        if (args.title !== undefined) updates.title = args.title.trim();
+        if (args.description !== undefined) updates.description = args.description.trim();
+
+        const { data, error } = await supabase
+          .from('revision_topics')
+          .update(updates)
+          .eq('id', topicId)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `✅ Topic updated: "${data.title}" (ID: ${data.id})`,
+            },
+          ],
+        };
+      }
+
+      case 'delete_topic': {
+        const topicId = args?.topic_id;
+        if (!topicId) throw new Error('topic_id is required');
+
+        const { error } = await supabase
+          .from('revision_topics')
+          .delete()
+          .eq('id', topicId)
+          .eq('user_id', userId);
+
+        if (error) throw error;
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `🗑️ Topic ${topicId} deleted.`,
             },
           ],
         };
