@@ -474,6 +474,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     _syncDraft();
   }
 
+  @visibleForTesting
+  void reorderSubtaskForTesting(int oldIndex, int newIndex) =>
+      _reorderSubtask(oldIndex, newIndex);
+
   void _removeSubtask(String id) {
     setState(() {
       if (_editingSubtaskId == id) {

@@ -119,7 +119,7 @@ class NotificationService {
 
       try {
         await _plugin.initialize(
-          settings,
+          settings: settings,
           onDidReceiveNotificationResponse: _onNotificationTap,
         );
         _initialized = true;
@@ -296,7 +296,13 @@ class NotificationService {
         ),
       );
 
-      await _plugin.show(id, title, body, details, payload: payload);
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+        payload: payload,
+      );
       return true;
     } catch (e) {
       debugPrint('[NotificationService] showNow error: $e');
@@ -352,11 +358,11 @@ class NotificationService {
     try {
       final tzDue = tz.TZDateTime.from(due, tz.local);
       await _plugin.zonedSchedule(
-        id,
-        title,
-        body,
-        tzDue,
-        const NotificationDetails(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tzDue,
+        notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
             _NotifIds.taskChannelId,
             _NotifIds.taskChannelName,
@@ -368,8 +374,6 @@ class NotificationService {
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
         payload: payload,
       );
     } catch (e) {
@@ -382,7 +386,7 @@ class NotificationService {
     if (!_initialized) return;
     if (!kIsWeb && Platform.isAndroid) {
       try {
-        await _plugin.cancel(_NotifIds.forTask(taskId));
+        await _plugin.cancel(id: _NotifIds.forTask(taskId));
       } catch (_) {}
     }
   }
@@ -476,14 +480,14 @@ class NotificationService {
         );
 
         await _plugin.show(
-          _NotifIds.pomodoroLiveId,
-          modeLabel,
-          isRunning
+          id: _NotifIds.pomodoroLiveId,
+          title: modeLabel,
+          body: isRunning
               ? (countUp
                   ? '$formattedTime elapsed ($progressPercent%)'
                   : '$formattedTime remaining ($progressPercent%)')
               : 'Paused at $formattedTime ($progressPercent%)',
-          details,
+          notificationDetails: details,
         );
       } catch (e) {
         debugPrint('[NotificationService] Android live pomodoro error: $e');
@@ -593,7 +597,7 @@ class NotificationService {
     if (!kIsWeb) {
       if (Platform.isAndroid) {
         try {
-          await _plugin.cancel(_NotifIds.pomodoroLiveId);
+          await _plugin.cancel(id: _NotifIds.pomodoroLiveId);
         } catch (_) {}
       }
       if (Platform.isWindows) {
