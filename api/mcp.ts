@@ -766,7 +766,7 @@ async function executeTool(name: string, args: Record<string, any>) {
       case 'list_revision_topics': {
         let query = supabase
           .from('revision_topics')
-          .select('id, subject_id, title, description, revision_stage, last_revised_at, next_revision_date')
+          .select('id, subject_id, title, notes, revision_stage, last_revised_at, next_revision_date')
           .eq('user_id', userId);
 
         if (args?.subject_id) {
@@ -824,17 +824,28 @@ async function executeTool(name: string, args: Record<string, any>) {
         if (!subject_id || !title) throw new Error('subject_id and title are required');
 
         const now = new Date().toISOString();
+        const notesContent = description || args?.notes || null;
         const newTopic = {
           id: crypto.randomUUID(),
           user_id: userId,
           subject_id,
           title: title.trim(),
-          description: description || null,
+          notes: notesContent,
+          notes_data: notesContent ? { id: crypto.randomUUID(), title: title.trim(), content: notesContent } : {},
+          attachments: [],
+          status: 'active',
           revision_stage: 0,
           last_revised_at: null,
           next_revision_date: now, // Ready for first revision immediately
+          stages: [
+            { stage: 1, completed: false, dueDate: now },
+            { stage: 2, completed: false },
+            { stage: 3, completed: false },
+            { stage: 4, completed: false },
+          ],
           sort_order: 0,
           created_at: now,
+          updated_at: now,
         };
 
         const { data, error } = await supabase.from('revision_topics').insert(newTopic).select().single();
@@ -844,7 +855,7 @@ async function executeTool(name: string, args: Record<string, any>) {
           content: [
             {
               type: 'text',
-              text: `✅ Topic created: "${data.title}" under Subject ID ${subject_id}.\nReady for initial revision today!`,
+              text: `✅ Topic created: "${data.title}" (ID: ${data.id}) under Subject ID ${subject_id}.\nReady for initial revision today!`,
             },
           ],
         };
@@ -854,9 +865,14 @@ async function executeTool(name: string, args: Record<string, any>) {
         const topicId = args?.topic_id;
         if (!topicId) throw new Error('topic_id is required');
 
-        const updates: Record<string, any> = {};
+        const updates: Record<string, any> = { updated_at: new Date().toISOString() };
         if (args.title !== undefined) updates.title = args.title.trim();
-        if (args.description !== undefined) updates.description = args.description.trim();
+        if (args.description !== undefined) {
+          updates.notes = args.description.trim();
+        }
+        if (args.notes !== undefined) {
+          updates.notes = args.notes.trim();
+        }
 
         const { data, error } = await supabase
           .from('revision_topics')
