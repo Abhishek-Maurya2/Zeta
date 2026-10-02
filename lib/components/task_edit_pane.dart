@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter/gestures.dart';
@@ -8,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'segmented_column.dart';
+import 'zeta_time_picker.dart';
 import '../models/task.dart';
 import '../models/attachment.dart';
 import '../providers/task_provider.dart';
@@ -522,9 +522,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     ZetaHaptics.selection();
     final now = TimeOfDay.now();
     final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
-    final picked = await M3ETimePicker.show(
+    final picked = await ZetaTimePicker.show(
       context,
       initialTime: M3ETime(hour: initial.hour, minute: initial.minute),
+      // orientation: Orientation.landscape,
     );
     if (picked != null && mounted) {
       final hour = picked.hourOf12 == 0 ? 12 : picked.hourOf12;
@@ -1192,13 +1193,13 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               case 0:
                                 _handleDescriptionAction();
                               case 1:
-                                _handleAttachmentAction();
+                                _handleSubtaskAction();
                               case 2:
                                 _pickDate();
                               case 3:
                                 _pickTime();
                               case 4:
-                                _handleSubtaskAction();
+                                _handleAttachmentAction();
                             }
                           },
                           actions: [
@@ -1219,16 +1220,15 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             M3EButtonGroupAction(
                               width: 60,
                               icon: const Icon(
-                                Icons.attach_file_rounded,
+                                Icons.checklist_rounded,
                                 size: 20,
                               ),
-                              tooltip: 'Add attachment',
                               decoration: M3EToggleButtonDecoration.styleFrom(
-                                backgroundColor: _showAttachments
+                                backgroundColor: _showSubtasks
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
                                           .withValues(alpha: 0.5),
-                                foregroundColor: _showAttachments
+                                foregroundColor: _showSubtasks
                                     ? colorScheme.onPrimaryContainer
                                     : colorScheme.onSurfaceVariant,
                               ),
@@ -1239,7 +1239,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.calendar_month_rounded,
                                 size: 20,
                               ),
-                              tooltip: 'Set due date',
                               decoration: M3EToggleButtonDecoration.styleFrom(
                                 backgroundColor: _dueDate != null
                                     ? colorScheme.primaryContainer
@@ -1256,7 +1255,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.schedule_rounded,
                                 size: 20,
                               ),
-                              tooltip: 'Set due time',
                               decoration: M3EToggleButtonDecoration.styleFrom(
                                 backgroundColor: _hasTime
                                     ? colorScheme.primaryContainer
@@ -1270,16 +1268,15 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             M3EButtonGroupAction(
                               width: 60,
                               icon: const Icon(
-                                Icons.checklist_rounded,
+                                Icons.attach_file_rounded,
                                 size: 20,
                               ),
-                              tooltip: 'Add subtasks',
                               decoration: M3EToggleButtonDecoration.styleFrom(
-                                backgroundColor: _showSubtasks
+                                backgroundColor: _showAttachments
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
                                           .withValues(alpha: 0.5),
-                                foregroundColor: _showSubtasks
+                                foregroundColor: _showAttachments
                                     ? colorScheme.onPrimaryContainer
                                     : colorScheme.onSurfaceVariant,
                               ),

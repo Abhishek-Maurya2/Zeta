@@ -44,6 +44,9 @@ class TasksPage extends StatelessWidget {
     final isCompact = sizeClass.isCompact;
 
     final pending = taskProvider.pendingTasks;
+    final pendingNonRevision = pending
+        .where((t) => !TaskProvider.isRevisionTask(t))
+        .toList();
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
     final isSearching = taskProvider.searchQuery.isNotEmpty;
@@ -75,16 +78,18 @@ class TasksPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Page Title
-                  Text(
-                    'Tasks',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: -0.5,
-                      color: colorScheme.onSurface,
+                  if (!isCompact)
+                    Text(
+                      'Tasks',
+                      style: Theme.of(context).textTheme.displayMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: -0.5,
+                            color: colorScheme.onSurface,
+                          ),
                     ),
-                  ),
 
-                  const SizedBox(height: 18),
+                  if (!isCompact) const SizedBox(height: 18),
 
                   // Active Search Query Banner
                   if (isSearching)
@@ -98,7 +103,7 @@ class TasksPage extends StatelessWidget {
                   TasksFilterBar(
                     filter: filter,
                     totalCount: totalCount,
-                    pendingCount: pending.length,
+                    pendingCount: pendingNonRevision.length,
                     revisionCount: revisionTasksCount,
                     sortBy: taskProvider.sortBy,
                     onFilterChanged: (newFilter) =>
@@ -127,7 +132,7 @@ class TasksPage extends StatelessWidget {
                         onContextMenu: _showContextMenu,
                       ),
                   ] else if (filter == TaskFilter.pending) ...[
-                    if (pending.isEmpty)
+                    if (pendingNonRevision.isEmpty)
                       TasksEmptyView(
                         filter: filter,
                         isSearching: isSearching,
@@ -136,7 +141,7 @@ class TasksPage extends StatelessWidget {
                       )
                     else
                       TasksDismissibleList(
-                        tasks: pending,
+                        tasks: pendingNonRevision,
                         provider: taskProvider,
                         onContextMenu: _showContextMenu,
                       ),

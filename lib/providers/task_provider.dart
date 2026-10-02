@@ -383,7 +383,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       return _cachedFilteredAndSortedTasks!;
     }
     final list = _tasks.where((task) {
-      if (_filter == TaskFilter.pending && task.completed) return false;
+      if (_filter == TaskFilter.pending &&
+          (task.completed || isRevisionTask(task))) {
+        return false;
+      }
       if (_filter == TaskFilter.completed && !task.completed) return false;
       if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
@@ -402,7 +405,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_cachedPendingTasks != null) return _cachedPendingTasks!;
     final list = _tasks.where((task) {
       if (task.completed) return false;
-      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
@@ -417,7 +419,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_cachedCompletedTasks != null) return _cachedCompletedTasks!;
     final list = _tasks.where((task) {
       if (!task.completed) return false;
-      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
@@ -430,7 +431,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   List<Task> get revisionTasks {
     if (_cachedRevisionTasks != null) return _cachedRevisionTasks!;
-    final list = _tasks.where((task) => isRevisionTask(task)).toList();
+    final list = _tasks.where((task) {
+      if (!isRevisionTask(task)) return false;
+      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
+        return false;
+      }
+      return true;
+    }).toList();
     _sortTaskList(list);
     _cachedRevisionTasks = List.unmodifiable(list);
     return _cachedRevisionTasks!;

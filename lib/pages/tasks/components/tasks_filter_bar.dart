@@ -76,7 +76,7 @@ class TasksFilterBar extends StatelessWidget {
         actions: [
           M3EButtonGroupAction(label: Text('All ($totalCount)')),
           M3EButtonGroupAction(label: Text('Pending ($pendingCount)')),
-          M3EButtonGroupAction(label: Text('Subjects ($revisionCount)')),
+          M3EButtonGroupAction(label: Text('Revisions ($revisionCount)')),
         ],
       ),
     );
