@@ -710,6 +710,9 @@ async function executeTool(name: string, args: Record<string, any>) {
               text: `✅ Subject created: "${data.name}" (ID: ${data.id})`,
             },
           ],
+        };
+      }
+
       case 'update_subject': {
         const subjectId = args?.subject_id;
         if (!subjectId) throw new Error('subject_id is required');
@@ -844,6 +847,9 @@ async function executeTool(name: string, args: Record<string, any>) {
               text: `✅ Topic created: "${data.title}" under Subject ID ${subject_id}.\nReady for initial revision today!`,
             },
           ],
+        };
+      }
+
       case 'update_topic': {
         const topicId = args?.topic_id;
         if (!topicId) throw new Error('topic_id is required');
