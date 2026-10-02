@@ -5,7 +5,7 @@
   "private": true,
   "main": "api/mcp.ts",
   "scripts": {
-    "build:api": "esbuild api/mcp.ts --bundle --platform=node --target=node20 --outfile=.vercel/output/functions/api/mcp.func/index.js"
+    "build:api": "esbuild api/mcp.ts --bundle --platform=node --target=node22 --outfile=.vercel/output/functions/api/mcp.func/index.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1"

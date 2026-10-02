@@ -87,10 +87,10 @@ jobs:
           # Install dependencies and package the MCP Serverless Function for Vercel
           npm install
           mkdir -p .vercel/output/functions/api/mcp.func
-          npx esbuild api/mcp.ts --bundle --platform=node --target=node20 --outfile=.vercel/output/functions/api/mcp.func/index.js
+          npx esbuild api/mcp.ts --bundle --platform=node --target=node22 --outfile=.vercel/output/functions/api/mcp.func/index.js
           cat << 'EOF' > .vercel/output/functions/api/mcp.func/.vc-config.json
           {
-            "runtime": "nodejs20.x",
+            "runtime": "nodejs22.x",
             "handler": "index.js",
             "launcherType": "Nodejs",
             "shouldAddHelpers": true
