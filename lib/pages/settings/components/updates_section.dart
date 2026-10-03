@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,7 +6,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/update_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../../components/zeta_logo.dart';
-import '../../../components/segmented_column.dart';
 
 /// Clean, minimal About & Updates screen mirroring Lawnchair / Android style:
 /// App Logo -> App Name -> Version -> Status button -> Changelog (when available) -> Developer list.
@@ -265,70 +265,63 @@ class UpdatesSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.zero,
-                    outerRadius: 20,
-                    innerRadius: 6,
-                  ),
-                  color: colorScheme.surfaceContainerLow,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.auto_awesome_rounded,
-                                size: 18,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Release Notes',
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                              if (info.tagName.isNotEmpty) ...[
-                                const Spacer(),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.secondaryContainer,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    info.tagName,
-                                    style: textTheme.labelSmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.onSecondaryContainer,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          SelectableText(
-                            info.releaseNotes.trim().isNotEmpty
-                                ? info.releaseNotes.trim()
-                                : 'Performance improvements, bug fixes, and stability updates.',
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                              height: 1.45,
+                M3EList(
+                  itemCount: 1,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 18,
+                              color: colorScheme.primary,
                             ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Release Notes',
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            if (info.tagName.isNotEmpty) ...[
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.secondaryContainer,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  info.tagName,
+                                  style: textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SelectableText(
+                          info.releaseNotes.trim().isNotEmpty
+                              ? info.releaseNotes.trim()
+                              : 'Performance improvements, bug fixes, and stability updates.',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.45,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
 
@@ -347,139 +340,72 @@ class UpdatesSection extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              M3ESegmentedColumn(
-                decoration: const M3ESegmentedListDecoration(
-                  padding: EdgeInsets.zero,
-                ),
-                color: colorScheme.surfaceContainerLowest,
-                children: [
-                  // Developer profile tile
-                  InkWell(
-                    onTap: () {
-                      ZetaHaptics.light();
-                      _launchUrl('https://github.com/Abhishek-Maurya2');
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
+              M3EList(
+                itemCount: 2,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return M3EListItem(
+                      leading: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: colorScheme.primaryContainer,
+                        child: ClipOval(
+                          child: Image.network(
+                            'https://github.com/Abhishek-Maurya2.png',
+                            width: 44,
+                            height: 44,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Text(
+                                  'AM',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: colorScheme.primaryContainer,
-                            child: ClipOval(
-                              child: Image.network(
-                                'https://github.com/Abhishek-Maurya2.png',
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Text(
-                                      'AM',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: colorScheme.onPrimaryContainer,
-                                      ),
-                                    ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Abhishek Maurya',
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Development',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.open_in_new_rounded,
-                            size: 18,
-                            color: colorScheme.outline,
-                          ),
-                        ],
+                      headline: 'Abhishek Maurya',
+                      supportingText: 'Development',
+                      trailing: Icon(
+                        Icons.open_in_new_rounded,
+                        size: 18,
+                        color: colorScheme.outline,
+                      ),
+                      onTap: () {
+                        ZetaHaptics.light();
+                        _launchUrl('https://github.com/Abhishek-Maurya2');
+                      },
+                    );
+                  }
+                  return M3EListItem(
+                    leading: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHigh,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.code_rounded,
+                        size: 22,
+                        color: colorScheme.primary,
                       ),
                     ),
-                  ),
-                  // GitHub repository tile
-                  InkWell(
+                    headline: 'Zeta',
+                    supportingText: 'Abhishek-Maurya2/Zeta',
+                    trailing: Icon(
+                      Icons.open_in_new_rounded,
+                      size: 18,
+                      color: colorScheme.outline,
+                    ),
                     onTap: () {
                       ZetaHaptics.light();
                       _launchUrl('https://github.com/Abhishek-Maurya2/Zeta');
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.code_rounded,
-                              size: 22,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Zeta',
-                                  style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Abhishek-Maurya2/Zeta',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.open_in_new_rounded,
-                            size: 18,
-                            color: colorScheme.outline,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ],
           ),

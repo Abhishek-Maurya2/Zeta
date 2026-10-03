@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../services/notification_service.dart';
@@ -103,127 +103,56 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
-            M3ESegmentedColumn(
-              decoration: M3ESegmentedListDecoration(
-                outerRadius: 50,
-                innerRadius: 50,
-                color: isMasterOn
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainer,
-              ),
-              onTap: (_) {
-                ZetaHaptics.light();
-                final newVal = !isMasterOn;
-                notifProvider.setEnabled(newVal);
-                widget.onToast?.call(
-                  newVal
-                      ? 'Notifications turned on'
-                      : 'Notifications turned off',
+            M3EList(
+              outerRadius: 50,
+              innerRadius: 50,
+              color: isMasterOn
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainer,
+              itemCount: 1,
+              itemBuilder: (context, index) {
+                return M3EListItem(
+                  headline: 'Use notifications',
+                  trailing: M3ESwitch(
+                    value: isMasterOn,
+                    selectedIcon: const Icon(
+                      Icons.notifications_active_rounded,
+                      size: 16,
+                    ),
+                    unselectedIcon: const Icon(
+                      Icons.notifications_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      notifProvider.setEnabled(val);
+                      widget.onToast?.call(
+                        val
+                            ? 'Notifications turned on'
+                            : 'Notifications turned off',
+                      );
+                    },
+                  ),
+                  onTap: () {
+                    ZetaHaptics.light();
+                    final newVal = !isMasterOn;
+                    notifProvider.setEnabled(newVal);
+                    widget.onToast?.call(
+                      newVal
+                          ? 'Notifications turned on'
+                          : 'Notifications turned off',
+                    );
+                  },
                 );
               },
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Use notifications',
-                          style: textTheme.displaySmall?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: isMasterOn
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      M3ESwitch(
-                        value: isMasterOn,
-                        selectedIcon: const Icon(
-                          Icons.notifications_active_rounded,
-                          size: 16,
-                        ),
-                        unselectedIcon: const Icon(
-                          Icons.notifications_off_rounded,
-                          size: 16,
-                        ),
-                        onChanged: (val) {
-                          ZetaHaptics.light();
-                          notifProvider.setEnabled(val);
-                          widget.onToast?.call(
-                            val
-                                ? 'Notifications turned on'
-                                : 'Notifications turned off',
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ),
 
             const SizedBox(height: 50),
 
             // ─── 2. Grouped Sub-Settings (M3E Segmented Column) ───────────────
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              onTap: isMasterOn
-                  ? (index) {
-                      ZetaHaptics.light();
-                      switch (index) {
-                        case 0:
-                          notifProvider.setTaskRemindersEnabled(
-                            !notifProvider.taskRemindersEnabled,
-                          );
-                          break;
-                        case 1:
-                          notifProvider.setOverdueAlertsEnabled(
-                            !notifProvider.overdueAlertsEnabled,
-                          );
-                          break;
-                        case 2:
-                          notifProvider.setPomodoroAlertsEnabled(
-                            !notifProvider.pomodoroAlertsEnabled,
-                          );
-                          break;
-                        case 3:
-                          notifProvider.setPomodoroLiveEnabled(
-                            !notifProvider.pomodoroLiveEnabled,
-                          );
-                          break;
-                        case 4:
-                          themeProvider.setSoundEffects(
-                            !themeProvider.soundEffects,
-                          );
-                          break;
-                        case 5:
-                          themeProvider.setNotifications(
-                            !themeProvider.notifications,
-                          );
-                          break;
-                        case 6:
-                          if (!_permissionGranted) {
-                            _handleRequestPermission();
-                          }
-                          break;
-                        case 7:
-                          _handleTestNotification(themeProvider);
-                          break;
-                      }
-                    }
-                  : null,
-              children: [
+            Builder(
+              builder: (context) {
+                final items = <Widget>[
                 // Task due reminders (bell / alarm icon in thumb)
                 _buildSwitchTile(
                   context,
@@ -387,36 +316,31 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                   ),
                 ),
 
-                // Action row: "+ Send test notification" (+ Pair new device style)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                M3EListItem(
+                  enabled: isMasterOn,
+                  leading: Icon(
+                    Icons.add_rounded,
+                    size: 22,
+                    color: isMasterOn
+                        ? colorScheme.primary
+                        : colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.add_rounded,
-                        size: 22,
-                        color: isMasterOn
-                            ? colorScheme.primary
-                            : colorScheme.onSurface.withValues(alpha: 0.38),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Send test notification',
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: isMasterOn
-                              ? colorScheme.primary
-                              : colorScheme.onSurface.withValues(alpha: 0.38),
-                        ),
-                      ),
-                    ],
-                  ),
+                  headline: 'Send test notification',
+                  onTap: isMasterOn
+                      ? () => _handleTestNotification(themeProvider)
+                      : null,
                 ),
-              ],
-            ),
+              ];
+              return M3EList(
+                outerRadius: 28.0,
+                innerRadius: 6.0,
+                gap: 3.0,
+                color: colorScheme.surfaceContainerLowest,
+                itemCount: items.length,
+                itemBuilder: (context, index) => items[index],
+              );
+            },
+          ),
 
             const SizedBox(height: 24),
 
@@ -461,47 +385,17 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     Widget? selectedIcon,
     Widget? unselectedIcon,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: enabled
-                        ? colorScheme.onSurface
-                        : colorScheme.onSurface.withValues(alpha: 0.38),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: enabled
-                        ? colorScheme.onSurfaceVariant
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          M3ESwitch(
-            value: value,
-            selectedIcon: selectedIcon,
-            unselectedIcon: unselectedIcon,
-            onChanged: enabled ? onChanged : null,
-          ),
-        ],
+    return M3EListItem(
+      enabled: enabled,
+      headline: title,
+      supportingText: subtitle,
+      trailing: M3ESwitch(
+        value: value,
+        selectedIcon: selectedIcon,
+        unselectedIcon: unselectedIcon,
+        onChanged: enabled ? onChanged : null,
       ),
+      onTap: enabled ? () => onChanged(!value) : null,
     );
   }
 }

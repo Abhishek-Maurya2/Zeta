@@ -4,12 +4,12 @@ import 'package:provider/provider.dart';
 import '../../models/revision.dart';
 import '../../providers/revision_provider.dart';
 import '../../providers/task_provider.dart';
-import 'components/revision_notes_sheet.dart';
 import 'components/revision_settings_sheet.dart';
 import 'components/revision_subject_card.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
-import '../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../components/zeta_empty_state.dart';
 
 /// Pane 1 of Revision: Subjects overview, summary statistics, and subject selection.
 class RevisionPane1 extends StatelessWidget {
@@ -100,37 +100,11 @@ class RevisionPane1 extends StatelessWidget {
             onAction: () => AddSubjectDialog.show(context),
           )
         else
-          M3ESegmentedColumn(
-            padding: EdgeInsets.zero,
+          M3EList(
             color: colorScheme.surfaceContainerLowest,
-            selectedIndex: selectedSubject != null
-                ? subjects.indexWhere((s) => s.id == selectedSubject.id)
-                : null,
-            onTap: (index) {
-              if (index < 0 || index >= subjects.length) return;
+            itemCount: subjects.length,
+            itemBuilder: (context, index) {
               final sub = subjects[index];
-              ZetaHaptics.selection();
-              revProvider.selectSubject(sub.id);
-              onSubjectSelected?.call(sub);
-            },
-            colorBuilder: (index) {
-              if (index < 0 || index >= subjects.length) return null;
-              final sub = subjects[index];
-              if (selectedSubject?.id == sub.id) {
-                return colorScheme.secondaryContainer;
-              }
-              return null;
-            },
-            borderRadiusBuilder: (index, position) {
-              if (index < 0 || index >= subjects.length) return null;
-              final sub = subjects[index];
-              if (selectedSubject?.id == sub.id) {
-                return BorderRadius.circular(52);
-              }
-              return null;
-            },
-            children: subjects.asMap().entries.map((entry) {
-              final sub = entry.value;
               final isSelected = selectedSubject?.id == sub.id;
               final subTopics = revProvider.topics
                   .where((t) => t.subjectId == sub.id)
@@ -142,35 +116,46 @@ class RevisionPane1 extends StatelessWidget {
                   .where((t) => t.status == RevisionStatus.overdue)
                   .length;
 
-              return RevisionSubjectCard(
-                key: ValueKey(sub.id),
-                subject: sub,
-                isSelected: isSelected,
-                totalTopics: subTopics.length,
-                completedTopics: completedCount,
-                dueCount: dueCount,
-                onNotes: () {
-                  ZetaHaptics.light();
-                  onOpenNotes?.call(sub);
-                },
-                onEdit: () {
-                  ZetaHaptics.light();
-                  SubjectEditDialog.show(context, subject: sub);
-                },
-                onDelete: () async {
-                  ZetaHaptics.light();
-                  final confirmed = await showDeleteConfirmationDialog(
-                    context: context,
-                    title: 'Delete Subject?',
-                    message:
-                        'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
-                  );
-                  if (confirmed == true) {
-                    await revProvider.deleteSubject(sub.id, taskProvider);
-                  }
-                },
+              return Container(
+                decoration: BoxDecoration(
+                  color: isSelected ? colorScheme.secondaryContainer : null,
+                  borderRadius: BorderRadius.circular(isSelected ? 52 : 12),
+                ),
+                child: RevisionSubjectCard(
+                  key: ValueKey(sub.id),
+                  subject: sub,
+                  isSelected: isSelected,
+                  totalTopics: subTopics.length,
+                  completedTopics: completedCount,
+                  dueCount: dueCount,
+                  onTap: () {
+                    ZetaHaptics.selection();
+                    revProvider.selectSubject(sub.id);
+                    onSubjectSelected?.call(sub);
+                  },
+                  onNotes: () {
+                    ZetaHaptics.light();
+                    onOpenNotes?.call(sub);
+                  },
+                  onEdit: () {
+                    ZetaHaptics.light();
+                    SubjectEditDialog.show(context, subject: sub);
+                  },
+                  onDelete: () async {
+                    ZetaHaptics.light();
+                    final confirmed = await showDeleteConfirmationDialog(
+                      context: context,
+                      title: 'Delete Subject?',
+                      message:
+                          'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
+                    );
+                    if (confirmed == true) {
+                      await revProvider.deleteSubject(sub.id, taskProvider);
+                    }
+                  },
+                ),
               );
-            }).toList(),
+            },
           ),
       ],
     );

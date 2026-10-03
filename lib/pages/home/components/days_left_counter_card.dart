@@ -516,6 +516,7 @@ class _DaysLeftCounterCardState extends State<DaysLeftCounterCard> {
                           opacity: animation,
                           child: SizeTransition(
                             sizeFactor: animation,
+                            // ignore: deprecated_member_use
                             axisAlignment: 0.0,
                             child: child,
                           ),

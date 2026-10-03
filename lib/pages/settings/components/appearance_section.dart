@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/color_variant.dart';
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../utils/haptics.dart';
 import '../../../providers/theme_provider.dart';
 
@@ -253,12 +253,9 @@ class AppearanceSection extends StatelessWidget {
             const SizedBox(height: 12),
 
             // ─── Theme & Scheme Selection ─────────────────────────────────────
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
+            Builder(
+              builder: (context) {
+                final themeItems = <Widget>[
                 // Theme Mode
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -527,8 +524,14 @@ class AppearanceSection extends StatelessWidget {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ];
+              return M3EList(
+                color: colorScheme.surfaceContainerLowest,
+                itemCount: themeItems.length,
+                itemBuilder: (context, index) => themeItems[index],
+              );
+            },
+          ),
 
             const SizedBox(height: 20),
 
@@ -544,47 +547,22 @@ class AppearanceSection extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-              ),
+            M3EList(
               color: colorScheme.surfaceContainerLowest,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
+              itemCount: 3,
+              itemBuilder: (context, index) {
+                switch (index) {
+                  case 0:
+                    return M3EListItem(
+                      leading: Icon(
                         Icons.motion_photos_on_rounded,
                         size: 24,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Motion & Fluid Animations',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Enable Material 3 spring curves and transitions',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3ESwitch(
+                      headline: 'Motion & Fluid Animations',
+                      supportingText:
+                          'Enable Material 3 spring curves and transitions',
+                      trailing: M3ESwitch(
                         value: themeProvider.animations,
                         selectedIcon: const Icon(Icons.check_rounded),
                         unselectedIcon: const Icon(Icons.close_rounded),
@@ -595,44 +573,18 @@ class AppearanceSection extends StatelessWidget {
                           );
                         },
                       ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
+                    );
+                  case 1:
+                    return M3EListItem(
+                      leading: Icon(
                         Icons.contrast_rounded,
                         size: 24,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'High Contrast Mode',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Increase contrast distinction for borders and indicators',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3ESwitch(
+                      headline: 'High Contrast Mode',
+                      supportingText:
+                          'Increase contrast distinction for borders and indicators',
+                      trailing: M3ESwitch(
                         value: themeProvider.highContrast,
                         selectedIcon: const Icon(Icons.check_rounded),
                         unselectedIcon: const Icon(Icons.close_rounded),
@@ -645,44 +597,19 @@ class AppearanceSection extends StatelessWidget {
                           );
                         },
                       ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
+                    );
+                  case 2:
+                  default:
+                    return M3EListItem(
+                      leading: Icon(
                         Icons.density_medium_rounded,
                         size: 24,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Compact Density Layout',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Decrease row heights for high-density information',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3ESwitch(
+                      headline: 'Compact Density Layout',
+                      supportingText:
+                          'Decrease row heights for high-density information',
+                      trailing: M3ESwitch(
                         value: themeProvider.compactDensity,
                         selectedIcon: const Icon(Icons.check_rounded),
                         unselectedIcon: const Icon(Icons.close_rounded),
@@ -695,10 +622,9 @@ class AppearanceSection extends StatelessWidget {
                           );
                         },
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    );
+                }
+              },
             ),
           ],
         ),

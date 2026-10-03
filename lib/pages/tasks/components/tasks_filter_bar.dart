@@ -47,7 +47,7 @@ class TasksFilterBar extends StatelessWidget {
         type: M3EButtonGroupType.connected,
         size: M3EButtonSize.sm,
         style: M3EButtonStyle.filled,
-        decoration: M3EToggleButtonDecoration(
+        decoration: M3EButtonDecoration(
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
               return colorScheme.primary;

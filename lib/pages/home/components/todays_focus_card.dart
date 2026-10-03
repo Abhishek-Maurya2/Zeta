@@ -6,8 +6,9 @@ import '../../../providers/task_provider.dart';
 import '../../../components/task_edit_pane.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../components/standard_chips.dart';
+import '../../../components/zeta_empty_state.dart';
 
 /// Today's Focus Card mirroring Sharva's TodaysFocusCard:
 /// - Header with track changes icon, title, and Scheduled badge.
@@ -178,52 +179,54 @@ class TodaysFocusCard extends StatelessWidget {
                 // Subtasks List
                 if (task!.subtasks.isNotEmpty) ...[
                   const SizedBox(height: 14),
-                  M3ESegmentedColumn(
-                    decoration: const M3ESegmentedListDecoration(
-                      padding: EdgeInsets.all(0),
-                      outerRadius: 16.0,
-                      innerRadius: 6,
-                    ),
+                  M3EList(
                     color: colorScheme.tertiaryContainer,
-                    children: task!.subtasks.map((st) {
-                      return ListTile(
-                        dense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 0,
-                        ),
-                        leading: InkWell(
-                          onTap: () =>
-                              taskProvider.toggleSubtask(task!.id, st.id),
-                          child: Icon(
-                            fontWeight: FontWeight.bold,
-                            st.completed
-                                ? Icons.check_rounded
-                                : Icons.radio_button_unchecked_rounded,
-                            size: 20,
-                            color: st.completed
-                                ? const Color(0xFF10B981)
-                                : colorScheme.onSurfaceVariant,
+                    itemCount: task!.subtasks.length,
+                    itemBuilder: (context, index) {
+                      final st = task!.subtasks[index];
+                      return InkWell(
+                        onTap: () =>
+                            taskProvider.toggleSubtask(task!.id, st.id),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 8,
                           ),
-                        ),
-                        title: Text(
-                          st.title,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'RobotoMono',
-                            decoration: st.completed
-                                ? TextDecoration.lineThrough
-                                : null,
-                            color: st.completed
-                                ? colorScheme.onTertiaryContainer.withValues(
-                                    alpha: 0.7,
-                                  )
-                                : colorScheme.onTertiaryContainer,
+                          child: Row(
+                            children: [
+                              Icon(
+                                fontWeight: FontWeight.bold,
+                                st.completed
+                                    ? Icons.check_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                size: 20,
+                                color: st.completed
+                                    ? const Color(0xFF10B981)
+                                    : colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  st.title,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    fontFamily: 'RobotoMono',
+                                    decoration: st.completed
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                    color: st.completed
+                                        ? colorScheme.onTertiaryContainer
+                                            .withValues(alpha: 0.7)
+                                        : colorScheme.onTertiaryContainer,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
-                    }).toList(),
+                    },
                   ),
                 ],
 

@@ -54,8 +54,8 @@ void main() {
     // Active task is visible
     expect(find.text('Active Task'), findsOneWidget);
 
-    // M3EExpandableList should be rendered for completed tasks
-    expect(find.byType(M3EExpandableList), findsOneWidget);
+    // M3EList should be rendered for completed tasks
+    expect(find.byType(M3EList), findsWidgets);
     expect(find.text('Completed (1)'), findsOneWidget);
 
     // By default, the expandable list is collapsed (heightFactor = 0)

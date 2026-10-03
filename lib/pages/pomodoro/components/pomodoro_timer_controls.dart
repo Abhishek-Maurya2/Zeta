@@ -49,7 +49,7 @@ class PomodoroTimerControls extends StatelessWidget {
               isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
             ),
             tooltip: isRunning ? 'Pause (Space)' : 'Start (Space)',
-            decoration: M3EToggleButtonDecoration.styleFrom(
+            decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.primaryContainer,
               foregroundColor: colorScheme.onPrimaryContainer,
             ),
@@ -62,7 +62,7 @@ class PomodoroTimerControls extends StatelessWidget {
             ),
             width: 96,
             tooltip: 'Reset session',
-            decoration: M3EToggleButtonDecoration.styleFrom(
+            decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.secondaryContainer,
               foregroundColor: colorScheme.onSecondaryContainer,
             ),
@@ -75,7 +75,7 @@ class PomodoroTimerControls extends StatelessWidget {
             ),
             width: 66,
             tooltip: 'Skip to next session',
-            decoration: M3EToggleButtonDecoration.styleFrom(
+            decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.tertiaryContainer,
               foregroundColor: colorScheme.onTertiaryContainer,
             ),

@@ -477,7 +477,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
             _effectiveItemExtent = _baseItemExtent;
             _effectiveVisibleDays = 7;
-            final double desktopStripWidth = _baseItemExtent * 7;
+            const double desktopStripWidth = _baseItemExtent * 7;
 
             final desktopWeekStrip = Row(
               mainAxisSize: MainAxisSize.min,

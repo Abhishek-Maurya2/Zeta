@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../theme/app_theme.dart'; // Adjust path if needed
 
 import '../../../providers/theme_provider.dart'; // Adjust path as needed
 
@@ -65,27 +64,6 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
-
-    // Resolve colorScheme dynamically based on the active dark/light mode
-    final themeData = isDark
-        ? AppTheme.dark(
-            themeProvider.seedColor,
-            themeProvider.variant,
-            themeProvider.cornerStyle,
-            themeProvider.highContrast,
-            themeProvider.compactDensity,
-            themeProvider.animations,
-          )
-        : AppTheme.light(
-            themeProvider.seedColor,
-            themeProvider.variant,
-            themeProvider.cornerStyle,
-            themeProvider.highContrast,
-            themeProvider.compactDensity,
-            themeProvider.animations,
-          );
-
-    final colorScheme = themeData.colorScheme;
 
     // Palette matching the editorial off-white aesthetic
     final cardBg = isDark ? const Color(0xFF161719) : const Color(0xFFF7F6F2);

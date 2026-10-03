@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../providers/task_provider.dart';
@@ -263,216 +263,188 @@ class _SyncDataSectionState extends State<SyncDataSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
-            M3ESegmentedColumn(
-              decoration: M3ESegmentedListDecoration(
-                outerRadius: 50,
-                innerRadius: 50,
-                color: _masterSyncEnabled
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainer,
-              ),
-              onTap: (_) {
-                ZetaHaptics.light();
-                final newVal = !_masterSyncEnabled;
-                _setMasterSyncEnabled(newVal);
-                widget.onToast?.call(
-                  newVal ? 'Sync turned on' : 'Sync turned off',
-                );
-              },
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Use sync',
-                          style: textTheme.displaySmall?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: _masterSyncEnabled
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      M3ESwitch(
-                        value: _masterSyncEnabled,
-                        selectedIcon: const Icon(Icons.sync_rounded, size: 16),
-                        unselectedIcon: const Icon(
-                          Icons.sync_disabled_rounded,
-                          size: 16,
-                        ),
-                        onChanged: (val) {
-                          ZetaHaptics.light();
-                          _setMasterSyncEnabled(val);
-                          widget.onToast?.call(
-                            val ? 'Sync turned on' : 'Sync turned off',
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+            M3EList(
+              itemCount: 1,
+              itemBuilder: (context, index) => Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(50),
+                  color: _masterSyncEnabled
+                      ? colorScheme.primaryContainer
+                      : colorScheme.surfaceContainer,
                 ),
-              ],
+                child: M3EListItem(
+                  headline: 'Use sync',
+                  trailing: M3ESwitch(
+                    value: _masterSyncEnabled,
+                    selectedIcon: const Icon(Icons.sync_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.sync_disabled_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      _setMasterSyncEnabled(val);
+                      widget.onToast?.call(
+                        val ? 'Sync turned on' : 'Sync turned off',
+                      );
+                    },
+                  ),
+                  onTap: () {
+                    ZetaHaptics.light();
+                    final newVal = !_masterSyncEnabled;
+                    _setMasterSyncEnabled(newVal);
+                    widget.onToast?.call(
+                      newVal ? 'Sync turned on' : 'Sync turned off',
+                    );
+                  },
+                ),
+              ),
             ),
 
             const SizedBox(height: 50),
 
             // ─── 2. Grouped Sub-Settings (M3E Segmented Column) ───────────────
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Status & Action Card
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final iconWidget = Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _masterSyncEnabled
-                              ? colorScheme.primary.withValues(alpha: 0.12)
-                              : colorScheme.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          _masterSyncEnabled
-                              ? Icons.sync_alt_rounded
-                              : Icons.sync_disabled_rounded,
-                          color: _masterSyncEnabled
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.38,
-                                ),
-                          size: 24,
-                        ),
-                      );
+            M3EList(
+              itemCount: 1,
+              itemBuilder: (context, index) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final iconWidget = Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _masterSyncEnabled
+                            ? colorScheme.primary.withValues(alpha: 0.12)
+                            : colorScheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        _masterSyncEnabled
+                            ? Icons.sync_alt_rounded
+                            : Icons.sync_disabled_rounded,
+                        color: _masterSyncEnabled
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.38,
+                              ),
+                        size: 24,
+                      ),
+                    );
 
-                      final infoWidget = Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  'Cloud Sync',
-                                  style: textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.onSurface.withValues(
-                                      alpha: _masterSyncEnabled ? 1.0 : 0.38,
-                                    ),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: !_masterSyncEnabled
-                                      ? colorScheme.surfaceContainerHighest
-                                      : const Color(0xFF10B981)
-                                            .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  !_masterSyncEnabled ? 'Paused' : 'Active',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    color: !_masterSyncEnabled
-                                        ? colorScheme.onSurfaceVariant
-                                        : const Color(0xFF10B981),
+                    final infoWidget = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Cloud Sync',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.onSurface.withValues(
+                                    alpha: _masterSyncEnabled ? 1.0 : 0.38,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            !_masterSyncEnabled
-                                ? 'Sync is paused. Turn on master switch to resume.'
-                                : 'Auto-sync active',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant.withValues(
-                                alpha: _masterSyncEnabled ? 1.0 : 0.38,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      );
-
-                      final buttonsWidget = Opacity(
-                        opacity: _masterSyncEnabled ? 1.0 : 0.38,
-                        child: IgnorePointer(
-                          ignoring: !_masterSyncEnabled,
-                          child: M3EButtonGroup(
-                            type: M3EButtonGroupType.standard,
-                            style: M3EButtonStyle.tonal,
-                            size: M3EButtonSize.sm,
-                            selectedIndex: null,
-                            onSelectedIndexChanged: (index) {
-                              if (!_masterSyncEnabled || isSyncBusy) return;
-                              ZetaHaptics.light();
-                              _handleSync();
-                            },
-                            actions: [
-                              M3EButtonGroupAction(
-                                icon: isSyncBusy
-                                    ? const SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.sync_rounded, size: 16),
-                                label: const Text('Sync'),
-                                tooltip: isSyncBusy
-                                    ? 'Syncing...'
-                                    : 'Sync cloud data now',
-                                decoration: M3EToggleButtonDecoration.styleFrom(
-                                  backgroundColor: colorScheme.primaryContainer,
-                                  foregroundColor:
-                                      colorScheme.onPrimaryContainer,
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: !_masterSyncEnabled
+                                    ? colorScheme.surfaceContainerHighest
+                                    : const Color(0xFF10B981)
+                                          .withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                !_masterSyncEnabled ? 'Paused' : 'Active',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: !_masterSyncEnabled
+                                      ? colorScheme.onSurfaceVariant
+                                      : const Color(0xFF10B981),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      );
+                        const SizedBox(height: 2),
+                        Text(
+                          !_masterSyncEnabled
+                              ? 'Sync is paused. Turn on master switch to resume.'
+                              : 'Auto-sync active',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: _masterSyncEnabled ? 1.0 : 0.38,
+                            ),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    );
 
-                      return Row(
-                        children: [
-                          iconWidget,
-                          const SizedBox(width: 16),
-                          Expanded(child: infoWidget),
-                          const SizedBox(width: 8),
-                          buttonsWidget,
-                        ],
-                      );
-                    },
-                  ),
+                    final buttonsWidget = Opacity(
+                      opacity: _masterSyncEnabled ? 1.0 : 0.38,
+                      child: IgnorePointer(
+                        ignoring: !_masterSyncEnabled,
+                        child: M3EButtonGroup(
+                          type: M3EButtonGroupType.standard,
+                          style: M3EButtonStyle.tonal,
+                          size: M3EButtonSize.sm,
+                          selectedIndex: null,
+                          onSelectedIndexChanged: (index) {
+                            if (!_masterSyncEnabled || isSyncBusy) return;
+                            ZetaHaptics.light();
+                            _handleSync();
+                          },
+                          actions: [
+                            M3EButtonGroupAction(
+                              icon: isSyncBusy
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.sync_rounded, size: 16),
+                              label: const Text('Sync'),
+                              tooltip: isSyncBusy
+                                  ? 'Syncing...'
+                                  : 'Sync cloud data now',
+                              decoration: M3EButtonDecoration.styleFrom(
+                                backgroundColor: colorScheme.primaryContainer,
+                                foregroundColor:
+                                    colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+
+                    return Row(
+                      children: [
+                        iconWidget,
+                        const SizedBox(width: 16),
+                        Expanded(child: infoWidget),
+                        const SizedBox(width: 8),
+                        buttonsWidget,
+                      ],
+                    );
+                  },
                 ),
-              ],
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -489,114 +461,50 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Export Workspace Backup (.json)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+            M3EList(
+              itemCount: 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return M3EListItem(
+                    leading: Icon(
+                      Icons.archive_outlined,
+                      size: 22,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    headline: 'Export Backup',
+                    supportingText: 'Tasks, Sessions & Subjects',
+                    trailing: M3EButton.icon(
+                      icon: const Icon(Icons.copy_rounded, size: 14),
+                      label: const Text('JSON'),
+                      style: M3EButtonStyle.tonal,
+                      size: M3EButtonSize.sm,
+                      onPressed: () => _exportAllData(
+                        context,
+                        themeProvider,
+                        taskProvider,
+                        pomodoroProvider,
+                        revisionProvider,
+                      ),
+                    ),
+                  );
+                }
+                return M3EListItem(
+                  leading: Icon(
+                    Icons.upload_file_rounded,
+                    size: 22,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.archive_outlined,
-                        size: 22,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Export Backup',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Tasks, Sessions & Subjects',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      M3EButton.icon(
-                        icon: const Icon(Icons.copy_rounded, size: 14),
-                        label: const Text('JSON'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
-                        onPressed: () => _exportAllData(
-                          context,
-                          themeProvider,
-                          taskProvider,
-                          pomodoroProvider,
-                          revisionProvider,
-                        ),
-                      ),
-                    ],
+                  headline: 'Import Configuration',
+                  supportingText: 'Restore preferences from backup',
+                  trailing: M3EButton.icon(
+                    icon: const Icon(Icons.file_upload_outlined, size: 14),
+                    label: const Text('Import'),
+                    style: M3EButtonStyle.outlined,
+                    size: M3EButtonSize.sm,
+                    onPressed: () => _showImportDialog(context, themeProvider),
                   ),
-                ),
-
-                // Import Configuration
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.upload_file_rounded,
-                        size: 22,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Import Configuration',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            Text(
-                              'Restore preferences from backup',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      M3EButton.icon(
-                        icon: const Icon(Icons.file_upload_outlined, size: 14),
-                        label: const Text('Import'),
-                        style: M3EButtonStyle.outlined,
-                        size: M3EButtonSize.sm,
-                        onPressed: () =>
-                            _showImportDialog(context, themeProvider),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                );
+              },
             ),
 
             const SizedBox(height: 24),
@@ -613,132 +521,70 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Local Storage Breakdown
-                FutureBuilder<Map<String, dynamic>>(
-                  future: themeProvider.calculateStorageUsage(
-                    taskProvider.totalCount,
-                    pomodoroProvider.sessionLog.length,
-                  ),
-                  builder: (context, snapshot) {
-                    final storageStr =
-                        snapshot.data?['formatted'] as String? ??
-                        'Calculating...';
-                    final keysCount = snapshot.data?['keysCount'] ?? 14;
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.storage_rounded,
-                            size: 22,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Local Storage Usage',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                Text(
-                                  '${taskProvider.totalCount} tasks · ${pomodoroProvider.sessionLog.length} sessions · $keysCount prefs',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              storageStr,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-
-                // Reset Preferences to Defaults
-                InkWell(
-                  onTap: () => _showResetDialog(context, themeProvider),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+            M3EList(
+              itemCount: 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return FutureBuilder<Map<String, dynamic>>(
+                    future: themeProvider.calculateStorageUsage(
+                      taskProvider.totalCount,
+                      pomodoroProvider.sessionLog.length,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.restore_page_rounded,
+                    builder: (context, snapshot) {
+                      final storageStr =
+                          snapshot.data?['formatted'] as String? ??
+                          'Calculating...';
+                      final keysCount = snapshot.data?['keysCount'] ?? 14;
+
+                      return M3EListItem(
+                        leading: Icon(
+                          Icons.storage_rounded,
                           size: 22,
-                          color: colorScheme.error,
+                          color: colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Reset All Preferences',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.error,
-                                ),
-                              ),
-                              Text(
-                                'Resets all appearance & settings to defaults',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
+                        headline: 'Local Storage Usage',
+                        supportingText:
+                            '${taskProvider.totalCount} tasks · ${pomodoroProvider.sessionLog.length} sessions · $keysCount prefs',
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            storageStr,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.primary,
+                            ),
                           ),
                         ),
-                        M3EButton(
-                          style: M3EButtonStyle.outlined,
-                          size: M3EButtonSize.sm,
-                          onPressed: () =>
-                              _showResetDialog(context, themeProvider),
-                          child: const Text('Reset'),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
+                  );
+                }
+                return M3EListItem(
+                  onTap: () => _showResetDialog(context, themeProvider),
+                  leading: Icon(
+                    Icons.restore_page_rounded,
+                    size: 22,
+                    color: colorScheme.error,
                   ),
-                ),
-              ],
+                  headline: 'Reset All Preferences',
+                  supportingText:
+                      'Resets all appearance & settings to defaults',
+                  trailing: M3EButton(
+                    style: M3EButtonStyle.outlined,
+                    size: M3EButtonSize.sm,
+                    onPressed: () => _showResetDialog(context, themeProvider),
+                    label: const Text('Reset'),
+                  ),
+                );
+              },
             ),
           ],
         ),

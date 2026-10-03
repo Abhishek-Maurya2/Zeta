@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../components/weather_icon.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/weather_provider.dart';
@@ -607,85 +607,46 @@ class _WeatherFlyoutCard extends StatelessWidget {
                 const SizedBox(height: 15),
 
                 // ─── Actions: Refresh & Settings ─────────────────────────────
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(2),
-                    outerRadius: 14.0,
-                    innerRadius: 6.0,
-                    gap: 2.0,
-                  ),
+                M3EList(
                   color: isDark
                       ? colorScheme.tertiary.withValues(alpha: 0.1)
                       : colorScheme.tertiaryFixedDim.withValues(alpha: 0.3),
-                  children: [
-                    // 1. Refresh Button
-                    Material(
-                      color: Colors.transparent,
-                      child: ListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 2,
-                        ),
-                        leading: weatherProvider.isWeatherLoading
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: colorScheme.primary,
+                  itemCount: 2,
+                  itemBuilder: (context, index) => index == 0
+                      ? M3EListItem(
+                          leading: weatherProvider.isWeatherLoading
+                              ? SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: colorScheme.primary,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.refresh_rounded,
+                                  size: 18,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
-                              )
-                            : Icon(
-                                Icons.refresh_rounded,
-                                size: 18,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                        title: Text(
-                          weatherProvider.isWeatherLoading
+                          headline: weatherProvider.isWeatherLoading
                               ? 'Refreshing…'
                               : 'Refresh Weather',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
+                          onTap: weatherProvider.isWeatherLoading
+                              ? null
+                              : () async {
+                                  ZetaHaptics.light();
+                                  await weatherProvider.refreshWeather();
+                                },
+                        )
+                      : M3EListItem(
+                          leading: Icon(
+                            Icons.settings_outlined,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant,
                           ),
+                          headline: 'Weather Settings',
+                          onTap: onOpenSettings,
                         ),
-                        onTap: weatherProvider.isWeatherLoading
-                            ? null
-                            : () async {
-                                ZetaHaptics.light();
-                                await weatherProvider.refreshWeather();
-                              },
-                      ),
-                    ),
-
-                    // 2. Settings Button
-                    Material(
-                      color: Colors.transparent,
-                      child: ListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 2,
-                        ),
-                        leading: Icon(
-                          Icons.settings_outlined,
-                          size: 18,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        title: Text(
-                          'Weather Settings',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
-                        onTap: onOpenSettings,
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -771,54 +732,6 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-  final String value;
-
-  const _StatBadge({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: iconColor),
-        const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: textTheme.labelSmall?.copyWith(
-                fontSize: 9,
-                color: colorScheme.outline,
-              ),
-            ),
-            Text(
-              value,
-              style: textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

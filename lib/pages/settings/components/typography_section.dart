@@ -1,9 +1,9 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/theme_provider.dart';
 import '../../../theme/typography_config.dart';
-import '../../../components/segmented_column.dart';
 import '../../../utils/haptics.dart';
 
 class TypographySection extends StatefulWidget {
@@ -137,12 +137,10 @@ class _TypographySectionState extends State<TypographySection> {
         ),
         const SizedBox(height: 8),
 
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
-          children: kSupportedFonts.map((font) {
+        M3EList(
+          itemCount: kSupportedFonts.length,
+          itemBuilder: (context, index) {
+            final font = kSupportedFonts[index];
             final isSelected = currentConfig.fontId == font.id;
             return InkWell(
               onTap: () {
@@ -253,7 +251,7 @@ class _TypographySectionState extends State<TypographySection> {
                 ),
               ),
             );
-          }).toList(),
+          },
         ),
 
         const SizedBox(height: 20),
@@ -269,146 +267,149 @@ class _TypographySectionState extends State<TypographySection> {
         ),
         const SizedBox(height: 8),
 
-        M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.all(1.0),
-          ),
-          color: colorScheme.surfaceContainerLowest,
-          children: [
-            // 1. Weight Axis (wght: 100..1000)
-            _buildAxisSliderRow(
-              context: context,
-              icon: Icons.format_bold_rounded,
-              title: 'Weight (wght)',
-              subtitle: _weightLabel(currentConfig.weight),
-              value: currentConfig.weight,
-              min: 100,
-              max: 900,
-              divisions: 80,
-              badgeText: currentConfig.weight.round().toString(),
-              isSupported: currentConfig.supportedFont.supportsAxis('wght'),
-              onChanged: (val) {
-                final updated = currentConfig.copyWith(weight: val);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-              },
-            ),
-
-            // 2. Width Axis (wdth: 50..151)
-            _buildAxisSliderRow(
-              context: context,
-              icon: Icons.unfold_more_rounded,
-              title: 'Width (wdth)',
-              subtitle: '${currentConfig.width.round()}% ${currentConfig.width < 100 ? 'Condensed' : currentConfig.width > 100 ? 'Expanded' : 'Standard'}',
-              value: currentConfig.width,
-              min: 50,
-              max: 151,
-              divisions: 101,
-              badgeText: '${currentConfig.width.round()}%',
-              isSupported: currentConfig.supportedFont.supportsAxis('wdth'),
-              unsupportedReason: 'Width axis is not variable in ${currentConfig.supportedFont.name}',
-              helperLabel: 'Switch to Google Sans Flex',
-              onEnableHelper: () {
-                themeProvider.updateRoleTypography(
-                  _selectedRole,
-                  currentConfig.copyWith(fontId: 'google-sans-flex'),
+        M3EList(
+          itemCount: 5,
+          itemBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return _buildAxisSliderRow(
+                  context: context,
+                  icon: Icons.format_bold_rounded,
+                  title: 'Weight (wght)',
+                  subtitle: _weightLabel(currentConfig.weight),
+                  value: currentConfig.weight,
+                  min: 100,
+                  max: 900,
+                  divisions: 80,
+                  badgeText: currentConfig.weight.round().toString(),
+                  isSupported: currentConfig.supportedFont.supportsAxis('wght'),
+                  onChanged: (val) {
+                    final updated = currentConfig.copyWith(weight: val);
+                    themeProvider.updateRoleTypography(_selectedRole, updated);
+                  },
                 );
-                widget.onToast?.call('Switched to Google Sans Flex');
-              },
-              onChanged: (val) {
-                final updated = currentConfig.copyWith(width: val);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-              },
-            ),
-
-            // 3. Slant Axis (slnt: -10..0)
-            _buildAxisSliderRow(
-              context: context,
-              icon: Icons.format_italic_rounded,
-              title: 'Slant (slnt)',
-              subtitle: currentConfig.slant == 0
-                  ? 'Upright (0°)'
-                  : 'Italic slant (${currentConfig.slant.toStringAsFixed(1)}°)',
-              value: currentConfig.slant,
-              min: -10,
-              max: 0,
-              divisions: 20,
-              badgeText: '${currentConfig.slant.toStringAsFixed(1)}°',
-              isSupported: currentConfig.supportedFont.supportsAxis('slnt'),
-              unsupportedReason: 'Slant axis is not variable in ${currentConfig.supportedFont.name}',
-              helperLabel: 'Switch to Google Sans Flex',
-              onEnableHelper: () {
-                themeProvider.updateRoleTypography(
-                  _selectedRole,
-                  currentConfig.copyWith(fontId: 'google-sans-flex'),
+              case 1:
+                return _buildAxisSliderRow(
+                  context: context,
+                  icon: Icons.unfold_more_rounded,
+                  title: 'Width (wdth)',
+                  subtitle:
+                      '${currentConfig.width.round()}% ${currentConfig.width < 100 ? 'Condensed' : currentConfig.width > 100 ? 'Expanded' : 'Standard'}',
+                  value: currentConfig.width,
+                  min: 50,
+                  max: 151,
+                  divisions: 101,
+                  badgeText: '${currentConfig.width.round()}%',
+                  isSupported: currentConfig.supportedFont.supportsAxis('wdth'),
+                  unsupportedReason:
+                      'Width axis is not variable in ${currentConfig.supportedFont.name}',
+                  helperLabel: 'Switch to Google Sans Flex',
+                  onEnableHelper: () {
+                    themeProvider.updateRoleTypography(
+                      _selectedRole,
+                      currentConfig.copyWith(fontId: 'google-sans-flex'),
+                    );
+                    widget.onToast?.call('Switched to Google Sans Flex');
+                  },
+                  onChanged: (val) {
+                    final updated = currentConfig.copyWith(width: val);
+                    themeProvider.updateRoleTypography(_selectedRole, updated);
+                  },
                 );
-                widget.onToast?.call('Switched to Google Sans Flex');
-              },
-              onChanged: (val) {
-                final updated = currentConfig.copyWith(slant: val);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-              },
-            ),
-
-            // 4. Roundness Axis (ROND: 0..100)
-            _buildAxisSliderRow(
-              context: context,
-              icon: Icons.rounded_corner_rounded,
-              title: 'Roundness (ROND)',
-              subtitle: currentConfig.roundness == 0
-                  ? 'Geometric / Crisp'
-                  : currentConfig.roundness >= 70
-                      ? 'Fully Rounded Soft'
-                      : 'Subtle Corner Softness',
-              value: currentConfig.roundness,
-              min: 0,
-              max: 100,
-              divisions: 100,
-              badgeText: currentConfig.roundness.round().toString(),
-              isSupported: currentConfig.supportedFont.supportsAxis('ROND'),
-              unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
-              helperLabel: 'Switch to Google Sans Flex',
-              onEnableHelper: () {
-                themeProvider.updateRoleTypography(
-                  _selectedRole,
-                  currentConfig.copyWith(fontId: 'google-sans-flex'),
+              case 2:
+                return _buildAxisSliderRow(
+                  context: context,
+                  icon: Icons.format_italic_rounded,
+                  title: 'Slant (slnt)',
+                  subtitle: currentConfig.slant == 0
+                      ? 'Upright (0°)'
+                      : 'Italic slant (${currentConfig.slant.toStringAsFixed(1)}°)',
+                  value: currentConfig.slant,
+                  min: -10,
+                  max: 0,
+                  divisions: 20,
+                  badgeText: '${currentConfig.slant.toStringAsFixed(1)}°',
+                  isSupported: currentConfig.supportedFont.supportsAxis('slnt'),
+                  unsupportedReason:
+                      'Slant axis is not variable in ${currentConfig.supportedFont.name}',
+                  helperLabel: 'Switch to Google Sans Flex',
+                  onEnableHelper: () {
+                    themeProvider.updateRoleTypography(
+                      _selectedRole,
+                      currentConfig.copyWith(fontId: 'google-sans-flex'),
+                    );
+                    widget.onToast?.call('Switched to Google Sans Flex');
+                  },
+                  onChanged: (val) {
+                    final updated = currentConfig.copyWith(slant: val);
+                    themeProvider.updateRoleTypography(_selectedRole, updated);
+                  },
                 );
-                widget.onToast?.call('Switched to Google Sans Flex with roundness');
-              },
-              onChanged: (val) {
-                final updated = currentConfig.copyWith(roundness: val);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-              },
-            ),
-
-            // 5. Grade Axis (GRAD: -200..150)
-            _buildAxisSliderRow(
-              context: context,
-              icon: Icons.line_weight_rounded,
-              title: 'Grade (GRAD)',
-              subtitle: 'Fine-tune stroke density without altering text width',
-              value: currentConfig.grade,
-              min: -200,
-              max: 150,
-              divisions: 70,
-              badgeText: currentConfig.grade >= 0
-                  ? '+${currentConfig.grade.round()}'
-                  : currentConfig.grade.round().toString(),
-              isSupported: currentConfig.supportedFont.supportsAxis('GRAD'),
-              unsupportedReason: 'Grade (GRAD) is not variable in ${currentConfig.supportedFont.name}',
-              helperLabel: 'Switch to Google Sans Flex',
-              onEnableHelper: () {
-                themeProvider.updateRoleTypography(
-                  _selectedRole,
-                  currentConfig.copyWith(fontId: 'google-sans-flex'),
+              case 3:
+                return _buildAxisSliderRow(
+                  context: context,
+                  icon: Icons.rounded_corner_rounded,
+                  title: 'Roundness (ROND)',
+                  subtitle: currentConfig.roundness == 0
+                      ? 'Geometric / Crisp'
+                      : currentConfig.roundness >= 70
+                          ? 'Fully Rounded Soft'
+                          : 'Subtle Corner Softness',
+                  value: currentConfig.roundness,
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  badgeText: currentConfig.roundness.round().toString(),
+                  isSupported: currentConfig.supportedFont.supportsAxis('ROND'),
+                  unsupportedReason:
+                      'Roundness (ROND) is exclusively available in Google Sans Flex',
+                  helperLabel: 'Switch to Google Sans Flex',
+                  onEnableHelper: () {
+                    themeProvider.updateRoleTypography(
+                      _selectedRole,
+                      currentConfig.copyWith(fontId: 'google-sans-flex'),
+                    );
+                    widget.onToast?.call(
+                        'Switched to Google Sans Flex with roundness');
+                  },
+                  onChanged: (val) {
+                    final updated = currentConfig.copyWith(roundness: val);
+                    themeProvider.updateRoleTypography(_selectedRole, updated);
+                  },
                 );
-                widget.onToast?.call('Switched to Google Sans Flex');
-              },
-              onChanged: (val) {
-                final updated = currentConfig.copyWith(grade: val);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-              },
-            ),
-          ],
+              case 4:
+              default:
+                return _buildAxisSliderRow(
+                  context: context,
+                  icon: Icons.line_weight_rounded,
+                  title: 'Grade (GRAD)',
+                  subtitle:
+                      'Fine-tune stroke density without altering text width',
+                  value: currentConfig.grade,
+                  min: -200,
+                  max: 150,
+                  divisions: 70,
+                  badgeText: currentConfig.grade >= 0
+                      ? '+${currentConfig.grade.round()}'
+                      : currentConfig.grade.round().toString(),
+                  isSupported: currentConfig.supportedFont.supportsAxis('GRAD'),
+                  unsupportedReason:
+                      'Grade (GRAD) is not variable in ${currentConfig.supportedFont.name}',
+                  helperLabel: 'Switch to Google Sans Flex',
+                  onEnableHelper: () {
+                    themeProvider.updateRoleTypography(
+                      _selectedRole,
+                      currentConfig.copyWith(fontId: 'google-sans-flex'),
+                    );
+                    widget.onToast?.call('Switched to Google Sans Flex');
+                  },
+                  onChanged: (val) {
+                    final updated = currentConfig.copyWith(grade: val);
+                    themeProvider.updateRoleTypography(_selectedRole, updated);
+                  },
+                );
+            }
+          },
         ),
 
         const SizedBox(height: 18),

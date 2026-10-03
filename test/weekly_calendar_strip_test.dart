@@ -9,7 +9,6 @@ import 'package:zeta/providers/task_provider.dart';
 import 'package:zeta/providers/weather_provider.dart';
 import 'package:zeta/services/cross_device_service.dart';
 import 'package:zeta/services/preferences_service.dart';
-import 'package:zeta/utils/date_time_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -82,7 +81,7 @@ void main() {
       (tester) async {
     const compactSize = Size(400, 800);
     final now = DateTime.now();
-    DateTime selectedDate = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(now.year, now.month, now.day);
     DateTime? chosenDate;
 
     await tester.pumpWidget(
@@ -133,7 +132,7 @@ void main() {
       (tester) async {
     const narrowSize = Size(320, 600);
     final now = DateTime.now();
-    DateTime selectedDate = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(now.year, now.month, now.day);
 
     await tester.pumpWidget(
       createWidgetUnderTest(
@@ -158,7 +157,7 @@ void main() {
       (tester) async {
     const wideSize = Size(1024, 768);
     final now = DateTime.now();
-    DateTime selectedDate = DateTime(now.year, now.month, now.day);
+    final selectedDate = DateTime(now.year, now.month, now.day);
 
     await tester.pumpWidget(
       createWidgetUnderTest(

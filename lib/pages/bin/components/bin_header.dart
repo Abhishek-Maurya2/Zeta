@@ -108,7 +108,7 @@ class BinHeader extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
           label: const Text('Restore All'),
-          decoration: M3EToggleButtonDecoration.styleFrom(
+          decoration: M3EButtonDecoration.styleFrom(
             backgroundColor: colorScheme.secondaryContainer,
             foregroundColor: colorScheme.onSecondaryContainer,
           ),
@@ -120,7 +120,7 @@ class BinHeader extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
           label: const Text('Empty Bin'),
-          decoration: M3EToggleButtonDecoration.styleFrom(
+          decoration: M3EButtonDecoration.styleFrom(
             backgroundColor: colorScheme.error,
             foregroundColor: colorScheme.onError,
           ),

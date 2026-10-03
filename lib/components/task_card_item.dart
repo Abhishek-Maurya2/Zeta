@@ -295,7 +295,7 @@ class TaskCardItem extends StatelessWidget {
             color: colorScheme.primary,
           ),
           tooltip: 'Restore Task',
-          decoration: M3EToggleButtonDecoration.styleFrom(
+          decoration: M3EButtonDecoration.styleFrom(
             foregroundColor: colorScheme.primary,
           ),
         ),
@@ -312,7 +312,7 @@ class TaskCardItem extends StatelessWidget {
             color: colorScheme.error,
           ),
           tooltip: 'Delete permanently',
-          decoration: M3EToggleButtonDecoration.styleFrom(
+          decoration: M3EButtonDecoration.styleFrom(
             foregroundColor: colorScheme.error,
           ),
         ),

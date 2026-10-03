@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/attachment.dart';
 import '../services/url_metadata_service.dart';
 import '../utils/haptics.dart';
-import 'segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 /// Reusable attachment chip matching the TaskDueDateChip design token language:
 /// - Secondary container background, 8px rounded corners, 8x4 padding.
@@ -388,61 +388,59 @@ class _TaskAttachmentsChipGroupState extends State<TaskAttachmentsChipGroup>
                               ),
                             ),
                             const SizedBox(height: 6),
-                            M3ESegmentedColumn(
-                              decoration: const M3ESegmentedListDecoration(
-                                padding: EdgeInsets.all(2),
-                                outerRadius: 14.0,
-                                innerRadius: 6.0,
-                                gap: 2.0,
-                              ),
+                            M3EList(
                               color: isDark
                                   ? colorScheme.tertiary.withValues(alpha: 0.1)
                                   : colorScheme.tertiaryFixedDim.withValues(
                                       alpha: 0.3,
                                     ),
-                              children: [
-                                for (final item in widget.attachments)
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: ListTile(
-                                      dense: true,
-                                      visualDensity: VisualDensity.compact,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 2,
-                                          ),
-                                      leading: AttachmentFavicon(
-                                        url: item.url,
-                                        type: item.type,
-                                        driveType: item.driveType,
-                                        overrideFaviconUrl: item.faviconUrl,
-                                        size: 18,
-                                      ),
-                                      title: AttachmentResolvedTitle(
-                                        rawTitle: item.title,
-                                        url: item.url,
-                                        maxLength: 32,
-                                        textStyle: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: colorScheme.onSurface,
+                              itemCount: widget.attachments.length,
+                              itemBuilder: (context, index) {
+                                final item = widget.attachments[index];
+                                return InkWell(
+                                  onTap: () {
+                                    _closeFlyout();
+                                    ZetaHaptics.selection();
+                                    _launchUrl(item.url);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        AttachmentFavicon(
+                                          url: item.url,
+                                          type: item.type,
+                                          driveType: item.driveType,
+                                          overrideFaviconUrl: item.faviconUrl,
+                                          size: 18,
                                         ),
-                                      ),
-                                      trailing: Icon(
-                                        Icons.open_in_new_rounded,
-                                        size: 16,
-                                        color: colorScheme.onSurfaceVariant
-                                            .withValues(alpha: 0.7),
-                                      ),
-                                      onTap: () {
-                                        _closeFlyout();
-                                        ZetaHaptics.selection();
-                                        _launchUrl(item.url);
-                                      },
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: AttachmentResolvedTitle(
+                                            rawTitle: item.title,
+                                            url: item.url,
+                                            maxLength: 32,
+                                            textStyle: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.open_in_new_rounded,
+                                          size: 16,
+                                          color: colorScheme.onSurfaceVariant
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                              ],
+                                );
+                              },
                             ),
                           ],
                         ),

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -229,7 +228,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                         duration: const Duration(milliseconds: 300),
                         child: IgnorePointer(
                           child: Text(
-                            "$percentage%",
+                            '$percentage%',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: !isCompact ? 100 : 28,

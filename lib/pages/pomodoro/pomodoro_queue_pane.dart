@@ -1,8 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../providers/pomodoro_provider.dart';
+import '../../components/zeta_empty_state.dart';
 import 'components/pomodoro_settings_sheet.dart';
 import 'components/pomodoro_queue_item_tile.dart';
 
@@ -114,20 +115,32 @@ class PomodoroQueuePane extends StatelessWidget {
               size: ZetaEmptyStateSize.compact,
             )
           else
-            M3ESegmentedColumn(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            M3EList(
               color: colorScheme.surfaceContainerLowest,
-              selectedIndex: activeIndex,
-              onTap: (idx) => provider.jumpToSession(idx),
-              children: List.generate(queue.length, (idx) {
+              itemCount: queue.length,
+              itemBuilder: (context, idx) {
                 final item = queue[idx];
-                return PomodoroQueueItemTile(
-                  item: item,
-                  isActive: idx == activeIndex,
-                  isPast: idx < activeIndex,
-                  isRunning: isRunning,
+                final isActive = idx == activeIndex;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isActive ? colorScheme.secondaryContainer : null,
+                    borderRadius: BorderRadius.circular(isActive ? 52 : 12),
+                  ),
+                  child: InkWell(
+                    onTap: () => provider.jumpToSession(idx),
+                    borderRadius: BorderRadius.circular(isActive ? 52 : 12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: PomodoroQueueItemTile(
+                        item: item,
+                        isActive: isActive,
+                        isPast: idx < activeIndex,
+                        isRunning: isRunning,
+                      ),
+                    ),
+                  ),
                 );
-              }),
+              },
             ),
         ],
       ),

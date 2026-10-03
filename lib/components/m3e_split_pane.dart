@@ -215,7 +215,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
         final isHorizontal = widget.orientation == Axis.horizontal;
         
         final val = _effectiveValue.clamp(-100.0, 200.0);
-        double startFraction = (val / 100.0).clamp(0.0, 1.0);
+        final double startFraction = (val / 100.0).clamp(0.0, 1.0);
         
         // Subtract half of the divider's container width (24.0 / 2 = 12.0)
         double startSize = totalSize * startFraction - 12.0;
@@ -225,7 +225,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
         final bool showStart = val > 0;
         final bool showEnd = val < 100;
 
-        Widget divider = M3EPaneDivider(
+        final Widget divider = M3EPaneDivider(
           orientation: widget.orientation,
           onDragStart: () => _handleDragStart(constraints),
           onDragUpdate: _handleDragUpdate,
@@ -235,7 +235,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
           showLine: false,
         );
         
-        List<Widget> children = [];
+        final List<Widget> children = [];
         
         if (showStart && showEnd) {
           children.add(

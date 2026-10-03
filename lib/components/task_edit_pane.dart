@@ -6,8 +6,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import 'segmented_column.dart';
-import 'zeta_time_picker.dart';
 import '../models/task.dart';
 import '../models/attachment.dart';
 import '../providers/task_provider.dart';
@@ -526,10 +524,9 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     ZetaHaptics.selection();
     final now = TimeOfDay.now();
     final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
-    final picked = await ZetaTimePicker.show(
+    final picked = await M3ETimePicker.show(
       context,
       initialTime: M3ETime(hour: initial.hour, minute: initial.minute),
-      // orientation: Orientation.landscape,
     );
     if (picked != null && mounted) {
       final hour = picked.hourOf12 == 0 ? 12 : picked.hourOf12;
@@ -780,17 +777,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (_subtasks.length > 1 && !isEditingThis)
-            Padding(
-              padding: const EdgeInsets.only(left: 6, right: 2),
-              child: Icon(
-                Icons.drag_indicator_rounded,
-                size: 18,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.35),
-              ),
-            )
-          else
-            const SizedBox(width: 8),
+          const SizedBox(width: 8),
           InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () {
@@ -916,19 +903,39 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           else
             Padding(
               padding: const EdgeInsets.only(right: 4),
-              child: M3EIconButton(
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 16,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-                size: M3EIconButtonSize.xs,
-                variant: M3EIconButtonVariant.standard,
-                tooltip: 'Delete subtask',
-                onPressed: () {
-                  ZetaHaptics.light();
-                  _removeSubtask(st.id);
-                },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: 'Edit subtask',
+                    child: M3EIconButton(
+                      icon: const Icon(Icons.edit_outlined, size: 16),
+                      size: M3EIconButtonSize.xs,
+                      variant: M3EIconButtonVariant.standard,
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        _startEditingSubtask(st);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Tooltip(
+                    message: 'Delete subtask',
+                    child: M3EIconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      ),
+                      size: M3EIconButtonSize.xs,
+                      variant: M3EIconButtonVariant.standard,
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        _removeSubtask(st.id);
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
@@ -1206,7 +1213,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               width: 60,
                               icon: const Icon(Icons.notes_rounded, size: 20),
                               tooltip: 'Add notes',
-                              decoration: M3EToggleButtonDecoration.styleFrom(
+                              decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: _showDescription
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
@@ -1222,7 +1229,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.checklist_rounded,
                                 size: 20,
                               ),
-                              decoration: M3EToggleButtonDecoration.styleFrom(
+                              decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: _showSubtasks
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
@@ -1238,7 +1245,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.calendar_month_rounded,
                                 size: 20,
                               ),
-                              decoration: M3EToggleButtonDecoration.styleFrom(
+                              decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: _dueDate != null
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
@@ -1254,7 +1261,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.schedule_rounded,
                                 size: 20,
                               ),
-                              decoration: M3EToggleButtonDecoration.styleFrom(
+                              decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: _hasTime
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
@@ -1270,7 +1277,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 Icons.attach_file_rounded,
                                 size: 20,
                               ),
-                              decoration: M3EToggleButtonDecoration.styleFrom(
+                              decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: _showAttachments
                                     ? colorScheme.primaryContainer
                                     : colorScheme.surfaceContainerHighest
@@ -1832,7 +1839,7 @@ class AttachmentChip extends StatelessWidget {
         width: 16,
         height: 16,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Icon(
+        errorBuilder: (_, _, _) => Icon(
           Icons.public_rounded,
           size: 16,
           color: colorScheme.onSurfaceVariant,

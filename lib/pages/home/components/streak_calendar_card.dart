@@ -1,5 +1,4 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
@@ -61,28 +60,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
       return DateTimeUtils.isSameDay(parsed, date);
     }
     return false;
-  }
-
-  void _prevMonth() {
-    ZetaHaptics.light();
-    setState(() {
-      _displayedMonth = DateTime(
-        _displayedMonth.year,
-        _displayedMonth.month - 1,
-        1,
-      );
-    });
-  }
-
-  void _nextMonth() {
-    ZetaHaptics.light();
-    setState(() {
-      _displayedMonth = DateTime(
-        _displayedMonth.year,
-        _displayedMonth.month + 1,
-        1,
-      );
-    });
   }
 
   @override
@@ -340,9 +317,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                   : (isSelected
                         ? colorScheme.onSurface
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.7));
-
-              final sizeClass = ZetaWindowSizeClass.of(context);
-              final isCompact = sizeClass.isCompact;
 
               return Expanded(
                 child: Center(

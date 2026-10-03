@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../features/auth/presentation/auth_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/cross_device_service.dart';
@@ -179,60 +179,35 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── 1. Master Toggle Pill ───────────────────────────────────────
-            M3ESegmentedColumn(
-              decoration: M3ESegmentedListDecoration(
-                outerRadius: 50,
-                innerRadius: 50,
-                color: _enabled
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainer,
-              ),
-              onTap: (_) => _toggleMaster(!_enabled),
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _enabled
-                            ? Icons.devices_rounded
-                            : Icons.devices_other_rounded,
-                        color: _enabled
-                            ? colorScheme.onPrimaryContainer
-                            : colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Cross-device resume',
-                          style: textTheme.displaySmall?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: _enabled
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      M3ESwitch(
-                        value: _enabled,
-                        selectedIcon: const Icon(
-                          Icons.check_rounded,
-                          size: 16,
-                        ),
-                        unselectedIcon: const Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                        ),
-                        onChanged: _toggleMaster,
-                      ),
-                    ],
-                  ),
+            M3EList(
+              color: _enabled
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainer,
+              itemCount: 1,
+              itemBuilder: (context, index) => M3EListItem(
+                leading: Icon(
+                  _enabled
+                      ? Icons.devices_rounded
+                      : Icons.devices_other_rounded,
+                  color: _enabled
+                      ? colorScheme.onPrimaryContainer
+                      : colorScheme.onSurfaceVariant,
                 ),
-              ],
+                headline: 'Cross-device resume',
+                trailing: M3ESwitch(
+                  value: _enabled,
+                  selectedIcon: const Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                  ),
+                  unselectedIcon: const Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                  ),
+                  onChanged: _toggleMaster,
+                ),
+                onTap: () => _toggleMaster(!_enabled),
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -303,130 +278,107 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
             const SizedBox(height: 24),
 
             // ─── 3. Grouped Settings Column ──────────────────────────────────
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
+            M3EList(
               color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Device Name Tile
-                ListTile(
-                  leading: const Icon(Icons.badge_outlined),
-                  title: const Text('This Device Name'),
-                  subtitle: Text(_deviceName),
-                  trailing: const Icon(Icons.edit_outlined, size: 20),
-                  enabled: _enabled,
-                  onTap: _enabled ? _handleEditDeviceName : null,
-                ),
+              itemCount: 4 + (isWindows ? 1 : 0),
+              itemBuilder: (context, index) {
+                final items = <Widget>[
+                  // Device Name Tile
+                  M3EListItem(
+                    leading: const Icon(Icons.badge_outlined),
+                    headline: 'This Device Name',
+                    supportingText: _deviceName,
+                    trailing: const Icon(Icons.edit_outlined, size: 20),
+                    onTap: _enabled ? _handleEditDeviceName : null,
+                  ),
 
-                // Device Role Modes
-                ListTile(
-                  leading: const Icon(Icons.sync_alt_rounded),
-                  title: const Text('Handoff Mode'),
-                  subtitle: Text(
-                    _role == 'both'
+                  // Device Role Modes
+                  M3EListItem(
+                    leading: const Icon(Icons.sync_alt_rounded),
+                    headline: 'Handoff Mode',
+                    supportingText: _role == 'both'
                         ? 'Send & Receive (Automatic)'
                         : (_role == 'send_only'
                             ? 'Send Only (Broadcaster)'
                             : 'Receive Only (Listener)'),
-                  ),
-                  trailing: PopupMenuButton<String>(
-                    initialValue: _role,
-                    enabled: _enabled,
-                    onSelected: _setRole,
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'both',
-                        child: Text('Send & Receive (Default)'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'send_only',
-                        child: Text('Send Only (Phone)'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'receive_only',
-                        child: Text('Receive Only (Laptop)'),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Windows Desktop Toast Toggle
-                if (isWindows)
-                  ListTile(
-                    leading: const Icon(Icons.desktop_windows_outlined),
-                    title: const Text('Windows Desktop Notifications'),
-                    subtitle: const Text(
-                      'Show system toast banner when phone activity arrives',
+                    trailing: PopupMenuButton<String>(
+                      initialValue: _role,
+                      enabled: _enabled,
+                      onSelected: _setRole,
+                      itemBuilder: (ctx) => [
+                        const PopupMenuItem(
+                          value: 'both',
+                          child: Text('Send & Receive (Default)'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'send_only',
+                          child: Text('Send Only (Phone)'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'receive_only',
+                          child: Text('Receive Only (Laptop)'),
+                        ),
+                      ],
                     ),
-                    trailing: M3ESwitch(
-                      value: _showToasts,
-                      onChanged: _enabled ? _toggleToasts : null,
-                    ),
-                    enabled: _enabled,
-                    onTap: _enabled ? () => _toggleToasts(!_showToasts) : null,
                   ),
 
-                // Free-tier Efficiency Indicator with dynamic Quota Saver state
-                ValueListenableBuilder<bool>(
-                  valueListenable: _crossDevice.isQuotaSaverActive,
-                  builder: (context, isIdle, _) {
-                    return ListTile(
-                      leading: Icon(
-                        isIdle
-                            ? Icons.bedtime_outlined
-                            : Icons.energy_savings_leaf_outlined,
-                        color: isIdle ? Colors.amber : Colors.green,
+                  // Windows Desktop Toast Toggle
+                  if (isWindows)
+                    M3EListItem(
+                      leading: const Icon(Icons.desktop_windows_outlined),
+                      headline: 'Windows Desktop Notifications',
+                      supportingText:
+                          'Show system toast banner when phone activity arrives',
+                      trailing: M3ESwitch(
+                        value: _showToasts,
+                        onChanged: _enabled ? _toggleToasts : null,
                       ),
-                      title: Text(
-                        isIdle
+                      onTap: _enabled ? () => _toggleToasts(!_showToasts) : null,
+                    ),
+
+                  // Free-tier Efficiency Indicator with dynamic Quota Saver state
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _crossDevice.isQuotaSaverActive,
+                    builder: (context, isIdle, _) {
+                      return M3EListItem(
+                        leading: Icon(
+                          isIdle
+                              ? Icons.bedtime_outlined
+                              : Icons.energy_savings_leaf_outlined,
+                          color: isIdle ? Colors.amber : Colors.green,
+                        ),
+                        headline: isIdle
                             ? 'Quota Saver: Idle Sleep (Saving Quota)'
                             : 'Supabase Free Tier Efficiency Active',
-                        style: TextStyle(
-                          color: isIdle ? Colors.amber[800] : null,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        isIdle
+                        supportingText: isIdle
                             ? 'Broadcasts suspended after 3m of inactivity. Tap any screen to resume instantly.'
                             : 'Zero DB writes • 3m inactivity cutoff • 2m background disconnect • 30s cooldown',
-                      ),
-                      trailing: isIdle
-                          ? TextButton(
-                              onPressed: () {
-                                _crossDevice.recordUserActivity();
-                              },
-                              child: const Text('Wake Now'),
-                            )
-                          : null,
-                    );
-                  },
-                ),
+                        trailing: isIdle
+                            ? TextButton(
+                                onPressed: () {
+                                  _crossDevice.recordUserActivity();
+                                },
+                                child: const Text('Wake Now'),
+                              )
+                            : null,
+                      );
+                    },
+                  ),
 
-                // Test Action
-                ListTile(
-                  leading: Icon(
-                    Icons.bolt_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  title: Text(
-                    'Send Test Resume Notification',
-                    style: TextStyle(
-                      color: _enabled ? colorScheme.primary : null,
-                      fontWeight: FontWeight.w600,
+                  // Test Action
+                  M3EListItem(
+                    leading: Icon(
+                      Icons.bolt_rounded,
+                      color: colorScheme.primary,
                     ),
+                    headline: 'Send Test Resume Notification',
+                    supportingText:
+                        'Preview the exact toast & resume handoff behavior',
+                    onTap: _enabled ? _handleTestResume : null,
                   ),
-                  subtitle: const Text(
-                    'Preview the exact toast & resume handoff behavior',
-                  ),
-                  enabled: _enabled,
-                  onTap: _enabled ? _handleTestResume : null,
-                ),
-              ],
+                ];
+                return items[index];
+              },
             ),
 
             // ─── 4. Windows Background Section ───────────────────────────────
@@ -443,51 +395,40 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                   ),
                 ),
               ),
-              M3ESegmentedColumn(
-                decoration: const M3ESegmentedListDecoration(
-                  padding: EdgeInsets.all(1.0),
-                  outerRadius: 28.0,
-                  innerRadius: 6.0,
-                  gap: 3.0,
-                ),
+              M3EList(
                 color: colorScheme.surfaceContainerLowest,
-                children: [
-                  // Minimize to Tray
-                  ListTile(
-                    leading: const Icon(Icons.visibility_off_outlined),
-                    title: const Text('Minimize to System Tray'),
-                    subtitle: const Text(
-                      'Closing the window hides Zeta to the system tray instead of quitting',
-                    ),
-                    trailing: M3ESwitch(
-                      value: _minimizeToTray,
-                      onChanged: _toggleMinimizeToTray,
-                    ),
-                    onTap: () => _toggleMinimizeToTray(!_minimizeToTray),
-                  ),
-
-                  // Start on Boot
-                  ListTile(
-                    leading: const Icon(Icons.power_settings_new_rounded),
-                    title: const Text('Start with Windows'),
-                    subtitle: const Text(
-                      'Automatically launch Zeta in the background when you sign in',
-                    ),
-                    trailing: _startupLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : M3ESwitch(
-                            value: _startupEnabled,
-                            onChanged: _toggleStartupOnBoot,
-                          ),
-                    onTap: _startupLoading
-                        ? null
-                        : () => _toggleStartupOnBoot(!_startupEnabled),
-                  ),
-                ],
+                itemCount: 2,
+                itemBuilder: (context, index) => index == 0
+                    ? M3EListItem(
+                        leading: const Icon(Icons.visibility_off_outlined),
+                        headline: 'Minimize to System Tray',
+                        supportingText:
+                            'Closing the window hides Zeta to the system tray instead of quitting',
+                        trailing: M3ESwitch(
+                          value: _minimizeToTray,
+                          onChanged: _toggleMinimizeToTray,
+                        ),
+                        onTap: () => _toggleMinimizeToTray(!_minimizeToTray),
+                      )
+                    : M3EListItem(
+                        leading: const Icon(Icons.power_settings_new_rounded),
+                        headline: 'Start with Windows',
+                        supportingText:
+                            'Automatically launch Zeta in the background when you sign in',
+                        trailing: _startupLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : M3ESwitch(
+                                value: _startupEnabled,
+                                onChanged: _toggleStartupOnBoot,
+                              ),
+                        onTap: _startupLoading
+                            ? null
+                            : () => _toggleStartupOnBoot(!_startupEnabled),
+                      ),
               ),
             ],
 

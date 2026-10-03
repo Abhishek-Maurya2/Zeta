@@ -34,19 +34,14 @@ class TasksDismissibleList extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return M3EDismissibleList(
+    return M3EList(
       key: const ValueKey('tasks_dismissible_list'),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
       itemCount: tasks.length,
       embedded: embedded,
-      style: M3EDismissibleListStyle(
-        color: colorScheme.surfaceContainerLowest,
-        padding: EdgeInsets.zero,
-        outerRadius: 24,
-        innerRadius: 4,
-        gap: 3,
-      ),
+      outerRadius: 24,
+      innerRadius: 4,
+      gap: 3,
+      color: colorScheme.surfaceContainerLowest,
       colorBuilder: (index) {
         if (index < 0 || index >= tasks.length) return null;
         final task = tasks[index];
@@ -63,56 +58,12 @@ class TasksDismissibleList extends StatelessWidget {
         }
         return null;
       },
-      leadingActionsBuilder: (index) {
-        if (provider.isSelectionMode) return [];
-        final task = tasks[index];
-        return [
-          M3EListSwipeAction(
-            icon: Icon(
-              task.completed
-                  ? Icons.radio_button_unchecked_rounded
-                  : Icons.check_circle_rounded,
-              color: Colors.white,
-            ),
-            backgroundColor: task.completed
-                ? colorScheme.secondary
-                : isDark
-                ? colorScheme.successContainer
-                : colorScheme.success,
-            onPressed: () => provider.toggleTask(task.id),
-          ),
-        ];
-      },
-      trailingActionsBuilder: (index) {
-        if (provider.isSelectionMode) return [];
-        final task = tasks[index];
-        return [
-          M3EListSwipeAction(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
-            backgroundColor: isDark
-                ? colorScheme.errorContainer
-                : colorScheme.error,
-            isPrimary: true,
-            onPressed: () => provider.deleteTask(task.id),
-          ),
-        ];
-      },
-      onDismiss: (index, direction) async {
-        if (provider.isSelectionMode) return false;
-        final task = tasks[index];
-        if (direction == DismissDirection.endToStart) {
-          provider.deleteTask(task.id);
-        } else {
-          provider.toggleTask(task.id);
-        }
-        return true;
-      },
       itemBuilder: (context, index) {
         final task = tasks[index];
         final isSelectionMode = provider.isSelectionMode;
         final isSelected = provider.isTaskSelected(task.id);
 
-        return TaskCardItem(
+        final card = TaskCardItem(
           key: ValueKey(task.id),
           task: task,
           isExpanded: provider.isTaskExpanded(task.id),
@@ -135,6 +86,45 @@ class TasksDismissibleList extends StatelessWidget {
               : () => TaskEditPane.show(context, task: task),
           onContextMenu: (pos) => onContextMenu(context, pos, task, provider),
           onDelete: () => provider.deleteTask(task.id),
+        );
+
+        if (isSelectionMode) return card;
+
+        return Dismissible(
+          key: ValueKey(task.id),
+          background: Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            color: task.completed
+                ? colorScheme.secondary
+                : isDark
+                    ? colorScheme.successContainer
+                    : colorScheme.success,
+            child: Icon(
+              task.completed
+                  ? Icons.radio_button_unchecked_rounded
+                  : Icons.check_circle_rounded,
+              color: Colors.white,
+            ),
+          ),
+          secondaryBackground: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            color: isDark ? colorScheme.errorContainer : colorScheme.error,
+            child: const Icon(
+              Icons.delete_outline_rounded,
+              color: Colors.white,
+            ),
+          ),
+          confirmDismiss: (direction) async {
+            if (direction == DismissDirection.endToStart) {
+              provider.deleteTask(task.id);
+            } else {
+              provider.toggleTask(task.id);
+            }
+            return true;
+          },
+          child: card,
         );
       },
     );

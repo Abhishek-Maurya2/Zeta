@@ -7,7 +7,7 @@ import '../../../providers/task_provider.dart';
 import '../../../components/task_card_item.dart';
 import '../../../components/task_context_menu.dart';
 import '../../../components/task_edit_pane.dart';
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 /// Up Next Section:
 /// - Header with checklist icon, active tasks count pill, and "View All →" link to Tasks page.
@@ -144,14 +144,11 @@ class UpNextSection extends StatelessWidget {
 
         // ─── List of Tasks or Empty State ────────────────────────────────────
         if (tasks.isNotEmpty) ...[
-          M3ESegmentedColumn(
-            decoration: const M3ESegmentedListDecoration(
-              padding: EdgeInsets.all(1.0),
-              outerRadius: 24.0,
-              innerRadius: 4.0,
-            ),
+          M3EList(
             color: colorScheme.surfaceContainerLowest,
-            children: tasks.map((task) {
+            itemCount: tasks.length,
+            itemBuilder: (context, index) {
+              final task = tasks[index];
               return Selector<TaskProvider, bool>(
                 selector: (_, p) => p.isTaskExpanded(task.id),
                 builder: (context, isExpanded, _) {
@@ -171,7 +168,7 @@ class UpNextSection extends StatelessWidget {
                   );
                 },
               );
-            }).toList(),
+            },
           ),
         ] else ...[
           Container(

@@ -179,40 +179,26 @@ class TasksPage extends StatelessWidget {
                       // Completed Section
                       if (completed.isNotEmpty) ...[
                         const SizedBox(height: 24),
-                        M3EExpandableList(
-                          style: M3EExpandableStyle(
-                            color: colorScheme.surfaceContainerLowest,
-                            expandedIconBackground:
-                                colorScheme.surfaceContainerHighest,
-                            headerPadding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 20,
-                            ),
-                          ),
-                          data: <M3EExpandableData>[
-                            M3EExpandableData(
-                              title: 'Completed (${completed.length})',
-                              titleStyle: [
-                                TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                ),
-                              ],
+                        M3EList(
+                          itemCount: 1,
+                          color: colorScheme.surfaceContainerLowest,
+                          itemBuilder: (context, index) {
+                            return M3EListItem(
+                              headline: 'Completed (${completed.length})',
                               leading: const Icon(
                                 Icons.task_alt_rounded,
                                 size: 20,
                                 color: Color(0xFF10B981),
                               ),
-                              expanded: M3EExpandableExpanded.list(
+                              expanded: M3EExpandableExpanded.content(
                                 TasksCompletedPaginatedList(
                                   tasks: completed,
                                   provider: taskProvider,
                                   onContextMenu: _showContextMenu,
                                 ),
                               ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ],
                     ],

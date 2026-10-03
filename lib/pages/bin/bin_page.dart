@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/navigation_provider.dart';
@@ -121,12 +121,11 @@ class _BinPageState extends State<BinPage> {
 
               // 2. Task List or Empty State
               if (totalCount > 0) ...[
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(1.0),
-                  ),
+                M3EList(
                   color: colorScheme.surfaceContainerLowest,
-                  children: visibleTasks.map((task) {
+                  itemCount: visibleTasks.length,
+                  itemBuilder: (context, index) {
+                    final task = visibleTasks[index];
                     return TaskCardItem(
                       key: ValueKey(task.id),
                       task: task,
@@ -140,7 +139,7 @@ class _BinPageState extends State<BinPage> {
                       onContextMenu: (pos) =>
                           _showContextMenu(context, pos, task, taskProvider),
                     );
-                  }).toList(),
+                  },
                 ),
 
                 // ─── Automatic Loading Indicator (Visible for ≥ 3 seconds) ──
@@ -151,7 +150,6 @@ class _BinPageState extends State<BinPage> {
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: M3ELoadingIndicator(
                         variant: M3ELoadingIndicatorVariant.contained,
-                        elevation: 0,
                       ),
                     ),
                   ),

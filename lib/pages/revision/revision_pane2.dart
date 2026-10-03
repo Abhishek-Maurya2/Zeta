@@ -7,8 +7,8 @@ import '../../models/revision.dart';
 import 'components/revision_topic_tile.dart';
 import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
-import '../../components/segmented_column.dart';
-
+import 'package:material_3_expressive/material_3_expressive.dart';
+import '../../components/zeta_empty_state.dart';
 /// Pane 2 of Revision: Topics list for the selected subject and review actions.
 class RevisionPane2 extends StatelessWidget {
   final bool isSplitPane;

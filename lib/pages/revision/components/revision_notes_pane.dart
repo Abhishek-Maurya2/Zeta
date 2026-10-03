@@ -447,7 +447,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
       _showAttachmentInput = false;
     });
     ZetaHaptics.light();
-    _triggerImmediateSave();
+    unawaited(_triggerImmediateSave());
 
     if (isUrl) {
       final meta = await UrlMetadataService.instance.fetchMetadata(
@@ -464,7 +464,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
             );
           }
         });
-        _triggerImmediateSave();
+        unawaited(_triggerImmediateSave());
       }
     }
   }
@@ -1002,7 +1002,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       itemCount: topics.length,
-      separatorBuilder: (_, __) => const Divider(height: 20),
+      separatorBuilder: (_, _) => const Divider(height: 20),
       itemBuilder: (context, index) {
         final topic = topics[index];
         final content = topic.note?.content.isNotEmpty == true

@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
+import '../../../components/zeta_empty_state.dart';
 
 /// Recent completed focus sessions list showing 5 sessions initially,
 /// displaying [M3ELoadingIndicator] for at least 3 seconds before automatically loading the rest.
@@ -151,105 +152,81 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
         const SizedBox(height: 10),
 
         // ─── Session List Container ───────────────────────────────
-        M3ESegmentedColumn(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          color: colorScheme.surfaceContainerLowest,
-          children: sessionLog.isEmpty
-              ? [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: ZetaEmptyState.pomodoro(
-                      title: 'No sessions recorded yet',
-                      subtitle: 'Complete focus sessions to start tracking your daily progress.',
-                      size: ZetaEmptyStateSize.standard,
+        if (sessionLog.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 28),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ZetaEmptyState.pomodoro(
+              title: 'No sessions recorded yet',
+              subtitle: 'Complete focus sessions to start tracking your daily progress.',
+              size: ZetaEmptyStateSize.standard,
+            ),
+          )
+        else
+          M3EList(
+            color: colorScheme.surfaceContainerLowest,
+            itemCount: visibleSessions.length,
+            itemBuilder: (context, index) {
+              final entry = visibleSessions[index];
+              final date = DateTime.fromMillisecondsSinceEpoch(
+                entry.completedAt,
+              );
+              final timeStr =
+                  '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+              final dateStr = '${date.day} ${monthName(date.month)}';
+              final isFocus = entry.mode == PomodoroMode.focus;
+
+              return M3EListItem(
+                leading: M3EShapeContainer(
+                  kind: isFocus
+                      ? M3EShapeKind.ghostish
+                      : (entry.mode == PomodoroMode.shortBreak
+                            ? M3EShapeKind.softBoom
+                            : M3EShapeKind.pill),
+                  width: 40,
+                  height: 40,
+                  color: isFocus
+                      ? colorScheme.primaryContainer
+                      : colorScheme.surfaceContainerHighest,
+                  child: Center(
+                    child: Icon(
+                      isFocus
+                          ? Icons.psychology_rounded
+                          : (entry.mode == PomodoroMode.shortBreak
+                                ? Icons.coffee_rounded
+                                : Icons.hotel_rounded),
+                      size: 28,
+                      color: isFocus
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurfaceVariant,
                     ),
                   ),
-                ]
-              : visibleSessions.map((entry) {
-                  final date = DateTime.fromMillisecondsSinceEpoch(
-                    entry.completedAt,
-                  );
-                  final timeStr =
-                      '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-                  final dateStr = '${date.day} ${monthName(date.month)}';
-                  final isFocus = entry.mode == PomodoroMode.focus;
-
-                  return Row(
-                    children: [
-                      // Leading Icon Badge
-                      M3EShapeContainer(
-                        kind: isFocus
-                            ? M3EShapeKind.ghostish
-                            : (entry.mode == PomodoroMode.shortBreak
-                                  ? M3EShapeKind.softBoom
-                                  : M3EShapeKind.pill),
-                        width: 40,
-                        height: 40,
-                        color: isFocus
-                            ? colorScheme.primaryContainer
-                            : colorScheme.surfaceContainerHighest,
-                        child: Center(
-                          child: Icon(
-                            isFocus
-                                ? Icons.psychology_rounded
-                                : (entry.mode == PomodoroMode.shortBreak
-                                      ? Icons.coffee_rounded
-                                      : Icons.hotel_rounded),
-                            size: 28,
-                            color: isFocus
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 14),
-
-                      // Main Title & Duration/Timestamp
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              entry.mode.label,
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '$dateStr at $timeStr',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Trailing Indicator
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${entry.minutes}m',
-                          style: textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                }).toList(),
-        ),
+                ),
+                headline: entry.mode.label,
+                supportingText: '$dateStr at $timeStr',
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.secondaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${entry.minutes}m',
+                    style: textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
 
         // ─── Automatic Loading Indicator (Visible for ≥ 3 seconds) ──
         if (hasMore && !_loadedAll) ...[
@@ -259,7 +236,6 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
               padding: EdgeInsets.symmetric(vertical: 12),
               child: M3ELoadingIndicator(
                 variant: M3ELoadingIndicatorVariant.contained,
-                elevation: 0,
               ),
             ),
           ),

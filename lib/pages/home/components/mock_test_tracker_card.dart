@@ -635,14 +635,17 @@ class _MockTestRadarCardState extends State<MockTestRadarCard> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  '${((totalObt / totalMx) * 100).toStringAsFixed(1)}% OVERALL',
-                  style: TextStyle(
-                    fontFamily: 'RobotoMono',
-                    fontSize: 11,
-                    color: themeColor,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                Flexible(
+                  child: Text(
+                    '${((totalObt / totalMx) * 100).toStringAsFixed(1)}% OVERALL',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'RobotoMono',
+                      fontSize: 11,
+                      color: themeColor,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
               ],

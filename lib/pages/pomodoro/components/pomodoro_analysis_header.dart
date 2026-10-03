@@ -122,7 +122,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               final isSelected = range == r;
               return M3EButtonGroupAction(
                 label: Text(isSelected ? r.fullLabel : r.shortLabel),
-                decoration: M3EToggleButtonDecoration(
+                decoration: M3EButtonDecoration(
                   backgroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) {
                       return colorScheme.primary;

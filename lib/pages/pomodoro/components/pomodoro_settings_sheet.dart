@@ -3,8 +3,7 @@ import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/glass_alert_dialog.dart';
-import '../../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../../providers/pomodoro_provider.dart';
 
 class PomodoroSettingsSheet extends StatelessWidget {
@@ -137,102 +136,87 @@ class PomodoroSettingsSheet extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
 
-                            M3ESegmentedColumn(
-                              decoration: M3ESegmentedListDecoration(
-                                padding: const EdgeInsets.all(1.0),
-                                border: BorderSide(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  width: 1.0,
-                                ),
-                              ),
+                            M3EList(
                               color: colorScheme.surfaceContainerLowest
                                   .withValues(alpha: 0.45),
-                              children: [
-                                // Focus Duration
-                                _buildSliderTile(
-                                  context,
-                                  icon: Icons.psychology_rounded,
-                                  title: 'Focus Duration',
-                                  currentLabel:
-                                      '${settings.focusDuration} minutes',
-                                  value: settings.focusDuration.toDouble(),
-                                  min: 5,
-                                  max: 90,
-                                  divisions: 17,
-                                  label: '${settings.focusDuration}m',
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(focusDuration: val),
-                                    );
-                                  },
-                                ),
-
-                                // Short Break Duration
-                                _buildSliderTile(
-                                  context,
-                                  icon: Icons.coffee_rounded,
-                                  title: 'Short Break Duration',
-                                  currentLabel:
-                                      '${settings.shortBreakDuration} minutes',
-                                  value: settings.shortBreakDuration.toDouble(),
-                                  min: 1,
-                                  max: 30,
-                                  divisions: 29,
-                                  label: '${settings.shortBreakDuration}m',
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(
-                                        shortBreakDuration: val,
-                                      ),
-                                    );
-                                  },
-                                ),
-
-                                // Long Break Duration
-                                _buildSliderTile(
-                                  context,
-                                  icon: Icons.hotel_rounded,
-                                  title: 'Long Break Duration',
-                                  currentLabel:
-                                      '${settings.longBreakDuration} minutes',
-                                  value: settings.longBreakDuration.toDouble(),
-                                  min: 5,
-                                  max: 60,
-                                  divisions: 11,
-                                  label: '${settings.longBreakDuration}m',
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(longBreakDuration: val),
-                                    );
-                                  },
-                                ),
-
-                                // Long Break Interval
-                                _buildSliderTile(
-                                  context,
-                                  icon: Icons.repeat_rounded,
-                                  title: 'Long Break Interval',
-                                  currentLabel:
-                                      'Every ${settings.longBreakInterval} focus sessions',
-                                  value: settings.longBreakInterval.toDouble(),
-                                  min: 1,
-                                  max: 10,
-                                  divisions: 9,
-                                  label: '${settings.longBreakInterval} cycles',
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(longBreakInterval: val),
-                                    );
-                                  },
-                                ),
-                              ],
+                              itemCount: 4,
+                              itemBuilder: (context, index) => switch (index) {
+                                0 => _buildSliderTile(
+                                    context,
+                                    icon: Icons.psychology_rounded,
+                                    title: 'Focus Duration',
+                                    currentLabel:
+                                        '${settings.focusDuration} minutes',
+                                    value: settings.focusDuration.toDouble(),
+                                    min: 5,
+                                    max: 90,
+                                    divisions: 17,
+                                    label: '${settings.focusDuration}m',
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(focusDuration: val),
+                                      );
+                                    },
+                                  ),
+                                1 => _buildSliderTile(
+                                    context,
+                                    icon: Icons.coffee_rounded,
+                                    title: 'Short Break Duration',
+                                    currentLabel:
+                                        '${settings.shortBreakDuration} minutes',
+                                    value: settings.shortBreakDuration.toDouble(),
+                                    min: 1,
+                                    max: 30,
+                                    divisions: 29,
+                                    label: '${settings.shortBreakDuration}m',
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(
+                                          shortBreakDuration: val,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                2 => _buildSliderTile(
+                                    context,
+                                    icon: Icons.hotel_rounded,
+                                    title: 'Long Break Duration',
+                                    currentLabel:
+                                        '${settings.longBreakDuration} minutes',
+                                    value: settings.longBreakDuration.toDouble(),
+                                    min: 5,
+                                    max: 60,
+                                    divisions: 11,
+                                    label: '${settings.longBreakDuration}m',
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(longBreakDuration: val),
+                                      );
+                                    },
+                                  ),
+                                _ => _buildSliderTile(
+                                    context,
+                                    icon: Icons.repeat_rounded,
+                                    title: 'Long Break Interval',
+                                    currentLabel:
+                                        'Every ${settings.longBreakInterval} focus sessions',
+                                    value: settings.longBreakInterval.toDouble(),
+                                    min: 1,
+                                    max: 10,
+                                    divisions: 9,
+                                    label: '${settings.longBreakInterval} cycles',
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(longBreakInterval: val),
+                                      );
+                                    },
+                                  ),
+                              },
                             ),
 
                             const SizedBox(height: 24),
 
-                            // ─── 2. Timer Display (M3ESegmentedColumn) ───
+                            // ─── 2. Timer Display (M3EList) ───
                             Text(
                               'Timer Display',
                               style: textTheme.labelMedium?.copyWith(
@@ -244,43 +228,33 @@ class PomodoroSettingsSheet extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
 
-                            M3ESegmentedColumn(
-                              decoration: M3ESegmentedListDecoration(
-                                padding: const EdgeInsets.all(1.0),
-                                border: BorderSide(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  width: 1.0,
-                                ),
-                              ),
+                            M3EList(
                               color: colorScheme.surfaceContainerLowest
                                   .withValues(alpha: 0.45),
-                              children: [
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.timer_outlined,
-                                  title: 'Count up timer',
-                                  subtitle: 'Count up elapsed time instead of counting down',
-                                  value: settings.countUp,
-                                  selectedIcon: const Icon(
-                                    Icons.arrow_upward_rounded,
-                                  ),
-                                  unselectedIcon: const Icon(
-                                    Icons.arrow_downward_rounded,
-                                  ),
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(countUp: val),
-                                    );
-                                  },
+                              itemCount: 1,
+                              itemBuilder: (context, index) => _buildSwitchTile(
+                                context,
+                                icon: Icons.timer_outlined,
+                                title: 'Count up timer',
+                                subtitle: 'Count up elapsed time instead of counting down',
+                                value: settings.countUp,
+                                selectedIcon: const Icon(
+                                  Icons.arrow_upward_rounded,
                                 ),
-                              ],
+                                unselectedIcon: const Icon(
+                                  Icons.arrow_downward_rounded,
+                                ),
+                                onChanged: (val) {
+                                  provider.updateSettings(
+                                    settings.copyWith(countUp: val),
+                                  );
+                                },
+                              ),
                             ),
 
                             const SizedBox(height: 24),
 
-                            // ─── 3. Automation & Sound (M3ESegmentedColumn) ───
+                            // ─── 3. Automation & Sound (M3EList) ───
                             Text(
                               'Automation & Sound',
                               style: textTheme.labelMedium?.copyWith(
@@ -292,75 +266,63 @@ class PomodoroSettingsSheet extends StatelessWidget {
                             ),
                             const SizedBox(height: 12),
 
-                            M3ESegmentedColumn(
-                              decoration: M3ESegmentedListDecoration(
-                                padding: const EdgeInsets.all(1.0),
-                                border: BorderSide(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                  width: 1.0,
-                                ),
-                              ),
+                            M3EList(
                               color: colorScheme.surfaceContainerLowest
                                   .withValues(alpha: 0.45),
-                              children: [
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.play_arrow_rounded,
-                                  title: 'Auto-start breaks',
-                                  subtitle: 'Automatically start break timer when focus session finishes',
-                                  value: settings.autoStartBreaks,
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(autoStartBreaks: val),
-                                    );
-                                  },
-                                ),
-
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.fast_forward_rounded,
-                                  title: 'Auto-start focus sessions',
-                                  subtitle: 'Automatically start focus timer when break finishes',
-                                  value: settings.autoStartFocus,
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(autoStartFocus: val),
-                                    );
-                                  },
-                                ),
-                                _buildSwitchTile(
-                                  context,
-                                  icon: Icons.volume_up_rounded,
-                                  title: 'Sound alerts',
-                                  subtitle: 'Play audio chime and vibration when session completes',
-                                  value: settings.soundNotification,
-                                  selectedIcon: const Icon(
-                                    Icons.volume_up_rounded,
+                              itemCount: 3,
+                              itemBuilder: (context, index) => switch (index) {
+                                0 => _buildSwitchTile(
+                                    context,
+                                    icon: Icons.play_arrow_rounded,
+                                    title: 'Auto-start breaks',
+                                    subtitle: 'Automatically start break timer when focus session finishes',
+                                    value: settings.autoStartBreaks,
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(autoStartBreaks: val),
+                                      );
+                                    },
                                   ),
-                                  unselectedIcon: const Icon(
-                                    Icons.volume_off_rounded,
+                                1 => _buildSwitchTile(
+                                    context,
+                                    icon: Icons.fast_forward_rounded,
+                                    title: 'Auto-start focus sessions',
+                                    subtitle: 'Automatically start focus timer when break finishes',
+                                    value: settings.autoStartFocus,
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(autoStartFocus: val),
+                                      );
+                                    },
                                   ),
-                                  onChanged: (val) {
-                                    provider.updateSettings(
-                                      settings.copyWith(soundNotification: val),
-                                    );
-                                  },
-                                ),
-                              ],
+                                _ => _buildSwitchTile(
+                                    context,
+                                    icon: Icons.volume_up_rounded,
+                                    title: 'Sound alerts',
+                                    subtitle: 'Play audio chime and vibration when session completes',
+                                    value: settings.soundNotification,
+                                    selectedIcon: const Icon(
+                                      Icons.volume_up_rounded,
+                                    ),
+                                    unselectedIcon: const Icon(
+                                      Icons.volume_off_rounded,
+                                    ),
+                                    onChanged: (val) {
+                                      provider.updateSettings(
+                                        settings.copyWith(soundNotification: val),
+                                      );
+                                    },
+                                  ),
+                              },
                             ),
 
                             const SizedBox(height: 20),
 
-                            // Reset to defaults
                             Align(
                               alignment: Alignment.centerLeft,
-                              child: GlassButton(
+                              child: M3EButton(
                                 size: M3EButtonSize.sm,
-                                backgroundColor: colorScheme.secondaryContainer
-                                    .withValues(alpha: 0.45),
-                                borderRadius: 12,
+                                style: M3EButtonStyle.tonal,
                                 icon: Icon(
                                   Icons.restore_rounded,
                                   size: 20,
@@ -368,12 +330,11 @@ class PomodoroSettingsSheet extends StatelessWidget {
                                 ),
                                 onPressed: () =>
                                     provider.resetToDefaultSettings(),
-                                child: Text(
+                                label: Text(
                                   'Reset to Defaults',
                                   style: textTheme.labelMedium?.copyWith(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    // letterSpacing: 0.5,
                                     color: colorScheme.onSecondaryContainer,
                                   ),
                                 ),
@@ -461,43 +422,18 @@ class PomodoroSettingsSheet extends StatelessWidget {
     Widget? unselectedIcon,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          M3ESwitch(
-            value: value,
-            onChanged: onChanged,
-            selectedIcon: selectedIcon ?? const Icon(Icons.check_rounded),
-            unselectedIcon: unselectedIcon ?? const Icon(Icons.close_rounded),
-          ),
-        ],
+    return M3EListItem(
+      leading: Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
+      headline: title,
+      supportingText: subtitle,
+      trailing: M3ESwitch(
+        value: value,
+        onChanged: onChanged,
+        selectedIcon: selectedIcon ?? const Icon(Icons.check_rounded),
+        unselectedIcon: unselectedIcon ?? const Icon(Icons.close_rounded),
       ),
+      onTap: () => onChanged(!value),
     );
   }
 }

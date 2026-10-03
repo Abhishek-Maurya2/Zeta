@@ -143,7 +143,6 @@ class _TasksCompletedPaginatedListState
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: M3ELoadingIndicator(
                       variant: M3ELoadingIndicatorVariant.defaultStyle,
-                      elevation: 0,
                     ),
                   )
                 : Padding(

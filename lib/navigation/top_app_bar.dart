@@ -12,7 +12,8 @@ import '../providers/profile_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/revision_provider.dart';
 import '../components/zeta_logo.dart';
-import '../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import '../components/zeta_empty_state.dart';
 import '../components/task_edit_pane.dart';
 import '../theme/breakpoints.dart';
 import 'components/profile_avatar_menu.dart';
@@ -395,201 +396,55 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                 ),
               ),
               const SizedBox(height: 6),
-              M3ESegmentedColumn(
-                decoration: const M3ESegmentedListDecoration(
-                  padding: EdgeInsets.zero,
-                ),
-                color: colorScheme.surfaceContainerLowest.withValues(
-                  alpha: 0.5,
-                ),
-                children: [
-                  InkWell(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(24),
-                      bottom: Radius.circular(4),
+              M3EList(
+                itemCount: 4,
+                itemBuilder: (context, index) => switch (index) {
+                  0 => M3EListItem(
+                      leading: const Icon(Icons.add_circle_outline_rounded),
+                      headline: 'New Task',
+                      supportingText: 'Create a new task or note  [N]',
+                      onTap: () {
+                        safeCloseView(null);
+                        TaskEditPane.show(context);
+                      },
                     ),
-                    onTap: () {
-                      safeCloseView(null);
-                      TaskEditPane.show(context);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                  1 => M3EListItem(
+                      leading: Icon(
+                        Icons.delete_outline_rounded,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.add_circle_outline_rounded),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'New Task',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Create a new task or note  [N]',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      headline: 'Bin',
+                      supportingText: 'Recycle bin and archived tasks',
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.bin);
+                      },
                     ),
-                  ),
-
-                  InkWell(
-                    borderRadius: BorderRadius.circular(4),
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.bin);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                  2 => M3EListItem(
+                      leading: Icon(
+                        Icons.timer_outlined,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Bin',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Recycle bin and archived tasks',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      headline: 'Pomodoro Timer',
+                      supportingText: 'Focus intervals and session tracker',
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.pomodoro);
+                      },
                     ),
-                  ),
-
-                  InkWell(
-                    borderRadius: BorderRadius.circular(4),
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.pomodoro);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                  _ => M3EListItem(
+                      leading: Icon(
+                        Icons.settings_outlined,
+                        color: colorScheme.onSurfaceVariant,
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.timer_outlined,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Pomodoro Timer',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Focus intervals and session tracker',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      headline: 'Settings',
+                      supportingText: 'Customize theme, typography and sync',
+                      onTap: () {
+                        safeCloseView(null);
+                        navProvider.setActivePage(PageId.settings);
+                      },
                     ),
-                  ),
-
-                  InkWell(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(4),
-                      bottom: Radius.circular(24),
-                    ),
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.settings);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.settings_outlined,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Settings',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Customize theme, typography and sync',
-                                  style: TextStyle(
-                                    color: colorScheme.onSurfaceVariant,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                },
               ),
 
               if (!ZetaWindowSizeClass.of(context).isCompact) ...[
@@ -632,34 +487,28 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     widgets.add(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: M3ESegmentedColumn(
-          decoration: const M3ESegmentedListDecoration(
-            padding: EdgeInsets.zero,
-          ),
-          color: colorScheme.surfaceBright.withValues(alpha: 0.45),
-          children: [
-            ListTile(
-              leading: Icon(Icons.search_rounded, color: colorScheme.primary),
-              title: Text('Search all for "$query"'),
-              subtitle: Text(
-                'Filter Tasks page • ${matchingTasks.length} found',
-              ),
-
-              onTap: () {
-                safeCloseView(query);
-                taskProvider.setSearchQuery(query);
-                navProvider.setActivePage(PageId.tasks);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add_task_rounded, color: colorScheme.primary),
-              title: Text('Create task "$query"'),
-              onTap: () {
-                safeCloseView(null);
-                TaskEditPane.show(context, initialTitle: query);
-              },
-            ),
-          ],
+        child: M3EList(
+          itemCount: 2,
+          itemBuilder: (context, index) => index == 0
+              ? M3EListItem(
+                  leading: Icon(Icons.search_rounded, color: colorScheme.primary),
+                  headline: 'Search all for "$query"',
+                  supportingText:
+                      'Filter Tasks page • ${matchingTasks.length} found',
+                  onTap: () {
+                    safeCloseView(query);
+                    taskProvider.setSearchQuery(query);
+                    navProvider.setActivePage(PageId.tasks);
+                  },
+                )
+              : M3EListItem(
+                  leading: Icon(Icons.add_task_rounded, color: colorScheme.primary),
+                  headline: 'Create task "$query"',
+                  onTap: () {
+                    safeCloseView(null);
+                    TaskEditPane.show(context, initialTitle: query);
+                  },
+                ),
         ),
       ),
     );
@@ -712,7 +561,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         }
 
         taskTiles.add(
-          ListTile(
+          M3EListItem(
             leading: Icon(
               task.completed
                   ? Icons.check_circle_rounded
@@ -722,29 +571,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
                   ? const Color(0xFF10B981)
                   : colorScheme.onSurfaceVariant,
             ),
-            title: Text(
-              task.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                decoration: task.completed ? TextDecoration.lineThrough : null,
-                color: task.completed
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.onSurface,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            subtitle: snippet != null
-                ? Text(
-                    snippet,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                : null,
+            headline: task.title,
+            supportingText: snippet,
             trailing: task.dueDate != null
                 ? Container(
                     padding: const EdgeInsets.symmetric(
@@ -775,12 +603,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: M3ESegmentedColumn(
-            decoration: const M3ESegmentedListDecoration(
-              padding: EdgeInsets.zero,
-            ),
-            color: colorScheme.surfaceBright.withValues(alpha: 0.45),
-            children: taskTiles,
+          child: M3EList(
+            itemCount: taskTiles.length,
+            itemBuilder: (context, index) => taskTiles[index],
           ),
         ),
       );
@@ -807,19 +632,14 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       final binTiles = <Widget>[];
       for (final binTask in matchingBinTasks.take(5)) {
         binTiles.add(
-          ListTile(
+          M3EListItem(
             leading: Icon(
               Icons.delete_outline_rounded,
               color: colorScheme.error,
               size: 20,
             ),
-            title: Text(
-              binTask.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(decoration: TextDecoration.lineThrough),
-            ),
-            subtitle: const Text('In Bin (Deleted)'),
+            headline: binTask.title,
+            supportingText: 'In Bin (Deleted)',
             onTap: () {
               safeCloseView(null);
               navProvider.setActivePage(PageId.bin);
@@ -831,12 +651,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: M3ESegmentedColumn(
-            decoration: const M3ESegmentedListDecoration(
-              padding: EdgeInsets.zero,
-            ),
-            color: colorScheme.surfaceBright.withValues(alpha: 0.45),
-            children: binTiles,
+          child: M3EList(
+            itemCount: binTiles.length,
+            itemBuilder: (context, index) => binTiles[index],
           ),
         ),
       );

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -182,9 +183,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
 
+        final upperBound = math.max(_minSupportingPaneWidth, totalWidth * 0.75);
         final maxAllowedWidth = (totalWidth - _minFocusPaneWidth - 16.0).clamp(
           _minSupportingPaneWidth,
-          totalWidth * 0.75,
+          upperBound,
         );
         final currentWidth = _hasCustomWidth
             ? _supportingPaneWidth
@@ -207,9 +209,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
         }
 
         final startSize = totalWidth - effectiveWidth - 24;
-        final currentPercentage = (startSize / totalWidth) * 100;
-        final minPercent = ((totalWidth - maxAllowedWidth - 24) / totalWidth) * 100;
-        final maxPercent = ((totalWidth - _minSupportingPaneWidth - 24) / totalWidth) * 100;
+        final currentPercentage = totalWidth > 0 ? (startSize / totalWidth) * 100 : 0.0;
+        final minPercent = totalWidth > 0 ? ((totalWidth - maxAllowedWidth - 24) / totalWidth) * 100 : 0.0;
+        final maxPercent = totalWidth > 0 ? ((totalWidth - _minSupportingPaneWidth - 24) / totalWidth) * 100 : 100.0;
 
         final snapPointsPercent = <double>[
           ((totalWidth - _defaultSupportingPaneWidth - 24) / totalWidth) * 100,
@@ -218,9 +220,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
         ];
 
         return M3ESplitPane(
-          value: currentPercentage.clamp(minPercent, maxPercent),
-          min: minPercent,
-          max: maxPercent,
+          value: currentPercentage.clamp(math.min(minPercent, maxPercent), math.max(minPercent, maxPercent)),
+          min: math.min(minPercent, maxPercent),
+          max: math.max(minPercent, maxPercent),
           detents: snapPointsPercent,
           onChanged: (val) {
              final newEffective = totalWidth - (totalWidth * (val / 100)) - 24;
@@ -268,7 +270,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                             type: M3EButtonGroupType.connected,
                             size: M3EButtonSize.sm,
                             style: M3EButtonStyle.filled,
-                            decoration: M3EToggleButtonDecoration(
+                            decoration: M3EButtonDecoration(
                               backgroundColor:
                                   WidgetStateProperty.resolveWith((states) {
                                     if (states.contains(
@@ -414,7 +416,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
               type: M3EButtonGroupType.connected,
               size: M3EButtonSize.sm,
               style: M3EButtonStyle.filled,
-              decoration: M3EToggleButtonDecoration(
+              decoration: M3EButtonDecoration(
                 backgroundColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
                     return colorScheme.primary;

@@ -1,8 +1,8 @@
 import 'package:geolocator/geolocator.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/segmented_column.dart';
 import '../../../providers/weather_provider.dart';
 import '../../../components/weather_icon.dart';
 import '../../../utils/app_snackbar.dart';
@@ -259,68 +259,49 @@ class _WeatherSectionState extends State<WeatherSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
-            M3ESegmentedColumn(
-              decoration: M3ESegmentedListDecoration(
-                outerRadius: 50,
-                innerRadius: 50,
-                color: isMasterOn
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainer,
-              ),
-              onTap: (_) {
-                ZetaHaptics.light();
-                final newVal = !isMasterOn;
-                weatherProvider.setWeatherEnabled(newVal);
-                widget.onToast?.call(
-                  newVal
-                      ? 'Weather telemetry turned on'
-                      : 'Weather telemetry turned off',
-                );
-              },
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Use weather',
-                          style: textTheme.displaySmall?.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: isMasterOn
-                                ? colorScheme.onPrimaryContainer
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                      ),
-                      M3ESwitch(
-                        value: isMasterOn,
-                        selectedIcon: const Icon(
-                          Icons.wb_sunny_rounded,
-                          size: 16,
-                        ),
-                        unselectedIcon: const Icon(
-                          Icons.cloud_off_rounded,
-                          size: 16,
-                        ),
-                        onChanged: (val) {
-                          ZetaHaptics.light();
-                          weatherProvider.setWeatherEnabled(val);
-                          widget.onToast?.call(
-                            val
-                                ? 'Weather telemetry turned on'
-                                : 'Weather telemetry turned off',
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+            M3EList(
+              itemCount: 1,
+              itemBuilder: (context, index) => Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(50),
+                  color: isMasterOn
+                      ? colorScheme.primaryContainer
+                      : colorScheme.surfaceContainer,
                 ),
-              ],
+                child: M3EListItem(
+                  headline: 'Use weather',
+                  trailing: M3ESwitch(
+                    value: isMasterOn,
+                    selectedIcon: const Icon(
+                      Icons.wb_sunny_rounded,
+                      size: 16,
+                    ),
+                    unselectedIcon: const Icon(
+                      Icons.cloud_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      weatherProvider.setWeatherEnabled(val);
+                      widget.onToast?.call(
+                        val
+                            ? 'Weather telemetry turned on'
+                            : 'Weather telemetry turned off',
+                      );
+                    },
+                  ),
+                  onTap: () {
+                    ZetaHaptics.light();
+                    final newVal = !isMasterOn;
+                    weatherProvider.setWeatherEnabled(newVal);
+                    widget.onToast?.call(
+                      newVal
+                          ? 'Weather telemetry turned on'
+                          : 'Weather telemetry turned off',
+                    );
+                  },
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -337,17 +318,11 @@ class _WeatherSectionState extends State<WeatherSection> {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Hero Telemetry Showcase
-                Padding(
+            M3EList(
+              itemCount: 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 16,
@@ -555,10 +530,9 @@ class _WeatherSectionState extends State<WeatherSection> {
                       ),
                     ],
                   ),
-                ),
-
-                // Actions: Use location & Refresh
-                Padding(
+                );
+                }
+                return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -595,8 +569,8 @@ class _WeatherSectionState extends State<WeatherSection> {
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
 
             const SizedBox(height: 24),
@@ -613,17 +587,11 @@ class _WeatherSectionState extends State<WeatherSection> {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Selected Location Tile + Change Toggle
-                Padding(
+            M3EList(
+              itemCount: _isEditing ? 2 : 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -688,11 +656,9 @@ class _WeatherSectionState extends State<WeatherSection> {
                       ),
                     ],
                   ),
-                ),
-
-                // Expandable Search Field & Quick Picks
-                if (_isEditing)
-                  Padding(
+                );
+                }
+                return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
@@ -879,8 +845,8 @@ class _WeatherSectionState extends State<WeatherSection> {
                         ],
                       ),
                     ),
-                  ),
-              ],
+                  );
+              },
             ),
 
             const SizedBox(height: 24),
@@ -897,37 +863,31 @@ class _WeatherSectionState extends State<WeatherSection> {
             ),
             const SizedBox(height: 12),
 
-            M3ESegmentedColumn(
-              decoration: const M3ESegmentedListDecoration(
-                padding: EdgeInsets.all(1.0),
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-              ),
-              color: colorScheme.surfaceContainerLowest,
-              children: [
-                // Show weather on Home screen
-                _buildSwitchTile(
-                  context,
-                  title: 'Show weather on Home screen',
-                  subtitle: 'Display live temperature and weather badge on the weekly calendar strip',
-                  value: weatherProvider.showWeatherInHeader,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.home_rounded, size: 16),
-                  unselectedIcon: const Icon(Icons.home_outlined, size: 16),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    weatherProvider.setShowWeatherInHeader(val);
-                    widget.onToast?.call(
-                      val
-                          ? 'Weather header enabled on Home screen'
-                          : 'Weather header hidden on Home screen',
-                    );
-                  },
-                ),
-
-                // Temperature measurement scale info tile
-                Padding(
+            M3EList(
+              itemCount: 2,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return _buildSwitchTile(
+                    context,
+                    title: 'Show weather on Home screen',
+                    subtitle:
+                        'Display live temperature and weather badge on the weekly calendar strip',
+                    value: weatherProvider.showWeatherInHeader,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.home_rounded, size: 16),
+                    unselectedIcon: const Icon(Icons.home_outlined, size: 16),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      weatherProvider.setShowWeatherInHeader(val);
+                      widget.onToast?.call(
+                        val
+                            ? 'Weather header enabled on Home screen'
+                            : 'Weather header hidden on Home screen',
+                      );
+                    },
+                  );
+                }
+                return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -989,8 +949,8 @@ class _WeatherSectionState extends State<WeatherSection> {
                       ),
                     ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
 
             const SizedBox(height: 24),

@@ -46,7 +46,6 @@ class PullToRefreshContainer extends StatelessWidget {
                   scale: (0.55 + 0.45 * expressiveRatio).clamp(0.55, 1.1),
                   child: const M3ELoadingIndicator(
                     variant: M3ELoadingIndicatorVariant.contained,
-                    elevation: 0,
                   ),
                 ),
               ),

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/segmented_column.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../components/user_avatar.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -634,27 +634,11 @@ class _ProfileCardContent extends StatelessWidget {
                 ],
 
                 // ─── Segmented List: Refresh, Settings, Bin ─────────────────
-                M3ESegmentedColumn(
-                  decoration: const M3ESegmentedListDecoration(
-                    padding: EdgeInsets.all(2),
-                    outerRadius: 14.0,
-                    innerRadius: 6.0,
-                    gap: 2.0,
-                  ),
-                  color: isDark
-                      ? colorScheme.tertiary.withValues(alpha: 0.3)
-                      : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
-                  children: [
-                    // 1. Refresh Tile
-                    Material(
-                      color: Colors.transparent,
-                      child: ListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 2,
-                        ),
+                Builder(
+                  builder: (context) {
+                    final menuItems = <Widget>[
+                      // 1. Refresh Tile
+                      M3EListItem(
                         leading: Icon(
                           hasSyncError
                               ? Icons.sync_problem_rounded
@@ -666,64 +650,29 @@ class _ProfileCardContent extends StatelessWidget {
                               ? colorScheme.error
                               : colorScheme.onSurfaceVariant,
                         ),
-                        title: Text(
-                          hasSyncError
-                              ? 'Retry Sync'
-                              : (isSyncing ? 'Syncing…' : 'Refresh'),
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: hasSyncError
-                                ? colorScheme.error
-                                : colorScheme.onSurface,
-                          ),
-                        ),
-                        subtitle: hasSyncError
-                            ? Text(
-                                'Tap to retry failed sync',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.error.withValues(alpha: 0.85),
-                                  fontSize: 11,
-                                ),
-                              )
+                        headline: hasSyncError
+                            ? 'Retry Sync'
+                            : (isSyncing ? 'Syncing…' : 'Refresh'),
+                        supportingText: hasSyncError
+                            ? 'Tap to retry failed sync'
                             : (isSyncing
-                                ? Text(
-                                    'Syncing with cloud…',
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontSize: 11,
-                                    ),
-                                  )
+                                ? 'Syncing with cloud…'
                                 : null),
                         onTap: () {
                           onDismiss();
                           _triggerRefresh(context);
                         },
                       ),
-                    ),
 
-                    // 2. Bin Tile (if Android or compact)
-                    if (isAndroid || isCompact)
-                      Material(
-                        color: Colors.transparent,
-                        child: ListTile(
-                          dense: true,
-                          visualDensity: VisualDensity.compact,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 2,
-                          ),
+                      // 2. Bin Tile (if Android or compact)
+                      if (isAndroid || isCompact)
+                        M3EListItem(
                           leading: Icon(
                             Icons.delete_outline_rounded,
                             size: 20,
                             color: colorScheme.onSurfaceVariant,
                           ),
-                          title: Text(
-                            'Bin',
-                            style: textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurface,
-                            ),
-                          ),
+                          headline: 'Bin',
                           trailing: Icon(
                             Icons.chevron_right_rounded,
                             size: 18,
@@ -737,30 +686,15 @@ class _ProfileCardContent extends StatelessWidget {
                             navProvider.setActivePage(PageId.bin);
                           },
                         ),
-                      ),
 
-                    // 3. Settings Tile
-                    Material(
-                      color: Colors.transparent,
-                      child: ListTile(
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 2,
-                        ),
+                      // 3. Settings Tile
+                      M3EListItem(
                         leading: Icon(
                           Icons.settings_outlined,
                           size: 20,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        title: Text(
-                          'Settings',
-                          style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurface,
-                          ),
-                        ),
+                        headline: 'Settings',
                         trailing: Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
@@ -774,8 +708,16 @@ class _ProfileCardContent extends StatelessWidget {
                           navProvider.setActivePage(PageId.settings);
                         },
                       ),
-                    ),
-                  ],
+                    ];
+
+                    return M3EList(
+                      color: isDark
+                          ? colorScheme.tertiary.withValues(alpha: 0.3)
+                          : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
+                      itemCount: menuItems.length,
+                      itemBuilder: (context, index) => menuItems[index],
+                    );
+                  },
                 ),
               ],
             ),
