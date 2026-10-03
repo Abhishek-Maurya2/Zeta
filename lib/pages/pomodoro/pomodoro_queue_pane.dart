@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../providers/pomodoro_provider.dart';
 import '../../components/zeta_empty_state.dart';
 import 'components/pomodoro_settings_sheet.dart';
@@ -116,28 +117,38 @@ class PomodoroQueuePane extends StatelessWidget {
             )
           else
             M3EList(
-              color: colorScheme.surfaceContainerLowest,
               itemCount: queue.length,
+              gap: 4,
+              colorBuilder: (idx) {
+                return idx == activeIndex
+                    ? colorScheme.secondaryContainer
+                    : colorScheme.surfaceContainerLowest;
+              },
+              borderRadiusBuilder: (idx, position) {
+                if (idx == activeIndex) {
+                  return BorderRadius.circular(100);
+                }
+                return calculateCardRadius(
+                  position: position,
+                  outerRadius: M3EListCardListTheme.defaultOuterRadius,
+                  innerRadius: M3EListCardListTheme.defaultInnerRadius,
+                );
+              },
+              onTap: (idx) => provider.jumpToSession(idx),
               itemBuilder: (context, idx) {
                 final item = queue[idx];
                 final isActive = idx == activeIndex;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: isActive ? colorScheme.secondaryContainer : null,
-                    borderRadius: BorderRadius.circular(isActive ? 52 : 12),
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                  child: InkWell(
-                    onTap: () => provider.jumpToSession(idx),
-                    borderRadius: BorderRadius.circular(isActive ? 52 : 12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      child: PomodoroQueueItemTile(
-                        item: item,
-                        isActive: isActive,
-                        isPast: idx < activeIndex,
-                        isRunning: isRunning,
-                      ),
-                    ),
+                  child: PomodoroQueueItemTile(
+                    item: item,
+                    isActive: isActive,
+                    isPast: idx < activeIndex,
+                    isRunning: isRunning,
                   ),
                 );
               },

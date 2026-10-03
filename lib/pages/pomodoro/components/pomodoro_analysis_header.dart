@@ -106,11 +106,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
         // ─── Range Selector: Centered Above Period Title [D W M Y] ────
         Center(
           child: M3EButtonGroup(
-            type: M3EButtonGroupType.standard,
-            shape: M3EButtonShape.square,
             size: M3EButtonSize.custom(height: 40),
-            density: M3EButtonGroupDensity.compact,
-            style: M3EButtonStyle.filled,
+            spacing: 2,
             selectedIndex: range.index,
             onSelectedIndexChanged: (idx) {
               if (idx != null) {
@@ -153,21 +150,15 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 _formatPeriodTitle(now),
                 style: textTheme.displaySmall?.copyWith(
                   color: colorScheme.onSurface,
-                  letterSpacing: -0.8
+                  letterSpacing: -0.8,
                 ),
               ),
             ),
             const SizedBox(width: 4),
             M3EButtonGroup(
               type: M3EButtonGroupType.standard,
-              size: M3EButtonSize.custom(
-                height: 50,
-                hPadding: 10,
-                iconSize: 32,
-                iconGap: 5,
-              ),
-              shape: M3EButtonShape.round,
-              density: M3EButtonGroupDensity.compact,
+              size: M3EButtonSize.md,
+              spacing: 2,
               selectedIndex: null,
               onSelectedIndexChanged: (idx) {
                 ZetaHaptics.light();
@@ -185,23 +176,26 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               },
               actions: [
                 const M3EButtonGroupAction(
+                  width: 10,
                   icon: Icon(
                     Icons.chevron_left_rounded,
-                    size: 25,
+                    size: 35,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 M3EButtonGroupAction(
+                  width: 10,
                   icon: Icon(
                     Icons.chevron_right_rounded,
                     fontWeight: FontWeight.w600,
-                    size: 25,
+                    size: 35,
                     color: offset < 0
                         ? null
                         : colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
                 ),
                 M3EButtonGroupAction(
+                  width: 10,
                   icon: Icon(
                     Icons.history_rounded,
                     fontWeight: FontWeight.w600,
@@ -210,7 +204,6 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                         ? null
                         : colorScheme.onSurface.withValues(alpha: 0.38),
                   ),
-                  width: 55,
                 ),
               ],
             ),
