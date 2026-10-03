@@ -636,8 +636,11 @@ class _ProfileCardContent extends StatelessWidget {
                 // ─── Segmented List: Refresh, Settings, Bin ─────────────────
                 Builder(
                   builder: (context) {
-                    final menuItems = <Widget>[
-                      // 1. Refresh Tile
+                    final menuItems = <Widget>[];
+                    final menuActions = <VoidCallback>[];
+
+                    // 1. Refresh Tile
+                    menuItems.add(
                       M3EListItem(
                         leading: Icon(
                           hasSyncError
@@ -658,14 +661,16 @@ class _ProfileCardContent extends StatelessWidget {
                             : (isSyncing
                                 ? 'Syncing with cloud…'
                                 : null),
-                        onTap: () {
-                          onDismiss();
-                          _triggerRefresh(context);
-                        },
                       ),
+                    );
+                    menuActions.add(() {
+                      onDismiss();
+                      _triggerRefresh(context);
+                    });
 
-                      // 2. Bin Tile (if Android or compact)
-                      if (isAndroid || isCompact)
+                    // 2. Bin Tile (if Android or compact)
+                    if (isAndroid || isCompact) {
+                      menuItems.add(
                         M3EListItem(
                           leading: Icon(
                             Icons.delete_outline_rounded,
@@ -680,14 +685,17 @@ class _ProfileCardContent extends StatelessWidget {
                               alpha: 0.7,
                             ),
                           ),
-                          onTap: () {
-                            onDismiss();
-                            ZetaHaptics.selection();
-                            navProvider.setActivePage(PageId.bin);
-                          },
                         ),
+                      );
+                      menuActions.add(() {
+                        onDismiss();
+                        ZetaHaptics.selection();
+                        navProvider.setActivePage(PageId.bin);
+                      });
+                    }
 
-                      // 3. Settings Tile
+                    // 3. Settings Tile
+                    menuItems.add(
                       M3EListItem(
                         leading: Icon(
                           Icons.settings_outlined,
@@ -702,19 +710,20 @@ class _ProfileCardContent extends StatelessWidget {
                             alpha: 0.7,
                           ),
                         ),
-                        onTap: () {
-                          onDismiss();
-                          ZetaHaptics.selection();
-                          navProvider.setActivePage(PageId.settings);
-                        },
                       ),
-                    ];
+                    );
+                    menuActions.add(() {
+                      onDismiss();
+                      ZetaHaptics.selection();
+                      navProvider.setActivePage(PageId.settings);
+                    });
 
                     return M3EList(
                       color: isDark
                           ? colorScheme.tertiary.withValues(alpha: 0.3)
                           : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
                       itemCount: menuItems.length,
+                      onTap: (index) => menuActions[index](),
                       itemBuilder: (context, index) => menuItems[index],
                     );
                   },

@@ -158,55 +158,52 @@ class TopBarSearch extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  M3EListItem(
-                    leading: const Icon(Icons.add_circle_outline_rounded),
+              M3EList(
+                itemCount: 4,
+                onTap: (index) {
+                  safeCloseView(null);
+                  switch (index) {
+                    case 0:
+                      TaskEditPane.show(context);
+                    case 1:
+                      navProvider.setActivePage(PageId.bin);
+                    case 2:
+                      navProvider.setActivePage(PageId.pomodoro);
+                    case 3:
+                      navProvider.setActivePage(PageId.settings);
+                  }
+                },
+                itemBuilder: (context, index) => switch (index) {
+                  0 => const M3EListItem(
+                    leading: Icon(Icons.add_circle_outline_rounded),
                     headline: 'New Task',
                     supportingText: 'Create a new task or note  [N]',
-                    onTap: () {
-                      safeCloseView(null);
-                      TaskEditPane.show(context);
-                    },
                   ),
-                  M3EListItem(
+                  1 => M3EListItem(
                     leading: Icon(
                       Icons.delete_outline_rounded,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Bin',
                     supportingText: 'Recycle bin and archived tasks',
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.bin);
-                    },
                   ),
-                  M3EListItem(
+                  2 => M3EListItem(
                     leading: Icon(
                       Icons.timer_outlined,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Pomodoro Timer',
                     supportingText: 'Focus intervals and session tracker',
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.pomodoro);
-                    },
                   ),
-                  M3EListItem(
+                  _ => M3EListItem(
                     leading: Icon(
                       Icons.settings_outlined,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Settings',
                     supportingText: 'Customize theme, typography and sync',
-                    onTap: () {
-                      safeCloseView(null);
-                      navProvider.setActivePage(PageId.settings);
-                    },
                   ),
-                ],
+                },
               ),
               if (!ZetaWindowSizeClass.of(context).isCompact) ...[
                 const SizedBox(height: 12),
@@ -244,35 +241,35 @@ class TopBarSearch extends StatelessWidget {
     widgets.add(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            M3EListItem(
-              leading: Icon(
-                Icons.search_rounded,
-                color: colorScheme.primary,
-              ),
-              headline: 'Search all for "$query"',
-              supportingText:
-                  'Filter Tasks page • ${matchingTasks.length} found',
-              onTap: () {
-                safeCloseView(query);
-                taskProvider.setSearchQuery(query);
-                navProvider.setActivePage(PageId.tasks);
-              },
-            ),
-            M3EListItem(
-              leading: Icon(
-                Icons.add_task_rounded,
-                color: colorScheme.primary,
-              ),
-              headline: 'Create task "$query"',
-              onTap: () {
-                safeCloseView(null);
-                TaskEditPane.show(context, initialTitle: query);
-              },
-            ),
-          ],
+        child: M3EList(
+          itemCount: 2,
+          onTap: (index) {
+            if (index == 0) {
+              safeCloseView(query);
+              taskProvider.setSearchQuery(query);
+              navProvider.setActivePage(PageId.tasks);
+            } else {
+              safeCloseView(null);
+              TaskEditPane.show(context, initialTitle: query);
+            }
+          },
+          itemBuilder: (context, index) => index == 0
+              ? M3EListItem(
+                  leading: Icon(
+                    Icons.search_rounded,
+                    color: colorScheme.primary,
+                  ),
+                  headline: 'Search all for "$query"',
+                  supportingText:
+                      'Filter Tasks page • ${matchingTasks.length} found',
+                )
+              : M3EListItem(
+                  leading: Icon(
+                    Icons.add_task_rounded,
+                    color: colorScheme.primary,
+                  ),
+                  headline: 'Create task "$query"',
+                ),
         ),
       ),
     );
@@ -295,8 +292,9 @@ class TopBarSearch extends StatelessWidget {
       );
 
       final qLower = query.toLowerCase();
+      final taskList = matchingTasks.take(15).toList();
       final taskTiles = <Widget>[];
-      for (final task in matchingTasks.take(15)) {
+      for (final task in taskList) {
         String? snippet;
         if (task.description != null &&
             task.description!.toLowerCase().contains(qLower)) {
@@ -355,10 +353,6 @@ class TopBarSearch extends StatelessWidget {
                     ),
                   )
                 : null,
-            onTap: () {
-              safeCloseView(null);
-              TaskEditPane.show(context, task: task);
-            },
           ),
         );
       }
@@ -366,9 +360,13 @@ class TopBarSearch extends StatelessWidget {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: taskTiles,
+          child: M3EList(
+            itemCount: taskTiles.length,
+            onTap: (index) {
+              safeCloseView(null);
+              TaskEditPane.show(context, task: taskList[index]);
+            },
+            itemBuilder: (context, index) => taskTiles[index],
           ),
         ),
       );
@@ -402,10 +400,6 @@ class TopBarSearch extends StatelessWidget {
             ),
             headline: binTask.title,
             supportingText: 'In Bin (Deleted)',
-            onTap: () {
-              safeCloseView(null);
-              navProvider.setActivePage(PageId.bin);
-            },
           ),
         );
       }
@@ -413,9 +407,13 @@ class TopBarSearch extends StatelessWidget {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: binTiles,
+          child: M3EList(
+            itemCount: binTiles.length,
+            onTap: (index) {
+              safeCloseView(null);
+              navProvider.setActivePage(PageId.bin);
+            },
+            itemBuilder: (context, index) => binTiles[index],
           ),
         ),
       );
