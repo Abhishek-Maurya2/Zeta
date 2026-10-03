@@ -24,7 +24,9 @@ class _TypographySectionState extends State<TypographySection> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final currentConfig = themeProvider.getTypographyConfigForRole(_selectedRole);
+    final currentConfig = themeProvider.getTypographyConfigForRole(
+      _selectedRole,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +92,9 @@ class _TypographySectionState extends State<TypographySection> {
             style: M3EButtonStyle.tonal,
             selectedIndex: _selectedRole.index,
             onSelectedIndexChanged: (index) {
-              if (index != null && index >= 0 && index < TypographyRole.values.length) {
+              if (index != null &&
+                  index >= 0 &&
+                  index < TypographyRole.values.length) {
                 ZetaHaptics.selection();
                 setState(() {
                   _selectedRole = TypographyRole.values[index];
@@ -138,6 +142,8 @@ class _TypographySectionState extends State<TypographySection> {
         const SizedBox(height: 8),
 
         M3EList(
+          color: colorScheme.surfaceContainerLowest,
+
           itemCount: kSupportedFonts.length,
           itemBuilder: (context, index) {
             final font = kSupportedFonts[index];
@@ -149,7 +155,10 @@ class _TypographySectionState extends State<TypographySection> {
                 widget.onToast?.call('Selected ${font.name}');
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Icon(
@@ -258,7 +267,7 @@ class _TypographySectionState extends State<TypographySection> {
 
         // ─── Variable Axis Sliders ────────────────────────────────────────
         Text(
-          'VARIABLE AXIS CONTROLS (${_selectedRole.label})',
+          'Axis Controls (${_selectedRole.label})',
           style: textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
@@ -268,6 +277,8 @@ class _TypographySectionState extends State<TypographySection> {
         const SizedBox(height: 8),
 
         M3EList(
+          color: colorScheme.surfaceContainerLowest,
+
           itemCount: 5,
           itemBuilder: (context, index) {
             switch (index) {
@@ -294,7 +305,11 @@ class _TypographySectionState extends State<TypographySection> {
                   icon: Icons.unfold_more_rounded,
                   title: 'Width (wdth)',
                   subtitle:
-                      '${currentConfig.width.round()}% ${currentConfig.width < 100 ? 'Condensed' : currentConfig.width > 100 ? 'Expanded' : 'Standard'}',
+                      '${currentConfig.width.round()}% ${currentConfig.width < 100
+                          ? 'Condensed'
+                          : currentConfig.width > 100
+                          ? 'Expanded'
+                          : 'Standard'}',
                   value: currentConfig.width,
                   min: 50,
                   max: 151,
@@ -353,16 +368,15 @@ class _TypographySectionState extends State<TypographySection> {
                   subtitle: currentConfig.roundness == 0
                       ? 'Geometric / Crisp'
                       : currentConfig.roundness >= 70
-                          ? 'Fully Rounded Soft'
-                          : 'Subtle Corner Softness',
+                      ? 'Fully Rounded Soft'
+                      : 'Subtle Corner Softness',
                   value: currentConfig.roundness,
                   min: 0,
                   max: 100,
                   divisions: 100,
                   badgeText: currentConfig.roundness.round().toString(),
                   isSupported: currentConfig.supportedFont.supportsAxis('ROND'),
-                  unsupportedReason:
-                      'Roundness (ROND) is exclusively available in Google Sans Flex',
+                  unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
                   helperLabel: 'Switch to Google Sans Flex',
                   onEnableHelper: () {
                     themeProvider.updateRoleTypography(
@@ -370,7 +384,8 @@ class _TypographySectionState extends State<TypographySection> {
                       currentConfig.copyWith(fontId: 'google-sans-flex'),
                     );
                     widget.onToast?.call(
-                        'Switched to Google Sans Flex with roundness');
+                      'Switched to Google Sans Flex with roundness',
+                    );
                   },
                   onChanged: (val) {
                     final updated = currentConfig.copyWith(roundness: val);
@@ -432,7 +447,9 @@ class _TypographySectionState extends State<TypographySection> {
               size: M3EButtonSize.sm,
               onPressed: () {
                 themeProvider.resetAllTypography();
-                widget.onToast?.call('Reset all typography to factory defaults');
+                widget.onToast?.call(
+                  'Reset all typography to factory defaults',
+                );
               },
               child: const Text('Reset All Roles'),
             ),
@@ -464,8 +481,7 @@ class _TypographySectionState extends State<TypographySection> {
         break;
       case TypographyRole.body:
         sampleTitle = 'Review weekly telemetry and sprint deliverables';
-        sampleBody =
-            'Flex variable typography seamlessly adapts weights, widths, and rounded curves across all task cards, notes, and detailed descriptions.';
+        sampleBody = 'Flex variable typography seamlessly adapts weights, widths, and rounded curves across all task cards, notes, and detailed descriptions.';
         sampleFontSize = 14;
         break;
       case TypographyRole.labels:
@@ -476,10 +492,7 @@ class _TypographySectionState extends State<TypographySection> {
     }
 
     final renderedStyle = config.toTextStyle(
-      TextStyle(
-        fontSize: sampleFontSize,
-        color: colorScheme.onSurface,
-      ),
+      TextStyle(fontSize: sampleFontSize, color: colorScheme.onSurface),
     );
 
     final subStyle = config.toTextStyle(
@@ -571,7 +584,9 @@ class _TypographySectionState extends State<TypographySection> {
               Icon(
                 icon,
                 size: 20,
-                color: isSupported ? colorScheme.onSurfaceVariant : colorScheme.outline,
+                color: isSupported
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.outline,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -592,7 +607,10 @@ class _TypographySectionState extends State<TypographySection> {
                         if (!isSupported) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(6),
@@ -622,7 +640,10 @@ class _TypographySectionState extends State<TypographySection> {
               ),
               if (isSupported)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: colorScheme.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(8),

@@ -63,6 +63,12 @@ class _AppScaffoldState extends State<AppScaffold>
   bool _isRefreshing = false;
   bool _isUserPulling = false;
 
+  late final M3EToolbarVisibilityController _toolbarController;
+  late final M3EToolbarScrollBehavior _toolbarBehavior;
+  
+  PageId? _lastPage;
+  String _lastPomodoroTab = 'timer';
+
   static const double _targetHeight = 80.0;
 
   double get _refreshHeight {
@@ -75,9 +81,36 @@ class _AppScaffoldState extends State<AppScaffold>
     return _dragOffset;
   }
 
+  void _onNavigationChanged() {
+    final nav = context.read<NavigationProvider>();
+    if (_lastPage != nav.activePage) {
+      _lastPage = nav.activePage;
+      _toolbarController.show();
+    }
+  }
+
+  void _onPomodoroChanged() {
+    final pomodoro = context.read<PomodoroProvider>();
+    if (_lastPomodoroTab != pomodoro.activeTab) {
+      _lastPomodoroTab = pomodoro.activeTab;
+      // Always ensure floating nav is visible when switching Pomodoro tabs, 
+      // particularly the timer pane which has no scrollable content.
+      _toolbarController.show();
+    }
+  }
+
+  late final NavigationProvider _navProvider;
+  late final PomodoroProvider _pomodoroProvider;
+
   @override
   void initState() {
     super.initState();
+    _toolbarController = M3EToolbarVisibilityController(exitExtent: 100.0);
+    _toolbarBehavior = M3EToolbarScrollBehavior.exitAlways(
+      exitDirection: M3EToolbarExitDirection.bottom,
+      controller: _toolbarController,
+    );
+
     _refreshController =
         AnimationController(vsync: this, duration: M3MotionDuration.medium2)
           ..addListener(() {
@@ -90,17 +123,25 @@ class _AppScaffoldState extends State<AppScaffold>
       ),
     );
 
+    _navProvider = context.read<NavigationProvider>();
+    _pomodoroProvider = context.read<PomodoroProvider>();
+
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final nav = context.read<NavigationProvider>();
         final taskProvider = context.read<TaskProvider>();
-        final pomodoroProvider = context.read<PomodoroProvider>();
-        QuickActionsService.instance.init(nav);
+        
+        _lastPage = _navProvider.activePage;
+        _lastPomodoroTab = _pomodoroProvider.activeTab;
+        
+        _navProvider.addListener(_onNavigationChanged);
+        _pomodoroProvider.addListener(_onPomodoroChanged);
+        
+        QuickActionsService.instance.init(_navProvider);
         CrossDeviceService.instance.init(
-          nav,
+          _navProvider,
           taskProvider: taskProvider,
-          pomodoroProvider: pomodoroProvider,
+          pomodoroProvider: _pomodoroProvider,
         );
         WindowsTrayService.instance.init();
         unawaited(AndroidTasksWidgetService.instance.initialize(context));
@@ -110,6 +151,9 @@ class _AppScaffoldState extends State<AppScaffold>
 
   @override
   void dispose() {
+    _navProvider.removeListener(_onNavigationChanged);
+    _pomodoroProvider.removeListener(_onPomodoroChanged);
+    
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
@@ -566,35 +610,27 @@ class _AppScaffoldState extends State<AppScaffold>
                           },
                         ),
                         child: isCompact
-                            ? Builder(
-                                builder: (context) {
-                                  final behavior =
-                                      M3EToolbarScrollBehavior.exitAlways(
-                                    exitDirection: M3EToolbarExitDirection.bottom,
-                                  );
-                                  return M3EToolbarScrollWrapper(
-                                    key: ValueKey(navProvider.activePage),
-                                    behavior: behavior,
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: BodyPane(
-                                            activePage: navProvider.activePage,
-                                          ),
-                                        ),
-                                        FloatingBottomNav(
-                                          navProvider: navProvider,
-                                          isSelectionMode: isSelectionMode,
-                                          scrollBehavior: behavior,
-                                        ),
-                                        TaskSelectionToolbar(
-                                          taskProvider: context
-                                              .read<TaskProvider>(),
-                                        ),
-                                      ],
+                            ? M3EToolbarScrollWrapper(
+                                key: ValueKey(navProvider.activePage),
+                                behavior: _toolbarBehavior,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: BodyPane(
+                                        activePage: navProvider.activePage,
+                                      ),
                                     ),
-                                  );
-                                },
+                                    FloatingBottomNav(
+                                      navProvider: navProvider,
+                                      isSelectionMode: isSelectionMode,
+                                      scrollBehavior: _toolbarBehavior,
+                                    ),
+                                    TaskSelectionToolbar(
+                                      taskProvider: context
+                                          .read<TaskProvider>(),
+                                    ),
+                                  ],
+                                ),
                               )
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,

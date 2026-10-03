@@ -26,57 +26,95 @@ class FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
-    return AnimatedSlide(
-      offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeInOutCubicEmphasized,
-      child: M3EToolbar(
-        alignment: Alignment.bottomCenter,
-        screenOffset: 5,
-        elevation: 0.0,
-        size: M3EToolbarSize.large,
-        colorStyle: M3EToolbarColorStyle.vibrant,
-        padding: const EdgeInsets.symmetric(horizontal: 1),
-        scrollBehavior: scrollBehavior,
-        fabExpandIcon: isTasksPage ? const Icon(Icons.add_rounded) : null,
-        fabExpandsToolbar: false,
-        onFabPressed: isTasksPage
-            ? () {
-                ZetaHaptics.medium();
-                TaskEditPane.show(context);
-              }
-            : null,
-        actions: [
-          M3EToolbarWidget(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: kNavDestinations
-                  .where(
-                    (dest) => dest.id != PageId.settings && dest.id != PageId.bin,
-                  )
-                  .map((dest) {
-                    final isSelected = dest.id == navProvider.activePage;
+    final colorScheme = Theme.of(context).colorScheme;
 
-                    return ToolbarNavItem(
-                      destination: dest,
-                      isSelected: isSelected,
-                      onTap: () {
-                        ZetaHaptics.selection();
-                        context.read<TaskProvider>().clearSelection();
+    return Positioned(
+      bottom: 5,
+      left: 0,
+      right: 0,
+      child: AnimatedBuilder(
+        animation: scrollBehavior.controller!,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(0, -scrollBehavior.controller!.offset),
+            child: child,
+          );
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedSlide(
+              offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeInOutCubicEmphasized,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: M3EToolbar(
+                    screenOffset: 0,
+                    elevation: 0.0,
+                    backgroundColor: colorScheme.primaryContainer.withValues(
+                      alpha: 0.65,
+                    ),
+                    size: M3EToolbarSize.large,
+                    colorStyle: M3EToolbarColorStyle.vibrant,
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    fabExpandIcon: isTasksPage
+                        ? const Icon(Icons.add_rounded)
+                        : null,
+                    fabExpandsToolbar: false,
+                    onFabPressed: isTasksPage
+                        ? () {
+                            ZetaHaptics.medium();
+                            TaskEditPane.show(context);
+                          }
+                        : null,
+                    actions: [
+                      M3EToolbarWidget(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: kNavDestinations
+                              .where(
+                                (dest) =>
+                                    dest.id != PageId.settings &&
+                                    dest.id != PageId.bin,
+                              )
+                              .map((dest) {
+                                final isSelected =
+                                    dest.id == navProvider.activePage;
 
-                        if (navProvider.activePage == PageId.revision &&
-                            dest.id != PageId.revision) {
-                          context.read<RevisionProvider>().selectSubject(null);
-                        }
+                                return ToolbarNavItem(
+                                  destination: dest,
+                                  isSelected: isSelected,
+                                  onTap: () {
+                                    ZetaHaptics.selection();
+                                    context
+                                        .read<TaskProvider>()
+                                        .clearSelection();
 
-                        navProvider.setActivePage(dest.id);
-                      },
-                    );
-                  })
-                  .toList(),
+                                    if (navProvider.activePage ==
+                                            PageId.revision &&
+                                        dest.id != PageId.revision) {
+                                      context
+                                          .read<RevisionProvider>()
+                                          .selectSubject(null);
+                                    }
+
+                                    navProvider.setActivePage(dest.id);
+                                  },
+                                );
+                              })
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

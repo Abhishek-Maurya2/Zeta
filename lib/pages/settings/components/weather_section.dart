@@ -260,47 +260,37 @@ class _WeatherSectionState extends State<WeatherSection> {
           children: [
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
             M3EList(
+              outerRadius: 100,
+              color: isMasterOn
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainer,
               itemCount: 1,
-              itemBuilder: (context, index) => Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  color: isMasterOn
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainer,
-                ),
-                child: M3EListItem(
-                  headline: 'Use weather',
-                  trailing: M3ESwitch(
-                    value: isMasterOn,
-                    selectedIcon: const Icon(
-                      Icons.wb_sunny_rounded,
-                      size: 16,
-                    ),
-                    unselectedIcon: const Icon(
-                      Icons.cloud_off_rounded,
-                      size: 16,
-                    ),
-                    onChanged: (val) {
-                      ZetaHaptics.light();
-                      weatherProvider.setWeatherEnabled(val);
-                      widget.onToast?.call(
-                        val
-                            ? 'Weather telemetry turned on'
-                            : 'Weather telemetry turned off',
-                      );
-                    },
-                  ),
-                  onTap: () {
+              itemBuilder: (context, index) => M3EListItem(
+                headline: 'Use weather',
+                trailing: M3ESwitch(
+                  value: isMasterOn,
+                  selectedIcon: const Icon(Icons.wb_sunny_rounded, size: 16),
+                  unselectedIcon: const Icon(Icons.cloud_off_rounded, size: 16),
+                  onChanged: (val) {
                     ZetaHaptics.light();
-                    final newVal = !isMasterOn;
-                    weatherProvider.setWeatherEnabled(newVal);
+                    weatherProvider.setWeatherEnabled(val);
                     widget.onToast?.call(
-                      newVal
+                      val
                           ? 'Weather telemetry turned on'
                           : 'Weather telemetry turned off',
                     );
                   },
                 ),
+                onTap: () {
+                  ZetaHaptics.light();
+                  final newVal = !isMasterOn;
+                  weatherProvider.setWeatherEnabled(newVal);
+                  widget.onToast?.call(
+                    newVal
+                        ? 'Weather telemetry turned on'
+                        : 'Weather telemetry turned off',
+                  );
+                },
               ),
             ),
 
@@ -319,218 +309,226 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
+
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Weather Icon Container (M3 Expressive softBoom / softBloom shape)
-                          M3EShapeContainer.bun(
-                            width: 73,
-                            height: 73,
-                            color: isMasterOn
-                                ? colorScheme.surfaceContainerHigh
-                                : colorScheme.surfaceContainer,
-                            child: isLoading
-                                ? const Center(
-                                    child: SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Weather Icon Container (M3 Expressive softBoom / softBloom shape)
+                            M3EShapeContainer.bun(
+                              width: 73,
+                              height: 73,
+                              color: isMasterOn
+                                  ? colorScheme.surfaceContainerHigh
+                                  : colorScheme.surfaceContainer,
+                              child: isLoading
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Opacity(
+                                        opacity: isMasterOn ? 1.0 : 0.38,
+                                        child: WeatherIcon(
+                                          name:
+                                              weather?.iconName ??
+                                              (DateTime.now().hour < 6 ||
+                                                      DateTime.now().hour >= 19
+                                                  ? 'clear_night'
+                                                  : 'clear_day'),
+                                          isDay: weather?.isEffectivelyDay,
+                                          size: 40,
+                                        ),
                                       ),
                                     ),
-                                  )
-                                : Center(
-                                    child: Opacity(
-                                      opacity: isMasterOn ? 1.0 : 0.38,
-                                      child: WeatherIcon(
-                                        name:
-                                            weather?.iconName ??
-                                            (DateTime.now().hour < 6 ||
-                                                    DateTime.now().hour >= 19
-                                                ? 'clear_night'
-                                                : 'clear_day'),
-                                        isDay: weather?.isEffectivelyDay,
-                                        size: 40,
-                                      ),
-                                    ),
-                                  ),
-                          ),
-                          const SizedBox(width: 16),
+                            ),
+                            const SizedBox(width: 16),
 
-                          // City Name, Live Badge, and Conditions
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on_rounded,
-                                      size: 16,
-                                      color: isMasterOn
-                                          ? colorScheme.primary
-                                          : colorScheme.onSurface.withValues(
-                                              alpha: 0.38,
-                                            ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        weather?.cityName ??
-                                            weatherProvider.cityName,
-                                        style: textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w700,
+                            // City Name, Live Badge, and Conditions
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_rounded,
+                                        size: 16,
+                                        color: isMasterOn
+                                            ? colorScheme.primary
+                                            : colorScheme.onSurface.withValues(
+                                                alpha: 0.38,
+                                              ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          weather?.cityName ??
+                                              weatherProvider.cityName,
+                                          style: textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                                color: isMasterOn
+                                                    ? colorScheme.onSurface
+                                                    : colorScheme.onSurface
+                                                          .withValues(
+                                                            alpha: 0.38,
+                                                          ),
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 7,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: !isMasterOn
+                                              ? colorScheme
+                                                    .surfaceContainerHighest
+                                              : (isLoading
+                                                    ? colorScheme
+                                                          .secondaryContainer
+                                                    : colorScheme
+                                                          .primaryContainer),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          !isMasterOn
+                                              ? 'PAUSED'
+                                              : (isLoading
+                                                    ? 'UPDATING...'
+                                                    : 'LIVE'),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 0.3,
+                                            color: !isMasterOn
+                                                ? colorScheme.onSurfaceVariant
+                                                      .withValues(alpha: 0.6)
+                                                : (isLoading
+                                                      ? colorScheme
+                                                            .onSecondaryContainer
+                                                      : colorScheme
+                                                            .onPrimaryContainer),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+
+                                  // Large Temperature & Condition
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        tempDisplay,
+                                        style: TextStyle(
+                                          fontFamily: 'GoogleSansFlex',
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.w800,
                                           color: isMasterOn
                                               ? colorScheme.onSurface
                                               : colorScheme.onSurface
                                                     .withValues(alpha: 0.38),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 7,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: !isMasterOn
-                                            ? colorScheme
-                                                  .surfaceContainerHighest
-                                            : (isLoading
-                                                  ? colorScheme
-                                                        .secondaryContainer
-                                                  : colorScheme
-                                                        .primaryContainer),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        !isMasterOn
-                                            ? 'PAUSED'
-                                            : (isLoading
-                                                  ? 'UPDATING...'
-                                                  : 'LIVE'),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.3,
-                                          color: !isMasterOn
-                                              ? colorScheme.onSurfaceVariant
-                                                    .withValues(alpha: 0.6)
-                                              : (isLoading
-                                                    ? colorScheme
-                                                          .onSecondaryContainer
-                                                    : colorScheme
-                                                          .onPrimaryContainer),
+                                          fontVariations: const [
+                                            FontVariation('wght', 800),
+                                            FontVariation('wdth', 110),
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-
-                                // Large Temperature & Condition
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      tempDisplay,
-                                      style: TextStyle(
-                                        fontFamily: 'GoogleSansFlex',
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w800,
-                                        color: isMasterOn
-                                            ? colorScheme.onSurface
-                                            : colorScheme.onSurface.withValues(
-                                                alpha: 0.38,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            const SizedBox(width: 4),
+                                            Flexible(
+                                              child: Text(
+                                                conditionDisplay,
+                                                style: textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: isMasterOn
+                                                          ? colorScheme
+                                                                .onSurfaceVariant
+                                                          : colorScheme
+                                                                .onSurfaceVariant
+                                                                .withValues(
+                                                                  alpha: 0.38,
+                                                                ),
+                                                    ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
-                                        fontVariations: const [
-                                          FontVariation('wght', 800),
-                                          FontVariation('wdth', 110),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Row(
-                                        children: [
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              conditionDisplay,
-                                              style: textTheme.bodyMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                    color: isMasterOn
-                                                        ? colorScheme
-                                                              .onSurfaceVariant
-                                                        : colorScheme
-                                                              .onSurfaceVariant
-                                                              .withValues(
-                                                                alpha: 0.38,
-                                                              ),
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
 
-                      // Stat Chips Row: Humidity, Wind, Daylight
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          _buildStatChip(
-                            context,
-                            icon: Icons.water_drop_rounded,
-                            label: 'Humidity $humidityDisplay',
-                            enabled: isMasterOn,
-                          ),
-                          _buildStatChip(
-                            context,
-                            icon: Icons.air_rounded,
-                            label: 'Wind $windDisplay',
-                            enabled: isMasterOn,
-                          ),
-                          _buildStatChip(
-                            context,
-                            icon: (weather?.isEffectivelyDay ?? true)
-                                ? Icons.wb_sunny_rounded
-                                : Icons.nightlight_round,
-                            label: (weather?.isEffectivelyDay ?? true)
-                                ? 'Daytime'
-                                : 'Nighttime',
-                            enabled: isMasterOn,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
+                        // Stat Chips Row: Humidity, Wind, Daylight
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: [
+                            _buildStatChip(
+                              context,
+                              icon: Icons.water_drop_rounded,
+                              label: 'Humidity $humidityDisplay',
+                              enabled: isMasterOn,
+                            ),
+                            _buildStatChip(
+                              context,
+                              icon: Icons.air_rounded,
+                              label: 'Wind $windDisplay',
+                              enabled: isMasterOn,
+                            ),
+                            _buildStatChip(
+                              context,
+                              icon: (weather?.isEffectivelyDay ?? true)
+                                  ? Icons.wb_sunny_rounded
+                                  : Icons.nightlight_round,
+                              label: (weather?.isEffectivelyDay ?? true)
+                                  ? 'Daytime'
+                                  : 'Nighttime',
+                              enabled: isMasterOn,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
                 }
                 return Padding(
                   padding: const EdgeInsets.symmetric(
@@ -588,264 +586,265 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
+
               itemCount: _isEditing ? 2 : 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.pin_drop_rounded,
-                        size: 22,
-                        color: isMasterOn
-                            ? colorScheme.primary
-                            : colorScheme.onSurface.withValues(alpha: 0.38),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Selected location',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: isMasterOn
-                                    ? colorScheme.onSurface
-                                    : colorScheme.onSurface.withValues(
-                                        alpha: 0.38,
-                                      ),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              weather?.cityName ?? weatherProvider.cityName,
-                              style: textTheme.bodySmall?.copyWith(
-                                color: isMasterOn
-                                    ? colorScheme.onSurfaceVariant
-                                    : colorScheme.onSurfaceVariant.withValues(
-                                        alpha: 0.38,
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      M3EButton.icon(
-                        icon: Icon(
-                          _isEditing
-                              ? Icons.close_rounded
-                              : Icons.search_rounded,
-                          size: 15,
-                        ),
-                        label: Text(_isEditing ? 'Close' : 'Search'),
-                        style: _isEditing
-                            ? M3EButtonStyle.tonal
-                            : M3EButtonStyle.outlined,
-                        size: M3EButtonSize.xs,
-                        onPressed: isMasterOn
-                            ? () {
-                                ZetaHaptics.light();
-                                setState(() => _isEditing = !_isEditing);
-                              }
-                            : null,
-                      ),
-                    ],
-                  ),
-                );
-                }
-                return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 14,
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Search Bar
-                          Row(
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.pin_drop_rounded,
+                          size: 22,
+                          color: isMasterOn
+                              ? colorScheme.primary
+                              : colorScheme.onSurface.withValues(alpha: 0.38),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _cityController,
-                                  enabled: isMasterOn,
-                                  autofocus: true,
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: isMasterOn
-                                        ? colorScheme.onSurface
-                                        : colorScheme.onSurface.withValues(
-                                            alpha: 0.38,
-                                          ),
-                                  ),
-                                  decoration: InputDecoration(
-                                    prefixIcon: const Icon(
-                                      Icons.search_rounded,
-                                      size: 20,
-                                    ),
-                                    hintText: 'Enter city (e.g. London, Tokyo, Mumbai)',
-                                    hintStyle: textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.6),
-                                    ),
-                                    suffixIcon: _cityController.text.isNotEmpty
-                                        ? IconButton(
-                                            icon: const Icon(
-                                              Icons.clear_rounded,
-                                              size: 18,
-                                            ),
-                                            onPressed: () {
-                                              _cityController.clear();
-                                              setState(() {});
-                                            },
-                                          )
-                                        : null,
-                                    isDense: true,
-                                    filled: true,
-                                    fillColor: colorScheme.surfaceContainerHigh
-                                        .withValues(alpha: 0.5),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: colorScheme.outlineVariant,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: colorScheme.outlineVariant
-                                            .withValues(alpha: 0.6),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: colorScheme.primary,
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                  ),
-                                  onChanged: (_) => setState(() {}),
-                                  onSubmitted: (_) =>
-                                      _handleSetCity(weatherProvider),
+                              Text(
+                                'Selected location',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isMasterOn
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              M3EButton(
-                                style: M3EButtonStyle.filled,
-                                size: M3EButtonSize.sm,
-                                onPressed: isMasterOn
-                                    ? () => _handleSetCity(weatherProvider)
-                                    : null,
-                                child: const Text('Update'),
+                              const SizedBox(height: 2),
+                              Text(
+                                weather?.cityName ?? weatherProvider.cityName,
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: isMasterOn
+                                      ? colorScheme.onSurfaceVariant
+                                      : colorScheme.onSurfaceVariant.withValues(
+                                          alpha: 0.38,
+                                        ),
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-
-                          // Quick Pick Chips
-                          Text(
-                            'Popular cities',
-                            style: textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
+                        ),
+                        M3EButton.icon(
+                          icon: Icon(
+                            _isEditing
+                                ? Icons.close_rounded
+                                : Icons.search_rounded,
+                            size: 15,
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _popularCities.map((city) {
-                              final currentCity =
-                                  weather?.cityName ?? weatherProvider.cityName;
-                              final isCurrent = currentCity
-                                  .toLowerCase()
-                                  .contains(
-                                    city.split(',').first.trim().toLowerCase(),
-                                  );
-
-                              return InkWell(
-                                onTap: isMasterOn
-                                    ? () => _selectCity(weatherProvider, city)
-                                    : null,
-                                borderRadius: BorderRadius.circular(20),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isCurrent
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHigh
-                                              .withValues(
-                                                alpha: isMasterOn ? 0.8 : 0.3,
-                                              ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: isCurrent
-                                          ? colorScheme.primary.withValues(
-                                              alpha: 0.4,
-                                            )
-                                          : colorScheme.outlineVariant
-                                                .withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isCurrent
-                                            ? Icons.check_circle_rounded
-                                            : Icons.location_city_rounded,
-                                        size: 14,
-                                        color: isCurrent
-                                            ? colorScheme.onPrimaryContainer
-                                            : colorScheme.onSurfaceVariant
-                                                  .withValues(
-                                                    alpha: isMasterOn
-                                                        ? 1.0
-                                                        : 0.38,
-                                                  ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        city,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: isCurrent
-                                              ? FontWeight.w700
-                                              : FontWeight.w500,
-                                          color: isCurrent
-                                              ? colorScheme.onPrimaryContainer
-                                              : colorScheme.onSurface
-                                                    .withValues(
-                                                      alpha: isMasterOn
-                                                          ? 1.0
-                                                          : 0.38,
-                                                    ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
+                          label: Text(_isEditing ? 'Close' : 'Search'),
+                          style: _isEditing
+                              ? M3EButtonStyle.tonal
+                              : M3EButtonStyle.outlined,
+                          size: M3EButtonSize.xs,
+                          onPressed: isMasterOn
+                              ? () {
+                                  ZetaHaptics.light();
+                                  setState(() => _isEditing = !_isEditing);
+                                }
+                              : null,
+                        ),
+                      ],
                     ),
                   );
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Search Bar
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _cityController,
+                                enabled: isMasterOn,
+                                autofocus: true,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: isMasterOn
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
+                                ),
+                                decoration: InputDecoration(
+                                  prefixIcon: const Icon(
+                                    Icons.search_rounded,
+                                    size: 20,
+                                  ),
+                                  hintText:
+                                      'Enter city (e.g. London, Tokyo, Mumbai)',
+                                  hintStyle: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                  suffixIcon: _cityController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(
+                                            Icons.clear_rounded,
+                                            size: 18,
+                                          ),
+                                          onPressed: () {
+                                            _cityController.clear();
+                                            setState(() {});
+                                          },
+                                        )
+                                      : null,
+                                  isDense: true,
+                                  filled: true,
+                                  fillColor: colorScheme.surfaceContainerHigh
+                                      .withValues(alpha: 0.5),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.outlineVariant
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide(
+                                      color: colorScheme.primary,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                ),
+                                onChanged: (_) => setState(() {}),
+                                onSubmitted: (_) =>
+                                    _handleSetCity(weatherProvider),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            M3EButton(
+                              style: M3EButtonStyle.filled,
+                              size: M3EButtonSize.sm,
+                              onPressed: isMasterOn
+                                  ? () => _handleSetCity(weatherProvider)
+                                  : null,
+                              child: const Text('Update'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Quick Pick Chips
+                        Text(
+                          'Popular cities',
+                          style: textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: _popularCities.map((city) {
+                            final currentCity =
+                                weather?.cityName ?? weatherProvider.cityName;
+                            final isCurrent = currentCity
+                                .toLowerCase()
+                                .contains(
+                                  city.split(',').first.trim().toLowerCase(),
+                                );
+
+                            return InkWell(
+                              onTap: isMasterOn
+                                  ? () => _selectCity(weatherProvider, city)
+                                  : null,
+                              borderRadius: BorderRadius.circular(20),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isCurrent
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.surfaceContainerHigh
+                                            .withValues(
+                                              alpha: isMasterOn ? 0.8 : 0.3,
+                                            ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isCurrent
+                                        ? colorScheme.primary.withValues(
+                                            alpha: 0.4,
+                                          )
+                                        : colorScheme.outlineVariant.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isCurrent
+                                          ? Icons.check_circle_rounded
+                                          : Icons.location_city_rounded,
+                                      size: 14,
+                                      color: isCurrent
+                                          ? colorScheme.onPrimaryContainer
+                                          : colorScheme.onSurfaceVariant
+                                                .withValues(
+                                                  alpha: isMasterOn
+                                                      ? 1.0
+                                                      : 0.38,
+                                                ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      city,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isCurrent
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: isCurrent
+                                            ? colorScheme.onPrimaryContainer
+                                            : colorScheme.onSurface.withValues(
+                                                alpha: isMasterOn ? 1.0 : 0.38,
+                                              ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
             ),
 
@@ -864,14 +863,15 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
+
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _buildSwitchTile(
                     context,
                     title: 'Show weather on Home screen',
-                    subtitle:
-                        'Display live temperature and weather badge on the weekly calendar strip',
+                    subtitle: 'Display live temperature and weather badge on the weekly calendar strip',
                     value: weatherProvider.showWeatherInHeader,
                     enabled: isMasterOn,
                     selectedIcon: const Icon(Icons.home_rounded, size: 16),

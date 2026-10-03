@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../features/auth/presentation/auth_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/cross_device_service.dart';
@@ -182,28 +183,20 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
             M3EList(
               color: _enabled
                   ? colorScheme.primaryContainer
-                  : colorScheme.surfaceContainer,
+                  : colorScheme.primaryContainer.withValues(alpha: 0.5),
               itemCount: 1,
               itemBuilder: (context, index) => M3EListItem(
                 leading: Icon(
                   _enabled
                       ? Icons.devices_rounded
                       : Icons.devices_other_rounded,
-                  color: _enabled
-                      ? colorScheme.onPrimaryContainer
-                      : colorScheme.onSurfaceVariant,
+                  color: colorScheme.onPrimaryContainer,
                 ),
                 headline: 'Cross-device resume',
                 trailing: M3ESwitch(
                   value: _enabled,
-                  selectedIcon: const Icon(
-                    Icons.check_rounded,
-                    size: 16,
-                  ),
-                  unselectedIcon: const Icon(
-                    Icons.close_rounded,
-                    size: 16,
-                  ),
+                  selectedIcon: const Icon(Icons.check_rounded, size: 16),
+                  unselectedIcon: const Icon(Icons.close_rounded, size: 16),
                   onChanged: _toggleMaster,
                 ),
                 onTap: () => _toggleMaster(!_enabled),
@@ -299,8 +292,8 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     supportingText: _role == 'both'
                         ? 'Send & Receive (Automatic)'
                         : (_role == 'send_only'
-                            ? 'Send Only (Broadcaster)'
-                            : 'Receive Only (Listener)'),
+                              ? 'Send Only (Broadcaster)'
+                              : 'Receive Only (Listener)'),
                     trailing: PopupMenuButton<String>(
                       initialValue: _role,
                       enabled: _enabled,
@@ -327,13 +320,14 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     M3EListItem(
                       leading: const Icon(Icons.desktop_windows_outlined),
                       headline: 'Windows Desktop Notifications',
-                      supportingText:
-                          'Show system toast banner when phone activity arrives',
+                      supportingText: 'Show system toast banner when phone activity arrives',
                       trailing: M3ESwitch(
                         value: _showToasts,
                         onChanged: _enabled ? _toggleToasts : null,
                       ),
-                      onTap: _enabled ? () => _toggleToasts(!_showToasts) : null,
+                      onTap: _enabled
+                          ? () => _toggleToasts(!_showToasts)
+                          : null,
                     ),
 
                   // Free-tier Efficiency Indicator with dynamic Quota Saver state
@@ -402,8 +396,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     ? M3EListItem(
                         leading: const Icon(Icons.visibility_off_outlined),
                         headline: 'Minimize to System Tray',
-                        supportingText:
-                            'Closing the window hides Zeta to the system tray instead of quitting',
+                        supportingText: 'Closing the window hides Zeta to the system tray instead of quitting',
                         trailing: M3ESwitch(
                           value: _minimizeToTray,
                           onChanged: _toggleMinimizeToTray,
@@ -413,13 +406,14 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                     : M3EListItem(
                         leading: const Icon(Icons.power_settings_new_rounded),
                         headline: 'Start with Windows',
-                        supportingText:
-                            'Automatically launch Zeta in the background when you sign in',
+                        supportingText: 'Automatically launch Zeta in the background when you sign in',
                         trailing: _startupLoading
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : M3ESwitch(
                                 value: _startupEnabled,
@@ -439,4 +433,3 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
     );
   }
 }
-

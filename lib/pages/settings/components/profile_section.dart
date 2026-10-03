@@ -173,166 +173,166 @@ class _ProfileSectionState extends State<ProfileSection> {
           children: [
             // ─── 1. Hero Profile Card (M3 Expressive) ─────────────────────────
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
+
               itemCount: 1,
               itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 18,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          UserAvatar(
-                            radius: 36,
-                            showRing: true,
-                            ringWidth: 3.0,
-                            ringColor: profileSyncColor,
-                            tooltip: profileProvider.syncError != null
-                                ? 'Sync Error: ${profileProvider.syncError}'
-                                : 'Sync Status: $profileSyncLabel',
-                          ),
-                          const SizedBox(width: 18),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        profileProvider.userName,
-                                        style: textTheme.headlineSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                              color: colorScheme.onSurface,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 18,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        UserAvatar(
+                          radius: 36,
+                          showRing: true,
+                          ringWidth: 3.0,
+                          ringColor: profileSyncColor,
+                          tooltip: profileProvider.syncError != null
+                              ? 'Sync Error: ${profileProvider.syncError}'
+                              : 'Sync Status: $profileSyncLabel',
+                        ),
+                        const SizedBox(width: 18),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      profileProvider.userName,
+                                      style: textTheme.headlineSmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: colorScheme.onSurface,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(width: 8),
-                                    Tooltip(
-                                      message: profileProvider.syncError != null
-                                          ? 'Sync Error: ${profileProvider.syncError}'
-                                          : 'Sync Status: $profileSyncLabel',
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 7,
-                                          vertical: 2,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Tooltip(
+                                    message: profileProvider.syncError != null
+                                        ? 'Sync Error: ${profileProvider.syncError}'
+                                        : 'Sync Status: $profileSyncLabel',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: profileSyncColor.withValues(
+                                          alpha: 0.15,
                                         ),
-                                        decoration: BoxDecoration(
-                                          color: profileSyncColor.withValues(
-                                            alpha: 0.15,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            profileSyncLabel == 'ERROR'
+                                                ? Icons.cloud_off_rounded
+                                                : profileProvider.isSyncing
+                                                ? Icons.sync_rounded
+                                                : isConnected
+                                                ? Icons.cloud_done_rounded
+                                                : Icons.shield_outlined,
+                                            size: 11,
+                                            color: profileSyncColor,
                                           ),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              profileSyncLabel == 'ERROR'
-                                                  ? Icons.cloud_off_rounded
-                                                  : profileProvider.isSyncing
-                                                  ? Icons.sync_rounded
-                                                  : isConnected
-                                                  ? Icons.cloud_done_rounded
-                                                  : Icons.shield_outlined,
-                                              size: 11,
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            profileSyncLabel,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: 0.3,
                                               color: profileSyncColor,
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              profileSyncLabel,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.3,
-                                                color: profileSyncColor,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  displayEmail.isNotEmpty
-                                      ? displayEmail
-                                      : 'No email address configured',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                displayEmail.isNotEmpty
+                                    ? displayEmail
+                                    : 'No email address configured',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
-                              ],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Photo Action Button Group (M3 Expressive Connected)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: M3EButtonGroup(
+                        type: M3EButtonGroupType.standard,
+                        style: M3EButtonStyle.tonal,
+                        // size: M3EButtonSize.custom(
+                        //   height: 96,
+                        //   hPadding: 48,
+                        //   iconSize: 32,
+                        //   iconGap: 10,
+                        // ),
+                        shape: M3EButtonShape.round,
+                        selectedIndex: null,
+                        onSelectedIndexChanged: (index) {
+                          if (index == 0) {
+                            _pickImageFile(profileProvider);
+                          } else if (index == 1 && hasPhoto) {
+                            ZetaHaptics.light();
+                            unawaited(_clearAvatar(profileProvider));
+                          }
+                        },
+                        actions: [
+                          M3EButtonGroupAction(
+                            icon: const Icon(
+                              Icons.file_upload_outlined,
+                              size: 16,
+                            ),
+                            label: const Text('Upload'),
+                            tooltip: 'Upload image from local storage',
+                            decoration: M3EButtonDecoration.styleFrom(
+                              backgroundColor: colorScheme.secondaryContainer,
+                              foregroundColor: colorScheme.onSecondaryContainer,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Photo Action Button Group (M3 Expressive Connected)
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: M3EButtonGroup(
-                          type: M3EButtonGroupType.standard,
-                          style: M3EButtonStyle.tonal,
-                          // size: M3EButtonSize.custom(
-                          //   height: 96,
-                          //   hPadding: 48,
-                          //   iconSize: 32,
-                          //   iconGap: 10,
-                          // ),
-                          shape: M3EButtonShape.round,
-                          selectedIndex: null,
-                          onSelectedIndexChanged: (index) {
-                            if (index == 0) {
-                              _pickImageFile(profileProvider);
-                            } else if (index == 1 && hasPhoto) {
-                              ZetaHaptics.light();
-                              unawaited(_clearAvatar(profileProvider));
-                            }
-                          },
-                          actions: [
+                          if (hasPhoto)
                             M3EButtonGroupAction(
                               icon: const Icon(
-                                Icons.file_upload_outlined,
+                                Icons.delete_outline_rounded,
                                 size: 16,
                               ),
-                              label: const Text('Upload'),
-                              tooltip: 'Upload image from local storage',
+                              label: const Text('Remove'),
+                              tooltip: 'Remove custom photo',
                               decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: colorScheme.secondaryContainer,
-                                foregroundColor:
-                                    colorScheme.onSecondaryContainer,
+                                backgroundColor: colorScheme.errorContainer,
+                                foregroundColor: colorScheme.onErrorContainer,
                               ),
                             ),
-                            if (hasPhoto)
-                              M3EButtonGroupAction(
-                                icon: const Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Remove'),
-                                tooltip: 'Remove custom photo',
-                                decoration: M3EButtonDecoration.styleFrom(
-                                  backgroundColor: colorScheme.errorContainer,
-                                  foregroundColor: colorScheme.onErrorContainer,
-                                ),
-                              ),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
             const SizedBox(height: 24),
 
@@ -406,8 +406,11 @@ class _ProfileSectionState extends State<ProfileSection> {
                                 size: M3EButtonSize.sm,
                                 onPressed: () {
                                   ZetaHaptics.light();
-                                  _nameController.text = profileProvider.userName;
-                                  setState(() => _isEditingName = !_isEditingName);
+                                  _nameController.text =
+                                      profileProvider.userName;
+                                  setState(
+                                    () => _isEditingName = !_isEditingName,
+                                  );
                                 },
                               ),
                             ],
@@ -425,12 +428,15 @@ class _ProfileSectionState extends State<ProfileSection> {
                                       decoration: InputDecoration(
                                         hintText: 'Enter display name',
                                         isDense: true,
-                                        contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 12,
+                                            ),
                                         border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                       ),
                                       onSubmitted: (_) =>
@@ -439,7 +445,10 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   ),
                                   const SizedBox(width: 8),
                                   M3EButton.icon(
-                                    icon: const Icon(Icons.check_rounded, size: 16),
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                      size: 16,
+                                    ),
                                     label: const Text('Save'),
                                     style: M3EButtonStyle.filled,
                                     size: M3EButtonSize.sm,
@@ -515,14 +524,14 @@ class _ProfileSectionState extends State<ProfileSection> {
 
             M3EList(
               itemCount: 1,
+              color: colorScheme.surfaceContainerLowest,
               itemBuilder: (context, index) => M3EListItem(
                 leading: Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4285F4)
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF4285F4).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
                     Icons.cloud_sync_rounded,
@@ -531,21 +540,18 @@ class _ProfileSectionState extends State<ProfileSection> {
                   ),
                 ),
                 headline: 'Supabase Profiles Storage',
-                supportingText:
-                    'Profile name, email, and avatar photo are saved in the database',
-                trailing: M3EButton.icon(
+                supportingText: 'Profile name, email, and avatar are syned',
+                trailing: M3EIconButton(
                   icon: _isSyncing
                       ? const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.sync_rounded, size: 16),
-                  label: const Text('Sync'),
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.sm,
+
+                  variant: M3EIconButtonVariant.tonal,
+                  width: M3EIconButtonWidth.wide,
                   onPressed: _isSyncing
                       ? null
                       : () => _handleDbSync(profileProvider),
@@ -555,12 +561,13 @@ class _ProfileSectionState extends State<ProfileSection> {
 
             const SizedBox(height: 24),
 
-            OutlinedButton.icon(
+            M3EButton.icon(
               onPressed: context.watch<AuthProvider>().isBusy
                   ? null
                   : () => context.read<AuthProvider>().signOut(),
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign out'),
+              style: M3EButtonStyle.tonal,
             ),
 
             const SizedBox(height: 24),

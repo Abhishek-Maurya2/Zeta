@@ -30,12 +30,8 @@ class SettingsDetailPane extends StatelessWidget {
     required this.onToast,
   });
 
-
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
     Widget detailContent;
     switch (activeCategory) {
       case SettingsCategory.profile:
@@ -68,86 +64,15 @@ class SettingsDetailPane extends StatelessWidget {
     }
 
     if (isTwoPane) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 16),
-            child: Text(
-              activeCategoryMeta?.label ?? 'Settings',
-              style: textTheme.displaySmall?.copyWith(color: colorScheme.onSurface),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              key: ValueKey<String>(
-                'settings_wide_detail_${activeCategory?.name ?? "default"}',
-              ),
-              padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 820),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [const SizedBox(height: 20), detailContent],
-                ),
-              ),
-            ),
-          ),
-        ],
+      return ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 820),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [const SizedBox(height: 20), detailContent],
+        ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            isCompact ? 12 : 24,
-            16,
-            isCompact ? 12 : 24,
-            16,
-          ),
-          child: Row(
-            children: [
-              if (onBack != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12.0),
-                  child: M3EIconButton(
-                    variant: M3EIconButtonVariant.standard,
-                    size: M3EIconButtonSize.sm,
-                    icon: Icon(
-                      Icons.arrow_back_rounded,
-                      color: colorScheme.onSurface,
-                    ),
-                    decoration: M3EIconButtonDecoration(
-                      backgroundColor: WidgetStateProperty.all(Colors.transparent),
-                    ),
-                    onPressed: onBack,
-                    tooltip: 'Back',
-                  ),
-                ),
-              Text(
-                activeCategoryMeta?.label ?? 'Settings',
-                style: textTheme.headlineSmall?.copyWith(color: colorScheme.onSurface),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: SingleChildScrollView(
-            key: ValueKey<String>(
-              'settings_compact_${activeCategory?.name ?? "default"}',
-            ),
-            padding: EdgeInsets.fromLTRB(
-              isCompact ? 12 : 24,
-              12,
-              isCompact ? 12 : 24,
-              isCompact ? 90 : 24,
-            ),
-            child: detailContent,
-          ),
-        ),
-      ],
-    );
+    return detailContent;
   }
 }

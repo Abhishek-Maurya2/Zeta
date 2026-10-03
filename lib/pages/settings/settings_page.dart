@@ -15,14 +15,8 @@ import '../../theme/motion_tokens.dart';
 import '../../theme/breakpoints.dart';
 
 import 'components/settings_category.dart';
-import 'components/profile_section.dart';
-import 'components/appearance_section.dart';
-import 'components/typography_section.dart';
-import 'components/weather_section.dart';
-import 'components/notifications_section.dart';
-import 'components/sync_data_section.dart';
-import 'components/cross_device_section.dart';
-import 'components/updates_section.dart';
+
+import 'components/settings_detail_pane.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -281,7 +275,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       isCompact ? 90 : 24,
                     ),
                     sliver: SliverToBoxAdapter(
-                      child: _buildCategoryContent(selectedCategory),
+                      child: SettingsDetailPane(
+                        activeCategory: selectedCategory,
+                        activeCategoryMeta: activeCategoryMeta,
+                        isTwoPane: false,
+                        isCompact: isCompact,
+                        onToast: _showToast,
+                      ),
                     ),
                   ),
                 ],
@@ -346,15 +346,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
                           sliver: SliverToBoxAdapter(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 820),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 20),
-                                  _buildCategoryContent(activeCategory),
-                                ],
-                              ),
+                            child: SettingsDetailPane(
+                              activeCategory: activeCategory,
+                              activeCategoryMeta: activeCategoryMeta,
+                              isTwoPane: true,
+                              onToast: _showToast,
                             ),
                           ),
                         ),
@@ -446,7 +442,7 @@ class _SettingsPageState extends State<SettingsPage> {
             clipBehavior: Clip.antiAlias,
             child: M3EPageTransition(
               currentIndex: currentWideIdx,
-              previousIndex: prevWideIdx, // Fixed hardcoded 0
+              previousIndex: prevWideIdx,
               transitionType: M3EPageTransitionType.fadeThrough,
               duration: M3MotionDuration.medium2,
               child: CustomScrollView(
@@ -467,15 +463,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
                     sliver: SliverToBoxAdapter(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 820),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 20),
-                            _buildCategoryContent(activeCategory),
-                          ],
-                        ),
+                      child: SettingsDetailPane(
+                        activeCategory: activeCategory,
+                        activeCategoryMeta: activeCategoryMeta,
+                        isTwoPane: true,
+                        onToast: _showToast,
                       ),
                     ),
                   ),
@@ -488,7 +480,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Fix: Completely replaced M3EList with explicit Material+InkWell wrappers around a Column
   Widget _buildCategoryList(
     BuildContext context, {
     required SettingsCategory? activeCategory,
@@ -510,108 +501,82 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Text(
             'Preferences',
             style: textTheme.labelMedium?.copyWith(
-              fontSize: 15,
+              fontSize: 17,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,
               color: colorScheme.primary,
             ),
           ),
         ),
-        ...kSettingsCategories.map((category) {
-          final isSelected = isTwoPane && activeCategory == category.id;
+        M3EList(
+          itemCount: kSettingsCategories.length,
+          gap: 4,
+          colorBuilder: (index) {
+            final category = kSettingsCategories[index];
+            final isSelected = isTwoPane && activeCategory == category.id;
+            return isSelected
+                ? colorScheme.secondaryContainer
+                : colorScheme.surfaceContainerLowest;
+          },
+          borderRadiusBuilder: (index, position) {
+            final category = kSettingsCategories[index];
+            final isSelected = isTwoPane && activeCategory == category.id;
+            if (isSelected) {
+              return BorderRadius.circular(100);
+            }
+            return calculateCardRadius(
+              position: position,
+              outerRadius: M3EListCardListTheme.defaultOuterRadius,
+              innerRadius: M3EListCardListTheme.defaultInnerRadius,
+            );
+          },
+          onTap: (index) {
+            ZetaHaptics.selection();
+            context.read<NavigationProvider>().setSettingsCategory(
+              kSettingsCategories[index].id,
+            );
+          },
+          itemBuilder: (context, index) {
+            final category = kSettingsCategories[index];
+            final isSelected = isTwoPane && activeCategory == category.id;
 
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 2.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.secondaryContainer
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(52),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    ZetaHaptics.selection();
-                    context.read<NavigationProvider>().setSettingsCategory(
-                      category.id,
-                    );
-                  },
-                  child: M3EListItem(
-                    leading: Icon(
-                      isSelected ? category.selectedIcon : category.icon,
-                      size: 25,
-                      color: isSelected
-                          ? colorScheme.onSecondaryContainer
-                          : colorScheme.onSurfaceVariant,
+            return M3EListItem(
+              selected: isSelected,
+              leading: Icon(isSelected ? category.selectedIcon : category.icon),
+              headline: category.label,
+              supportingText: category.description,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (category.id == SettingsCategory.updates &&
+                      isUpdateAvailable)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'NEW',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
-                    headline: category.label,
-                    supportingText: category.description,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (category.id == SettingsCategory.updates &&
-                            isUpdateAvailable)
-                          Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              'NEW',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onPrimary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        if (!isTwoPane)
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: colorScheme.outlineVariant,
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+                  if (!isTwoPane) const Icon(Icons.chevron_right_rounded),
+                ],
               ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
         const SizedBox(height: 90),
       ],
     );
-  }
-
-  Widget _buildCategoryContent(SettingsCategory? category) {
-    switch (category) {
-      case SettingsCategory.profile:
-        return ProfileSection(onToast: _showToast);
-      case SettingsCategory.appearance:
-        return AppearanceSection(onToast: _showToast);
-      case SettingsCategory.typography:
-        return TypographySection(onToast: _showToast);
-      case SettingsCategory.weather:
-        return WeatherSection(onToast: _showToast);
-      case SettingsCategory.notifications:
-        return NotificationsSyncSection(onToast: _showToast);
-      case SettingsCategory.syncAndData:
-        return SyncDataSection(onToast: _showToast);
-      case SettingsCategory.crossDevice:
-        return CrossDeviceSection(onToast: _showToast);
-      case SettingsCategory.updates:
-        return UpdatesSection(onToast: _showToast);
-      case null:
-        return const SizedBox.shrink();
-    }
   }
 }
