@@ -14,6 +14,7 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
 import '../theme/success_colors.dart';
+import 'zeta_timepicker.dart';
 
 /// Modal pane / dialog for creating or editing a task[cite: 1, 2].
 class TaskEditPane {
@@ -524,7 +525,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     ZetaHaptics.selection();
     final now = TimeOfDay.now();
     final initial = _dueTime != null ? _parseTimeOfDay(_dueTime!) ?? now : now;
-    final picked = await M3ETimePicker.show(
+    final picked = await ZetaTimePicker.show(
       context,
       initialTime: M3ETime(hour: initial.hour, minute: initial.minute),
     );
@@ -637,7 +638,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     required Color borderColor,
     double borderRadius = 24.0,
   }) {
-    if (!isCompact) return child;
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
@@ -649,6 +649,60 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           child: child,
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required bool isCompact,
+    required VoidCallback onPressed,
+    required IconData iconData,
+    required String label,
+    required Color backgroundColor,
+    required Color foregroundColor,
+    Color? iconColor,
+    bool showIconOnDesktop = true,
+    bool boldIcon = false,
+  }) {
+    final effectiveIconColor = iconColor ?? foregroundColor;
+    return _buildGlassButton(
+      isCompact: isCompact,
+      borderColor: backgroundColor.withValues(alpha: 0.35),
+      borderRadius: isCompact ? 16.0 : 24.0,
+      child: isCompact
+          ? M3EIconButton(
+              icon: Icon(
+                iconData,
+                size: 25,
+                color: effectiveIconColor,
+                fontWeight: boldIcon ? FontWeight.w700 : null,
+              ),
+              size: M3EIconButtonSize.md,
+              width: M3EIconButtonWidth.wide,
+              decoration: M3EIconButtonDecoration(
+                backgroundColor: WidgetStatePropertyAll(backgroundColor),
+              ),
+              onPressed: onPressed,
+            )
+          : (showIconOnDesktop
+                ? M3EButton.icon(
+                    onPressed: onPressed,
+                    size: M3EButtonSize.md,
+                    decoration: M3EButtonDecoration(
+                      backgroundColor: WidgetStatePropertyAll(backgroundColor),
+                      foregroundColor: WidgetStatePropertyAll(foregroundColor),
+                    ),
+                    icon: Icon(iconData, size: 25, color: effectiveIconColor),
+                    label: Text(label, style: const TextStyle(fontSize: 16)),
+                  )
+                : M3EButton(
+                    onPressed: onPressed,
+                    size: M3EButtonSize.md,
+                    decoration: M3EButtonDecoration(
+                      backgroundColor: WidgetStatePropertyAll(backgroundColor),
+                      foregroundColor: WidgetStatePropertyAll(foregroundColor),
+                    ),
+                    child: Text(label, style: const TextStyle(fontSize: 16)),
+                  )),
     );
   }
 
@@ -925,7 +979,9 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 16,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.5,
+                        ),
                       ),
                       size: M3EIconButtonSize.xs,
                       variant: M3EIconButtonVariant.standard,
@@ -1042,272 +1098,447 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
-      child: Column(
-        mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: [
-          // ─── Scrollable Fields (Scrollbar Hidden) ───
-          Flexible(
-            fit: isCompact ? FlexFit.loose : FlexFit.tight,
-            child: ScrollConfiguration(
-              behavior: ScrollConfiguration.of(context)
-                  .copyWith(scrollbars: false),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          Column(
+            mainAxisSize: isCompact ? MainAxisSize.min : MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ─── Scrollable Fields (Scrollbar Hidden) ───
+              Flexible(
+                fit: isCompact ? FlexFit.loose : FlexFit.tight,
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context)
+                      .copyWith(scrollbars: false),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _titleController,
-                            autofocus: true,
-                            maxLines: 4,
-                            minLines: 1,
-                            style: Theme.of(context).textTheme.displaySmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.onSurface,
-                                  fontSize: 26,
-                                  height: 1.25,
-                                ),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              hintText: 'Task Title',
-                              hintStyle: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.65,
-                                ),
-                              ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.only(top: 4),
-                              errorText: _errorMessage,
-                            ),
-                            onChanged: (_) {
-                              if (_errorMessage != null) {
-                                setState(() => _errorMessage = null);
-                              }
-                            },
-                            onSubmitted: (_) => _handleSave(),
-                          ),
-                        ),
-                        if (!isCompact) ...[
-                          const SizedBox(width: 12),
-                          M3EIconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            size: M3EIconButtonSize.sm,
-                            width: M3EIconButtonWidth.wide,
-                            decoration: M3EIconButtonDecoration(
-                              backgroundColor: WidgetStateProperty.all(
-                                colorScheme.surfaceContainerLowest.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                            ),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              _closePane();
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-
-                    // ─── 2. Notes / Description Section (Below Title) ───
-                    if (_showDescription) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Icon(
-                              Icons.notes_rounded,
-                              size: 20,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _descController,
-                              focusNode: _descFocusNode,
-                              maxLines: 4,
-                              minLines: 1,
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: colorScheme.onSurface,
-                              ),
-                              decoration: InputDecoration(
-                                isDense: true,
-                                hintText: 'Add details or notes...',
-                                hintStyle: Theme.of(context)
-                                    .textTheme
-                                    .displayMedium
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _titleController,
+                                autofocus: true,
+                                maxLines: 4,
+                                minLines: 1,
+                                style: Theme.of(context).textTheme.displaySmall
                                     ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15,
-                                      color: colorScheme.onSurfaceVariant
-                                          .withAlpha(150),
+                                      fontWeight: FontWeight.w700,
+                                      color: colorScheme.onSurface,
+                                      fontSize: 26,
+                                      height: 1.25,
                                     ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  hintText: 'Task Title',
+                                  hintStyle: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.65),
+                                  ),
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: const EdgeInsets.only(top: 4),
+                                  errorText: _errorMessage,
+                                ),
+                                onChanged: (_) {
+                                  if (_errorMessage != null) {
+                                    setState(() => _errorMessage = null);
+                                  }
+                                },
+                                onSubmitted: (_) => _handleSave(),
                               ),
                             ),
-                          ),
-                          if (_descController.text.trim().isEmpty)
-                            M3EIconButton(
-                              icon: const Icon(Icons.close_rounded, size: 16),
-                              size: M3EIconButtonSize.xs,
-                              variant: M3EIconButtonVariant.standard,
-                              tooltip: 'Hide notes',
-                              onPressed: () {
-                                setState(() {
-                                  _showDescriptionSection = false;
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                    ],
-
-                    const SizedBox(height: 18),
-
-                    // ─── 3. Actions Button Group (Below Description) ───
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: SizedBox(
-                        height: 48,
-                        child: M3EButtonGroup(
-                          type: M3EButtonGroupType.standard,
-                          style: M3EButtonStyle.tonal,
-                          size: M3EButtonSize.sm,
-                          shape: M3EButtonShape.round,
-                          neighborSquish: true,
-                          selectedIndex: null,
-                          onSelectedIndexChanged: (int? index) {
-                            if (index == null) return;
-                            ZetaHaptics.medium();
-                            switch (index) {
-                              case 0:
-                                _handleDescriptionAction();
-                              case 1:
-                                _handleSubtaskAction();
-                              case 2:
-                                _pickDate();
-                              case 3:
-                                _pickTime();
-                              case 4:
-                                _handleAttachmentAction();
-                            }
-                          },
-                          actions: [
-                            M3EButtonGroupAction(
-                              width: 60,
-                              icon: const Icon(Icons.notes_rounded, size: 20),
-                              tooltip: 'Add notes',
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: _showDescription
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                foregroundColor: _showDescription
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurfaceVariant,
+                            if (!isCompact) ...[
+                              const SizedBox(width: 12),
+                              M3EIconButton(
+                                icon: const Icon(Icons.close_rounded),
+                                size: M3EIconButtonSize.sm,
+                                width: M3EIconButtonWidth.wide,
+                                decoration: M3EIconButtonDecoration(
+                                  backgroundColor: WidgetStateProperty.all(
+                                    colorScheme.surfaceContainerLowest
+                                        .withValues(alpha: 0.7),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  ZetaHaptics.light();
+                                  _closePane();
+                                },
                               ),
-                            ),
-                            M3EButtonGroupAction(
-                              width: 60,
-                              icon: const Icon(
-                                Icons.checklist_rounded,
-                                size: 20,
-                              ),
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: _showSubtasks
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                foregroundColor: _showSubtasks
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            M3EButtonGroupAction(
-                              width: 60,
-                              icon: const Icon(
-                                Icons.calendar_month_rounded,
-                                size: 20,
-                              ),
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: _dueDate != null
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                foregroundColor: _dueDate != null
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            M3EButtonGroupAction(
-                              width: 60,
-                              icon: const Icon(
-                                Icons.schedule_rounded,
-                                size: 20,
-                              ),
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: _hasTime
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                foregroundColor: _hasTime
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                            M3EButtonGroupAction(
-                              width: 60,
-                              icon: const Icon(
-                                Icons.attach_file_rounded,
-                                size: 20,
-                              ),
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: _showAttachments
-                                    ? colorScheme.primaryContainer
-                                    : colorScheme.surfaceContainerHighest
-                                          .withValues(alpha: 0.5),
-                                foregroundColor: _showAttachments
-                                    ? colorScheme.onPrimaryContainer
-                                    : colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                            ],
                           ],
                         ),
-                      ),
-                    ),
 
-                    // ─── 4. Attachments Section (Inline - Full Width) ───
-                    if (_showAttachments) ...[
-                      const SizedBox(height: 20),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+                        // ─── 2. Notes / Description Section (Below Title) ───
+                        if (_showDescription) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(top: 3),
+                                child: Icon(
+                                  Icons.notes_rounded,
+                                  size: 20,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _descController,
+                                  focusNode: _descFocusNode,
+                                  maxLines: 4,
+                                  minLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    hintText: 'Add details or notes...',
+                                    hintStyle: Theme.of(context)
+                                        .textTheme
+                                        .displayMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: colorScheme.onSurfaceVariant
+                                              .withAlpha(150),
+                                        ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                              ),
+                              if (_descController.text.trim().isEmpty)
+                                M3EIconButton(
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 16,
+                                  ),
+                                  size: M3EIconButtonSize.xs,
+                                  variant: M3EIconButtonVariant.standard,
+                                  tooltip: 'Hide notes',
+                                  onPressed: () {
+                                    setState(() {
+                                      _showDescriptionSection = false;
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ],
+
+                        const SizedBox(height: 18),
+
+                        // ─── 3. Actions Button Group (Below Description) ───
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: SizedBox(
+                            child: M3EButtonGroup(
+                              type: M3EButtonGroupType.standard,
+                              shape: M3EButtonShape.round,
+                              size: M3EButtonSize.custom(height: 45),
+                              spacing: 4,
+                              expandedRatio: 0.3,
+                              neighborSquish: true,
+                              selectedIndex: null,
+                              onSelectedIndexChanged: (int? index) {
+                                if (index == null) return;
+                                ZetaHaptics.medium();
+                                switch (index) {
+                                  case 0:
+                                    _handleDescriptionAction();
+                                  case 1:
+                                    _handleSubtaskAction();
+                                  case 2:
+                                    _pickDate();
+                                  case 3:
+                                    _pickTime();
+                                  case 4:
+                                    _handleAttachmentAction();
+                                }
+                              },
+                              actions: [
+                                M3EButtonGroupAction(
+                                  minWidth: 60,
+                                  icon: const Icon(
+                                    Icons.notes_rounded,
+                                    size: 20,
+                                  ),
+                                  tooltip: 'Add notes',
+                                  decoration: M3EButtonDecoration.styleFrom(
+                                    backgroundColor: _showDescription
+                                        ? colorScheme.primaryContainer
+                                        : colorScheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                    foregroundColor: _showDescription
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                M3EButtonGroupAction(
+                                  minWidth: 60,
+                                  icon: const Icon(
+                                    Icons.checklist_rounded,
+                                    size: 20,
+                                  ),
+                                  decoration: M3EButtonDecoration.styleFrom(
+                                    backgroundColor: _showSubtasks
+                                        ? colorScheme.primaryContainer
+                                        : colorScheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                    foregroundColor: _showSubtasks
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                M3EButtonGroupAction(
+                                  minWidth: 60,
+                                  icon: const Icon(
+                                    Icons.calendar_month_rounded,
+                                    size: 20,
+                                  ),
+                                  decoration: M3EButtonDecoration.styleFrom(
+                                    backgroundColor: _dueDate != null
+                                        ? colorScheme.primaryContainer
+                                        : colorScheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                    foregroundColor: _dueDate != null
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                M3EButtonGroupAction(
+                                  minWidth: 60,
+                                  icon: const Icon(
+                                    Icons.schedule_rounded,
+                                    size: 20,
+                                  ),
+                                  decoration: M3EButtonDecoration.styleFrom(
+                                    backgroundColor: _hasTime
+                                        ? colorScheme.primaryContainer
+                                        : colorScheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                    foregroundColor: _hasTime
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                M3EButtonGroupAction(
+                                  minWidth: 60,
+                                  icon: const Icon(
+                                    Icons.attach_file_rounded,
+                                    size: 20,
+                                  ),
+                                  decoration: M3EButtonDecoration.styleFrom(
+                                    backgroundColor: _showAttachments
+                                        ? colorScheme.primaryContainer
+                                        : colorScheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.5),
+                                    foregroundColor: _showAttachments
+                                        ? colorScheme.onPrimaryContainer
+                                        : colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // ─── 4. Attachments Section (Inline - Full Width) ───
+                        if (_showAttachments) ...[
+                          const SizedBox(height: 20),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.attach_file_rounded,
+                                    size: 20,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Attachments',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .displayMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 15,
+                                          color: colorScheme.primary,
+                                        ),
+                                  ),
+                                  if (_isFetchingAttachmentTitle) ...[
+                                    const SizedBox(width: 10),
+                                    SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                  const Spacer(),
+                                  if (!_showAttachmentInput)
+                                    M3EIconButton(
+                                      icon: const Icon(
+                                        Icons.add_rounded,
+                                        size: 18,
+                                      ),
+                                      size: M3EIconButtonSize.xs,
+                                      variant: M3EIconButtonVariant.standard,
+                                      tooltip: 'Add link',
+                                      onPressed: () {
+                                        setState(
+                                          () => _showAttachmentInput = true,
+                                        );
+                                        Future.delayed(
+                                          const Duration(milliseconds: 80),
+                                          () {
+                                            if (mounted) {
+                                              _attachmentFocusNode
+                                                  .requestFocus();
+                                            }
+                                          },
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
+                              if (_showAttachmentInput) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest
+                                        .withValues(alpha: 0.35),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: colorScheme.outlineVariant
+                                          .withValues(alpha: 0.4),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.link_rounded,
+                                        size: 18,
+                                        color: colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller:
+                                              _attachmentInputController,
+                                          focusNode: _attachmentFocusNode,
+                                          style: const TextStyle(fontSize: 14),
+                                          decoration: InputDecoration(
+                                            isDense: true,
+                                            hintText: 'Paste link or note...',
+                                            hintStyle: TextStyle(
+                                              fontSize: 13,
+                                              color: colorScheme
+                                                  .onSurfaceVariant
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                            border: InputBorder.none,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  vertical: 8,
+                                                ),
+                                          ),
+                                          onSubmitted: (_) =>
+                                              _addAttachmentInline(),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      M3EIconButton(
+                                        icon: const Icon(
+                                          Icons.check_rounded,
+                                          size: 18,
+                                        ),
+                                        size: M3EIconButtonSize.xs,
+                                        variant: M3EIconButtonVariant.tonal,
+                                        tooltip: 'Attach',
+                                        onPressed: _addAttachmentInline,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      M3EIconButton(
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          size: 18,
+                                        ),
+                                        size: M3EIconButtonSize.xs,
+                                        variant: M3EIconButtonVariant.standard,
+                                        tooltip: 'Cancel',
+                                        onPressed: () {
+                                          setState(() {
+                                            _attachmentInputController.clear();
+                                            _showAttachmentInput = false;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              if (_attachments.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: _attachments.map((att) {
+                                    return AttachmentChip(
+                                      attachment: att,
+                                      maxTitleLength: 18,
+                                      onDelete: () {
+                                        setState(() {
+                                          _attachments.removeWhere(
+                                            (a) => a.id == att.id,
+                                          );
+                                        });
+                                        _syncDraft();
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+
+                        // ─── 5. Due Date & Time Section (Visible if set) ───
+                        if (_hasDueDateOrTime) ...[
+                          const SizedBox(height: 20),
                           Row(
                             children: [
                               Icon(
-                                Icons.attach_file_rounded,
+                                Icons.event_outlined,
                                 size: 20,
                                 color: colorScheme.primary,
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Text(
-                                'Attachments',
+                                'Due Date & Time',
                                 style: Theme.of(context).textTheme.displayMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
@@ -1315,406 +1546,158 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                       color: colorScheme.primary,
                                     ),
                               ),
-                              if (_isFetchingAttachmentTitle) ...[
-                                const SizedBox(width: 10),
-                                SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: colorScheme.primary,
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (_dueDate != null)
+                                _buildGlassChip(
+                                  isCompact: isCompact,
+                                  colorScheme: colorScheme,
+                                  selected: true,
+                                  child: M3EChip(
+                                    type: M3EChipType.filter,
+                                    label: _dueDate!,
+                                    leading: const Icon(
+                                      Icons.edit_calendar_rounded,
+                                      size: 16,
+                                    ),
+                                    selected: true,
+                                    onPressed: _pickDate,
+                                    onDeleted: () => setState(() {
+                                      _dueDate = null;
+                                      _syncDraft();
+                                    }),
                                   ),
                                 ),
-                              ],
-                              const Spacer(),
-                              if (!_showAttachmentInput)
+                              if (_hasTime)
+                                _buildGlassChip(
+                                  isCompact: isCompact,
+                                  colorScheme: colorScheme,
+                                  selected: true,
+                                  child: M3EChip(
+                                    type: M3EChipType.filter,
+                                    label: _dueTime ?? 'Time',
+                                    leading: Icon(
+                                      Icons.schedule_rounded,
+                                      size: 16,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    selected: true,
+                                    onPressed: _pickTime,
+                                    onDeleted: () => setState(() {
+                                      _hasTime = false;
+                                      _dueTime = null;
+                                      _syncDraft();
+                                    }),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+
+                        // ─── 6. Subtasks Section (Visible when requested or not empty) ───
+                        if (_showSubtasks) ...[
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Subtasks',
+                                style: Theme.of(context).textTheme.displayMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                      color: colorScheme.primary,
+                                    ),
+                              ),
+                              if (_subtasks.isEmpty)
                                 M3EIconButton(
-                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  icon: const Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
+                                  ),
                                   size: M3EIconButtonSize.xs,
                                   variant: M3EIconButtonVariant.standard,
-                                  tooltip: 'Add link',
+                                  tooltip: 'Hide subtasks',
                                   onPressed: () {
-                                    setState(() => _showAttachmentInput = true);
-                                    Future.delayed(
-                                      const Duration(milliseconds: 80),
-                                      () {
-                                        if (mounted) {
-                                          _attachmentFocusNode.requestFocus();
-                                        }
-                                      },
-                                    );
+                                    setState(() {
+                                      _showSubtaskSection = false;
+                                    });
                                   },
                                 ),
                             ],
                           ),
-                          if (_showAttachmentInput) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHighest
-                                    .withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme.outlineVariant.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.link_rounded,
-                                    size: 18,
-                                    color: colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.7),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _attachmentInputController,
-                                      focusNode: _attachmentFocusNode,
-                                      style: const TextStyle(fontSize: 14),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        hintText: 'Paste link or note...',
-                                        hintStyle: TextStyle(
-                                          fontSize: 13,
-                                          color: colorScheme.onSurfaceVariant
-                                              .withValues(alpha: 0.6),
-                                        ),
-                                        border: InputBorder.none,
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              vertical: 8,
-                                            ),
-                                      ),
-                                      onSubmitted: (_) =>
-                                          _addAttachmentInline(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  M3EIconButton(
-                                    icon: const Icon(
-                                      Icons.check_rounded,
-                                      size: 18,
-                                    ),
-                                    size: M3EIconButtonSize.xs,
-                                    variant: M3EIconButtonVariant.tonal,
-                                    tooltip: 'Attach',
-                                    onPressed: _addAttachmentInline,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  M3EIconButton(
-                                    icon: const Icon(
-                                      Icons.close_rounded,
-                                      size: 18,
-                                    ),
-                                    size: M3EIconButtonSize.xs,
-                                    variant: M3EIconButtonVariant.standard,
-                                    tooltip: 'Cancel',
-                                    onPressed: () {
-                                      setState(() {
-                                        _attachmentInputController.clear();
-                                        _showAttachmentInput = false;
-                                      });
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                          if (_attachments.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              children: _attachments.map((att) {
-                                return AttachmentChip(
-                                  attachment: att,
-                                  maxTitleLength: 18,
-                                  onDelete: () {
-                                    setState(() {
-                                      _attachments.removeWhere(
-                                        (a) => a.id == att.id,
-                                      );
-                                    });
-                                    _syncDraft();
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-
-                    // ─── 5. Due Date & Time Section (Visible if set) ───
-                    if (_hasDueDateOrTime) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.event_outlined,
-                            size: 20,
-                            color: colorScheme.primary,
+                          const SizedBox(height: 8),
+                          _buildSubtaskInput(
+                            context: context,
+                            isCompact: isCompact,
+                            colorScheme: colorScheme,
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Due Date & Time',
-                            style: Theme.of(context).textTheme.displayMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  color: colorScheme.primary,
-                                ),
+                          _buildSubtasksList(
+                            context: context,
+                            isCompact: isCompact,
+                            colorScheme: colorScheme,
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          if (_dueDate != null)
-                            _buildGlassChip(
-                              isCompact: isCompact,
-                              colorScheme: colorScheme,
-                              selected: true,
-                              child: M3EChip(
-                                type: M3EChipType.filter,
-                                label: _dueDate!,
-                                leading: const Icon(
-                                  Icons.edit_calendar_rounded,
-                                  size: 16,
-                                ),
-                                selected: true,
-                                onPressed: _pickDate,
-                                onDeleted: () => setState(() {
-                                  _dueDate = null;
-                                  _syncDraft();
-                                }),
-                              ),
-                            ),
-                          if (_hasTime)
-                            _buildGlassChip(
-                              isCompact: isCompact,
-                              colorScheme: colorScheme,
-                              selected: true,
-                              child: M3EChip(
-                                type: M3EChipType.filter,
-                                label: _dueTime ?? 'Time',
-                                leading: Icon(
-                                  Icons.schedule_rounded,
-                                  size: 16,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                                selected: true,
-                                onPressed: _pickTime,
-                                onDeleted: () => setState(() {
-                                  _hasTime = false;
-                                  _dueTime = null;
-                                  _syncDraft();
-                                }),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
 
-                    // ─── 6. Subtasks Section (Visible when requested or not empty) ───
-                    if (_showSubtasks) ...[
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Subtasks',
-                            style: Theme.of(context).textTheme.displayMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                  color: colorScheme.primary,
-                                ),
-                          ),
-                          if (_subtasks.isEmpty)
-                            M3EIconButton(
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              size: M3EIconButtonSize.xs,
-                              variant: M3EIconButtonVariant.standard,
-                              tooltip: 'Hide subtasks',
-                              onPressed: () {
-                                setState(() {
-                                  _showSubtaskSection = false;
-                                });
-                              },
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      _buildSubtaskInput(
-                        context: context,
-                        isCompact: isCompact,
-                        colorScheme: colorScheme,
-                      ),
-                      _buildSubtasksList(
-                        context: context,
-                        isCompact: isCompact,
-                        colorScheme: colorScheme,
-                      ),
-                    ],
-
-                    const SizedBox(height: 20),
-                  ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // ─── Footer Buttons ───
-          Wrap(
-            alignment: WrapAlignment.end,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              if (isEditing)
-                _buildGlassButton(
-                  isCompact: isCompact,
-                  borderColor: colorScheme.error.withValues(alpha: 0.35),
-                  borderRadius: isCompact ? 16.0 : 24.0,
-                  child: isCompact
-                      ? M3EIconButton(
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 25,
-                            color: colorScheme.error,
-                          ),
-                          size: M3EIconButtonSize.md,
-                          width: M3EIconButtonWidth.wide,
-                          variant: M3EIconButtonVariant.tonal,
-                          decoration: M3EIconButtonDecoration(
-                            backgroundColor: WidgetStatePropertyAll(
-                              colorScheme.errorContainer.withValues(alpha: 0.6),
-                            ),
-                          ),
-                          onPressed: _handleDelete,
-                        )
-                      : M3EButton.icon(
-                          onPressed: _handleDelete,
-                          size: M3EButtonSize.md,
-                          decoration: M3EButtonDecoration(
-                            backgroundColor: WidgetStatePropertyAll(
-                              colorScheme.errorContainer,
-                            ),
-                            foregroundColor: WidgetStatePropertyAll(
-                              colorScheme.onErrorContainer,
-                            ),
-                          ),
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 25,
-                            color: colorScheme.error,
-                          ),
-                          label: const Text('Delete'),
-                        ),
-                )
-              else
-                _buildGlassButton(
-                  isCompact: isCompact,
-                  borderColor: colorScheme.error.withValues(alpha: 0.35),
-                  borderRadius: isCompact ? 16.0 : 24.0,
-                  child: isCompact
-                      ? M3EIconButton(
-                          icon: Icon(
-                            Icons.close_rounded,
-                            size: 25,
-                            color: colorScheme.onErrorContainer,
-                          ),
-                          size: M3EIconButtonSize.md,
-                          width: M3EIconButtonWidth.wide,
-                          variant: M3EIconButtonVariant.tonal,
-                          decoration: M3EIconButtonDecoration(
-                            backgroundColor: WidgetStatePropertyAll(
-                              colorScheme.errorContainer.withValues(alpha: 0.6),
-                            ),
-                          ),
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            _closePane();
-                          },
-                        )
-                      : M3EButton(
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            _closePane();
-                          },
-                          size: M3EButtonSize.md,
-                          decoration: M3EButtonDecoration(
-                            backgroundColor: WidgetStatePropertyAll(
-                              colorScheme.errorContainer,
-                            ),
-                            foregroundColor: WidgetStatePropertyAll(
-                              colorScheme.onErrorContainer,
-                            ),
-                          ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ),
-                ),
-              _buildGlassButton(
-                isCompact: isCompact,
-                borderColor: colorScheme.success.withValues(alpha: 0.35),
-                borderRadius: isCompact ? 16.0 : 24.0,
-                child: isCompact
-                    ? M3EIconButton(
-                        icon: Icon(
-                          isEditing ? Icons.check_rounded : Icons.add_rounded,
-                          size: 25,
-                          color: colorScheme.onSuccess,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        size: M3EIconButtonSize.md,
-                        width: M3EIconButtonWidth.wide,
-                        variant: M3EIconButtonVariant.tonal,
-                        decoration: M3EIconButtonDecoration(
-                          backgroundColor: WidgetStatePropertyAll(
-                            colorScheme.success.withValues(alpha: 0.80),
-                          ),
-                        ),
-                        onPressed: _handleSave,
+              // ─── Footer Buttons ───
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    if (isEditing)
+                      _buildActionButton(
+                        isCompact: isCompact,
+                        onPressed: _handleDelete,
+                        iconData: Icons.delete_outline_rounded,
+                        label: 'Delete',
+                        backgroundColor: colorScheme.errorContainer,
+                        foregroundColor: colorScheme.onErrorContainer,
+                        iconColor: colorScheme.error,
                       )
-                    : M3EButton.icon(
-                        onPressed: _handleSave,
-                        decoration: M3EButtonDecoration(
-                          backgroundColor: WidgetStatePropertyAll(
-                            colorScheme.success,
-                          ),
-                          foregroundColor: WidgetStatePropertyAll(
-                            colorScheme.onSuccess,
-                          ),
-                        ),
-                        size: M3EButtonSize.md,
-                        icon: Icon(
-                          isEditing ? Icons.check_rounded : Icons.add_rounded,
-                          size: 25,
-                          color: colorScheme.onSuccess,
-                        ),
-                        label: Text(
-                          isEditing ? 'Save' : 'Create',
-                          style: const TextStyle(fontSize: 16),
-                        ),
+                    else
+                      _buildActionButton(
+                        isCompact: isCompact,
+                        onPressed: () {
+                          ZetaHaptics.light();
+                          _closePane();
+                        },
+                        iconData: Icons.close_rounded,
+                        label: 'Cancel',
+                        backgroundColor: colorScheme.errorContainer,
+                        foregroundColor: colorScheme.onErrorContainer,
+                        showIconOnDesktop: false,
                       ),
+                    _buildActionButton(
+                      isCompact: isCompact,
+                      onPressed: _handleSave,
+                      iconData: isEditing
+                          ? Icons.check_rounded
+                          : Icons.add_rounded,
+                      label: isEditing ? 'Save' : 'Create',
+                      backgroundColor: colorScheme.success,
+                      foregroundColor: colorScheme.onSuccess,
+                      boldIcon: true,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

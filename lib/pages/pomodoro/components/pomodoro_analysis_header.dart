@@ -159,6 +159,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               type: M3EButtonGroupType.standard,
               size: M3EButtonSize.md,
               spacing: 2,
+              expandedRatio: 0.5,
               selectedIndex: null,
               onSelectedIndexChanged: (idx) {
                 ZetaHaptics.light();
@@ -176,7 +177,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               },
               actions: [
                 const M3EButtonGroupAction(
-                  width: 10,
+                  minWidth: 48,
                   icon: Icon(
                     Icons.chevron_left_rounded,
                     size: 35,
@@ -184,7 +185,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                   ),
                 ),
                 M3EButtonGroupAction(
-                  width: 10,
+                  minWidth: 48,
                   icon: Icon(
                     Icons.chevron_right_rounded,
                     fontWeight: FontWeight.w600,
@@ -195,7 +196,6 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                   ),
                 ),
                 M3EButtonGroupAction(
-                  width: 10,
                   icon: Icon(
                     Icons.history_rounded,
                     fontWeight: FontWeight.w600,

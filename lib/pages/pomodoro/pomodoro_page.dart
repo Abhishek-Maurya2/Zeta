@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -209,9 +210,15 @@ class _PomodoroPageState extends State<PomodoroPage> {
         }
 
         final startSize = totalWidth - effectiveWidth - 24;
-        final currentPercentage = totalWidth > 0 ? (startSize / totalWidth) * 100 : 0.0;
-        final minPercent = totalWidth > 0 ? ((totalWidth - maxAllowedWidth - 24) / totalWidth) * 100 : 0.0;
-        final maxPercent = totalWidth > 0 ? ((totalWidth - _minSupportingPaneWidth - 24) / totalWidth) * 100 : 100.0;
+        final currentPercentage = totalWidth > 0
+            ? (startSize / totalWidth) * 100
+            : 0.0;
+        final minPercent = totalWidth > 0
+            ? ((totalWidth - maxAllowedWidth - 24) / totalWidth) * 100
+            : 0.0;
+        final maxPercent = totalWidth > 0
+            ? ((totalWidth - _minSupportingPaneWidth - 24) / totalWidth) * 100
+            : 100.0;
 
         final snapPointsPercent = <double>[
           ((totalWidth - _defaultSupportingPaneWidth - 24) / totalWidth) * 100,
@@ -220,25 +227,28 @@ class _PomodoroPageState extends State<PomodoroPage> {
         ];
 
         return M3ESplitPane(
-          value: currentPercentage.clamp(math.min(minPercent, maxPercent), math.max(minPercent, maxPercent)),
+          value: currentPercentage.clamp(
+            math.min(minPercent, maxPercent),
+            math.max(minPercent, maxPercent),
+          ),
           min: math.min(minPercent, maxPercent),
           max: math.max(minPercent, maxPercent),
           detents: snapPointsPercent,
           onChanged: (val) {
-             final newEffective = totalWidth - (totalWidth * (val / 100)) - 24;
-             if (newEffective < _collapseThreshold) {
-                setState(() {
-                  _isSupportingPaneCollapsed = true;
-                  _hasCustomWidth = true;
-                });
-                HapticFeedback.lightImpact();
-             } else {
-                setState(() {
-                  _supportingPaneWidth = newEffective;
-                  _hasCustomWidth = true;
-                  _isSupportingPaneCollapsed = false;
-                });
-             }
+            final newEffective = totalWidth - (totalWidth * (val / 100)) - 24;
+            if (newEffective < _collapseThreshold) {
+              setState(() {
+                _isSupportingPaneCollapsed = true;
+                _hasCustomWidth = true;
+              });
+              HapticFeedback.lightImpact();
+            } else {
+              setState(() {
+                _supportingPaneWidth = newEffective;
+                _hasCustomWidth = true;
+                _isSupportingPaneCollapsed = false;
+              });
+            }
           },
           onChangeEnd: (val) => _persistPaneSettings(),
           onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
@@ -271,32 +281,29 @@ class _PomodoroPageState extends State<PomodoroPage> {
                             size: M3EButtonSize.sm,
                             style: M3EButtonStyle.filled,
                             decoration: M3EButtonDecoration(
-                              backgroundColor:
-                                  WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(
-                                      WidgetState.selected,
-                                    )) {
-                                      return colorScheme.primary;
-                                    }
-                                    return colorScheme.tertiaryContainer;
-                                  }),
-                              foregroundColor:
-                                  WidgetStateProperty.resolveWith((states) {
-                                    if (states.contains(
-                                      WidgetState.selected,
-                                    )) {
-                                      return colorScheme.onPrimary;
-                                    }
-                                    return colorScheme.onTertiaryContainer;
-                                  }),
+                              backgroundColor: WidgetStateProperty.resolveWith((
+                                states,
+                              ) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return colorScheme.primary;
+                                }
+                                return colorScheme.tertiaryContainer;
+                              }),
+                              foregroundColor: WidgetStateProperty.resolveWith((
+                                states,
+                              ) {
+                                if (states.contains(WidgetState.selected)) {
+                                  return colorScheme.onPrimary;
+                                }
+                                return colorScheme.onTertiaryContainer;
+                              }),
                             ),
                             selectedIndex: _secondaryTab.index,
                             onSelectedIndexChanged: (idx) {
                               if (idx != null) {
                                 ZetaHaptics.selection();
                                 setState(() {
-                                  _secondaryTab =
-                                      SecondaryPaneTab.values[idx];
+                                  _secondaryTab = SecondaryPaneTab.values[idx];
                                   provider.setActiveTab(
                                     SecondaryPaneTab.values[idx].name,
                                   );
@@ -314,10 +321,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                 ),
                               ),
                               const M3EButtonGroupAction(
-                                icon: Icon(
-                                  Icons.insights_rounded,
-                                  size: 16,
-                                ),
+                                icon: Icon(Icons.insights_rounded, size: 16),
                                 label: Text('Analysis'),
                               ),
                             ],
@@ -327,10 +331,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                       const SizedBox(width: 4),
                       // Collapse Button
                       IconButton(
-                        icon: const Icon(
-                          Icons.view_sidebar_outlined,
-                          size: 18,
-                        ),
+                        icon: const Icon(Icons.view_sidebar_outlined, size: 18),
                         tooltip: 'Collapse supporting pane',
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
@@ -412,42 +413,44 @@ class _PomodoroPageState extends State<PomodoroPage> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Center(
-            child: M3EButtonGroup(
-              type: M3EButtonGroupType.connected,
-              size: M3EButtonSize.sm,
-              style: M3EButtonStyle.filled,
-              decoration: M3EButtonDecoration(
-                backgroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return colorScheme.primary;
-                  }
-                  return colorScheme.tertiaryContainer;
-                }),
-                foregroundColor: WidgetStateProperty.resolveWith((states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return colorScheme.onPrimary;
-                  }
-                  return colorScheme.onTertiaryContainer;
-                }),
-              ),
-
-              selectedIndex: _activeTab.index,
-              onSelectedIndexChanged: (idx) {
-                if (idx != null) {
-                  ZetaHaptics.selection();
-                  setState(() {
-                    _activeTab = PomodoroTab.values[idx];
-                    provider.setActiveTab(PomodoroTab.values[idx].name);
-                  });
-                }
-              },
-              actions: [
-                const M3EButtonGroupAction(label: Text('Timer')),
-                M3EButtonGroupAction(
-                  label: Text('Up next (${provider.queue.length})'),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: M3EButtonGroup(
+                type: M3EButtonGroupType.connected,
+                size: M3EButtonSize.sm,
+                decoration: M3EButtonDecoration(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return colorScheme.primary;
+                    }
+                    return colorScheme.tertiaryContainer;
+                  }),
+                  foregroundColor: WidgetStateProperty.resolveWith((states) {
+                    if (states.contains(WidgetState.selected)) {
+                      return colorScheme.onPrimary;
+                    }
+                    return colorScheme.onTertiaryContainer;
+                  }),
                 ),
-                const M3EButtonGroupAction(label: Text('Analysis')),
-              ],
+
+                selectedIndex: _activeTab.index,
+                onSelectedIndexChanged: (idx) {
+                  if (idx != null) {
+                    ZetaHaptics.selection();
+                    setState(() {
+                      _activeTab = PomodoroTab.values[idx];
+                      provider.setActiveTab(PomodoroTab.values[idx].name);
+                    });
+                  }
+                },
+                actions: [
+                  const M3EButtonGroupAction(label: Text('Timer')),
+                  M3EButtonGroupAction(
+                    label: Text('Up next (${provider.queue.length})'),
+                  ),
+                  const M3EButtonGroupAction(label: Text('Analysis')),
+                ],
+              ),
             ),
           ),
         ),

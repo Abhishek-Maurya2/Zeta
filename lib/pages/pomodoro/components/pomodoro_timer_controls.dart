@@ -42,13 +42,12 @@ class PomodoroTimerControls extends StatelessWidget {
         },
         actions: [
           M3EButtonGroupAction(
-            width: 140,
+            minWidth: 140,
             icon: Icon(
               fontWeight: FontWeight.bold,
               size: 35,
               isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
             ),
-            tooltip: isRunning ? 'Pause (Space)' : 'Start (Space)',
             decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.primaryContainer,
               foregroundColor: colorScheme.onPrimaryContainer,
@@ -60,8 +59,7 @@ class PomodoroTimerControls extends StatelessWidget {
               fontWeight: FontWeight.bold,
               size: 35,
             ),
-            width: 96,
-            tooltip: 'Reset session',
+            minWidth: 96,
             decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.secondaryContainer,
               foregroundColor: colorScheme.onSecondaryContainer,
@@ -73,8 +71,7 @@ class PomodoroTimerControls extends StatelessWidget {
               fontWeight: FontWeight.bold,
               size: 35,
             ),
-            width: 66,
-            tooltip: 'Skip to next session',
+            minWidth: 66,
             decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.tertiaryContainer,
               foregroundColor: colorScheme.onTertiaryContainer,
