@@ -158,10 +158,10 @@ class TopBarSearch extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              M3EList(
-                itemCount: 4,
-                itemBuilder: (context, index) => switch (index) {
-                  0 => M3EListItem(
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  M3EListItem(
                     leading: const Icon(Icons.add_circle_outline_rounded),
                     headline: 'New Task',
                     supportingText: 'Create a new task or note  [N]',
@@ -170,7 +170,7 @@ class TopBarSearch extends StatelessWidget {
                       TaskEditPane.show(context);
                     },
                   ),
-                  1 => M3EListItem(
+                  M3EListItem(
                     leading: Icon(
                       Icons.delete_outline_rounded,
                       color: colorScheme.onSurfaceVariant,
@@ -182,7 +182,7 @@ class TopBarSearch extends StatelessWidget {
                       navProvider.setActivePage(PageId.bin);
                     },
                   ),
-                  2 => M3EListItem(
+                  M3EListItem(
                     leading: Icon(
                       Icons.timer_outlined,
                       color: colorScheme.onSurfaceVariant,
@@ -194,7 +194,7 @@ class TopBarSearch extends StatelessWidget {
                       navProvider.setActivePage(PageId.pomodoro);
                     },
                   ),
-                  _ => M3EListItem(
+                  M3EListItem(
                     leading: Icon(
                       Icons.settings_outlined,
                       color: colorScheme.onSurfaceVariant,
@@ -206,7 +206,7 @@ class TopBarSearch extends StatelessWidget {
                       navProvider.setActivePage(PageId.settings);
                     },
                   ),
-                },
+                ],
               ),
               if (!ZetaWindowSizeClass.of(context).isCompact) ...[
                 const SizedBox(height: 12),
@@ -244,34 +244,35 @@ class TopBarSearch extends StatelessWidget {
     widgets.add(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: M3EList(
-          itemCount: 2,
-          itemBuilder: (context, index) => index == 0
-              ? M3EListItem(
-                  leading: Icon(
-                    Icons.search_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  headline: 'Search all for "$query"',
-                  supportingText:
-                      'Filter Tasks page • ${matchingTasks.length} found',
-                  onTap: () {
-                    safeCloseView(query);
-                    taskProvider.setSearchQuery(query);
-                    navProvider.setActivePage(PageId.tasks);
-                  },
-                )
-              : M3EListItem(
-                  leading: Icon(
-                    Icons.add_task_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  headline: 'Create task "$query"',
-                  onTap: () {
-                    safeCloseView(null);
-                    TaskEditPane.show(context, initialTitle: query);
-                  },
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            M3EListItem(
+              leading: Icon(
+                Icons.search_rounded,
+                color: colorScheme.primary,
+              ),
+              headline: 'Search all for "$query"',
+              supportingText:
+                  'Filter Tasks page • ${matchingTasks.length} found',
+              onTap: () {
+                safeCloseView(query);
+                taskProvider.setSearchQuery(query);
+                navProvider.setActivePage(PageId.tasks);
+              },
+            ),
+            M3EListItem(
+              leading: Icon(
+                Icons.add_task_rounded,
+                color: colorScheme.primary,
+              ),
+              headline: 'Create task "$query"',
+              onTap: () {
+                safeCloseView(null);
+                TaskEditPane.show(context, initialTitle: query);
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -365,9 +366,9 @@ class TopBarSearch extends StatelessWidget {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: M3EList(
-            itemCount: taskTiles.length,
-            itemBuilder: (context, index) => taskTiles[index],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: taskTiles,
           ),
         ),
       );
@@ -412,9 +413,9 @@ class TopBarSearch extends StatelessWidget {
       widgets.add(
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: M3EList(
-            itemCount: binTiles.length,
-            itemBuilder: (context, index) => binTiles[index],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: binTiles,
           ),
         ),
       );

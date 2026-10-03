@@ -62,6 +62,7 @@ class _AppScaffoldState extends State<AppScaffold>
   double _dragOffset = 0.0;
   bool _isRefreshing = false;
   bool _isUserPulling = false;
+  late final M3EToolbarScrollBehavior _toolbarScrollBehavior;
 
   static const double _targetHeight = 80.0;
 
@@ -88,6 +89,10 @@ class _AppScaffoldState extends State<AppScaffold>
         parent: _refreshController,
         curve: M3MotionEasing.emphasizedDecelerate,
       ),
+    );
+
+    _toolbarScrollBehavior = M3EToolbarScrollBehavior.exitAlways(
+      exitDirection: M3EToolbarExitDirection.bottom,
     );
 
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
@@ -566,35 +571,26 @@ class _AppScaffoldState extends State<AppScaffold>
                           },
                         ),
                         child: isCompact
-                            ? Builder(
-                                builder: (context) {
-                                  final behavior =
-                                      M3EToolbarScrollBehavior.exitAlways(
-                                        exitDirection:
-                                            M3EToolbarExitDirection.bottom,
-                                      );
-                                  return M3EToolbarScrollWrapper(
-                                    behavior: behavior,
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: BodyPane(
-                                            activePage: navProvider.activePage,
-                                          ),
-                                        ),
-                                        FloatingBottomNav(
-                                          navProvider: navProvider,
-                                          isSelectionMode: isSelectionMode,
-                                          scrollBehavior: behavior,
-                                        ),
-                                        TaskSelectionToolbar(
-                                          taskProvider: context
-                                              .read<TaskProvider>(),
-                                        ),
-                                      ],
+                            ? M3EToolbarScrollWrapper(
+                                behavior: _toolbarScrollBehavior,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: BodyPane(
+                                        activePage: navProvider.activePage,
+                                      ),
                                     ),
-                                  );
-                                },
+                                    FloatingBottomNav(
+                                      navProvider: navProvider,
+                                      isSelectionMode: isSelectionMode,
+                                      scrollBehavior: _toolbarScrollBehavior,
+                                    ),
+                                    TaskSelectionToolbar(
+                                      taskProvider: context
+                                          .read<TaskProvider>(),
+                                    ),
+                                  ],
+                                ),
                               )
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,

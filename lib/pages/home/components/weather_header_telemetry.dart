@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../components/weather_icon.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/weather_provider.dart';
@@ -625,7 +626,6 @@ class _WeatherFlyoutCard extends StatelessWidget {
                                 )
                               : Icon(
                                   Icons.refresh_rounded,
-                                  size: 18,
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                           headline: weatherProvider.isWeatherLoading
@@ -641,7 +641,6 @@ class _WeatherFlyoutCard extends StatelessWidget {
                       : M3EListItem(
                           leading: Icon(
                             Icons.settings_outlined,
-                            size: 18,
                             color: colorScheme.onSurfaceVariant,
                           ),
                           headline: 'Weather Settings',
