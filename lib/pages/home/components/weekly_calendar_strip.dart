@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -60,10 +61,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
   @override
   void didUpdateWidget(covariant WeeklyCalendarStrip oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!DateTimeUtils.isSameDay(
-      widget.selectedDate,
-      oldWidget.selectedDate,
-    )) {
+    if (!DateTimeUtils.isSameDay(widget.selectedDate, oldWidget.selectedDate)) {
       final diff = widget.selectedDate.difference(_today);
       final dayOffset = (diff.inHours + 12) ~/ 24;
       _centerOnDayOffset(dayOffset);
@@ -96,7 +94,9 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     if (!_scrollController.hasClients) return;
     final viewport = _scrollController.position.viewportDimension;
     final target =
-        (dayOffset * _effectiveItemExtent) - (viewport / 2) + (_effectiveItemExtent / 2);
+        (dayOffset * _effectiveItemExtent) -
+        (viewport / 2) +
+        (_effectiveItemExtent / 2);
 
     _scrollController.animateTo(
       target,
@@ -127,8 +127,9 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
         width: M3EIconButtonWidth.narrow,
         decoration: M3EIconButtonDecoration(
           backgroundColor: WidgetStateProperty.all(
-            colorScheme.onSurface.withValues(alpha: 0.1),
+            colorScheme.surfaceContainerHighest,
           ),
+          foregroundColor: WidgetStateProperty.all(colorScheme.onSurface),
         ),
         icon: Icon(
           isNext ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
@@ -170,7 +171,10 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
     final dayNameShort = DateTimeUtils.weekdaysShortUpper[dayDate.weekday - 1];
     final dayNumStr = dayDate.day.toString();
-    final effectivePillWidth = math.min(_itemWidth, math.max(38.0, itemExtent - 6.0));
+    final effectivePillWidth = math.min(
+      _itemWidth,
+      math.max(38.0, itemExtent - 6.0),
+    );
 
     return Center(
       child: Padding(
@@ -441,9 +445,10 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
                                   stripConstraints.maxWidth;
                               // Ensure calendar strip shows at least 4 dates at any point, up to 7 dates
                               final int visibleDays =
-                                  (stripWidth / _baseItemExtent)
-                                      .floor()
-                                      .clamp(5, 7);
+                                  (stripWidth / _baseItemExtent).floor().clamp(
+                                    5,
+                                    7,
+                                  );
                               final double itemExtent =
                                   stripWidth / visibleDays;
                               _effectiveItemExtent = itemExtent;
@@ -587,4 +592,3 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     );
   }
 }
-

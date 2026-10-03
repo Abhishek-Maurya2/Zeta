@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../services/quick_actions_service.dart';
@@ -307,7 +308,6 @@ class _AppScaffoldState extends State<AppScaffold>
     return false;
   }
 
-
   /// Global key handler — fires before any widget-level handlers.
   bool _globalKeyHandler(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
@@ -566,21 +566,35 @@ class _AppScaffoldState extends State<AppScaffold>
                           },
                         ),
                         child: isCompact
-                            ? Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: BodyPane(
-                                      activePage: navProvider.activePage,
+                            ? Builder(
+                                builder: (context) {
+                                  final behavior =
+                                      M3EToolbarScrollBehavior.exitAlways(
+                                        exitDirection:
+                                            M3EToolbarExitDirection.bottom,
+                                      );
+                                  return M3EToolbarScrollWrapper(
+                                    behavior: behavior,
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: BodyPane(
+                                            activePage: navProvider.activePage,
+                                          ),
+                                        ),
+                                        FloatingBottomNav(
+                                          navProvider: navProvider,
+                                          isSelectionMode: isSelectionMode,
+                                          scrollBehavior: behavior,
+                                        ),
+                                        TaskSelectionToolbar(
+                                          taskProvider: context
+                                              .read<TaskProvider>(),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                  FloatingBottomNav(
-                                    navProvider: navProvider,
-                                    isSelectionMode: isSelectionMode,
-                                  ),
-                                  TaskSelectionToolbar(
-                                    taskProvider: context.read<TaskProvider>(),
-                                  ),
-                                ],
+                                  );
+                                },
                               )
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -598,7 +612,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                           ),
                                         ),
                                         TaskSelectionToolbar(
-                                          taskProvider: context.read<TaskProvider>(),
+                                          taskProvider: context
+                                              .read<TaskProvider>(),
                                         ),
                                       ],
                                     ),

@@ -14,120 +14,69 @@ import '../../utils/haptics.dart';
 class FloatingBottomNav extends StatelessWidget {
   final NavigationProvider navProvider;
   final bool isSelectionMode;
+  final M3EToolbarScrollBehavior scrollBehavior;
   const FloatingBottomNav({
     super.key,
     required this.navProvider,
     required this.isSelectionMode,
+    required this.scrollBehavior,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
-    final navToolbar = M3EToolbar(
-      alignment: Alignment.center,
-      elevation: 0.0,
-      size: M3EToolbarSize.large,
-      colorStyle: M3EToolbarColorStyle.vibrant,
-      padding: const EdgeInsets.symmetric(horizontal: 1),
-      actions: [
-        M3EToolbarWidget(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: kNavDestinations
-                .where(
-                  (dest) => dest.id != PageId.settings && dest.id != PageId.bin,
-                )
-                .map((dest) {
-                  final isSelected = dest.id == navProvider.activePage;
-
-                  return ToolbarNavItem(
-                    destination: dest,
-                    isSelected: isSelected,
-                    onTap: () {
-                      ZetaHaptics.selection();
-                      context.read<TaskProvider>().clearSelection();
-
-                      if (navProvider.activePage == PageId.revision &&
-                          dest.id != PageId.revision) {
-                        context.read<RevisionProvider>().selectSubject(null);
-                      }
-
-                      navProvider.setActivePage(dest.id);
-                    },
-                  );
-                })
-                .toList(),
-          ),
-        ),
-      ],
-    );
-
-    final fabButton = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.50),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-              width: 1.0,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () {
+    return AnimatedSlide(
+      offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeInOutCubicEmphasized,
+      child: M3EToolbar(
+        alignment: Alignment.bottomCenter,
+        screenOffset: 5,
+        elevation: 0.0,
+        size: M3EToolbarSize.large,
+        colorStyle: M3EToolbarColorStyle.vibrant,
+        padding: const EdgeInsets.symmetric(horizontal: 1),
+        scrollBehavior: scrollBehavior,
+        fabExpandIcon: isTasksPage ? const Icon(Icons.add_rounded) : null,
+        fabExpandsToolbar: false,
+        onFabPressed: isTasksPage
+            ? () {
                 ZetaHaptics.medium();
                 TaskEditPane.show(context);
-              },
-              child: Tooltip(
-                message: 'New Task',
-                child: Center(
-                  child: Icon(
-                    Icons.add_rounded,
-                    size: 26,
-                    color: colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+              }
+            : null,
+        actions: [
+          M3EToolbarWidget(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: kNavDestinations
+                  .where(
+                    (dest) => dest.id != PageId.settings && dest.id != PageId.bin,
+                  )
+                  .map((dest) {
+                    final isSelected = dest.id == navProvider.activePage;
 
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 16,
-      child: AnimatedSlide(
-        offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeInOutCubicEmphasized,
-        child: AnimatedOpacity(
-          opacity: isSelectionMode ? 0.0 : 1.0,
-          duration: const Duration(milliseconds: 220),
-          child: IgnorePointer(
-            ignoring: isSelectionMode,
-            child: Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IntrinsicWidth(child: navToolbar),
-                  if (isTasksPage) ...[const SizedBox(width: 8), fabButton],
-                ],
-              ),
+                    return ToolbarNavItem(
+                      destination: dest,
+                      isSelected: isSelected,
+                      onTap: () {
+                        ZetaHaptics.selection();
+                        context.read<TaskProvider>().clearSelection();
+
+                        if (navProvider.activePage == PageId.revision &&
+                            dest.id != PageId.revision) {
+                          context.read<RevisionProvider>().selectSubject(null);
+                        }
+
+                        navProvider.setActivePage(dest.id);
+                      },
+                    );
+                  })
+                  .toList(),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -177,22 +126,22 @@ class ToolbarNavItem extends StatelessWidget {
     final navItem = AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
-      constraints: BoxConstraints(minWidth: isSelected ? 40 : 35),
+      constraints: BoxConstraints(minWidth: isSelected ? 40 : 25),
       padding: EdgeInsets.symmetric(
-        horizontal: isSelected ? 15 : 4,
+        horizontal: isSelected ? 15 : 8,
         vertical: 12,
       ),
       decoration: BoxDecoration(
         color: isSelected
             ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.35)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(88),
+        borderRadius: BorderRadius.circular(50),
       ),
       child: content,
     );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 1),
       child: Tooltip(
         message: destination.label,
         child: Material(
