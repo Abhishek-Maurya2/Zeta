@@ -28,7 +28,7 @@ import 'components/pull_to_refresh_container.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../components/m3e_split_pane.dart';
+
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
@@ -307,8 +307,6 @@ class _AppScaffoldState extends State<AppScaffold>
     return false;
   }
 
-  /// Dynamic resizable width for the co-planar task edit split pane on Medium/Expanded+
-  double _taskEditPaneWidth = 380.0;
 
   /// Global key handler — fires before any widget-level handlers.
   bool _globalKeyHandler(KeyEvent event) {
@@ -575,180 +573,32 @@ class _AppScaffoldState extends State<AppScaffold>
                                       activePage: navProvider.activePage,
                                     ),
                                   ),
-                                  // Floating Bottom Navigation: moves down out of view when selecting
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 16,
-                                    child: AnimatedSlide(
-                                      offset: isSelectionMode
-                                          ? const Offset(0, 2.0)
-                                          : Offset.zero,
-                                      duration: const Duration(
-                                        milliseconds: 320,
-                                      ),
-                                      curve: Curves.easeInOutCubicEmphasized,
-                                      child: AnimatedOpacity(
-                                        opacity: isSelectionMode ? 0.0 : 1.0,
-                                        duration: const Duration(
-                                          milliseconds: 220,
-                                        ),
-                                        child: IgnorePointer(
-                                          ignoring: isSelectionMode,
-                                          child: Center(
-                                            child: FloatingBottomNav(
-                                              navProvider: navProvider,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                  FloatingBottomNav(
+                                    navProvider: navProvider,
+                                    isSelectionMode: isSelectionMode,
                                   ),
-                                  // Floating Selection Toolbar: moves up from bottom into position
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 16,
-                                    child: AnimatedSlide(
-                                      offset: isSelectionMode
-                                          ? Offset.zero
-                                          : const Offset(0, 2.0),
-                                      duration: const Duration(
-                                        milliseconds: 320,
-                                      ),
-                                      curve: Curves.easeInOutCubicEmphasized,
-                                      child: AnimatedOpacity(
-                                        opacity: isSelectionMode ? 1.0 : 0.0,
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        child: IgnorePointer(
-                                          ignoring: !isSelectionMode,
-                                          child: Consumer<TaskProvider>(
-                                            builder: (context, tp, _) =>
-                                                TaskSelectionToolbar(
-                                                  taskProvider: tp,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                  TaskSelectionToolbar(
+                                    taskProvider: context.read<TaskProvider>(),
                                   ),
                                 ],
                               )
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // M3E Navigation Rail from material_3_expressive (no internal toggle button)
                                   NavigationRailWidget(
                                     isExpanded: navProvider.isRailExpanded,
                                     navProvider: navProvider,
                                   ),
-
-                                  // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
                                   Expanded(
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: !isEditPaneOpen
-                                              ? BodyPane(
-                                                  activePage:
-                                                      navProvider.activePage,
-                                                )
-                                              : LayoutBuilder(
-                                                  builder: (context, constraints) {
-                                                    final totalWidth = constraints.maxWidth;
-                                                    final minWidth = (totalWidth - 600.0 - 24.0).clamp(200.0, totalWidth - 300.0);
-                                                    final maxWidth = (totalWidth - 300.0 - 24.0).clamp(minWidth, totalWidth - 200.0);
-                                                    final currentStartWidth = (totalWidth - _taskEditPaneWidth - 24.0).clamp(minWidth, maxWidth);
-                                                    final currentPercent = (currentStartWidth / totalWidth) * 100.0;
-                                                    final minPercent = (minWidth / totalWidth) * 100.0;
-                                                    final maxPercent = (maxWidth / totalWidth) * 100.0;
-
-                                                    return M3ESplitPane(
-                                                      value: currentPercent.clamp(minPercent, maxPercent),
-                                                      min: minPercent,
-                                                      max: maxPercent,
-                                                      onChanged: (val) {
-                                                        final newWidth = totalWidth - (totalWidth * (val / 100.0)) - 24.0;
-                                                        setState(() {
-                                                          _taskEditPaneWidth = newWidth.clamp(300.0, 600.0);
-                                                        });
-                                                      },
-                                                      onDoubleTap: () {
-                                                        setState(() {
-                                                          _taskEditPaneWidth = 380.0;
-                                                        });
-                                                        ZetaHaptics.medium();
-                                                      },
-                                                      start: BodyPane(activePage: navProvider.activePage),
-                                                      end: Container(
-                                                        margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
-                                                        decoration: BoxDecoration(
-                                                          color: isDark
-                                                              ? colorScheme.surfaceContainerHigh
-                                                              : colorScheme.surfaceContainer,
-                                                          borderRadius: BorderRadius.circular(20),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: colorScheme.shadow.withValues(alpha: 0.08),
-                                                              blurRadius: 16,
-                                                              offset: const Offset(0, 6),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        clipBehavior: Clip.antiAlias,
-                                                        child: SafeArea(
-                                                          child: Consumer<TaskProvider>(
-                                                            builder: (context, tp, _) => TaskEditFormContent(
-                                                              key: ValueKey('${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}'),
-                                                              task: tp.editingTask,
-                                                              initialTitle: tp.editingInitialTitle,
-                                                              initialDescription: tp.editingInitialDescription,
-                                                              initialDueDate: tp.editingInitialDueDate,
-                                                              initialDueTime: tp.editingInitialDueTime,
-                                                              initialHasTime: tp.editingInitialHasTime,
-                                                              initialSubtasks: tp.editingInitialSubtasks,
-                                                              onClose: () => tp.closeEditPane(),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                        ),
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          bottom: 24,
-                                          child: AnimatedSlide(
-                                            offset: isSelectionMode
-                                                ? Offset.zero
-                                                : const Offset(0, 2.0),
-                                            duration: const Duration(
-                                              milliseconds: 320,
-                                            ),
-                                            curve:
-                                                Curves.easeInOutCubicEmphasized,
-                                            child: AnimatedOpacity(
-                                              opacity: isSelectionMode
-                                                  ? 1.0
-                                                  : 0.0,
-                                              duration: const Duration(
-                                                milliseconds: 250,
-                                              ),
-                                              child: IgnorePointer(
-                                                ignoring: !isSelectionMode,
-                                                child: Consumer<TaskProvider>(
-                                                  builder: (context, tp, _) =>
-                                                      TaskSelectionToolbar(
-                                                        taskProvider: tp,
-                                                      ),
-                                                ),
-                                              ),
-                                            ),
+                                          child: BodyPane(
+                                            activePage: navProvider.activePage,
                                           ),
+                                        ),
+                                        TaskSelectionToolbar(
+                                          taskProvider: context.read<TaskProvider>(),
                                         ),
                                       ],
                                     ),

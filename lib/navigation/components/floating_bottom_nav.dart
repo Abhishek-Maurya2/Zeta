@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -12,91 +13,55 @@ import '../../utils/haptics.dart';
 /// Floating bottom navigation toolbar for compact viewports.
 class FloatingBottomNav extends StatelessWidget {
   final NavigationProvider navProvider;
-  const FloatingBottomNav({super.key, required this.navProvider});
+  final bool isSelectionMode;
+  const FloatingBottomNav({
+    super.key,
+    required this.navProvider,
+    required this.isSelectionMode,
+  });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final baseM3ETheme = M3ETheme.of(context);
-
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
-    final glassColorScheme = baseM3ETheme.colorScheme.copyWith(
-      primaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.50),
-      secondaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.50),
-      tertiaryContainer: colorScheme.primaryContainer.withValues(alpha: 0.50),
-      surfaceContainerHigh: colorScheme.primaryContainer.withValues(
-        alpha: 0.50,
-      ),
-      primary: colorScheme.primaryContainer.withValues(alpha: 0.50),
-      onPrimaryContainer: colorScheme.onPrimaryContainer,
-      onSecondaryContainer: colorScheme.onPrimaryContainer,
-      onTertiaryContainer: colorScheme.onPrimaryContainer,
-      onPrimary: colorScheme.onPrimaryContainer,
-    );
+    final navToolbar = M3EToolbar(
+      alignment: Alignment.center,
+      elevation: 0.0,
+      size: M3EToolbarSize.large,
+      colorStyle: M3EToolbarColorStyle.vibrant,
+      padding: const EdgeInsets.symmetric(horizontal: 1),
+      actions: [
+        M3EToolbarWidget(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: kNavDestinations
+                .where(
+                  (dest) => dest.id != PageId.settings && dest.id != PageId.bin,
+                )
+                .map((dest) {
+                  final isSelected = dest.id == navProvider.activePage;
 
-    final navToolbar = M3ETheme(
-      data: baseM3ETheme.copyWith(
-        colorScheme: glassColorScheme,
-        toolbarTheme: baseM3ETheme.toolbarTheme.copyWith(containerSize: 65),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(100),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.50),
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: M3EToolbar(
-              alignment: Alignment.center,
-              backgroundColor: Colors.transparent,
-              elevation: 0.0,
-              size: M3EToolbarSize.large,
-              padding: const EdgeInsets.symmetric(horizontal: 1),
-              actions: [
-                M3EToolbarWidget(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: kNavDestinations
-                        .where(
-                          (dest) =>
-                              dest.id != PageId.settings && dest.id != PageId.bin,
-                        )
-                        .map((dest) {
-                          final isSelected = dest.id == navProvider.activePage;
+                  return ToolbarNavItem(
+                    destination: dest,
+                    isSelected: isSelected,
+                    onTap: () {
+                      ZetaHaptics.selection();
+                      context.read<TaskProvider>().clearSelection();
 
-                          return ToolbarNavItem(
-                            destination: dest,
-                            isSelected: isSelected,
-                            onTap: () {
-                              ZetaHaptics.selection();
-                              context.read<TaskProvider>().clearSelection();
+                      if (navProvider.activePage == PageId.revision &&
+                          dest.id != PageId.revision) {
+                        context.read<RevisionProvider>().selectSubject(null);
+                      }
 
-                              if (navProvider.activePage == PageId.revision &&
-                                  dest.id != PageId.revision) {
-                                context.read<RevisionProvider>().selectSubject(
-                                  null,
-                                );
-                              }
-
-                              navProvider.setActivePage(dest.id);
-                            },
-                          );
-                        })
-                        .toList(),
-                  ),
-                ),
-              ],
-            ),
+                      navProvider.setActivePage(dest.id);
+                    },
+                  );
+                })
+                .toList(),
           ),
         ),
-      ),
+      ],
     );
 
     final fabButton = ClipRRect(
@@ -138,14 +103,31 @@ class FloatingBottomNav extends StatelessWidget {
       ),
     );
 
-    return Center(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          IntrinsicWidth(child: navToolbar),
-          if (isTasksPage) ...[const SizedBox(width: 8), fabButton],
-        ],
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 16,
+      child: AnimatedSlide(
+        offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeInOutCubicEmphasized,
+        child: AnimatedOpacity(
+          opacity: isSelectionMode ? 0.0 : 1.0,
+          duration: const Duration(milliseconds: 220),
+          child: IgnorePointer(
+            ignoring: isSelectionMode,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  IntrinsicWidth(child: navToolbar),
+                  if (isTasksPage) ...[const SizedBox(width: 8), fabButton],
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

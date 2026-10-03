@@ -21,8 +21,23 @@ class TaskSelectionToolbar extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final selectedCount = taskProvider.selectedCount;
 
-    return M3EToolbar(
-      alignment: Alignment.center,
+    final isSelectionMode = selectedCount > 0;
+
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 16,
+      child: AnimatedSlide(
+        offset: isSelectionMode ? Offset.zero : const Offset(0, 2.0),
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeInOutCubicEmphasized,
+        child: AnimatedOpacity(
+          opacity: isSelectionMode ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 250),
+          child: IgnorePointer(
+            ignoring: !isSelectionMode,
+            child: M3EToolbar(
+              alignment: Alignment.center,
       colorStyle: M3EToolbarColorStyle.vibrant,
       size: M3EToolbarSize.large,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -95,6 +110,10 @@ class TaskSelectionToolbar extends StatelessWidget {
           },
         ),
       ],
+    )
+          ),
+        ),
+      ),
     );
   }
 }
