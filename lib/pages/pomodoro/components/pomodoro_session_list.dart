@@ -4,12 +4,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../components/zeta_empty_state.dart';
+import '../../../utils/haptics.dart';
 
 /// Recent completed focus sessions list showing 5 sessions initially,
-/// displaying [M3ELoadingIndicator] for at least 3 seconds before automatically loading the rest.
+/// displaying a button to load the next batch of 5 sessions.
 class PomodoroSessionList extends StatefulWidget {
   const PomodoroSessionList({super.key});
 
@@ -18,12 +20,11 @@ class PomodoroSessionList extends StatefulWidget {
 }
 
 class _PomodoroSessionListState extends State<PomodoroSessionList> {
-  static const int _initialCount = 5;
-  static const Duration _minLoadingDuration = Duration(seconds: 3);
+  static const int _batchSize = 5;
 
-  bool _loadedAll = false;
+  int _displayedCount = _batchSize;
   bool _isLoading = false;
-  Timer? _timer;
+  Timer? _loadTimer;
 
   static String monthName(int month) {
     const months = [
@@ -64,7 +65,7 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
-              setState(() => _loadedAll = false);
+              setState(() => _displayedCount = _batchSize);
               provider.clearSessionLog();
             },
             child: const Text('Clear All'),
@@ -74,23 +75,29 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     );
   }
 
-  void _checkAutoLoad(int totalSessions) {
-    if (totalSessions > _initialCount && !_loadedAll && !_isLoading) {
+  void _loadNextBatch(int totalSessions) {
+    if (_isLoading || _displayedCount >= totalSessions) return;
+    setState(() {
       _isLoading = true;
-      _timer?.cancel();
-      _timer = Timer(_minLoadingDuration, () {
-        if (!mounted) return;
-        setState(() {
-          _loadedAll = true;
-          _isLoading = false;
-        });
+    });
+
+    _loadTimer?.cancel();
+    _loadTimer = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      setState(() {
+        _displayedCount = (_displayedCount + _batchSize).clamp(
+          0,
+          totalSessions,
+        );
+        _isLoading = false;
       });
-    }
+      ZetaHaptics.light();
+    });
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _loadTimer?.cancel();
     super.dispose();
   }
 
@@ -103,13 +110,9 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
 
     final reversedLogs = sessionLog.reversed.toList();
     final totalSessions = reversedLogs.length;
-    final hasMore = totalSessions > _initialCount;
+    final hasMore = totalSessions > _displayedCount;
 
-    _checkAutoLoad(totalSessions);
-
-    final visibleSessions = (_loadedAll || !hasMore)
-        ? reversedLogs
-        : reversedLogs.take(_initialCount).toList();
+    final visibleSessions = reversedLogs.take(_displayedCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,13 +135,12 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
             ),
 
             if (sessionLog.isNotEmpty)
-              M3EButton.icon(
+              M3EIconButton(
                 onPressed: () => _confirmClearLogs(context, provider),
                 icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                label: const Text('Clear', style: TextStyle(fontSize: 16)),
-                size: M3EButtonSize.sm,
+                width: M3EIconButtonWidth.wide,
                 tooltip: 'Clear session log',
-                decoration: M3EButtonDecoration(
+                decoration: M3EIconButtonDecoration(
                   backgroundColor: WidgetStatePropertyAll(
                     colorScheme.errorContainer,
                   ),
@@ -228,16 +230,27 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
             },
           ),
 
-        // ─── Automatic Loading Indicator (Visible for ≥ 3 seconds) ──
-        if (hasMore && !_loadedAll) ...[
-          const SizedBox(height: 16),
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: M3ELoadingIndicator(
-                variant: M3ELoadingIndicatorVariant.contained,
-              ),
-            ),
+        // ─── Bottom Loading Trigger / Indicator ─────────────────────
+        if (hasMore) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: _isLoading
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: M3ELoadingIndicator(
+                      variant: M3ELoadingIndicatorVariant.defaultStyle,
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: M3EIconButton(
+                      onPressed: () => _loadNextBatch(totalSessions),
+                      variant: M3EIconButtonVariant.filled,
+                      width: M3EIconButtonWidth.wide,
+                      icon: const Icon(Icons.expand_more_rounded, size: 25),
+                      tooltip: 'Load ${totalSessions - _displayedCount} more',
+                    ),
+                  ),
           ),
         ],
       ],

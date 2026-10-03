@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../providers/theme_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../services/notification_service.dart';
@@ -76,8 +77,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     } else {
       AppSnackbar.show(
         context,
-        message:
-            'System notification failed. Since local_notifier was newly added, a full app restart/rebuild is required.',
+        message: 'System notification failed. Since local_notifier was newly added, a full app restart/rebuild is required.',
         actionLabel: 'Dismiss',
         onAction: () {},
         duration: const Duration(seconds: 5),
@@ -108,7 +108,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
               innerRadius: 50,
               color: isMasterOn
                   ? colorScheme.primaryContainer
-                  : colorScheme.surfaceContainer,
+                  : colorScheme.surfaceContainerHighest,
               itemCount: 1,
               itemBuilder: (context, index) {
                 return M3EListItem(
@@ -153,194 +153,199 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
             Builder(
               builder: (context) {
                 final items = <Widget>[
-                // Task due reminders (bell / alarm icon in thumb)
-                _buildSwitchTile(
-                  context,
-                  title: 'Task due time reminders',
-                  subtitle: 'Alert when a task reaches its deadline',
-                  value: notifProvider.taskRemindersEnabled,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.alarm_on_rounded, size: 16),
-                  unselectedIcon: const Icon(Icons.alarm_off_rounded, size: 16),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    notifProvider.setTaskRemindersEnabled(val);
-                  },
-                ),
-
-                // Overdue task alerts (clock / warning icon in thumb)
-                _buildSwitchTile(
-                  context,
-                  title: 'Overdue task alerts',
-                  subtitle: 'Daily summary for tasks past deadline',
-                  value: notifProvider.overdueAlertsEnabled,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.schedule_rounded, size: 16),
-                  unselectedIcon: const Icon(
-                    Icons.history_toggle_off_rounded,
-                    size: 16,
+                  // Task due reminders (bell / alarm icon in thumb)
+                  _buildSwitchTile(
+                    context,
+                    title: 'Task due time reminders',
+                    subtitle: 'Alert when a task reaches its deadline',
+                    value: notifProvider.taskRemindersEnabled,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.alarm_on_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.alarm_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      notifProvider.setTaskRemindersEnabled(val);
+                    },
                   ),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    notifProvider.setOverdueAlertsEnabled(val);
-                  },
-                ),
 
-                // Focus timer alerts (timer / hourglass icon in thumb)
-                _buildSwitchTile(
-                  context,
-                  title: 'Focus timer alerts',
-                  subtitle: 'Notify on focus and break completion',
-                  value: notifProvider.pomodoroAlertsEnabled,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.timer_rounded, size: 16),
-                  unselectedIcon: const Icon(Icons.timer_off_rounded, size: 16),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    notifProvider.setPomodoroAlertsEnabled(val);
-                  },
-                ),
-
-                // Live timer progress (ongoing progress in notification shade & Action Center)
-                _buildSwitchTile(
-                  context,
-                  title: 'Live timer progress',
-                  subtitle:
-                      'Ongoing progress in notification shade & Action Center',
-                  value: notifProvider.pomodoroLiveEnabled,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.timelapse_rounded, size: 16),
-                  unselectedIcon: const Icon(Icons.timer_outlined, size: 16),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    notifProvider.setPomodoroLiveEnabled(val);
-                  },
-                ),
-
-                // Sound effects & chimes (speaker icon in thumb)
-                _buildSwitchTile(
-                  context,
-                  title: 'Sound effects & chimes',
-                  subtitle: 'Audio chime on alerts and timer ends',
-                  value: themeProvider.soundEffects,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.volume_up_rounded, size: 16),
-                  unselectedIcon: const Icon(
-                    Icons.volume_off_rounded,
-                    size: 16,
+                  // Overdue task alerts (clock / warning icon in thumb)
+                  _buildSwitchTile(
+                    context,
+                    title: 'Overdue task alerts',
+                    subtitle: 'Daily summary for tasks past deadline',
+                    value: notifProvider.overdueAlertsEnabled,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.schedule_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.history_toggle_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      notifProvider.setOverdueAlertsEnabled(val);
+                    },
                   ),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    themeProvider.setSoundEffects(val);
-                  },
-                ),
 
-                // In-app notifications (chat / banner icon in thumb)
-                _buildSwitchTile(
-                  context,
-                  title: 'In-app notifications',
-                  subtitle: 'Display in-app toasts and snackbars',
-                  value: themeProvider.notifications,
-                  enabled: isMasterOn,
-                  selectedIcon: const Icon(Icons.campaign_rounded, size: 16),
-                  unselectedIcon: const Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    size: 16,
+                  // Focus timer alerts (timer / hourglass icon in thumb)
+                  _buildSwitchTile(
+                    context,
+                    title: 'Focus timer alerts',
+                    subtitle: 'Notify on focus and break completion',
+                    value: notifProvider.pomodoroAlertsEnabled,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.timer_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.timer_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      notifProvider.setPomodoroAlertsEnabled(val);
+                    },
                   ),
-                  onChanged: (val) {
-                    ZetaHaptics.light();
-                    themeProvider.setNotifications(val);
-                  },
-                ),
 
-                // System permission tile (Device name style)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                  // Live timer progress (ongoing progress in notification shade & Action Center)
+                  _buildSwitchTile(
+                    context,
+                    title: 'Live timer progress',
+                    subtitle: 'Ongoing progress in notification shade & Action Center',
+                    value: notifProvider.pomodoroLiveEnabled,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.timelapse_rounded, size: 16),
+                    unselectedIcon: const Icon(Icons.timer_outlined, size: 16),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      notifProvider.setPomodoroLiveEnabled(val);
+                    },
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'System permission',
-                              style: textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: isMasterOn
-                                    ? colorScheme.onSurface
-                                    : colorScheme.onSurface.withValues(
-                                        alpha: 0.38,
-                                      ),
+
+                  // Sound effects & chimes (speaker icon in thumb)
+                  _buildSwitchTile(
+                    context,
+                    title: 'Sound effects & chimes',
+                    subtitle: 'Audio chime on alerts and timer ends',
+                    value: themeProvider.soundEffects,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.volume_up_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.volume_off_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      themeProvider.setSoundEffects(val);
+                    },
+                  ),
+
+                  // In-app notifications (chat / banner icon in thumb)
+                  _buildSwitchTile(
+                    context,
+                    title: 'In-app notifications',
+                    subtitle: 'Display in-app toasts and snackbars',
+                    value: themeProvider.notifications,
+                    enabled: isMasterOn,
+                    selectedIcon: const Icon(Icons.campaign_rounded, size: 16),
+                    unselectedIcon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 16,
+                    ),
+                    onChanged: (val) {
+                      ZetaHaptics.light();
+                      themeProvider.setNotifications(val);
+                    },
+                  ),
+
+                  // System permission tile (Device name style)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'System permission',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isMasterOn
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withValues(
+                                          alpha: 0.38,
+                                        ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _permissionGranted
-                                  ? 'Allowed on this device'
-                                  : 'Required to display system alerts',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: !isMasterOn
-                                    ? colorScheme.onSurfaceVariant.withValues(
-                                        alpha: 0.38,
-                                      )
-                                    : (_permissionGranted
-                                          ? colorScheme.onSurfaceVariant
-                                          : colorScheme.error),
+                              const SizedBox(height: 2),
+                              Text(
+                                _permissionGranted
+                                    ? 'Allowed on this device'
+                                    : 'Required to display system alerts',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: !isMasterOn
+                                      ? colorScheme.onSurfaceVariant.withValues(
+                                          alpha: 0.38,
+                                        )
+                                      : (_permissionGranted
+                                            ? colorScheme.onSurfaceVariant
+                                            : colorScheme.error),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                      if (_permissionChecked && !_permissionGranted)
-                        M3EButton.icon(
-                          icon: const Icon(Icons.lock_open_rounded, size: 14),
-                          label: const Text('Allow'),
-                          style: M3EButtonStyle.filled,
-                          size: M3EButtonSize.sm,
-                          onPressed: isMasterOn
-                              ? _handleRequestPermission
-                              : null,
-                        )
-                      else if (_permissionGranted)
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: isMasterOn
-                              ? colorScheme.primary
-                              : colorScheme.primary.withValues(alpha: 0.38),
-                          size: 20,
-                        ),
-                    ],
+                        if (_permissionChecked && !_permissionGranted)
+                          M3EButton.icon(
+                            icon: const Icon(Icons.lock_open_rounded, size: 14),
+                            label: const Text('Allow'),
+                            style: M3EButtonStyle.filled,
+                            size: M3EButtonSize.sm,
+                            onPressed: isMasterOn
+                                ? _handleRequestPermission
+                                : null,
+                          )
+                        else if (_permissionGranted)
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: isMasterOn
+                                ? colorScheme.primary
+                                : colorScheme.primary.withValues(alpha: 0.38),
+                            size: 20,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
 
-                M3EListItem(
-                  enabled: isMasterOn,
-                  leading: Icon(
-                    Icons.add_rounded,
-                    size: 22,
-                    color: isMasterOn
-                        ? colorScheme.primary
-                        : colorScheme.onSurface.withValues(alpha: 0.38),
+                  M3EListItem(
+                    enabled: isMasterOn,
+                    leading: Icon(
+                      Icons.add_rounded,
+                      size: 22,
+                      color: isMasterOn
+                          ? colorScheme.primary
+                          : colorScheme.onSurface.withValues(alpha: 0.38),
+                    ),
+                    headline: 'Send test notification',
+                    onTap: isMasterOn
+                        ? () => _handleTestNotification(themeProvider)
+                        : null,
                   ),
-                  headline: 'Send test notification',
-                  onTap: isMasterOn
-                      ? () => _handleTestNotification(themeProvider)
-                      : null,
-                ),
-              ];
-              return M3EList(
-                outerRadius: 28.0,
-                innerRadius: 6.0,
-                gap: 3.0,
-                color: colorScheme.surfaceContainerLowest,
-                itemCount: items.length,
-                itemBuilder: (context, index) => items[index],
-              );
-            },
-          ),
+                ];
+                return M3EList(
+                  outerRadius: 28.0,
+                  innerRadius: 6.0,
+                  gap: 3.0,
+                  color: colorScheme.surfaceContainerLowest,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => items[index],
+                );
+              },
+            ),
 
             const SizedBox(height: 24),
 

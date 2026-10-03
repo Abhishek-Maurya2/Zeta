@@ -40,17 +40,17 @@ class FloatingBottomNav extends StatelessWidget {
             child: child,
           );
         },
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedSlide(
-              offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
-              duration: const Duration(milliseconds: 320),
-              curve: Curves.easeInOutCubicEmphasized,
-              child: ClipRRect(
+        child: AnimatedSlide(
+          offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeInOutCubicEmphasized,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
                 borderRadius: BorderRadius.circular(100),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                   child: M3EToolbar(
                     screenOffset: 0,
                     elevation: 0.0,
@@ -60,16 +60,6 @@ class FloatingBottomNav extends StatelessWidget {
                     size: M3EToolbarSize.large,
                     colorStyle: M3EToolbarColorStyle.vibrant,
                     padding: const EdgeInsets.symmetric(horizontal: 1),
-                    fabExpandIcon: isTasksPage
-                        ? const Icon(Icons.add_rounded)
-                        : null,
-                    fabExpandsToolbar: false,
-                    onFabPressed: isTasksPage
-                        ? () {
-                            ZetaHaptics.medium();
-                            TaskEditPane.show(context);
-                          }
-                        : null,
                     actions: [
                       M3EToolbarWidget(
                         child: Row(
@@ -112,8 +102,29 @@ class FloatingBottomNav extends StatelessWidget {
                   ),
                 ),
               ),
-            ),
-          ],
+              if (isTasksPage) ...[
+                const SizedBox(width: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    child: FloatingActionButton(
+                      elevation: 0.0,
+                      backgroundColor: colorScheme.tertiaryContainer.withValues(
+                        alpha: 0.7,
+                      ),
+                      foregroundColor: colorScheme.onTertiaryContainer,
+                      onPressed: () {
+                        ZetaHaptics.medium();
+                        TaskEditPane.show(context);
+                      },
+                      child: const Icon(Icons.add_rounded),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -180,23 +191,17 @@ class ToolbarNavItem extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: Tooltip(
-        message: destination.label,
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(80),
-            onTap: onTap,
-            child: isSelected
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(80),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                      child: navItem,
-                    ),
-                  )
-                : navItem,
-          ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(80),
+          onTap: onTap,
+          child: isSelected
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(80),
+                  child: navItem,
+                )
+              : navItem,
         ),
       ),
     );

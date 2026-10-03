@@ -260,10 +260,11 @@ class _WeatherSectionState extends State<WeatherSection> {
           children: [
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
             M3EList(
-              outerRadius: 100,
+              outerRadius: 50,
+              innerRadius: 50,
               color: isMasterOn
                   ? colorScheme.primaryContainer
-                  : colorScheme.surfaceContainer,
+                  : colorScheme.surfaceContainerHighest,
               itemCount: 1,
               itemBuilder: (context, index) => M3EListItem(
                 headline: 'Use weather',

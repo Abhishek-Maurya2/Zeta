@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
 
 import '../providers/task_provider.dart';
 import '../utils/haptics.dart';
@@ -21,7 +22,9 @@ class TaskSelectionToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final selectedCount = taskProvider.selectedCount;
+    final selectedCount = context.select<TaskProvider, int>(
+      (p) => p.selectedCount,
+    );
 
     final isSelectionMode = selectedCount > 0;
 
@@ -44,23 +47,19 @@ class TaskSelectionToolbar extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(100),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
                     child: M3EToolbar(
                       alignment: Alignment.center,
                       backgroundColor: colorScheme.primaryContainer.withValues(
-                        alpha: 0.70,
-                      ),
-                      colorStyle: M3EToolbarColorStyle.vibrant,
-                      size: M3EToolbarSize.large,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 4,
+                        alpha: 0.7,
                       ),
                       screenOffset: 0,
+                      elevation: 0.0,
                       actions: [
                         // ── Close / Cancel ──────────────────────────────────────────────────
                         M3EToolbarAction(
                           icon: Icons.close_rounded,
+                          isDestructive: true,
                           tooltip: 'Cancel Selection',
                           onPressed: () {
                             ZetaHaptics.light();
@@ -81,14 +80,9 @@ class TaskSelectionToolbar extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.onPrimaryContainer
-                                    .withValues(alpha: 0.14),
+                                color: colorScheme.surfaceContainerLowest
+                                    .withValues(alpha: 0.4),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme.onPrimaryContainer
-                                      .withValues(alpha: 0.20),
-                                  width: 0.8,
-                                ),
                               ),
                               child: Text(
                                 '$selectedCount',

@@ -181,9 +181,11 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
           children: [
             // ─── 1. Master Toggle Pill ───────────────────────────────────────
             M3EList(
+              outerRadius: 50,
+              innerRadius: 50,
               color: _enabled
                   ? colorScheme.primaryContainer
-                  : colorScheme.primaryContainer.withValues(alpha: 0.5),
+                  : colorScheme.surfaceContainerHighest,
               itemCount: 1,
               itemBuilder: (context, index) => M3EListItem(
                 leading: Icon(

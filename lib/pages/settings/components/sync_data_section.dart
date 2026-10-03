@@ -265,39 +265,36 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             // ─── 1. Master Toggle Card (Android M3 Expressive pill) ───────────
             M3EList(
               itemCount: 1,
-              itemBuilder: (context, index) => Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(50),
-                  color: _masterSyncEnabled
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainer,
-                ),
-                child: M3EListItem(
-                  headline: 'Use sync',
-                  trailing: M3ESwitch(
-                    value: _masterSyncEnabled,
-                    selectedIcon: const Icon(Icons.sync_rounded, size: 16),
-                    unselectedIcon: const Icon(
-                      Icons.sync_disabled_rounded,
-                      size: 16,
-                    ),
-                    onChanged: (val) {
-                      ZetaHaptics.light();
-                      _setMasterSyncEnabled(val);
-                      widget.onToast?.call(
-                        val ? 'Sync turned on' : 'Sync turned off',
-                      );
-                    },
+              outerRadius: 50,
+              innerRadius: 50,
+              color: _masterSyncEnabled
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerHighest,
+              itemBuilder: (context, index) => M3EListItem(
+                headline: 'Use sync',
+                trailing: M3ESwitch(
+                  value: _masterSyncEnabled,
+                  selectedIcon: const Icon(Icons.sync_rounded, size: 16),
+                  unselectedIcon: const Icon(
+                    Icons.sync_disabled_rounded,
+                    size: 16,
                   ),
-                  onTap: () {
+                  onChanged: (val) {
                     ZetaHaptics.light();
-                    final newVal = !_masterSyncEnabled;
-                    _setMasterSyncEnabled(newVal);
+                    _setMasterSyncEnabled(val);
                     widget.onToast?.call(
-                      newVal ? 'Sync turned on' : 'Sync turned off',
+                      val ? 'Sync turned on' : 'Sync turned off',
                     );
                   },
                 ),
+                onTap: () {
+                  ZetaHaptics.light();
+                  final newVal = !_masterSyncEnabled;
+                  _setMasterSyncEnabled(newVal);
+                  widget.onToast?.call(
+                    newVal ? 'Sync turned on' : 'Sync turned off',
+                  );
+                },
               ),
             ),
 
@@ -306,6 +303,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             // ─── 2. Grouped Sub-Settings (M3E Segmented Column) ───────────────
             M3EList(
               itemCount: 1,
+              color: colorScheme.surfaceContainerLowest,
               itemBuilder: (context, index) => Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -424,8 +422,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                                   : 'Sync cloud data now',
                               decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: colorScheme.primaryContainer,
-                                foregroundColor:
-                                    colorScheme.onPrimaryContainer,
+                                foregroundColor: colorScheme.onPrimaryContainer,
                               ),
                             ),
                           ],
@@ -462,6 +459,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
@@ -522,6 +520,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              color: colorScheme.surfaceContainerLowest,
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
