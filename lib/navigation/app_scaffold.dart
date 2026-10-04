@@ -53,10 +53,11 @@ class _AppScaffoldState extends State<AppScaffold>
   final GlobalKey<TopAppBarWidgetState> _topBarKey =
       GlobalKey<TopAppBarWidgetState>();
 
-  final M3EToolbarScrollBehavior _toolbarBehavior =
-      M3EToolbarScrollBehavior.exitAlways(
-    exitDirection: M3EToolbarExitDirection.bottom,
-  );
+  late final M3EToolbarVisibilityController _toolbarController;
+  late final M3EToolbarScrollBehavior _toolbarBehavior;
+
+  PageId? _lastPage;
+  String _lastPomodoroTab = 'timer';
 
   /// Root FocusNode — we return focus here after dismissing search so that
   /// subsequent shortcuts (N, R, /) work immediately without a click.
@@ -80,9 +81,34 @@ class _AppScaffoldState extends State<AppScaffold>
     return _dragOffset;
   }
 
+  void _onNavigationChanged() {
+    if (_lastPage != _navProvider.activePage) {
+      _lastPage = _navProvider.activePage;
+      _toolbarController.show();
+    }
+  }
+
+  void _onPomodoroChanged() {
+    if (_lastPomodoroTab != _pomodoroProvider.activeTab) {
+      _lastPomodoroTab = _pomodoroProvider.activeTab;
+      // Always ensure floating nav is visible when switching Pomodoro tabs,
+      // particularly the timer pane which has no scrollable content.
+      _toolbarController.show();
+    }
+  }
+
+  late final NavigationProvider _navProvider;
+  late final PomodoroProvider _pomodoroProvider;
+
   @override
   void initState() {
     super.initState();
+    _toolbarController = M3EToolbarVisibilityController(exitExtent: 100.0);
+    _toolbarBehavior = M3EToolbarScrollBehavior.exitAlways(
+      exitDirection: M3EToolbarExitDirection.bottom,
+      controller: _toolbarController,
+    );
+
     _refreshController =
         AnimationController(vsync: this, duration: M3MotionDuration.medium2)
           ..addListener(() {
@@ -95,17 +121,25 @@ class _AppScaffoldState extends State<AppScaffold>
       ),
     );
 
+    _navProvider = context.read<NavigationProvider>();
+    _pomodoroProvider = context.read<PomodoroProvider>();
+
     HardwareKeyboard.instance.addHandler(_globalKeyHandler);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final nav = context.read<NavigationProvider>();
         final taskProvider = context.read<TaskProvider>();
-        final pomodoroProvider = context.read<PomodoroProvider>();
-        QuickActionsService.instance.init(nav);
+
+        _lastPage = _navProvider.activePage;
+        _lastPomodoroTab = _pomodoroProvider.activeTab;
+
+        _navProvider.addListener(_onNavigationChanged);
+        _pomodoroProvider.addListener(_onPomodoroChanged);
+
+        QuickActionsService.instance.init(_navProvider);
         CrossDeviceService.instance.init(
-          nav,
+          _navProvider,
           taskProvider: taskProvider,
-          pomodoroProvider: pomodoroProvider,
+          pomodoroProvider: _pomodoroProvider,
         );
         WindowsTrayService.instance.init();
         unawaited(AndroidTasksWidgetService.instance.initialize(context));
@@ -115,6 +149,10 @@ class _AppScaffoldState extends State<AppScaffold>
 
   @override
   void dispose() {
+    _navProvider.removeListener(_onNavigationChanged);
+    _pomodoroProvider.removeListener(_onPomodoroChanged);
+    _toolbarController.dispose();
+
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
@@ -584,66 +622,14 @@ class _AppScaffoldState extends State<AppScaffold>
                                         activePage: navProvider.activePage,
                                       ),
                                     ),
-                                    // Floating Bottom Navigation: moves down out of view when selecting
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 16,
-                                      child: AnimatedSlide(
-                                        offset: isSelectionMode
-                                            ? const Offset(0, 2.0)
-                                            : Offset.zero,
-                                        duration: const Duration(
-                                          milliseconds: 320,
-                                        ),
-                                        curve: Curves.easeInOutCubicEmphasized,
-                                        child: AnimatedOpacity(
-                                          opacity: isSelectionMode ? 0.0 : 1.0,
-                                          duration: const Duration(
-                                            milliseconds: 220,
-                                          ),
-                                          child: IgnorePointer(
-                                            ignoring: isSelectionMode,
-                                            child: Center(
-                                              child: FloatingBottomNav(
-                                                navProvider: navProvider,
-                                                isSelectionMode: isSelectionMode,
-                                                scrollBehavior: _toolbarBehavior,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                    FloatingBottomNav(
+                                      navProvider: navProvider,
+                                      isSelectionMode: isSelectionMode,
+                                      scrollBehavior: _toolbarBehavior,
                                     ),
-                                    // Floating Selection Toolbar: moves up from bottom into position
-                                    Positioned(
-                                      left: 0,
-                                      right: 0,
-                                      bottom: 16,
-                                      child: AnimatedSlide(
-                                        offset: isSelectionMode
-                                            ? Offset.zero
-                                            : const Offset(0, 2.0),
-                                        duration: const Duration(
-                                          milliseconds: 320,
-                                        ),
-                                        curve: Curves.easeInOutCubicEmphasized,
-                                        child: AnimatedOpacity(
-                                          opacity: isSelectionMode ? 1.0 : 0.0,
-                                          duration: const Duration(
-                                            milliseconds: 250,
-                                          ),
-                                          child: IgnorePointer(
-                                            ignoring: !isSelectionMode,
-                                            child: Consumer<TaskProvider>(
-                                              builder: (context, tp, _) =>
-                                                  TaskSelectionToolbar(
-                                                    taskProvider: tp,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                    TaskSelectionToolbar(
+                                      taskProvider: context
+                                          .read<TaskProvider>(),
                                     ),
                                   ],
                                 ),
@@ -669,51 +655,120 @@ class _AppScaffoldState extends State<AppScaffold>
                                                 )
                                               : LayoutBuilder(
                                                   builder: (context, constraints) {
-                                                    final totalWidth = constraints.maxWidth;
-                                                    final minWidth = (totalWidth - 600.0 - 24.0).clamp(200.0, totalWidth - 300.0);
-                                                    final maxWidth = (totalWidth - 300.0 - 24.0).clamp(minWidth, totalWidth - 200.0);
-                                                    final currentStartWidth = (totalWidth - _taskEditPaneWidth - 24.0).clamp(minWidth, maxWidth);
-                                                    final currentPercent = (currentStartWidth / totalWidth) * 100.0;
-                                                    final minPercent = (minWidth / totalWidth) * 100.0;
-                                                    final maxPercent = (maxWidth / totalWidth) * 100.0;
+                                                    final totalWidth =
+                                                        constraints.maxWidth;
+                                                    final minWidth =
+                                                        (totalWidth -
+                                                                600.0 -
+                                                                24.0)
+                                                            .clamp(
+                                                              200.0,
+                                                              totalWidth -
+                                                                  300.0,
+                                                            );
+                                                    final maxWidth =
+                                                        (totalWidth -
+                                                                300.0 -
+                                                                24.0)
+                                                            .clamp(
+                                                              minWidth,
+                                                              totalWidth -
+                                                                  200.0,
+                                                            );
+                                                    final currentStartWidth =
+                                                        (totalWidth -
+                                                                _taskEditPaneWidth -
+                                                                24.0)
+                                                            .clamp(
+                                                              minWidth,
+                                                              maxWidth,
+                                                            );
+                                                    final currentPercent =
+                                                        (currentStartWidth /
+                                                            totalWidth) *
+                                                        100.0;
+                                                    final minPercent =
+                                                        (minWidth /
+                                                            totalWidth) *
+                                                        100.0;
+                                                    final maxPercent =
+                                                        (maxWidth /
+                                                            totalWidth) *
+                                                        100.0;
 
                                                     return M3ESplitPane(
-                                                      value: currentPercent.clamp(minPercent, maxPercent),
+                                                      value: currentPercent
+                                                          .clamp(
+                                                            minPercent,
+                                                            maxPercent,
+                                                          ),
                                                       min: minPercent,
                                                       max: maxPercent,
                                                       onChanged: (val) {
-                                                        final newWidth = totalWidth - (totalWidth * (val / 100.0)) - 24.0;
+                                                        final newWidth =
+                                                            totalWidth -
+                                                            (totalWidth *
+                                                                (val / 100.0)) -
+                                                            24.0;
                                                         setState(() {
-                                                          _taskEditPaneWidth = newWidth.clamp(300.0, 600.0);
+                                                          _taskEditPaneWidth =
+                                                              newWidth.clamp(
+                                                                300.0,
+                                                                600.0,
+                                                              );
                                                         });
                                                       },
                                                       onDoubleTap: () {
                                                         setState(() {
-                                                          _taskEditPaneWidth = 380.0;
+                                                          _taskEditPaneWidth =
+                                                              380.0;
                                                         });
                                                         ZetaHaptics.medium();
                                                       },
-                                                      start: BodyPane(activePage: navProvider.activePage),
+                                                      start: BodyPane(
+                                                        activePage: navProvider
+                                                            .activePage,
+                                                      ),
                                                       end: Container(
-                                                        margin: const EdgeInsets.fromLTRB(0, 10, 10, 6),
+                                                        margin:
+                                                            const EdgeInsets.fromLTRB(
+                                                              0,
+                                                              10,
+                                                              10,
+                                                              6,
+                                                            ),
                                                         decoration: BoxDecoration(
-                                                          color: colorScheme.surfaceContainerHigh,
-                                                          borderRadius: BorderRadius.circular(20),
-                                                      
+                                                          color: colorScheme
+                                                              .surfaceContainerHigh,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                20,
+                                                              ),
                                                         ),
-                                                        clipBehavior: Clip.antiAlias,
+                                                        clipBehavior:
+                                                            Clip.antiAlias,
                                                         child: SafeArea(
                                                           child: Consumer<TaskProvider>(
                                                             builder: (context, tp, _) => TaskEditFormContent(
-                                                              key: ValueKey('${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}'),
-                                                              task: tp.editingTask,
-                                                              initialTitle: tp.editingInitialTitle,
-                                                              initialDescription: tp.editingInitialDescription,
-                                                              initialDueDate: tp.editingInitialDueDate,
-                                                              initialDueTime: tp.editingInitialDueTime,
-                                                              initialHasTime: tp.editingInitialHasTime,
-                                                              initialSubtasks: tp.editingInitialSubtasks,
-                                                              onClose: () => tp.closeEditPane(),
+                                                              key: ValueKey(
+                                                                '${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}',
+                                                              ),
+                                                              task: tp
+                                                                  .editingTask,
+                                                              initialTitle: tp
+                                                                  .editingInitialTitle,
+                                                              initialDescription:
+                                                                  tp.editingInitialDescription,
+                                                              initialDueDate: tp
+                                                                  .editingInitialDueDate,
+                                                              initialDueTime: tp
+                                                                  .editingInitialDueTime,
+                                                              initialHasTime: tp
+                                                                  .editingInitialHasTime,
+                                                              initialSubtasks: tp
+                                                                  .editingInitialSubtasks,
+                                                              onClose: () => tp
+                                                                  .closeEditPane(),
                                                             ),
                                                           ),
                                                         ),
@@ -722,37 +777,9 @@ class _AppScaffoldState extends State<AppScaffold>
                                                   },
                                                 ),
                                         ),
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          bottom: 24,
-                                          child: AnimatedSlide(
-                                            offset: isSelectionMode
-                                                ? Offset.zero
-                                                : const Offset(0, 2.0),
-                                            duration: const Duration(
-                                              milliseconds: 320,
-                                            ),
-                                            curve:
-                                                Curves.easeInOutCubicEmphasized,
-                                            child: AnimatedOpacity(
-                                              opacity: isSelectionMode
-                                                  ? 1.0
-                                                  : 0.0,
-                                              duration: const Duration(
-                                                milliseconds: 250,
-                                              ),
-                                              child: IgnorePointer(
-                                                ignoring: !isSelectionMode,
-                                                child: Consumer<TaskProvider>(
-                                                  builder: (context, tp, _) =>
-                                                      TaskSelectionToolbar(
-                                                        taskProvider: tp,
-                                                      ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
+                                        TaskSelectionToolbar(
+                                          taskProvider: context
+                                              .read<TaskProvider>(),
                                         ),
                                       ],
                                     ),

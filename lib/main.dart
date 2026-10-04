@@ -208,7 +208,7 @@ class ZetaAppRoot extends StatefulWidget {
   State<ZetaAppRoot> createState() => _ZetaAppRootState();
 }
 
-class _ZetaAppRootState extends State<ZetaAppRoot> {
+class _ZetaAppRootState extends State<ZetaAppRoot> { 
   static bool _hasCompletedInitialSplash = false;
   late bool _displaySplash;
 
