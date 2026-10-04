@@ -613,6 +613,16 @@ class _WeatherFlyoutCard extends StatelessWidget {
                       ? colorScheme.tertiary.withValues(alpha: 0.1)
                       : colorScheme.tertiaryFixedDim.withValues(alpha: 0.3),
                   itemCount: 2,
+                  onTap: (index) async {
+                    if (index == 0) {
+                      if (!weatherProvider.isWeatherLoading) {
+                        ZetaHaptics.light();
+                        await weatherProvider.refreshWeather();
+                      }
+                    } else if (index == 1) {
+                      onOpenSettings();
+                    }
+                  },
                   itemBuilder: (context, index) => index == 0
                       ? M3EListItem(
                           leading: weatherProvider.isWeatherLoading
@@ -631,12 +641,6 @@ class _WeatherFlyoutCard extends StatelessWidget {
                           headline: weatherProvider.isWeatherLoading
                               ? 'Refreshing…'
                               : 'Refresh Weather',
-                          onTap: weatherProvider.isWeatherLoading
-                              ? null
-                              : () async {
-                                  ZetaHaptics.light();
-                                  await weatherProvider.refreshWeather();
-                                },
                         )
                       : M3EListItem(
                           leading: Icon(
@@ -644,7 +648,6 @@ class _WeatherFlyoutCard extends StatelessWidget {
                             color: colorScheme.onSurfaceVariant,
                           ),
                           headline: 'Weather Settings',
-                          onTap: onOpenSettings,
                         ),
                 ),
               ],
