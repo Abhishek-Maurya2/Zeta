@@ -28,25 +28,30 @@ class TasksDismissibleList extends StatelessWidget {
     required this.provider,
     required this.onContextMenu,
     this.embedded = false,
+    this.trailingChild,
   });
+
+  final Widget? trailingChild;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    final int totalCount = tasks.length + (trailingChild != null ? 1 : 0);
+
     return M3EList(
-      key: const ValueKey('tasks_dismissible_list'),
-      itemCount: tasks.length,
+      key: ValueKey('tasks_list_${tasks.length}_${tasks.hashCode}'),
+      itemCount: totalCount,
       embedded: embedded,
       colorBuilder: (index) => Colors.transparent,
       borderRadiusBuilder: (index, position) {
-        if (provider.isTaskSelected(tasks[index].id)) {
+        if (index < tasks.length && provider.isTaskSelected(tasks[index].id)) {
           return BorderRadius.circular(45);
         }
         final bool isFirst = index == 0;
-        final bool isLast = index == tasks.length - 1;
-        final bool isSingle = tasks.length == 1;
+        final bool isLast = index == totalCount - 1;
+        final bool isSingle = totalCount == 1;
         return isSingle
             ? BorderRadius.circular(16)
             : BorderRadius.vertical(
@@ -55,12 +60,16 @@ class TasksDismissibleList extends StatelessWidget {
               );
       },
       itemBuilder: (context, index) {
+        if (trailingChild != null && index == tasks.length) {
+          return M3ECustomListItem(customChild: trailingChild!);
+        }
+
         final task = tasks[index];
         final isSelectionMode = provider.isSelectionMode;
         final isSelected = provider.isTaskSelected(task.id);
 
         final bool isFirst = index == 0;
-        final bool isLast = index == tasks.length - 1;
+        final bool isLast = index == tasks.length - 1 && trailingChild == null;
         final bool isSingle = tasks.length == 1;
 
         BorderRadius radius = isSingle

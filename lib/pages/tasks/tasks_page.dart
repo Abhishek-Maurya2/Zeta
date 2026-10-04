@@ -7,7 +7,6 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
-import 'components/tasks_completed_paginated_list.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
 import 'components/tasks_fab.dart';
@@ -33,6 +32,59 @@ class TasksPage extends StatelessWidget {
       onToggleComplete: () => provider.toggleTask(task.id),
       onEdit: () => TaskEditPane.show(context, task: task),
       onDelete: () => provider.deleteTask(task.id),
+    );
+  }
+
+  TasksDismissibleList _buildCompletedList(
+    BuildContext context,
+    List<Task> completed,
+    TaskProvider taskProvider,
+    bool embedded,
+  ) {
+    final displayedCount = taskProvider.completedDisplayedCount;
+    final visibleTasks = completed.take(displayedCount).toList();
+    final hasMore = completed.length > displayedCount;
+
+    return TasksDismissibleList(
+      tasks: visibleTasks,
+      provider: taskProvider,
+      onContextMenu: _showContextMenu,
+      embedded: embedded,
+      trailingChild: hasMore
+          ? () {
+              bool isLoading = false;
+              return StatefulBuilder(
+                builder: (context, setState) {
+                  return Center(
+                    child: isLoading
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: M3ELoadingIndicator(
+                            variant: M3ELoadingIndicatorVariant.defaultStyle,
+                          ),
+                        )
+                      : Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: M3EIconButton(
+                            onPressed: () {
+                              setState(() => isLoading = true);
+                              Future.delayed(const Duration(milliseconds: 350), () {
+                                if (context.mounted) {
+                                  taskProvider.loadMoreCompletedTasks();
+                                }
+                              });
+                            },
+                            variant: M3EIconButtonVariant.filled,
+                            width: M3EIconButtonWidth.wide,
+                            icon: const Icon(Icons.expand_more_rounded, size: 25),
+                            tooltip: 'Load ${completed.length - displayedCount} more',
+                          ),
+                        ),
+                );
+              },
+            );
+          }()
+          : null,
     );
   }
 
@@ -126,11 +178,7 @@ class TasksPage extends StatelessWidget {
                         onClearSearch: () => taskProvider.clearSearchQuery(),
                       )
                     else
-                      TasksCompletedPaginatedList(
-                        tasks: completed,
-                        provider: taskProvider,
-                        onContextMenu: _showContextMenu,
-                      ),
+                      _buildCompletedList(context, completed, taskProvider, true),
                   ] else if (filter == TaskFilter.pending) ...[
                     if (pendingNonRevision.isEmpty)
                       TasksEmptyView(
@@ -193,12 +241,9 @@ class TasksPage extends StatelessWidget {
                                 size: 20,
                                 color: Color(0xFF10B981),
                               ),
-                              expanded: M3EExpandableExpanded.content(
-                                TasksCompletedPaginatedList(
-                                  tasks: completed,
-                                  provider: taskProvider,
-                                  onContextMenu: _showContextMenu,
-                                ),
+                              expanded: M3EExpandableExpanded.list(
+                                _buildCompletedList(context, completed, taskProvider, true)
+                                    .build(context) as M3EList,
                               ),
                             );
                           },

@@ -123,41 +123,46 @@ class _TasksCompletedPaginatedListState
     final hasMore = totalTasks > _displayedCount;
     final visibleTasks = widget.tasks.take(_displayedCount).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ─── Completed Tasks List ───────────────────────────────────
-        TasksDismissibleList(
-          tasks: visibleTasks,
-          provider: widget.provider,
-          onContextMenu: widget.onContextMenu,
-          embedded: widget.embedded,
-        ),
-
-        // ─── Bottom Loading Trigger / Indicator ─────────────────────
-        if (hasMore) ...[
-          const SizedBox(height: 12),
-          Center(
-            child: _isLoading
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: M3ELoadingIndicator(
-                      variant: M3ELoadingIndicatorVariant.defaultStyle,
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: M3EIconButton(
-                      onPressed: _loadNextBatch,
-                      variant: M3EIconButtonVariant.filled,
-                      width: M3EIconButtonWidth.wide,
-                      icon: const Icon(Icons.expand_more_rounded, size: 25),
-                      tooltip: 'Load ${totalTasks - _displayedCount} more',
-                    ),
-                  ),
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOutCubic,
+      alignment: Alignment.topCenter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ─── Completed Tasks List ───────────────────────────────────
+          TasksDismissibleList(
+            tasks: visibleTasks,
+            provider: widget.provider,
+            onContextMenu: widget.onContextMenu,
+            embedded: widget.embedded,
           ),
+
+          // ─── Bottom Loading Trigger / Indicator ─────────────────────
+          if (hasMore) ...[
+            const SizedBox(height: 12),
+            Center(
+              child: _isLoading
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: M3ELoadingIndicator(
+                        variant: M3ELoadingIndicatorVariant.defaultStyle,
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: M3EIconButton(
+                        onPressed: _loadNextBatch,
+                        variant: M3EIconButtonVariant.filled,
+                        width: M3EIconButtonWidth.wide,
+                        icon: const Icon(Icons.expand_more_rounded, size: 25),
+                        tooltip: 'Load ${totalTasks - _displayedCount} more',
+                      ),
+                    ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

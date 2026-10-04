@@ -181,6 +181,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get pendingCount => _tasks.where((t) => !t.completed).length;
   int get binCount => _binTasks.length;
 
+  int _completedDisplayedCount = 5;
+  int get completedDisplayedCount => _completedDisplayedCount;
+
+  void loadMoreCompletedTasks() {
+    _completedDisplayedCount += 5;
+    notifyListeners();
+  }
+
+  void resetCompletedDisplayedCount() {
+    _completedDisplayedCount = 5;
+    notifyListeners();
+  }
+
   bool isTaskExpanded(String taskId) => _expandedTaskIds.contains(taskId);
 
   List<Task>? _cachedFilteredAndSortedTasks;
