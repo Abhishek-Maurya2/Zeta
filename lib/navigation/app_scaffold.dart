@@ -29,7 +29,7 @@ import 'components/pull_to_refresh_container.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../components/m3e_split_pane.dart';
+
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
@@ -53,12 +53,6 @@ class _AppScaffoldState extends State<AppScaffold>
   final GlobalKey<TopAppBarWidgetState> _topBarKey =
       GlobalKey<TopAppBarWidgetState>();
 
-  late final M3EToolbarVisibilityController _toolbarController;
-  late final M3EToolbarScrollBehavior _toolbarBehavior;
-
-  PageId? _lastPage;
-  String _lastPomodoroTab = 'timer';
-
   /// Root FocusNode — we return focus here after dismissing search so that
   /// subsequent shortcuts (N, R, /) work immediately without a click.
   final FocusNode _rootFocus = FocusNode(debugLabel: 'ScaffoldRoot');
@@ -68,6 +62,12 @@ class _AppScaffoldState extends State<AppScaffold>
   double _dragOffset = 0.0;
   bool _isRefreshing = false;
   bool _isUserPulling = false;
+
+  late final M3EToolbarVisibilityController _toolbarController;
+  late final M3EToolbarScrollBehavior _toolbarBehavior;
+  
+  PageId? _lastPage;
+  String _lastPomodoroTab = 'timer';
 
   static const double _targetHeight = 80.0;
 
@@ -82,16 +82,18 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   void _onNavigationChanged() {
-    if (_lastPage != _navProvider.activePage) {
-      _lastPage = _navProvider.activePage;
+    final nav = context.read<NavigationProvider>();
+    if (_lastPage != nav.activePage) {
+      _lastPage = nav.activePage;
       _toolbarController.show();
     }
   }
 
   void _onPomodoroChanged() {
-    if (_lastPomodoroTab != _pomodoroProvider.activeTab) {
-      _lastPomodoroTab = _pomodoroProvider.activeTab;
-      // Always ensure floating nav is visible when switching Pomodoro tabs,
+    final pomodoro = context.read<PomodoroProvider>();
+    if (_lastPomodoroTab != pomodoro.activeTab) {
+      _lastPomodoroTab = pomodoro.activeTab;
+      // Always ensure floating nav is visible when switching Pomodoro tabs, 
       // particularly the timer pane which has no scrollable content.
       _toolbarController.show();
     }
@@ -128,13 +130,13 @@ class _AppScaffoldState extends State<AppScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final taskProvider = context.read<TaskProvider>();
-
+        
         _lastPage = _navProvider.activePage;
         _lastPomodoroTab = _pomodoroProvider.activeTab;
-
+        
         _navProvider.addListener(_onNavigationChanged);
         _pomodoroProvider.addListener(_onPomodoroChanged);
-
+        
         QuickActionsService.instance.init(_navProvider);
         CrossDeviceService.instance.init(
           _navProvider,
@@ -151,8 +153,7 @@ class _AppScaffoldState extends State<AppScaffold>
   void dispose() {
     _navProvider.removeListener(_onNavigationChanged);
     _pomodoroProvider.removeListener(_onPomodoroChanged);
-    _toolbarController.dispose();
-
+    
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
@@ -350,9 +351,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
     return false;
   }
-
-  /// Dynamic resizable width for the co-planar task edit split pane on Medium/Expanded+
-  double _taskEditPaneWidth = 380.0;
 
   /// Global key handler — fires before any widget-level handlers.
   bool _globalKeyHandler(KeyEvent event) {
@@ -637,145 +635,17 @@ class _AppScaffoldState extends State<AppScaffold>
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  // M3E Navigation Rail from material_3_expressive (no internal toggle button)
                                   NavigationRailWidget(
                                     isExpanded: navProvider.isRailExpanded,
                                     navProvider: navProvider,
                                   ),
-
-                                  // Body content pane + optional temporary resizable task edit side pane + floating selection toolbar
                                   Expanded(
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: !isEditPaneOpen
-                                              ? BodyPane(
-                                                  activePage:
-                                                      navProvider.activePage,
-                                                )
-                                              : LayoutBuilder(
-                                                  builder: (context, constraints) {
-                                                    final totalWidth =
-                                                        constraints.maxWidth;
-                                                    final minWidth =
-                                                        (totalWidth -
-                                                                600.0 -
-                                                                24.0)
-                                                            .clamp(
-                                                              200.0,
-                                                              totalWidth -
-                                                                  300.0,
-                                                            );
-                                                    final maxWidth =
-                                                        (totalWidth -
-                                                                300.0 -
-                                                                24.0)
-                                                            .clamp(
-                                                              minWidth,
-                                                              totalWidth -
-                                                                  200.0,
-                                                            );
-                                                    final currentStartWidth =
-                                                        (totalWidth -
-                                                                _taskEditPaneWidth -
-                                                                24.0)
-                                                            .clamp(
-                                                              minWidth,
-                                                              maxWidth,
-                                                            );
-                                                    final currentPercent =
-                                                        (currentStartWidth /
-                                                            totalWidth) *
-                                                        100.0;
-                                                    final minPercent =
-                                                        (minWidth /
-                                                            totalWidth) *
-                                                        100.0;
-                                                    final maxPercent =
-                                                        (maxWidth /
-                                                            totalWidth) *
-                                                        100.0;
-
-                                                    return M3ESplitPane(
-                                                      value: currentPercent
-                                                          .clamp(
-                                                            minPercent,
-                                                            maxPercent,
-                                                          ),
-                                                      min: minPercent,
-                                                      max: maxPercent,
-                                                      onChanged: (val) {
-                                                        final newWidth =
-                                                            totalWidth -
-                                                            (totalWidth *
-                                                                (val / 100.0)) -
-                                                            24.0;
-                                                        setState(() {
-                                                          _taskEditPaneWidth =
-                                                              newWidth.clamp(
-                                                                300.0,
-                                                                600.0,
-                                                              );
-                                                        });
-                                                      },
-                                                      onDoubleTap: () {
-                                                        setState(() {
-                                                          _taskEditPaneWidth =
-                                                              380.0;
-                                                        });
-                                                        ZetaHaptics.medium();
-                                                      },
-                                                      start: BodyPane(
-                                                        activePage: navProvider
-                                                            .activePage,
-                                                      ),
-                                                      end: Container(
-                                                        margin:
-                                                            const EdgeInsets.fromLTRB(
-                                                              0,
-                                                              10,
-                                                              10,
-                                                              6,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color: colorScheme
-                                                              .surfaceContainerHigh,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                20,
-                                                              ),
-                                                        ),
-                                                        clipBehavior:
-                                                            Clip.antiAlias,
-                                                        child: SafeArea(
-                                                          child: Consumer<TaskProvider>(
-                                                            builder: (context, tp, _) => TaskEditFormContent(
-                                                              key: ValueKey(
-                                                                '${tp.editingTask?.id ?? 'new_task'}_${tp.editingInitialTitle ?? ''}_${tp.editingInitialDescription ?? ''}',
-                                                              ),
-                                                              task: tp
-                                                                  .editingTask,
-                                                              initialTitle: tp
-                                                                  .editingInitialTitle,
-                                                              initialDescription:
-                                                                  tp.editingInitialDescription,
-                                                              initialDueDate: tp
-                                                                  .editingInitialDueDate,
-                                                              initialDueTime: tp
-                                                                  .editingInitialDueTime,
-                                                              initialHasTime: tp
-                                                                  .editingInitialHasTime,
-                                                              initialSubtasks: tp
-                                                                  .editingInitialSubtasks,
-                                                              onClose: () => tp
-                                                                  .closeEditPane(),
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
+                                          child: BodyPane(
+                                            activePage: navProvider.activePage,
+                                          ),
                                         ),
                                         TaskSelectionToolbar(
                                           taskProvider: context
