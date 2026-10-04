@@ -84,6 +84,7 @@ class TasksSection extends StatelessWidget {
                 return M3EList(
                   color: colorScheme.surfaceContainerLowest,
                   itemCount: 2,
+                  gap: 3,
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       final isSelected =

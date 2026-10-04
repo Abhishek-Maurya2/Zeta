@@ -350,6 +350,7 @@ class _ProfileSectionState extends State<ProfileSection> {
 
             M3EList(
               color: colorScheme.surfaceContainerLowest,
+              gap: 3,
               itemCount: 2,
               itemBuilder: (context, index) => index == 0
                   ? Padding(

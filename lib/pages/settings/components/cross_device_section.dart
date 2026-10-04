@@ -274,6 +274,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
 
             // ─── 3. Grouped Settings Column ──────────────────────────────────
             M3EList(
+              gap: 3,
               color: colorScheme.surfaceContainerLowest,
               itemCount: 4 + (isWindows ? 1 : 0),
               itemBuilder: (context, index) {
@@ -392,6 +393,7 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
                 ),
               ),
               M3EList(
+                gap: 3,
                 color: colorScheme.surfaceContainerLowest,
                 itemCount: 2,
                 itemBuilder: (context, index) => index == 0

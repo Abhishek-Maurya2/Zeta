@@ -57,33 +57,40 @@ class TasksPage extends StatelessWidget {
                 builder: (context, setState) {
                   return Center(
                     child: isLoading
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: M3ELoadingIndicator(
-                            variant: M3ELoadingIndicatorVariant.defaultStyle,
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: M3ELoadingIndicator(
+                              variant: M3ELoadingIndicatorVariant.defaultStyle,
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: M3EIconButton(
+                              onPressed: () {
+                                setState(() => isLoading = true);
+                                Future.delayed(
+                                  const Duration(milliseconds: 350),
+                                  () {
+                                    if (context.mounted) {
+                                      taskProvider.loadMoreCompletedTasks();
+                                    }
+                                  },
+                                );
+                              },
+                              variant: M3EIconButtonVariant.filled,
+                              width: M3EIconButtonWidth.wide,
+                              icon: const Icon(
+                                Icons.expand_more_rounded,
+                                size: 25,
+                              ),
+                              tooltip:
+                                  'Load ${completed.length - displayedCount} more',
+                            ),
                           ),
-                        )
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: M3EIconButton(
-                            onPressed: () {
-                              setState(() => isLoading = true);
-                              Future.delayed(const Duration(milliseconds: 350), () {
-                                if (context.mounted) {
-                                  taskProvider.loadMoreCompletedTasks();
-                                }
-                              });
-                            },
-                            variant: M3EIconButtonVariant.filled,
-                            width: M3EIconButtonWidth.wide,
-                            icon: const Icon(Icons.expand_more_rounded, size: 25),
-                            tooltip: 'Load ${completed.length - displayedCount} more',
-                          ),
-                        ),
-                );
-              },
-            );
-          }()
+                  );
+                },
+              );
+            }()
           : null,
     );
   }
@@ -178,7 +185,12 @@ class TasksPage extends StatelessWidget {
                         onClearSearch: () => taskProvider.clearSearchQuery(),
                       )
                     else
-                      _buildCompletedList(context, completed, taskProvider, true),
+                      _buildCompletedList(
+                        context,
+                        completed,
+                        taskProvider,
+                        true,
+                      ),
                   ] else if (filter == TaskFilter.pending) ...[
                     if (pendingNonRevision.isEmpty)
                       TasksEmptyView(
@@ -230,8 +242,18 @@ class TasksPage extends StatelessWidget {
                         M3EList(
                           itemCount: 1,
                           color: colorScheme.primaryContainer,
-                          expandStyle: const M3EExpandableStyle(
+                          expandStyle: M3EExpandableStyle(
                             expandedStateFill: false,
+                            gap: 5,
+                            expandedIconBackground: colorScheme.primary,
+                            expandIcon: Icon(
+                              Icons.expand_more_rounded,
+                              color: colorScheme.onPrimaryContainer,
+                            ),
+                            collapseIcon: Icon(
+                              Icons.expand_more_rounded,
+                              color: colorScheme.onPrimary,
+                            ),
                           ),
                           itemBuilder: (context, index) {
                             return M3EListItem(
@@ -242,8 +264,12 @@ class TasksPage extends StatelessWidget {
                                 color: Color(0xFF10B981),
                               ),
                               expanded: M3EExpandableExpanded.list(
-                                _buildCompletedList(context, completed, taskProvider, true)
-                                    .build(context) as M3EList,
+                                _buildCompletedList(
+                                  context,
+                                  completed,
+                                  taskProvider,
+                                  true,
+                                ).build(context) as M3EList,
                               ),
                             );
                           },

@@ -311,7 +311,7 @@ class _WeatherSectionState extends State<WeatherSection> {
 
             M3EList(
               color: colorScheme.surfaceContainerLowest,
-
+              gap: 3,
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {
@@ -865,7 +865,7 @@ class _WeatherSectionState extends State<WeatherSection> {
 
             M3EList(
               color: colorScheme.surfaceContainerLowest,
-
+              gap: 3,
               itemCount: 2,
               itemBuilder: (context, index) {
                 if (index == 0) {

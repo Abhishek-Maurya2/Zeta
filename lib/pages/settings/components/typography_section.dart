@@ -143,7 +143,7 @@ class _TypographySectionState extends State<TypographySection> {
 
         M3EList(
           color: colorScheme.surfaceContainerLowest,
-
+          gap: 3,
           itemCount: kSupportedFonts.length,
           itemBuilder: (context, index) {
             final font = kSupportedFonts[index];
@@ -280,6 +280,7 @@ class _TypographySectionState extends State<TypographySection> {
           color: colorScheme.surfaceContainerLowest,
 
           itemCount: 5,
+          gap: 3,
           itemBuilder: (context, index) {
             switch (index) {
               case 0:

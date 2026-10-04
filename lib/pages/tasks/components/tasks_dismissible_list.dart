@@ -44,21 +44,8 @@ class TasksDismissibleList extends StatelessWidget {
       key: ValueKey('tasks_list_${tasks.length}_${tasks.hashCode}'),
       itemCount: totalCount,
       embedded: embedded,
+      gap: 8,
       colorBuilder: (index) => Colors.transparent,
-      borderRadiusBuilder: (index, position) {
-        if (index < tasks.length && provider.isTaskSelected(tasks[index].id)) {
-          return BorderRadius.circular(45);
-        }
-        final bool isFirst = index == 0;
-        final bool isLast = index == totalCount - 1;
-        final bool isSingle = totalCount == 1;
-        return isSingle
-            ? BorderRadius.circular(16)
-            : BorderRadius.vertical(
-                top: Radius.circular(isFirst ? 16 : 4),
-                bottom: Radius.circular(isLast ? 16 : 4),
-              );
-      },
       itemBuilder: (context, index) {
         if (trailingChild != null && index == tasks.length) {
           return M3ECustomListItem(customChild: trailingChild!);
@@ -154,8 +141,12 @@ class TasksDismissibleList extends StatelessWidget {
         return M3ECustomListItem(
           key: ValueKey(task.id),
           swipe: M3EListItemSwipe(
-            leading: [provider.swapSwipeActions ? deleteAction : completeAction],
-            trailing: [provider.swapSwipeActions ? completeAction : deleteAction],
+            leading: [
+              provider.swapSwipeActions ? deleteAction : completeAction,
+            ],
+            trailing: [
+              provider.swapSwipeActions ? completeAction : deleteAction,
+            ],
           ),
           customChild: card,
         );

@@ -2,7 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../theme/color_variant.dart';
+
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../../utils/haptics.dart';
 import '../../../providers/theme_provider.dart';
 
@@ -256,282 +258,289 @@ class AppearanceSection extends StatelessWidget {
             Builder(
               builder: (context) {
                 final themeItems = <Widget>[
-                // Theme Mode
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.brightness_6_rounded,
-                            size: 24,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Theme Mode',
-                                  style: textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: M3EButtonGroup(
-                            type: M3EButtonGroupType.connected,
-                            size: M3EButtonSize.sm,
-                            style: M3EButtonStyle.tonal,
-                            selectedIndex: themeModeIndex,
-                            onSelectedIndexChanged: (index) {
-                              if (index != null) ZetaHaptics.selection();
-                              if (index == 0) {
-                                themeProvider.setThemeMode(ThemeMode.light);
-                                onToast?.call('Theme set to Light');
-                              } else if (index == 1) {
-                                themeProvider.setThemeMode(ThemeMode.dark);
-                                onToast?.call('Theme set to Dark');
-                              } else if (index == 2) {
-                                themeProvider.setThemeMode(ThemeMode.system);
-                                onToast?.call(
-                                  'Theme set to Auto (System preference)',
-                                );
-                              }
-                            },
-                            actions: const [
-                              M3EButtonGroupAction(
-                                icon: Icon(Icons.light_mode_outlined, size: 16),
-                                label: Text('Light'),
-                              ),
-                              M3EButtonGroupAction(
-                                icon: Icon(Icons.dark_mode_outlined, size: 16),
-                                label: Text('Dark'),
-                              ),
-                              M3EButtonGroupAction(
-                                icon: Icon(
-                                  Icons.brightness_auto_outlined,
-                                  size: 16,
-                                ),
-                                label: Text('Auto'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Color Scheme Algorithm
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.auto_awesome_rounded,
-                            size: 24,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Color Scheme Algorithm',
-                                  style: textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: M3EButtonGroup(
-                            type: M3EButtonGroupType.connected,
-                            size: M3EButtonSize.sm,
-                            style: M3EButtonStyle.tonal,
-                            selectedIndex: variantIndex,
-                            onSelectedIndexChanged: (index) {
-                              if (index != null) ZetaHaptics.selection();
-                              if (index == 0) {
-                                themeProvider.setVariant(
-                                  M3EColorVariant.expressive,
-                                );
-                                onToast?.call('Applied Expressive algorithm');
-                              } else if (index == 1) {
-                                themeProvider.setVariant(
-                                  M3EColorVariant.tonalSpot,
-                                );
-                                onToast?.call('Applied Tonal Spot algorithm');
-                              } else if (index == 2) {
-                                themeProvider.setVariant(
-                                  M3EColorVariant.vibrant,
-                                );
-                                onToast?.call('Applied Vibrant algorithm');
-                              }
-                            },
-                            actions: const [
-                              M3EButtonGroupAction(label: Text('Expressive')),
-                              M3EButtonGroupAction(label: Text('Tonal Spot')),
-                              M3EButtonGroupAction(label: Text('Vibrant')),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Use System Colour (Accent Colour)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.palette_outlined,
-                        size: 24,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  // Theme Mode
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              'Use system colour (accent colour)',
-                              style: textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSurface,
-                              ),
+                            Icon(
+                              Icons.brightness_6_rounded,
+                              size: 24,
+                              color: colorScheme.onSurfaceVariant,
                             ),
-                            Text(
-                              'Derive app theme from system accent color',
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Theme Mode',
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      M3ESwitch(
-                        value: themeProvider.useSystemColor,
-                        selectedIcon: const Icon(Icons.check_rounded),
-                        unselectedIcon: const Icon(Icons.close_rounded),
-                        onChanged: (val) {
-                          themeProvider.setUseSystemColor(val);
-                          onToast?.call(
-                            val
-                                ? 'Using system accent colour'
-                                : 'Using palette seed preset',
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Palette Seed Preset
-                InkWell(
-                  onTap: themeProvider.useSystemColor
-                      ? null
-                      : () => _showColorSheet(context, themeProvider),
-                  child: Opacity(
-                    opacity: themeProvider.useSystemColor ? 0.38 : 1.0,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.color_lens_rounded,
-                            size: 24,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Palette Seed Preset',
-                                  style: textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.onSurface,
+                        const SizedBox(height: 12),
+                        Center(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: M3EButtonGroup(
+                              type: M3EButtonGroupType.connected,
+                              size: M3EButtonSize.sm,
+                              style: M3EButtonStyle.tonal,
+                              selectedIndex: themeModeIndex,
+                              onSelectedIndexChanged: (index) {
+                                if (index != null) ZetaHaptics.selection();
+                                if (index == 0) {
+                                  themeProvider.setThemeMode(ThemeMode.light);
+                                  onToast?.call('Theme set to Light');
+                                } else if (index == 1) {
+                                  themeProvider.setThemeMode(ThemeMode.dark);
+                                  onToast?.call('Theme set to Dark');
+                                } else if (index == 2) {
+                                  themeProvider.setThemeMode(ThemeMode.system);
+                                  onToast?.call(
+                                    'Theme set to Auto (System preference)',
+                                  );
+                                }
+                              },
+                              actions: const [
+                                M3EButtonGroupAction(
+                                  icon: Icon(
+                                    Icons.light_mode_outlined,
+                                    size: 16,
                                   ),
+                                  label: Text('Light'),
                                 ),
-                                Text(
-                                  themeProvider.useSystemColor
-                                      ? 'Disabled (using system accent colour)'
-                                      : '${currentPreset.name} • ${currentPreset.desc}',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
+                                M3EButtonGroupAction(
+                                  icon: Icon(
+                                    Icons.dark_mode_outlined,
+                                    size: 16,
                                   ),
+                                  label: Text('Dark'),
+                                ),
+                                M3EButtonGroupAction(
+                                  icon: Icon(
+                                    Icons.brightness_auto_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text('Auto'),
                                 ),
                               ],
                             ),
                           ),
-                          Container(
-                            width: 35,
-                            height: 35,
-                            decoration: BoxDecoration(
-                              color: themeProvider.useSystemColor
-                                  ? colorScheme.outlineVariant
-                                  : themeProvider.seedColor,
-                              shape: BoxShape.circle,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Color Scheme Algorithm
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 24,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Color Scheme Algorithm',
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: M3EButtonGroup(
+                              type: M3EButtonGroupType.connected,
+                              size: M3EButtonSize.sm,
+                              style: M3EButtonStyle.tonal,
+                              selectedIndex: variantIndex,
+                              onSelectedIndexChanged: (index) {
+                                if (index != null) ZetaHaptics.selection();
+                                if (index == 0) {
+                                  themeProvider.setVariant(
+                                    M3EColorVariant.expressive,
+                                  );
+                                  onToast?.call('Applied Expressive algorithm');
+                                } else if (index == 1) {
+                                  themeProvider.setVariant(
+                                    M3EColorVariant.tonalSpot,
+                                  );
+                                  onToast?.call('Applied Tonal Spot algorithm');
+                                } else if (index == 2) {
+                                  themeProvider.setVariant(
+                                    M3EColorVariant.vibrant,
+                                  );
+                                  onToast?.call('Applied Vibrant algorithm');
+                                }
+                              },
+                              actions: const [
+                                M3EButtonGroupAction(label: Text('Expressive')),
+                                M3EButtonGroupAction(label: Text('Tonal Spot')),
+                                M3EButtonGroupAction(label: Text('Vibrant')),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            color: colorScheme.onSurfaceVariant,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Use System Colour (Accent Colour)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.palette_outlined,
+                          size: 24,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Use system colour (accent colour)',
+                                style: textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Derive app theme from system accent color',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        M3ESwitch(
+                          value: themeProvider.useSystemColor,
+                          selectedIcon: const Icon(Icons.check_rounded),
+                          unselectedIcon: const Icon(Icons.close_rounded),
+                          onChanged: (val) {
+                            themeProvider.setUseSystemColor(val);
+                            onToast?.call(
+                              val
+                                  ? 'Using system accent colour'
+                                  : 'Using palette seed preset',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Palette Seed Preset
+                  InkWell(
+                    onTap: themeProvider.useSystemColor
+                        ? null
+                        : () => _showColorSheet(context, themeProvider),
+                    child: Opacity(
+                      opacity: themeProvider.useSystemColor ? 0.38 : 1.0,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.color_lens_rounded,
+                              size: 24,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Palette Seed Preset',
+                                    style: textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  Text(
+                                    themeProvider.useSystemColor
+                                        ? 'Disabled (using system accent colour)'
+                                        : '${currentPreset.name} • ${currentPreset.desc}',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              width: 35,
+                              height: 35,
+                              decoration: BoxDecoration(
+                                color: themeProvider.useSystemColor
+                                    ? colorScheme.outlineVariant
+                                    : themeProvider.seedColor,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ];
-              return M3EList(
-                color: colorScheme.surfaceContainerLowest,
-                itemCount: themeItems.length,
-                itemBuilder: (context, index) => themeItems[index],
-              );
-            },
-          ),
+                ];
+                return M3EList(
+                  color: colorScheme.surfaceContainerLowest,
+                  itemCount: themeItems.length,
+                  gap: 3,
+                  itemBuilder: (context, index) => themeItems[index],
+                );
+              },
+            ),
 
             const SizedBox(height: 20),
 
@@ -550,6 +559,7 @@ class AppearanceSection extends StatelessWidget {
             M3EList(
               color: colorScheme.surfaceContainerLowest,
               itemCount: 3,
+              gap: 3,
               itemBuilder: (context, index) {
                 switch (index) {
                   case 0:
@@ -582,8 +592,7 @@ class AppearanceSection extends StatelessWidget {
                         color: colorScheme.onSurfaceVariant,
                       ),
                       headline: 'High Contrast Mode',
-                      supportingText:
-                          'Increase contrast distinction for borders and indicators',
+                      supportingText: 'Increase contrast distinction for borders and indicators',
                       trailing: M3ESwitch(
                         value: themeProvider.highContrast,
                         selectedIcon: const Icon(Icons.check_rounded),

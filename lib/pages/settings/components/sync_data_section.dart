@@ -459,6 +459,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              gap: 3,
               color: colorScheme.surfaceContainerLowest,
               itemCount: 2,
               itemBuilder: (context, index) {
@@ -520,6 +521,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 12),
 
             M3EList(
+              gap: 3,
               color: colorScheme.surfaceContainerLowest,
               itemCount: 2,
               itemBuilder: (context, index) {

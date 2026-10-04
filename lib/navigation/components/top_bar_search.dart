@@ -159,6 +159,8 @@ class TopBarSearch extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               M3EList(
+                gap: 3,
+                color: colorScheme.surfaceContainerLowest,
                 itemCount: 4,
                 onTap: (index) {
                   safeCloseView(null);
@@ -242,6 +244,8 @@ class TopBarSearch extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: M3EList(
+          gap: 3,
+          color: colorScheme.surfaceContainerLowest,
           itemCount: 2,
           onTap: (index) {
             if (index == 0) {
@@ -325,7 +329,7 @@ class TopBarSearch extends StatelessWidget {
           M3EListItem(
             leading: Icon(
               task.completed
-                  ? Icons.check_circle_rounded
+                  ? Icons.check_rounded
                   : Icons.radio_button_unchecked_rounded,
               size: 20,
               color: task.completed
@@ -341,14 +345,14 @@ class TopBarSearch extends StatelessWidget {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: colorScheme.surfaceContainerHighest,
+                      color: colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       task.dueDate!,
                       style: TextStyle(
                         fontSize: 11,
-                        color: colorScheme.onSurfaceVariant,
+                        color: colorScheme.onPrimaryContainer,
                       ),
                     ),
                   )
@@ -361,6 +365,8 @@ class TopBarSearch extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3EList(
+            gap: 3,
+            color: colorScheme.surfaceContainerLowest,
             itemCount: taskTiles.length,
             onTap: (index) {
               safeCloseView(null);
@@ -408,6 +414,8 @@ class TopBarSearch extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: M3EList(
+            gap: 3,
+            color: colorScheme.surfaceContainerLowest,
             itemCount: binTiles.length,
             onTap: (index) {
               safeCloseView(null);
