@@ -35,13 +35,14 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
   static const double _itemWidth = 50;
   static const double _itemSpacing = 8;
   static const double _baseItemExtent = _itemWidth + _itemSpacing;
+  static const int _maxVisibleDays = 7;
 
   final Key _centerKey = const ValueKey('center_day_today');
   late final ScrollController _scrollController;
   late final DateTime _today;
 
   double _effectiveItemExtent = _baseItemExtent;
-  int _effectiveVisibleDays = 7;
+  int _effectiveVisibleDays = _maxVisibleDays;
 
   @override
   void initState() {
@@ -443,11 +444,11 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
                             builder: (context, stripConstraints) {
                               final double stripWidth =
                                   stripConstraints.maxWidth;
-                              // Ensure calendar strip shows at least 4 dates at any point, up to 7 dates
+                              // Keep at least 5 dates visible, up to 9 when space allows.
                               final int visibleDays =
                                   (stripWidth / _baseItemExtent).floor().clamp(
                                     5,
-                                    7,
+                                    _maxVisibleDays,
                                   );
                               final double itemExtent =
                                   stripWidth / visibleDays;
@@ -481,8 +482,8 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
             }
 
             _effectiveItemExtent = _baseItemExtent;
-            _effectiveVisibleDays = 7;
-            const double desktopStripWidth = _baseItemExtent * 7;
+            _effectiveVisibleDays = _maxVisibleDays;
+            const double desktopStripWidth = _baseItemExtent * _maxVisibleDays;
 
             final desktopWeekStrip = Row(
               mainAxisSize: MainAxisSize.min,
