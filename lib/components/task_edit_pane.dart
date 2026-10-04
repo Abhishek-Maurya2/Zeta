@@ -838,20 +838,17 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
               ZetaHaptics.selection();
               _toggleSubtask(st.id);
             },
-            child: Padding(
-              padding: const EdgeInsets.all(6.0),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Icon(
-                  st.completed
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  key: ValueKey(st.completed),
-                  size: 20,
-                  color: st.completed
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Icon(
+                st.completed
+                    ? Icons.check_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                key: ValueKey(st.completed),
+                size: 20,
+                color: st.completed
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -931,68 +928,38 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           ),
           const SizedBox(width: 6),
           if (isEditingThis)
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  M3EIconButton(
-                    icon: const Icon(Icons.check_rounded, size: 18),
-                    size: M3EIconButtonSize.xs,
-                    variant: M3EIconButtonVariant.tonal,
-                    tooltip: 'Save',
-                    onPressed: () => _saveEditedSubtask(st.id),
-                  ),
-                  const SizedBox(width: 4),
-                  M3EIconButton(
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    size: M3EIconButtonSize.xs,
-                    variant: M3EIconButtonVariant.standard,
-                    tooltip: 'Cancel',
-                    onPressed: _cancelEditingSubtask,
-                  ),
-                ],
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                M3EIconButton(
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  size: M3EIconButtonSize.xs,
+                  width: M3EIconButtonWidth.narrow,
+                  variant: M3EIconButtonVariant.tonal,
+                  tooltip: 'Save',
+                  onPressed: () => _saveEditedSubtask(st.id),
+                ),
+              ],
             )
           else
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Tooltip(
-                    message: 'Edit subtask',
-                    child: M3EIconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 16),
-                      size: M3EIconButtonSize.xs,
-                      variant: M3EIconButtonVariant.standard,
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        _startEditingSubtask(st);
-                      },
-                    ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(width: 2),
+                M3EIconButton(
+                  icon: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 2),
-                  Tooltip(
-                    message: 'Delete subtask',
-                    child: M3EIconButton(
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
-                      size: M3EIconButtonSize.xs,
-                      variant: M3EIconButtonVariant.standard,
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        _removeSubtask(st.id);
-                      },
-                    ),
-                  ),
-                ],
-              ),
+                  size: M3EIconButtonSize.xs,
+                  variant: M3EIconButtonVariant.standard,
+                  onPressed: () {
+                    ZetaHaptics.light();
+                    _removeSubtask(st.id);
+                  },
+                ),
+              ],
             ),
         ],
       ),
@@ -1097,7 +1064,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
       child: Stack(
         children: [
           Column(
@@ -1157,7 +1124,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             if (!isCompact) ...[
                               const SizedBox(width: 12),
                               M3EIconButton(
-                                icon: const Icon(Icons.close_rounded),
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  color: colorScheme.onSurface,
+                                ),
                                 size: M3EIconButtonSize.sm,
                                 width: M3EIconButtonWidth.wide,
                                 decoration: M3EIconButtonDecoration(
@@ -1279,7 +1249,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _showDescription
                                         ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHighest
+                                        : colorScheme.surfaceContainerLowest
                                               .withValues(alpha: 0.5),
                                     foregroundColor: _showDescription
                                         ? colorScheme.onPrimaryContainer
@@ -1295,7 +1265,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _showSubtasks
                                         ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHighest
+                                        : colorScheme.surfaceContainerLowest
                                               .withValues(alpha: 0.5),
                                     foregroundColor: _showSubtasks
                                         ? colorScheme.onPrimaryContainer
@@ -1311,7 +1281,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _dueDate != null
                                         ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHighest
+                                        : colorScheme.surfaceContainerLowest
                                               .withValues(alpha: 0.5),
                                     foregroundColor: _dueDate != null
                                         ? colorScheme.onPrimaryContainer
@@ -1327,7 +1297,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _hasTime
                                         ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHighest
+                                        : colorScheme.surfaceContainerLowest
                                               .withValues(alpha: 0.5),
                                     foregroundColor: _hasTime
                                         ? colorScheme.onPrimaryContainer
@@ -1343,7 +1313,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _showAttachments
                                         ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerHighest
+                                        : colorScheme.surfaceContainerLowest
                                               .withValues(alpha: 0.5),
                                     foregroundColor: _showAttachments
                                         ? colorScheme.onPrimaryContainer

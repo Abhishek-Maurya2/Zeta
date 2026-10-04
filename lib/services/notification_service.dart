@@ -534,7 +534,6 @@ class NotificationService {
                     ? sessionLabel
                     : (isRunning ? 'Pomodoro session active' : 'Session paused'),
                 group: 'pomodoro',
-                scenario: NotificationScenario.reminder,
                 audio: const NotificationAudio.silent(),
                 progress: NotificationProgress(
                   title: '$modeLabel Progress',

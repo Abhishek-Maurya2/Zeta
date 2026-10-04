@@ -29,11 +29,7 @@ class ZetaDayPeriodControl extends StatelessWidget {
     return M3EButtonGroup(
       type: M3EButtonGroupType.standard,
       style: M3EButtonStyle.tonal,
-      density: M3EButtonGroupDensity.compact,
-      // size: M3EButtonSize.custom(
-      //   height: landscape ? 38 : 40,
-      //   width: landscape ? 52 : 52,
-      // ),
+      spacing: 3,
       direction: landscape ? Axis.horizontal : Axis.vertical,
       selectedIndex: isPm ? 1 : 0,
       onSelectedIndexChanged: (index) {

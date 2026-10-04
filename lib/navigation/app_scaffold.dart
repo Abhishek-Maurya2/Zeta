@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../services/quick_actions_service.dart';
@@ -51,6 +52,11 @@ class _AppScaffoldState extends State<AppScaffold>
   /// GlobalKey used to call openSearch() / closeSearch() on the TopAppBar.
   final GlobalKey<TopAppBarWidgetState> _topBarKey =
       GlobalKey<TopAppBarWidgetState>();
+
+  final M3EToolbarScrollBehavior _toolbarBehavior =
+      M3EToolbarScrollBehavior.exitAlways(
+    exitDirection: M3EToolbarExitDirection.bottom,
+  );
 
   /// Root FocusNode — we return focus here after dismissing search so that
   /// subsequent shortcuts (N, R, /) work immediately without a click.
@@ -568,73 +574,79 @@ class _AppScaffoldState extends State<AppScaffold>
                           },
                         ),
                         child: isCompact
-                            ? Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: BodyPane(
-                                      activePage: navProvider.activePage,
-                                    ),
-                                  ),
-                                  // Floating Bottom Navigation: moves down out of view when selecting
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 16,
-                                    child: AnimatedSlide(
-                                      offset: isSelectionMode
-                                          ? const Offset(0, 2.0)
-                                          : Offset.zero,
-                                      duration: const Duration(
-                                        milliseconds: 320,
+                            ? M3EToolbarScrollWrapper(
+                                key: ValueKey(navProvider.activePage),
+                                behavior: _toolbarBehavior,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: BodyPane(
+                                        activePage: navProvider.activePage,
                                       ),
-                                      curve: Curves.easeInOutCubicEmphasized,
-                                      child: AnimatedOpacity(
-                                        opacity: isSelectionMode ? 0.0 : 1.0,
+                                    ),
+                                    // Floating Bottom Navigation: moves down out of view when selecting
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 16,
+                                      child: AnimatedSlide(
+                                        offset: isSelectionMode
+                                            ? const Offset(0, 2.0)
+                                            : Offset.zero,
                                         duration: const Duration(
-                                          milliseconds: 220,
+                                          milliseconds: 320,
                                         ),
-                                        child: IgnorePointer(
-                                          ignoring: isSelectionMode,
-                                          child: Center(
-                                            child: FloatingBottomNav(
-                                              navProvider: navProvider,
+                                        curve: Curves.easeInOutCubicEmphasized,
+                                        child: AnimatedOpacity(
+                                          opacity: isSelectionMode ? 0.0 : 1.0,
+                                          duration: const Duration(
+                                            milliseconds: 220,
+                                          ),
+                                          child: IgnorePointer(
+                                            ignoring: isSelectionMode,
+                                            child: Center(
+                                              child: FloatingBottomNav(
+                                                navProvider: navProvider,
+                                                isSelectionMode: isSelectionMode,
+                                                scrollBehavior: _toolbarBehavior,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  // Floating Selection Toolbar: moves up from bottom into position
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 16,
-                                    child: AnimatedSlide(
-                                      offset: isSelectionMode
-                                          ? Offset.zero
-                                          : const Offset(0, 2.0),
-                                      duration: const Duration(
-                                        milliseconds: 320,
-                                      ),
-                                      curve: Curves.easeInOutCubicEmphasized,
-                                      child: AnimatedOpacity(
-                                        opacity: isSelectionMode ? 1.0 : 0.0,
+                                    // Floating Selection Toolbar: moves up from bottom into position
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 16,
+                                      child: AnimatedSlide(
+                                        offset: isSelectionMode
+                                            ? Offset.zero
+                                            : const Offset(0, 2.0),
                                         duration: const Duration(
-                                          milliseconds: 250,
+                                          milliseconds: 320,
                                         ),
-                                        child: IgnorePointer(
-                                          ignoring: !isSelectionMode,
-                                          child: Consumer<TaskProvider>(
-                                            builder: (context, tp, _) =>
-                                                TaskSelectionToolbar(
-                                                  taskProvider: tp,
-                                                ),
+                                        curve: Curves.easeInOutCubicEmphasized,
+                                        child: AnimatedOpacity(
+                                          opacity: isSelectionMode ? 1.0 : 0.0,
+                                          duration: const Duration(
+                                            milliseconds: 250,
+                                          ),
+                                          child: IgnorePointer(
+                                            ignoring: !isSelectionMode,
+                                            child: Consumer<TaskProvider>(
+                                              builder: (context, tp, _) =>
+                                                  TaskSelectionToolbar(
+                                                    taskProvider: tp,
+                                                  ),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               )
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -683,19 +695,11 @@ class _AppScaffoldState extends State<AppScaffold>
                                                       },
                                                       start: BodyPane(activePage: navProvider.activePage),
                                                       end: Container(
-                                                        margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
+                                                        margin: const EdgeInsets.fromLTRB(0, 10, 10, 6),
                                                         decoration: BoxDecoration(
-                                                          color: isDark
-                                                              ? colorScheme.surfaceContainerHigh
-                                                              : colorScheme.surfaceContainer,
+                                                          color: colorScheme.surfaceContainerHigh,
                                                           borderRadius: BorderRadius.circular(20),
-                                                          boxShadow: [
-                                                            BoxShadow(
-                                                              color: colorScheme.shadow.withValues(alpha: 0.08),
-                                                              blurRadius: 16,
-                                                              offset: const Offset(0, 6),
-                                                            ),
-                                                          ],
+                                                      
                                                         ),
                                                         clipBehavior: Clip.antiAlias,
                                                         child: SafeArea(

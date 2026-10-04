@@ -39,9 +39,12 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   static const int _gridCrossAxisCount = 5;
   static const int _totalDots = 25;
 
+  late final List<int> _dotFillOrder;
+
   @override
   void initState() {
     super.initState();
+    _dotFillOrder = List.generate(_totalDots, (i) => i)..shuffle();
     AmbientModeService.enter();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -114,7 +117,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
 
     // Derive progress (0.0 to 1.0) directly or compute via provider values
     final double progress = provider.progress.clamp(0.0, 1.0);
-    final int percentage = (progress * 100).round();
+    final int minutes = (provider.displaySeconds / 60).ceil();
     final int completedDots = (progress * _totalDots).floor();
 
     final sizeClass = ZetaWindowSizeClass.of(context);
@@ -142,109 +145,130 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.none,
             onHover: (_) => _resetInactivityTimer(),
-            child: Scaffold(
-              backgroundColor: Colors.black,
-              body: SafeArea(
-                child: Stack(
-                  children: [
-                    // ─── Center: Dot Matrix Progress Indicator ───────
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32.0),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _resetInactivityTimer,
+              onPanUpdate: (_) => _resetInactivityTimer(),
+              child: Scaffold(
+                backgroundColor: Colors.black,
+                body: SafeArea(
+                  child: Stack(
+                    children: [
+                      // ─── Center: Dot Matrix Progress Indicator ───────
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: AnimatedOpacity(
+                            opacity: _controlsVisible ? 1.0 : 0.25,
+                            duration: const Duration(milliseconds: 300),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: 320,
+                                maxHeight: 320,
+                              ),
+                              child: GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _totalDots,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: _gridCrossAxisCount,
+                                      crossAxisSpacing: 14,
+                                      mainAxisSpacing: 14,
+                                    ),
+                                itemBuilder: (context, index) {
+                                  final bool isFilled =
+                                      _dotFillOrder.indexOf(index) <
+                                      completedDots;
+
+                                  return AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isFilled
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      border: Border.all(
+                                        color: isFilled
+                                            ? Colors.white
+                                            : Colors.white.withValues(
+                                                alpha: 0.4,
+                                              ),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // ─── Top-Right: Exit Fullscreen Button ───────────
+                      Positioned(
+                        top: 16,
+                        right: 24,
                         child: AnimatedOpacity(
                           opacity: _controlsVisible ? 1.0 : 0.25,
                           duration: const Duration(milliseconds: 300),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(
-                              maxWidth: 320,
-                              maxHeight: 320,
+                          child: IconButton.filledTonal(
+                            icon: const Icon(
+                              Icons.fullscreen_exit_rounded,
+                              color: Colors.white,
+                              size: 26,
                             ),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _totalDots,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: _gridCrossAxisCount,
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                  ),
-                              itemBuilder: (context, index) {
-                                final bool isFilled = index < completedDots;
+                            tooltip: 'Exit full screen (Esc)',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.15,
+                              ),
+                              hoverColor: Colors.white.withValues(alpha: 0.25),
+                            ),
+                            onPressed: _exitFullscreen,
+                          ),
+                        ),
+                      ),
 
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: isFilled
-                                        ? Colors.white
-                                        : Colors.transparent,
-                                    border: Border.all(
-                                      color: isFilled
-                                          ? Colors.white
-                                          : Colors.white.withValues(alpha: 0.4),
-                                      width: 1.5,
+                      // ─── Bottom-Left: Percentage Display ─────────────
+                      Positioned(
+                        bottom: 24,
+                        left: 24,
+                        child: AnimatedOpacity(
+                          opacity: _controlsVisible ? 1.0 : 0.25,
+                          duration: const Duration(milliseconds: 300),
+                          child: IgnorePointer(
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(text: '$minutes'),
+                                  TextSpan(
+                                    text: ' min',
+                                    style: TextStyle(
+                                      fontSize: !isCompact ? 40 : 14,
+                                      letterSpacing: 0,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                );
-                              },
+                                ],
+                              ),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: !isCompact ? 100 : 28,
+                                height: 1.0,
+                                fontFamily: 'headline',
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: !isCompact ? -4.0 : -0.9,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-
-                    // ─── Top-Right: Exit Fullscreen Button ───────────
-                    Positioned(
-                      top: 16,
-                      right: 24,
-                      child: AnimatedOpacity(
-                        opacity: _controlsVisible ? 1.0 : 0.25,
-                        duration: const Duration(milliseconds: 300),
-                        child: IconButton.filledTonal(
-                          icon: const Icon(
-                            Icons.fullscreen_exit_rounded,
-                            color: Colors.white,
-                            size: 26,
-                          ),
-                          tooltip: 'Exit full screen (Esc)',
-                          style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.15,
-                            ),
-                            hoverColor: Colors.white.withValues(alpha: 0.25),
-                          ),
-                          onPressed: _exitFullscreen,
-                        ),
-                      ),
-                    ),
-
-                    // ─── Bottom-Left: Percentage Display ─────────────
-                    Positioned(
-                      bottom: 24,
-                      left: 24,
-                      child: AnimatedOpacity(
-                        opacity: _controlsVisible ? 1.0 : 0.25,
-                        duration: const Duration(milliseconds: 300),
-                        child: IgnorePointer(
-                          child: Text(
-                            '$percentage%',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: !isCompact ? 100 : 28,
-                              height: 1.0,
-                              fontFamily: 'headline',
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: !isCompact ? -4.0 : -0.9,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

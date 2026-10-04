@@ -88,12 +88,40 @@ class TopBarSearch extends StatelessWidget {
                           },
                         ),
                       ),
+                    // Keyboard shortcut badge [/] — non-compact only, hidden when searching
+                    if (!isCompact &&
+                        taskProvider.searchQuery.isEmpty &&
+                        searchController.text.isEmpty)
+                      Tooltip(
+                        message: 'Press / to search',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerLowest
+                                .withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Text(
+                            '/',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'RobotoMono',
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ),
                     // Theme Switch Icon Button Standard inside SearchBar
                     M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
-                      tooltip: isDark
-                          ? 'Switch to light theme'
-                          : 'Switch to dark theme',
                       icon: Icon(
                         fontWeight: FontWeight.bold,
                         isDark
