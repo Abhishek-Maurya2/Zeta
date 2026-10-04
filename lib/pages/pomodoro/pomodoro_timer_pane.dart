@@ -103,24 +103,30 @@ class PomodoroTimerPane extends StatelessWidget {
               );
             }
 
-            // 2. PRIMARY LAYOUT: Tall screens
-            // Uses your original flexible Spacers safely without IntrinsicHeight or ScrollViews
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: bottomPadding,
-              ),
-              child: Column(
-                children: [
-                  buildHeader(),
-                  const Spacer(flex: 1),
-                  const PomodoroTimerDisplay(),
-                  const Spacer(flex: 2),
-                  const PomodoroTimerControls(),
-                  const SizedBox(height: 24),
-                ],
+            // Keep the timer content bounded to the viewport while retaining
+            // an always-scrollable surface for pull-to-refresh. The scaffold's
+            // ScrollConfiguration supplies AlwaysScrollableScrollPhysics.
+            return SingleChildScrollView(
+              child: SizedBox(
+                height: constraints.maxHeight,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    top: 16,
+                    bottom: bottomPadding,
+                  ),
+                  child: Column(
+                    children: [
+                      buildHeader(),
+                      const Spacer(flex: 1),
+                      const PomodoroTimerDisplay(),
+                      const Spacer(flex: 2),
+                      const PomodoroTimerControls(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
               ),
             );
           },

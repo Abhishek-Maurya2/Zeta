@@ -29,6 +29,7 @@ import 'components/pull_to_refresh_container.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
+import '../components/m3e_split_pane.dart';
 
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
@@ -65,7 +66,10 @@ class _AppScaffoldState extends State<AppScaffold>
 
   late final M3EToolbarVisibilityController _toolbarController;
   late final M3EToolbarScrollBehavior _toolbarBehavior;
-  
+
+  /// Width of the co-planar task editor on tablet and desktop layouts.
+  double _taskEditPaneWidth = 380.0;
+
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
 
@@ -93,7 +97,7 @@ class _AppScaffoldState extends State<AppScaffold>
     final pomodoro = context.read<PomodoroProvider>();
     if (_lastPomodoroTab != pomodoro.activeTab) {
       _lastPomodoroTab = pomodoro.activeTab;
-      // Always ensure floating nav is visible when switching Pomodoro tabs, 
+      // Always ensure floating nav is visible when switching Pomodoro tabs,
       // particularly the timer pane which has no scrollable content.
       _toolbarController.show();
     }
@@ -130,13 +134,13 @@ class _AppScaffoldState extends State<AppScaffold>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         final taskProvider = context.read<TaskProvider>();
-        
+
         _lastPage = _navProvider.activePage;
         _lastPomodoroTab = _pomodoroProvider.activeTab;
-        
+
         _navProvider.addListener(_onNavigationChanged);
         _pomodoroProvider.addListener(_onPomodoroChanged);
-        
+
         QuickActionsService.instance.init(_navProvider);
         CrossDeviceService.instance.init(
           _navProvider,
@@ -153,7 +157,7 @@ class _AppScaffoldState extends State<AppScaffold>
   void dispose() {
     _navProvider.removeListener(_onNavigationChanged);
     _pomodoroProvider.removeListener(_onPomodoroChanged);
-    
+
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
@@ -500,6 +504,11 @@ class _AppScaffoldState extends State<AppScaffold>
     final isPomodoroRunning = context.select<PomodoroProvider, bool>(
       (p) => p.isRunning,
     );
+    final isPomodoroTimerTab = context.select<PomodoroProvider, bool>(
+      (p) => p.activeTab == 'timer',
+    );
+    final isPomodoroTimerPane =
+        navProvider.activePage == PageId.pomodoro && isPomodoroTimerTab;
 
     final canPop =
         !isPomodoroRunning &&
@@ -624,6 +633,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                       navProvider: navProvider,
                                       isSelectionMode: isSelectionMode,
                                       scrollBehavior: _toolbarBehavior,
+                                      keepVisible: isPomodoroTimerPane,
                                     ),
                                     TaskSelectionToolbar(
                                       taskProvider: context
@@ -643,9 +653,81 @@ class _AppScaffoldState extends State<AppScaffold>
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: BodyPane(
-                                            activePage: navProvider.activePage,
-                                          ),
+                                          child: !isEditPaneOpen
+                                              ? BodyPane(
+                                                  activePage: navProvider.activePage,
+                                                )
+                                              : LayoutBuilder(
+                                                  builder: (context, constraints) {
+                                                    final totalWidth = constraints.maxWidth;
+                                                    final minEditorWidth = 300.0;
+                                                    final maxEditorWidth = 600.0;
+                                                    final editorWidth = _taskEditPaneWidth
+                                                        .clamp(
+                                                          minEditorWidth,
+                                                          maxEditorWidth,
+                                                        );
+                                                    final maxStartWidth = totalWidth -
+                                                        minEditorWidth -
+                                                        24.0;
+                                                    final minStartWidth = totalWidth -
+                                                        maxEditorWidth -
+                                                        24.0;
+                                                    final startWidth = (totalWidth -
+                                                            editorWidth -
+                                                            24.0)
+                                                        .clamp(minStartWidth, maxStartWidth);
+
+                                                    return M3ESplitPane(
+                                                      value: (startWidth / totalWidth * 100)
+                                                          .clamp(
+                                                            minStartWidth / totalWidth * 100,
+                                                            maxStartWidth / totalWidth * 100,
+                                                          ),
+                                                      min: minStartWidth / totalWidth * 100,
+                                                      max: maxStartWidth / totalWidth * 100,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          _taskEditPaneWidth =
+                                                              (totalWidth - totalWidth * value / 100 - 24)
+                                                                  .clamp(minEditorWidth, maxEditorWidth);
+                                                        });
+                                                      },
+                                                      onDoubleTap: () {
+                                                        setState(() => _taskEditPaneWidth = 380.0);
+                                                        ZetaHaptics.medium();
+                                                      },
+                                                      start: BodyPane(
+                                                        activePage: navProvider.activePage,
+                                                      ),
+                                                      end: Container(
+                                                        margin: const EdgeInsets.fromLTRB(0, 10, 10, 6),
+                                                        decoration: BoxDecoration(
+                                                          color: colorScheme.surfaceContainerHigh,
+                                                          borderRadius: BorderRadius.circular(20),
+                                                        ),
+                                                        clipBehavior: Clip.antiAlias,
+                                                        child: SafeArea(
+                                                          child: Consumer<TaskProvider>(
+                                                            builder: (context, taskProvider, _) => TaskEditFormContent(
+                                                              key: ValueKey(
+                                                                '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                              ),
+                                                              task: taskProvider.editingTask,
+                                                              initialTitle: taskProvider.editingInitialTitle,
+                                                              initialDescription: taskProvider.editingInitialDescription,
+                                                              initialDueDate: taskProvider.editingInitialDueDate,
+                                                              initialDueTime: taskProvider.editingInitialDueTime,
+                                                              initialHasTime: taskProvider.editingInitialHasTime,
+                                                              initialSubtasks: taskProvider.editingInitialSubtasks,
+                                                              onClose: taskProvider.closeEditPane,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                         ),
                                         TaskSelectionToolbar(
                                           taskProvider: context

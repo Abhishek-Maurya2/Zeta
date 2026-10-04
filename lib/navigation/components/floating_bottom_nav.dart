@@ -14,12 +14,14 @@ import '../../utils/haptics.dart';
 class FloatingBottomNav extends StatelessWidget {
   final NavigationProvider navProvider;
   final bool isSelectionMode;
+  final bool keepVisible;
   final M3EToolbarScrollBehavior scrollBehavior;
   const FloatingBottomNav({
     super.key,
     required this.navProvider,
     required this.isSelectionMode,
     required this.scrollBehavior,
+    this.keepVisible = false,
   });
 
   @override
@@ -36,7 +38,9 @@ class FloatingBottomNav extends StatelessWidget {
         animation: scrollBehavior.controller!,
         builder: (context, child) {
           return Transform.translate(
-            offset: Offset(0, -scrollBehavior.controller!.offset),
+            offset: keepVisible
+                ? Offset.zero
+                : Offset(0, -scrollBehavior.controller!.offset),
             child: child,
           );
         },
