@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 /// The settings categories mirroring Sharva.
 enum SettingsCategory {
   profile,
+  tasks,
   appearance,
   typography,
   weather,
@@ -35,6 +36,13 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     description: 'Name and profile photo',
     icon: Icons.person_outline_rounded,
     selectedIcon: Icons.person_rounded,
+  ),
+  SettingsCategoryItem(
+    id: SettingsCategory.tasks,
+    label: 'Tasks',
+    description: 'Sorting, swipes, and behavior',
+    icon: Icons.task_alt_outlined,
+    selectedIcon: Icons.task_alt_rounded,
   ),
   SettingsCategoryItem(
     id: SettingsCategory.appearance,

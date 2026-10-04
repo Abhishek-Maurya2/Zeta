@@ -9,6 +9,7 @@ import 'notifications_section.dart';
 import 'sync_data_section.dart';
 import 'cross_device_section.dart';
 import 'updates_section.dart';
+import 'tasks_section.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -36,6 +37,9 @@ class SettingsDetailPane extends StatelessWidget {
     switch (activeCategory) {
       case SettingsCategory.profile:
         detailContent = ProfileSection(onToast: onToast);
+        break;
+      case SettingsCategory.tasks:
+        detailContent = TasksSection(onToast: onToast);
         break;
       case SettingsCategory.appearance:
         detailContent = AppearanceSection(onToast: onToast);

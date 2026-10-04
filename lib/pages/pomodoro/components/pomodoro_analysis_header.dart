@@ -176,15 +176,23 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 }
               },
               actions: [
-                const M3EButtonGroupAction(
+                M3EButtonGroupAction(
+                  decoration: M3EButtonDecoration.styleFrom(
+                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    foregroundColor: colorScheme.onSurface,
+                  ),
                   minWidth: 48,
-                  icon: Icon(
+                  icon: const Icon(
                     Icons.chevron_left_rounded,
                     size: 35,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 M3EButtonGroupAction(
+                  decoration: M3EButtonDecoration.styleFrom(
+                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    foregroundColor: colorScheme.onSurface,
+                  ),
                   minWidth: 48,
                   icon: Icon(
                     Icons.chevron_right_rounded,
@@ -196,6 +204,10 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                   ),
                 ),
                 M3EButtonGroupAction(
+                  decoration: M3EButtonDecoration.styleFrom(
+                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    foregroundColor: colorScheme.onSurface,
+                  ),
                   icon: Icon(
                     Icons.history_rounded,
                     fontWeight: FontWeight.w600,

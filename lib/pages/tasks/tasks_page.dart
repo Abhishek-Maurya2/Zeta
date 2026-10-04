@@ -181,7 +181,10 @@ class TasksPage extends StatelessWidget {
                         const SizedBox(height: 24),
                         M3EList(
                           itemCount: 1,
-                          color: colorScheme.surfaceContainerLowest,
+                          color: colorScheme.primaryContainer,
+                          expandStyle: const M3EExpandableStyle(
+                            expandedStateFill: false,
+                          ),
                           itemBuilder: (context, index) {
                             return M3EListItem(
                               headline: 'Completed (${completed.length})',

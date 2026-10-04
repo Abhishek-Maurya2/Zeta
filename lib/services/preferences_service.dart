@@ -59,7 +59,9 @@ class PreferencesService {
 
   // ─── General Keys ──────────────────────────────────────────────────────────
   static const String keySoundEffects = 'zeta_sound_effects';
+  static const String keySwapSwipeActions = 'zeta_swap_swipe_actions';
   static const String keyTaskSortBy = 'zeta_task_sort_by_v1';
+  static const String keyCompletedTaskSortBy = 'zeta_completed_task_sort_by_v1';
   static const String keyPomodoroSettings = 'zeta_pomodoro_settings_v1';
   static const String keyPomodoroState = 'zeta_pomodoro_active_state_v1';
   static const String keyRevisionSettings = 'zeta_revision_settings_v1';
@@ -175,6 +177,10 @@ class PreferencesService {
   int? getInt(String key) => _prefs?.getInt(key);
   Future<bool> setInt(String key, int value) async =>
       _prefs?.setInt(key, value) ?? false;
+
+  bool get swapSwipeActions => getBool(keySwapSwipeActions) ?? false;
+  Future<bool> setSwapSwipeActions(bool value) =>
+      setBool(keySwapSwipeActions, value);
 
   double? getDouble(String key) => _prefs?.getDouble(key);
   Future<bool> setDouble(String key, double value) async =>

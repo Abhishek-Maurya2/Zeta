@@ -16,9 +16,13 @@ enum TaskFilter { all, completed, pending, revision }
 
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
+enum CompletedTaskSortOption { newestFirst, oldestFirst }
+
 class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _soundEffectsKey = PreferencesService.keySoundEffects;
   static const String _sortByPrefKey = PreferencesService.keyTaskSortBy;
+  static const String _completedSortByPrefKey =
+      PreferencesService.keyCompletedTaskSortBy;
 
   final TaskRepository _repository;
 
@@ -59,6 +63,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   TaskFilter _filter = TaskFilter.all;
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
+  CompletedTaskSortOption _completedSortBy =
+      CompletedTaskSortOption.newestFirst;
   String _searchQuery = '';
   final Set<String> _expandedTaskIds = {};
   final Set<String> _selectedTaskIds = {};
@@ -83,6 +89,21 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   bool? get editingInitialHasTime => _editingInitialHasTime;
   List<Subtask>? get editingInitialSubtasks => _editingInitialSubtasks;
   bool get isEditPaneOpen => _isEditPaneOpen;
+
+  bool get swapSwipeActions => PreferencesService.instance.swapSwipeActions;
+  void setSwapSwipeActions(bool value) {
+    PreferencesService.instance.setSwapSwipeActions(value);
+    notifyListeners();
+  }
+
+  CompletedTaskSortOption get completedSortBy => _completedSortBy;
+  void setCompletedSortBy(CompletedTaskSortOption sort) {
+    if (_completedSortBy == sort) return;
+    _completedSortBy = sort;
+    PreferencesService.instance.setString(_completedSortByPrefKey, sort.name);
+    _invalidateCache();
+    notifyListeners();
+  }
 
   void updateTaskDraft({
     String? title,
@@ -347,10 +368,15 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         return a.completed ? 1 : -1;
       }
       if (a.completed && b.completed) {
-        // By default, completed tasks are sorted newest first (most recently completed/updated, then created)
-        final updateComp = b.updatedAt.compareTo(a.updatedAt);
-        if (updateComp != 0) return updateComp;
-        return b.createdAt.compareTo(a.createdAt);
+        if (_completedSortBy == CompletedTaskSortOption.newestFirst) {
+          final updateComp = b.updatedAt.compareTo(a.updatedAt);
+          if (updateComp != 0) return updateComp;
+          return b.createdAt.compareTo(a.createdAt);
+        } else {
+          final updateComp = a.updatedAt.compareTo(b.updatedAt);
+          if (updateComp != 0) return updateComp;
+          return a.createdAt.compareTo(b.createdAt);
+        }
       }
       switch (_sortBy) {
         case TaskSortOption.creationDesc:
@@ -452,6 +478,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         _sortBy = TaskSortOption.values.firstWhere(
           (e) => e.name == savedSort,
           orElse: () => TaskSortOption.creationDesc,
+        );
+      }
+      final savedCompletedSort = prefs.getString(_completedSortByPrefKey);
+      if (savedCompletedSort != null) {
+        _completedSortBy = CompletedTaskSortOption.values.firstWhere(
+          (e) => e.name == savedCompletedSort,
+          orElse: () => CompletedTaskSortOption.newestFirst,
         );
       }
 

@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/m3e_custom_list_item.dart';
 import '../../../components/task_card_item.dart';
 import '../../../components/task_edit_pane.dart';
 import '../../../models/task.dart';
@@ -38,93 +39,116 @@ class TasksDismissibleList extends StatelessWidget {
       key: const ValueKey('tasks_dismissible_list'),
       itemCount: tasks.length,
       embedded: embedded,
-      outerRadius: 24,
-      innerRadius: 4,
-      gap: 3,
-      color: colorScheme.surfaceContainerLowest,
-      colorBuilder: (index) {
-        if (index < 0 || index >= tasks.length) return null;
-        final task = tasks[index];
-        if (provider.isTaskSelected(task.id)) {
-          return colorScheme.secondaryContainer;
-        }
-        return null;
-      },
+      colorBuilder: (index) => Colors.transparent,
       borderRadiusBuilder: (index, position) {
-        if (index < 0 || index >= tasks.length) return null;
-        final task = tasks[index];
-        if (provider.isTaskSelected(task.id)) {
-          return BorderRadius.circular(45.0);
+        if (provider.isTaskSelected(tasks[index].id)) {
+          return BorderRadius.circular(45);
         }
-        return null;
+        final bool isFirst = index == 0;
+        final bool isLast = index == tasks.length - 1;
+        final bool isSingle = tasks.length == 1;
+        return isSingle
+            ? BorderRadius.circular(16)
+            : BorderRadius.vertical(
+                top: Radius.circular(isFirst ? 16 : 4),
+                bottom: Radius.circular(isLast ? 16 : 4),
+              );
       },
       itemBuilder: (context, index) {
         final task = tasks[index];
         final isSelectionMode = provider.isSelectionMode;
         final isSelected = provider.isTaskSelected(task.id);
 
-        final card = TaskCardItem(
-          key: ValueKey(task.id),
-          task: task,
-          isExpanded: provider.isTaskExpanded(task.id),
-          isSelected: isSelected,
-          isSelectionMode: isSelectionMode,
-          onToggle: isSelectionMode
-              ? () {
-                  ZetaHaptics.selection();
-                  provider.toggleTaskSelection(task.id);
-                }
-              : () => provider.toggleTask(task.id),
-          onToggleExpand: () => provider.toggleTaskExpanded(task.id),
-          onToggleSubtask: (subtaskId) =>
-              provider.toggleSubtask(task.id, subtaskId),
-          onTap: isSelectionMode
-              ? () {
-                  ZetaHaptics.selection();
-                  provider.toggleTaskSelection(task.id);
-                }
-              : () => TaskEditPane.show(context, task: task),
-          onContextMenu: (pos) => onContextMenu(context, pos, task, provider),
-          onDelete: () => provider.deleteTask(task.id),
+        final bool isFirst = index == 0;
+        final bool isLast = index == tasks.length - 1;
+        final bool isSingle = tasks.length == 1;
+
+        BorderRadius radius = isSingle
+            ? BorderRadius.circular(16)
+            : BorderRadius.vertical(
+                top: Radius.circular(isFirst ? 16 : 4),
+                bottom: Radius.circular(isLast ? 16 : 4),
+              );
+
+        if (isSelected) {
+          radius = BorderRadius.circular(45);
+        }
+
+        final cardColor = isSelected
+            ? colorScheme.secondaryContainer
+            : colorScheme.surfaceContainerLowest;
+
+        final card = Material(
+          color: cardColor,
+          borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
+          child: TaskCardItem(
+            key: ValueKey(task.id),
+            task: task,
+            isExpanded: provider.isTaskExpanded(task.id),
+            isSelected: isSelected,
+            isSelectionMode: isSelectionMode,
+            onToggle: isSelectionMode
+                ? () {
+                    ZetaHaptics.selection();
+                    provider.toggleTaskSelection(task.id);
+                  }
+                : () => provider.toggleTask(task.id),
+            onToggleExpand: () => provider.toggleTaskExpanded(task.id),
+            onToggleSubtask: (subtaskId) =>
+                provider.toggleSubtask(task.id, subtaskId),
+            onTap: isSelectionMode
+                ? () {
+                    ZetaHaptics.selection();
+                    provider.toggleTaskSelection(task.id);
+                  }
+                : () => TaskEditPane.show(context, task: task),
+            onContextMenu: (pos) => onContextMenu(context, pos, task, provider),
+            onDelete: () => provider.deleteTask(task.id),
+          ),
         );
 
         if (isSelectionMode) return card;
 
-        return Dismissible(
+        final completeAction = M3EListSwipeAction(
+          icon: Icon(
+            task.completed
+                ? Icons.radio_button_unchecked_rounded
+                : Icons.check_circle_rounded,
+            color: isDark
+                ? task.completed
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSuccessContainer
+                : Colors.white,
+          ),
+          backgroundColor: task.completed
+              ? colorScheme.primary
+              : isDark
+              ? colorScheme.successContainer
+              : colorScheme.success,
+          onPressed: () => provider.toggleTask(task.id),
+          isPrimary: true,
+        );
+
+        final deleteAction = M3EListSwipeAction(
+          icon: Icon(
+            Icons.delete_outline_rounded,
+            color: isDark ? colorScheme.onErrorContainer : Colors.white,
+          ),
+          backgroundColor: isDark
+              ? colorScheme.errorContainer
+              : colorScheme.error,
+          onPressed: () => provider.deleteTask(task.id),
+          isPrimary: true,
+        );
+
+        return M3ECustomListItem(
           key: ValueKey(task.id),
-          background: Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(left: 20),
-            color: task.completed
-                ? colorScheme.secondary
-                : isDark
-                    ? colorScheme.successContainer
-                    : colorScheme.success,
-            child: Icon(
-              task.completed
-                  ? Icons.radio_button_unchecked_rounded
-                  : Icons.check_circle_rounded,
-              color: Colors.white,
-            ),
+          swipe: M3EListItemSwipe(
+            leading: [provider.swapSwipeActions ? deleteAction : completeAction],
+            trailing: [provider.swapSwipeActions ? completeAction : deleteAction],
           ),
-          secondaryBackground: Container(
-            alignment: Alignment.centerRight,
-            padding: const EdgeInsets.only(right: 20),
-            color: isDark ? colorScheme.errorContainer : colorScheme.error,
-            child: const Icon(
-              Icons.delete_outline_rounded,
-              color: Colors.white,
-            ),
-          ),
-          confirmDismiss: (direction) async {
-            if (direction == DismissDirection.endToStart) {
-              provider.deleteTask(task.id);
-            } else {
-              provider.toggleTask(task.id);
-            }
-            return true;
-          },
-          child: card,
+          customChild: card,
         );
       },
     );
