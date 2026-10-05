@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../components/zeta_empty_state.dart';
@@ -46,28 +47,25 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
   }
 
   void _confirmClearLogs(BuildContext context, PomodoroProvider provider) {
-    showDialog(
+    showGlassDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         title: const Text('Clear Session History?'),
         content: const Text(
           'This will permanently delete all logged focus sessions. This action cannot be undone.',
         ),
         actions: [
-          TextButton(
+          GlassButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Cancel'),
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
+          GlassButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               setState(() => _displayedCount = _batchSize);
               provider.clearSessionLog();
             },
+            isDestructive: true,
             child: const Text('Clear All'),
           ),
         ],

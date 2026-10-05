@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../features/auth/presentation/auth_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../services/cross_device_service.dart';
@@ -113,10 +114,10 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
   Future<void> _handleEditDeviceName() async {
     ZetaHaptics.light();
     final controller = TextEditingController(text: _deviceName);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
+        return GlassAlertDialog(
           title: const Text('Edit Device Name'),
           content: TextField(
             controller: controller,
@@ -127,12 +128,13 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
             ),
           ),
           actions: [
-            TextButton(
+            GlassButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            GlassButton(
               onPressed: () => Navigator.pop(ctx, true),
+              isPrimary: true,
               child: const Text('Save'),
             ),
           ],

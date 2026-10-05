@@ -478,7 +478,7 @@ class _TypographySectionState extends State<TypographySection> {
                 themeProvider.resetRoleTypography(_selectedRole);
                 widget.onToast?.call('Reset ${_selectedRole.label} to default');
               },
-              label: Text('Reset ${_selectedRole.label}'),
+              label: Text(_selectedRole.label),
             ),
             M3EIconButton(
               icon: const Icon(Icons.refresh),

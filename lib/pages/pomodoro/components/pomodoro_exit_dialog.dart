@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../utils/haptics.dart';
 
@@ -29,36 +29,27 @@ Future<bool> confirmExitIfPomodoroRunning(BuildContext context) async {
 
   _isDialogShowing = true;
   ZetaHaptics.heavy();
-  final colorScheme = Theme.of(context).colorScheme;
-
   try {
-    final shouldExit = await showDialog<bool>(
+    final shouldExit = await showGlassDialog<bool>(
       context: context,
       useRootNavigator: true,
       barrierDismissible: true,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => GlassAlertDialog(
         title: const Text('Session in Progress'),
         content: const Text(
           'A Pomodoro timer is actively running. Are you sure you want to stop and exit?',
         ),
         actions: [
-          M3EButton(
-            size: M3EButtonSize.sm,
-            style: M3EButtonStyle.text,
+          GlassButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel'),
           ),
-          M3EButton(
-            size: M3EButtonSize.sm,
-            style: M3EButtonStyle.filled,
-            decoration: M3EButtonDecoration(
-              backgroundColor: WidgetStatePropertyAll(colorScheme.error),
-              foregroundColor: WidgetStatePropertyAll(colorScheme.onError),
-            ),
+          GlassButton(
             onPressed: () {
               ZetaHaptics.medium();
               Navigator.of(ctx).pop(true);
             },
+            isDestructive: true,
             child: const Text('Exit Session'),
           ),
         ],

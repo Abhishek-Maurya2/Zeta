@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../providers/task_provider.dart';
@@ -136,10 +137,11 @@ class _SyncDataSectionState extends State<SyncDataSection> {
   void _showImportDialog(BuildContext context, ThemeProvider themeProvider) {
     final controller = TextEditingController();
 
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return GlassAlertDialog(
+          scrollable: true,
           title: const Text('Import Configuration JSON'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -165,13 +167,11 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             ],
           ),
           actions: [
-            TextButton(
+            GlassButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
-            M3EButton(
-              style: M3EButtonStyle.filled,
-              size: M3EButtonSize.sm,
+            GlassButton(
               onPressed: () async {
                 final text = controller.text.trim();
                 if (text.isEmpty) return;
@@ -201,6 +201,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   widget.onToast?.call('Invalid JSON format');
                 }
               },
+              isPrimary: true,
               child: const Text('Apply Configuration'),
             ),
           ],
@@ -210,22 +211,20 @@ class _SyncDataSectionState extends State<SyncDataSection> {
   }
 
   void _showResetDialog(BuildContext context, ThemeProvider themeProvider) {
-    showDialog<void>(
+    showGlassDialog<void>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
+        return GlassAlertDialog(
           title: const Text('Reset Workspace Configuration?'),
           content: const Text(
             'This will reset all theme preferences, appearance styling, and system settings to their initial defaults.',
           ),
           actions: [
-            TextButton(
+            GlassButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('Cancel'),
             ),
-            M3EButton(
-              style: M3EButtonStyle.filled,
-              size: M3EButtonSize.sm,
+            GlassButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 themeProvider.resetDefaults();
@@ -233,6 +232,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   'All preferences reset to factory defaults.',
                 );
               },
+              isPrimary: true,
               child: const Text('Reset Defaults'),
             ),
           ],
@@ -313,13 +313,13 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final iconWidget = Container(
-                      width: 44,
-                      height: 44,
+                      width: 45,
+                      height: 45,
                       decoration: BoxDecoration(
                         color: _masterSyncEnabled
                             ? colorScheme.primary.withValues(alpha: 0.12)
                             : colorScheme.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(30),
                       ),
                       child: Icon(
                         _masterSyncEnabled
@@ -396,37 +396,35 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                       opacity: _masterSyncEnabled ? 1.0 : 0.38,
                       child: IgnorePointer(
                         ignoring: !_masterSyncEnabled,
-                        child: M3EButtonGroup(
-                          type: M3EButtonGroupType.standard,
-                          style: M3EButtonStyle.tonal,
-                          size: M3EButtonSize.sm,
-                          selectedIndex: null,
-                          onSelectedIndexChanged: (index) {
+                        child: M3EIconButton(
+                          icon: isSyncBusy
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: M3EProgressIndicator.circular(
+                                    strokeWidth: 3,
+                                    showTrack: false,
+                                  ),
+                                )
+                              : const Icon(Icons.sync_rounded),
+                          variant: M3EIconButtonVariant.filled,
+                          width: M3EIconButtonWidth.wide,
+                          onPressed: () {
                             if (!_masterSyncEnabled || isSyncBusy) return;
                             ZetaHaptics.light();
                             _handleSync();
                           },
-                          actions: [
-                            M3EButtonGroupAction(
-                              icon: isSyncBusy
-                                  ? const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.sync_rounded, size: 16),
-                              label: const Text('Sync'),
-                              tooltip: isSyncBusy
-                                  ? 'Syncing...'
-                                  : 'Sync cloud data now',
-                              decoration: M3EButtonDecoration.styleFrom(
-                                backgroundColor: colorScheme.primaryContainer,
-                                foregroundColor: colorScheme.onPrimaryContainer,
-                              ),
+                          tooltip: isSyncBusy
+                              ? 'Syncing...'
+                              : 'Sync cloud data now',
+                          decoration: M3EIconButtonDecoration(
+                            backgroundColor: WidgetStateProperty.all(
+                              colorScheme.primaryContainer,
                             ),
-                          ],
+                            foregroundColor: WidgetStateProperty.all(
+                              colorScheme.onPrimaryContainer,
+                            ),
+                          ),
                         ),
                       ),
                     );
@@ -465,11 +463,18 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                     ),
                     headline: 'Export Backup',
                     supportingText: 'Tasks, Sessions & Subjects',
-                    trailing: M3EButton.icon(
-                      icon: const Icon(Icons.copy_rounded, size: 14),
-                      label: const Text('JSON'),
-                      style: M3EButtonStyle.tonal,
-                      size: M3EButtonSize.sm,
+                    trailing: M3EIconButton(
+                      icon: const Icon(Icons.copy_rounded),
+                      variant: M3EIconButtonVariant.filled,
+                      width: M3EIconButtonWidth.wide,
+                      decoration: M3EIconButtonDecoration(
+                        backgroundColor: WidgetStateProperty.all(
+                          colorScheme.primaryContainer,
+                        ),
+                        foregroundColor: WidgetStateProperty.all(
+                          colorScheme.onPrimaryContainer,
+                        ),
+                      ),
                       onPressed: () => _exportAllData(
                         context,
                         themeProvider,
@@ -488,12 +493,19 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   ),
                   headline: 'Import Configuration',
                   supportingText: 'Restore preferences from backup',
-                  trailing: M3EButton.icon(
-                    icon: const Icon(Icons.file_upload_outlined, size: 14),
-                    label: const Text('Import'),
-                    style: M3EButtonStyle.outlined,
-                    size: M3EButtonSize.sm,
+                  trailing: M3EIconButton(
+                    icon: const Icon(Icons.file_upload_outlined),
+                    variant: M3EIconButtonVariant.filled,
+                    width: M3EIconButtonWidth.wide,
                     onPressed: () => _showImportDialog(context, themeProvider),
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.primaryContainer,
+                      ),
+                      foregroundColor: WidgetStateProperty.all(
+                        colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
                 );
               },
@@ -563,11 +575,19 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   headline: 'Reset All Preferences',
                   supportingText:
                       'Resets all appearance & settings to defaults',
-                  trailing: M3EButton(
-                    style: M3EButtonStyle.outlined,
-                    size: M3EButtonSize.sm,
+                  trailing: M3EIconButton(
+                    icon: Icon(Icons.restore),
+                    variant: M3EIconButtonVariant.filled,
+                    width: M3EIconButtonWidth.wide,
                     onPressed: () => _showResetDialog(context, themeProvider),
-                    label: const Text('Reset'),
+                    decoration: M3EIconButtonDecoration(
+                      backgroundColor: WidgetStateProperty.all(
+                        colorScheme.primaryContainer,
+                      ),
+                      foregroundColor: WidgetStateProperty.all(
+                        colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
                 );
               },

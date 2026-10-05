@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_alert_dialog.dart';
 import '../../../providers/weather_provider.dart';
 import '../../../components/weather_icon.dart';
 import '../../../utils/app_snackbar.dart';
@@ -105,21 +106,22 @@ class _WeatherSectionState extends State<WeatherSection> {
 
     if (!serviceEnabled) {
       if (!mounted) return;
-      final shouldTurnOn = await showDialog<bool>(
+      final shouldTurnOn = await showGlassDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => GlassAlertDialog(
           icon: const Icon(Icons.location_off_rounded, size: 28),
           title: const Text('Turn on GPS'),
           content: const Text(
             'Location services (GPS) are currently turned off. Please turn on GPS to detect your device location.',
           ),
           actions: [
-            TextButton(
+            GlassButton(
               onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            GlassButton(
               onPressed: () => Navigator.of(ctx).pop(true),
+              isPrimary: true,
               child: const Text('Turn on GPS'),
             ),
           ],
@@ -154,21 +156,22 @@ class _WeatherSectionState extends State<WeatherSection> {
 
     if (permission == LocationPermission.deniedForever) {
       if (!mounted) return;
-      final shouldOpenSettings = await showDialog<bool>(
+      final shouldOpenSettings = await showGlassDialog<bool>(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (ctx) => GlassAlertDialog(
           icon: const Icon(Icons.location_disabled_rounded, size: 28),
           title: const Text('Permission Required'),
           content: const Text(
             'Location permission is permanently denied. Please grant location permission in app settings to use your device location.',
           ),
           actions: [
-            TextButton(
+            GlassButton(
               onPressed: () => Navigator.of(ctx).pop(false),
               child: const Text('Cancel'),
             ),
-            FilledButton(
+            GlassButton(
               onPressed: () => Navigator.of(ctx).pop(true),
+              isPrimary: true,
               child: const Text('Open Settings'),
             ),
           ],
@@ -534,17 +537,17 @@ class _WeatherSectionState extends State<WeatherSection> {
                     spacing: 10,
                     runSpacing: 8,
                     children: [
-                      M3EButton.icon(
-                        icon: const Icon(Icons.my_location_rounded, size: 16),
-                        label: const Text('Use device location'),
-                        style: M3EButtonStyle.tonal,
-                        size: M3EButtonSize.sm,
+                      M3EIconButton(
+                        icon: const Icon(Icons.my_location_rounded),
+                        variant: M3EIconButtonVariant.filled,
+                        width: M3EIconButtonWidth.wide,
+                        tooltip: 'Use GPS',
                         onPressed: isMasterOn && !isLoading
                             ? () => _handleDetectLocation(weatherProvider)
                             : null,
                       ),
-                      M3EButton.icon(
-                        icon: isLoading
+                      M3EIconButton(
+                                icon: isLoading
                             ? const SizedBox(
                                 width: 14,
                                 height: 14,
@@ -552,10 +555,10 @@ class _WeatherSectionState extends State<WeatherSection> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Icon(Icons.refresh_rounded, size: 16),
-                        label: const Text('Refresh forecast'),
-                        style: M3EButtonStyle.outlined,
-                        size: M3EButtonSize.sm,
+                            : const Icon(Icons.refresh_rounded),
+                        variant: M3EIconButtonVariant.filled,
+                        width: M3EIconButtonWidth.wide,
+                        tooltip: 'Refresh',
                         onPressed: isMasterOn && !isLoading
                             ? () => _handleRefresh(weatherProvider)
                             : null,
@@ -622,18 +625,17 @@ class _WeatherSectionState extends State<WeatherSection> {
                             ],
                           ),
                         ),
-                        M3EButton.icon(
+                        M3EIconButton(
                           icon: Icon(
                             _isEditing
                                 ? Icons.close_rounded
                                 : Icons.search_rounded,
-                            size: 15,
                           ),
-                          label: Text(_isEditing ? 'Close' : 'Search'),
-                          style: _isEditing
-                              ? M3EButtonStyle.tonal
-                              : M3EButtonStyle.outlined,
-                          size: M3EButtonSize.xs,
+                          tooltip: _isEditing ? 'Close' : 'Search',
+                          variant: _isEditing
+                              ? M3EIconButtonVariant.tonal
+                              : M3EIconButtonVariant.filled,
+                          width: M3EIconButtonWidth.wide,
                           onPressed: isMasterOn
                               ? () {
                                   ZetaHaptics.light();

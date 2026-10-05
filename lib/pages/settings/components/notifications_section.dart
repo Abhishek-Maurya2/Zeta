@@ -119,11 +119,9 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     value: isMasterOn,
                     selectedIcon: const Icon(
                       Icons.notifications_active_rounded,
-                      size: 16,
                     ),
                     unselectedIcon: const Icon(
                       Icons.notifications_off_rounded,
-                      size: 16,
                     ),
                     onChanged: (val) {
                       ZetaHaptics.light();
