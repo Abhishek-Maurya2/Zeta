@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+
 
 import 'glass_surface.dart';
 
@@ -58,8 +59,13 @@ class GlassSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final radius = borderRadius;
+    final effectiveSurfaceColor =
+        surfaceColor ??
+        colorScheme.tertiaryContainer.withValues(alpha: 0.4);
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -78,7 +84,9 @@ class GlassSheet extends StatelessWidget {
             borderRadius: radius,
             boxShadow: [
               BoxShadow(
-                color: colorScheme.shadow.withValues(alpha: 0.15),
+                color: colorScheme.shadow.withValues(
+                  alpha: isDark ? 0.28 : 0.15,
+                ),
                 blurRadius: 20,
                 offset: const Offset(0, -4),
               ),
@@ -87,12 +95,12 @@ class GlassSheet extends StatelessWidget {
           child: GlassSurface(
             borderRadius: radius,
             blurSigma: blurSigma,
-            color:
-                surfaceColor ??
-                colorScheme.surfaceContainerHigh.withValues(alpha: 0.60),
+            color: effectiveSurfaceColor,
             border: showBorder
                 ? Border.all(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.30),
+                    color: colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.24 : 0.30,
+                    ),
                   )
                 : null,
             material: material,

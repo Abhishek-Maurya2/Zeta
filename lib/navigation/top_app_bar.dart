@@ -68,9 +68,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
       child: Row(
         children: [
           const TopBarBrand(),
-          SizedBox(width: isCompact ? 1 : 10),
+          SizedBox(width: isCompact ? 0 : 10),
           TopBarSearch(searchController: _searchController),
-          SizedBox(width: isCompact ? 1 : 10),
+          SizedBox(width: isCompact ? 0 : 10),
           const TopBarAvatar(),
         ],
       ),

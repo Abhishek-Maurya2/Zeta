@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../providers/pomodoro_provider.dart';
 import 'components/pomodoro_chart_canvas.dart';
 import 'components/pomodoro_analysis_header.dart';
@@ -79,13 +80,10 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(15, 5, 15, 15),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.8),
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.05),
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,21 +153,14 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               ),
               const Spacer(),
               // Set Goal Button
-              FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  textStyle: textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                icon: const Icon(Icons.tune_rounded, size: 14),
-                label: const Text('Set Goal'),
+              M3EIconButton(
+                icon: const Icon(Icons.tune_rounded),
                 onPressed: () => PomodoroGoalSheet.show(context, provider),
-              ),
+                tooltip: 'Set Goal',
+                width: M3EIconButtonWidth.wide,
+                variant: M3EIconButtonVariant.tonal,
+                size: M3EIconButtonSize.xs
+              )
             ],
           ),
 

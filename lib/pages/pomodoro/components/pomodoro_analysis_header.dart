@@ -158,8 +158,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
             M3EButtonGroup(
               type: M3EButtonGroupType.standard,
               size: M3EButtonSize.md,
-              spacing: 2,
-              expandedRatio: 0.5,
+              spacing: 3,
+              expandedRatio: 0.35,
               selectedIndex: null,
               onSelectedIndexChanged: (idx) {
                 ZetaHaptics.light();
@@ -178,10 +178,10 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               actions: [
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
                     foregroundColor: colorScheme.onSurface,
                   ),
-                  minWidth: 48,
+                  minWidth: 43,
                   icon: const Icon(
                     Icons.chevron_left_rounded,
                     size: 35,
@@ -190,10 +190,10 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
                     foregroundColor: colorScheme.onSurface,
                   ),
-                  minWidth: 48,
+                  minWidth: 43,
                   icon: Icon(
                     Icons.chevron_right_rounded,
                     fontWeight: FontWeight.w600,
@@ -205,7 +205,7 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
                     foregroundColor: colorScheme.onSurface,
                   ),
                   icon: Icon(
