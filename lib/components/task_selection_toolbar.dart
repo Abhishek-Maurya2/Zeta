@@ -1,11 +1,10 @@
-import 'dart:ui';
-
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/task_provider.dart';
 import '../utils/haptics.dart';
+import 'glass_surface.dart';
 
 /// Floating selection toolbar that slides into view when one or more tasks
 /// are selected on the Tasks page.
@@ -44,11 +43,9 @@ class TaskSelectionToolbar extends StatelessWidget {
               duration: const Duration(milliseconds: 250),
               child: IgnorePointer(
                 ignoring: !isSelectionMode,
-                child: ClipRRect(
+                child: GlassSurface(
                   borderRadius: BorderRadius.circular(100),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                    child: M3EToolbar(
+                  child: M3EToolbar(
                       alignment: Alignment.center,
                       backgroundColor: colorScheme.primaryContainer.withValues(
                         alpha: 0.7,
@@ -117,7 +114,6 @@ class TaskSelectionToolbar extends StatelessWidget {
                           },
                         ),
                       ],
-                    ),
                   ),
                 ),
               ),

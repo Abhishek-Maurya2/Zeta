@@ -12,6 +12,7 @@ import '../../../providers/profile_provider.dart';
 import '../../../services/supabase_service.dart';
 import '../../../utils/haptics.dart';
 import '../../../features/auth/presentation/auth_provider.dart';
+import 'settings_section_heading.dart';
 
 class ProfileSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -337,15 +338,7 @@ class _ProfileSectionState extends State<ProfileSection> {
             const SizedBox(height: 24),
 
             // ─── 2. PERSONAL DETAILS ──────────────────────────────────────────
-            Text(
-              'Personal Details',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Personal Details'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -393,18 +386,19 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   ],
                                 ),
                               ),
-                              M3EButton.icon(
+                              M3EIconButton(
                                 icon: Icon(
                                   _isEditingName
                                       ? Icons.close_rounded
                                       : Icons.edit_rounded,
                                   size: 15,
                                 ),
-                                label: Text(_isEditingName ? 'Cancel' : 'Edit'),
-                                style: _isEditingName
-                                    ? M3EButtonStyle.outlined
-                                    : M3EButtonStyle.tonal,
-                                size: M3EButtonSize.sm,
+                                tooltip: _isEditingName ? 'Cancel' : 'Edit',
+                                variant: _isEditingName
+                                    ? M3EIconButtonVariant.outlined
+                                    : M3EIconButtonVariant.tonal,
+                                size: M3EIconButtonSize.sm,
+                                width: M3EIconButtonWidth.wide,
                                 onPressed: () {
                                   ZetaHaptics.light();
                                   _nameController.text =
@@ -445,14 +439,15 @@ class _ProfileSectionState extends State<ProfileSection> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  M3EButton.icon(
+
+                                  M3EIconButton(
                                     icon: const Icon(
                                       Icons.check_rounded,
                                       size: 16,
                                     ),
-                                    label: const Text('Save'),
-                                    style: M3EButtonStyle.filled,
-                                    size: M3EButtonSize.sm,
+
+                                    variant: M3EIconButtonVariant.filled,
+                                    width: M3EIconButtonWidth.wide,
                                     onPressed: () => _saveName(profileProvider),
                                   ),
                                 ],
@@ -512,15 +507,7 @@ class _ProfileSectionState extends State<ProfileSection> {
             const SizedBox(height: 24),
 
             // ─── 3. DATABASE & CLOUD SYNC ─────────────────────────────────────
-            Text(
-              'Database & Cloud Sync',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Database & Cloud Sync'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -568,7 +555,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                   : () => context.read<AuthProvider>().signOut(),
               icon: const Icon(Icons.logout_rounded),
               label: const Text('Sign out'),
-              style: M3EButtonStyle.tonal,
+              style: M3EButtonStyle.filled,
             ),
 
             const SizedBox(height: 24),

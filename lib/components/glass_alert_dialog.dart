@@ -1,7 +1,8 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
+
+import 'glass_surface.dart';
+
+export 'glass_button.dart' show GlassButton;
 
 /// Shows a dialog with a frosted glassmorphic surface and dimmed barrier.
 Future<T?> showGlassDialog<T>({
@@ -25,7 +26,6 @@ Future<T?> showGlassDialog<T>({
     builder: builder,
   );
 }
-
 /// An expressive dialog with container-bounded backdrop blur,
 /// translucent background, zero elevation, subtle glass borders,
 /// and properly constrained intrinsic height and width.
@@ -184,109 +184,14 @@ class GlassAlertDialog extends StatelessWidget {
             maxWidth: width ?? maxWidth ?? 480.0,
             maxHeight: maxHeight ?? double.infinity,
           ),
-          child: ClipRRect(
+          child: GlassSurface(
             borderRadius: radius,
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: radius,
-                  border: borderDecoration,
-                ),
-                child: Material(color: Colors.transparent, child: dialogBody),
-              ),
-            ),
+            blurSigma: blurSigma,
+            color: bg,
+            border: borderDecoration,
+            material: true,
+            child: dialogBody,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A glassmorphic button with container-bounded backdrop blur,
-/// translucent background, crisp glass border, zero elevation,
-/// and M3 expressive interactive states.
-class GlassButton extends StatelessWidget {
-  final VoidCallback? onPressed;
-  final Widget child;
-  final Widget? icon;
-  final Color? backgroundColor;
-  final Color? foregroundColor;
-  final Color? borderColor;
-  final double borderRadius;
-  final double blurSigma;
-  final M3EButtonSize size;
-  final bool isDestructive;
-  final bool isPrimary;
-
-  const GlassButton({
-    super.key,
-    required this.onPressed,
-    required this.child,
-    this.icon,
-    this.backgroundColor,
-    this.foregroundColor,
-    this.borderColor,
-    this.borderRadius = 20.0,
-    this.blurSigma = 6.0,
-    this.size = M3EButtonSize.sm,
-    this.isDestructive = false,
-    this.isPrimary = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    final Color bg;
-    final Color fg;
-
-    if (isDestructive) {
-      bg = backgroundColor ?? colorScheme.error.withValues(alpha: 0.80);
-      fg = foregroundColor ?? Colors.white;
-    } else if (isPrimary) {
-      bg = backgroundColor ?? colorScheme.primary.withValues(alpha: 0.85);
-      fg = foregroundColor ?? colorScheme.onPrimary;
-    } else {
-      bg =
-          backgroundColor ??
-          colorScheme.surfaceContainerHighest.withValues(alpha: 0.35);
-      fg = foregroundColor ?? colorScheme.onSurface;
-    }
-
-    final buttonDecoration = M3EButtonDecoration(
-      backgroundColor: WidgetStatePropertyAll(bg),
-      foregroundColor: WidgetStatePropertyAll(fg),
-      elevation: const WidgetStatePropertyAll(0.0),
-      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
-    );
-
-    final button = icon != null
-        ? M3EButton.icon(
-            onPressed: onPressed,
-            size: size,
-            icon: icon!,
-            label: child,
-            decoration: buttonDecoration,
-          )
-        : M3EButton(
-            onPressed: onPressed,
-            size: size,
-            decoration: buttonDecoration,
-            child: child,
-          );
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-            // border: Border.all(color: border, width: 1.0),
-          ),
-          child: button,
         ),
       ),
     );

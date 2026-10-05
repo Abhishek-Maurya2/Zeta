@@ -13,6 +13,7 @@ import '../../../services/preferences_service.dart';
 import '../../../services/windows_tray_service.dart';
 import '../../../utils/app_snackbar.dart';
 import '../../../utils/haptics.dart';
+import 'settings_section_heading.dart';
 
 class CrossDeviceSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -208,6 +209,8 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
             const SizedBox(height: 24),
 
             // ─── 2. Status & Account Banner ──────────────────────────────────
+            const SettingsSectionHeading('Connection status'),
+            const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -272,7 +275,9 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
 
             const SizedBox(height: 24),
 
-            // ─── 3. Grouped Settings Column ──────────────────────────────────
+            // ─── 3. Handoff Settings ─────────────────────────────────────────
+            const SettingsSectionHeading('Handoff settings'),
+            const SizedBox(height: 10),
             M3EList(
               gap: 3,
               color: colorScheme.surfaceContainerLowest,
@@ -378,20 +383,11 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
               },
             ),
 
-            // ─── 4. Windows Background Section ───────────────────────────────
+            // ─── 4. Windows Integration ──────────────────────────────────────
             if (isWindows) ...[
               const SizedBox(height: 32),
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text(
-                  'WINDOWS BACKGROUND',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
+              const SettingsSectionHeading('Windows integration'),
+              const SizedBox(height: 10),
               M3EList(
                 gap: 3,
                 color: colorScheme.surfaceContainerLowest,

@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../components/settings_switch_tile.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../providers/notification_provider.dart';
 import '../../../services/notification_service.dart';
 import '../../../utils/haptics.dart';
 import '../../../utils/app_snackbar.dart';
+import 'settings_section_heading.dart';
 
 class NotificationsSyncSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -149,13 +151,11 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
 
             const SizedBox(height: 50),
 
-            // ─── 2. Grouped Sub-Settings (M3E Segmented Column) ───────────────
+            // ─── 2. Grouped Sub-Settings ─────────────────────────────────────
             Builder(
               builder: (context) {
-                final items = <Widget>[
-                  // Task due reminders (bell / alarm icon in thumb)
+                final taskItems = <Widget>[
                   _buildSwitchTile(
-                    context,
                     title: 'Task due time reminders',
                     subtitle: 'Alert when a task reaches its deadline',
                     value: notifProvider.taskRemindersEnabled,
@@ -171,9 +171,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // Overdue task alerts (clock / warning icon in thumb)
                   _buildSwitchTile(
-                    context,
                     title: 'Overdue task alerts',
                     subtitle: 'Daily summary for tasks past deadline',
                     value: notifProvider.overdueAlertsEnabled,
@@ -189,9 +187,10 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // Focus timer alerts (timer / hourglass icon in thumb)
+                ];
+
+                final focusItems = <Widget>[
                   _buildSwitchTile(
-                    context,
                     title: 'Focus timer alerts',
                     subtitle: 'Notify on focus and break completion',
                     value: notifProvider.pomodoroAlertsEnabled,
@@ -207,9 +206,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // Live timer progress (ongoing progress in notification shade & Action Center)
                   _buildSwitchTile(
-                    context,
                     title: 'Live timer progress',
                     subtitle: 'Ongoing progress in notification shade & Action Center',
                     value: notifProvider.pomodoroLiveEnabled,
@@ -222,9 +219,10 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // Sound effects & chimes (speaker icon in thumb)
+                ];
+
+                final generalItems = <Widget>[
                   _buildSwitchTile(
-                    context,
                     title: 'Sound effects & chimes',
                     subtitle: 'Audio chime on alerts and timer ends',
                     value: themeProvider.soundEffects,
@@ -240,9 +238,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // In-app notifications (chat / banner icon in thumb)
                   _buildSwitchTile(
-                    context,
                     title: 'In-app notifications',
                     subtitle: 'Display in-app toasts and snackbars',
                     value: themeProvider.notifications,
@@ -258,7 +254,6 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     },
                   ),
 
-                  // System permission tile (Device name style)
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -321,6 +316,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                     ),
                   ),
 
+                ];
+                generalItems.add(
                   M3EListItem(
                     enabled: isMasterOn,
                     leading: Icon(
@@ -335,14 +332,21 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
                         ? () => _handleTestNotification(themeProvider)
                         : null,
                   ),
-                ];
-                return M3EList(
-                  outerRadius: 28.0,
-                  innerRadius: 6.0,
-                  gap: 3.0,
-                  color: colorScheme.surfaceContainerLowest,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) => items[index],
+                );
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSettingsGroup(
+                      context,
+                      'Task notifications',
+                      taskItems,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSettingsGroup(context, 'Focus timer', focusItems),
+                    const SizedBox(height: 24),
+                    _buildSettingsGroup(context, 'General', generalItems),
+                  ],
                 );
               },
             ),
@@ -380,8 +384,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     );
   }
 
-  Widget _buildSwitchTile(
-    BuildContext context, {
+  Widget _buildSwitchTile({
     required String title,
     required String subtitle,
     required bool value,
@@ -390,17 +393,40 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     Widget? selectedIcon,
     Widget? unselectedIcon,
   }) {
-    return M3EListItem(
+    return SettingsSwitchTile(
+      title: title,
+      subtitle: subtitle,
+      value: value,
       enabled: enabled,
-      headline: title,
-      supportingText: subtitle,
-      trailing: M3ESwitch(
-        value: value,
-        selectedIcon: selectedIcon,
-        unselectedIcon: unselectedIcon,
-        onChanged: enabled ? onChanged : null,
-      ),
-      onTap: enabled ? () => onChanged(!value) : null,
+      onChanged: onChanged,
+      selectedIcon: selectedIcon,
+      unselectedIcon: unselectedIcon,
+    );
+  }
+
+  Widget _buildSettingsGroup(
+    BuildContext context,
+    String title,
+    List<Widget> items,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
+          child: SettingsSectionHeading(title),
+        ),
+        M3EList(
+          outerRadius: 28,
+          innerRadius: 6,
+          gap: 3,
+          color: colorScheme.surfaceContainerLowest,
+          itemCount: items.length,
+          itemBuilder: (context, index) => items[index],
+        ),
+      ],
     );
   }
 }

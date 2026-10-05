@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../providers/update_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../../components/zeta_logo.dart';
+import 'settings_section_heading.dart';
 
 /// Clean, minimal About & Updates screen mirroring Lawnchair / Android style:
 /// App Logo -> App Name -> Version -> Status button -> Changelog (when available) -> Developer list.
@@ -31,8 +32,16 @@ class UpdatesSection extends StatelessWidget {
 
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      // Android package visibility can make canLaunchUrl return false even
+      // when a browser is able to handle this URL. Try launching directly.
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) onToast?.call('Could not open link');
+    } catch (_) {
+      onToast?.call('Could not open link');
     }
   }
 
@@ -79,7 +88,7 @@ class UpdatesSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -87,7 +96,7 @@ class UpdatesSection extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: colorScheme.onSecondaryContainer,
+                    color: colorScheme.onPrimaryContainer,
                   ),
                 ),
               ),
@@ -119,31 +128,25 @@ class UpdatesSection extends StatelessWidget {
                       ),
                       const SizedBox(height: 10),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            updateProvider.downloadProgress != null
-                                ? '${(updateProvider.downloadProgress!.progress * 100).toStringAsFixed(0)}% • ${updateProvider.downloadProgress!.speedText}'
-                                : 'Downloading...',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          M3EIconButton(
-                            icon: const Icon(Icons.close_rounded, size: 16),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              updateProvider.cancelDownload();
-                            },
-                            variant: M3EIconButtonVariant.standard,
-                            width: M3EIconButtonWidth.narrow,
-                            decoration: M3EIconButtonDecoration(
-                              backgroundColor: WidgetStateProperty.all(
-                                colorScheme.onSurface.withValues(alpha: 0.1),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              updateProvider.downloadProgress != null
+                                  ? '${(updateProvider.downloadProgress!.progress * 100).toStringAsFixed(0)}% • ${updateProvider.downloadProgress!.speedText}'
+                                  : 'Downloading...',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
                               ),
                             ),
-                            tooltip: 'Cancel download',
                           ),
                         ],
                       ),
@@ -153,10 +156,13 @@ class UpdatesSection extends StatelessWidget {
               ] else if (isDownloaded) ...[
                 // Install button
                 M3EButton.icon(
-                  icon: const Icon(Icons.system_update_alt_rounded, size: 18),
-                  label: const Text('Install Update'),
+                  icon: const Icon(Icons.system_update_alt_rounded, size: 25),
+                  label: const Text(
+                    style: TextStyle(fontSize: 20),
+                    'Install Update',
+                  ),
                   style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.md,
+                  size: M3EButtonSize.lg,
                   onPressed: () {
                     ZetaHaptics.medium();
                     updateProvider.install();
@@ -165,10 +171,13 @@ class UpdatesSection extends StatelessWidget {
               ] else if (isAvailable && info != null) ...[
                 // Update button
                 M3EButton.icon(
-                  icon: const Icon(Icons.download_rounded, size: 18),
-                  label: Text('Update to v${info.latestVersion}'),
+                  icon: const Icon(Icons.download_rounded, size: 25),
+                  label: Text(
+                    style: TextStyle(fontSize: 20),
+                    'Update to v${info.latestVersion}',
+                  ),
                   style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.md,
+                  size: M3EButtonSize.lg,
                   onPressed: () {
                     ZetaHaptics.medium();
                     updateProvider.startDownload();
@@ -195,11 +204,12 @@ class UpdatesSection extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
-                    M3EButton.icon(
-                      icon: const Icon(Icons.refresh_rounded, size: 16),
-                      label: const Text('Retry'),
-                      style: M3EButtonStyle.tonal,
-                      size: M3EButtonSize.sm,
+                    M3EIconButton(
+                      icon: const Icon(Icons.refresh_rounded, size: 25),
+                      tooltip: 'Retry',
+                      variant: M3EIconButtonVariant.filled,
+                      size: M3EIconButtonSize.md,
+                      width: M3EIconButtonWidth.wide,
                       onPressed: () {
                         ZetaHaptics.light();
                         updateProvider.checkForUpdates();
@@ -254,19 +264,14 @@ class UpdatesSection extends StatelessWidget {
                 const SizedBox(height: 28),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
+                  child: SettingsSectionHeading(
                     "What's New in v${info.latestVersion}",
-                    style: textTheme.labelMedium?.copyWith(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                      color: colorScheme.primary,
-                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 M3EList(
                   itemCount: 1,
+                  color: colorScheme.surfaceContainerLowest,
                   itemBuilder: (context, index) => Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -327,21 +332,15 @@ class UpdatesSection extends StatelessWidget {
 
               // ─── Developer / Product Section (Segmented List) ───────────
               const SizedBox(height: 28),
-              Align(
+              const Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'Developer',
-                  style: textTheme.labelMedium?.copyWith(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: colorScheme.primary,
-                  ),
-                ),
+                child: SettingsSectionHeading('Developer'),
               ),
               const SizedBox(height: 10),
               M3EList(
                 itemCount: 2,
+                color: colorScheme.surfaceContainerLowest,
+                gap: 3,
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return M3EListItem(
@@ -354,15 +353,14 @@ class UpdatesSection extends StatelessWidget {
                             width: 44,
                             height: 44,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Text(
-                                  'AM',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.onPrimaryContainer,
-                                  ),
-                                ),
+                            errorBuilder: (context, error, stackTrace) => Text(
+                              'AM',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                            ),
                           ),
                         ),
                       ),

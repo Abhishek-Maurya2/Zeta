@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/task_provider.dart';
+import 'settings_section_heading.dart';
 
 class TasksSection extends StatelessWidget {
   final void Function(String message)? onToast;
@@ -22,15 +23,7 @@ class TasksSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── Swipe Behavior ──────────────────────────────────────────────────
-            Text(
-              'Swipe Behavior',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Swipe Behavior'),
             const SizedBox(height: 12),
             Consumer<TaskProvider>(
               builder: (context, taskProvider, _) {
@@ -69,15 +62,7 @@ class TasksSection extends StatelessWidget {
             const SizedBox(height: 32),
 
             // ─── Sorting Preferences ───────────────────────────────────────────
-            Text(
-              'Sorting Preferences',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Sorting Preferences'),
             const SizedBox(height: 12),
             Consumer<TaskProvider>(
               builder: (context, taskProvider, _) {

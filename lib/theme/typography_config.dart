@@ -3,10 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// The four Material 3 typographic roles in Zeta.
 enum TypographyRole {
-  headings('Headings & Display', 'Hero displays, section banners, & major headers'),
-  titles('Titles & Subheaders', 'Card titles, dialog headers, & app bar brand'),
+  headings(
+    'Heading & Display',
+    'Hero displays, section banners, & major headers',
+  ),
+  titles('Title & Subheaders', 'Card titles, dialog headers, & app bar brand'),
   body('Body & Content', 'Tasks, notes, paragraphs, & descriptions'),
-  labels('Labels & Controls', 'Buttons, chips, badges, & navigation tabs');
+  labels('Label & Controls', 'Buttons, chips, badges, & navigation tabs');
 
   final String label;
   final String description;
@@ -92,7 +95,8 @@ const List<SupportedFont> kSupportedFonts = [
     id: 'roboto-flex',
     name: 'Roboto Flex',
     category: 'Full-Axis Variable',
-    sampleText: 'Extensive variable axes from ultra-condensed thin to wide bold',
+    sampleText:
+        'Extensive variable axes from ultra-condensed thin to wide bold',
     supportedAxes: {'wght', 'wdth', 'slnt', 'GRAD', 'opsz'},
   ),
   SupportedFont(
@@ -113,7 +117,8 @@ const List<SupportedFont> kSupportedFonts = [
     id: 'noto-sans',
     name: 'Noto Sans',
     category: 'Global High-Legibility',
-    sampleText: 'Clear humanist curves across languages with variable width & weight',
+    sampleText:
+        'Clear humanist curves across languages with variable width & weight',
     supportedAxes: {'wght', 'wdth'},
   ),
   SupportedFont(
@@ -153,9 +158,9 @@ class RoleTypographyConfig {
   });
 
   SupportedFont get supportedFont => kSupportedFonts.firstWhere(
-        (f) => f.id == fontId,
-        orElse: () => kSupportedFonts.first,
-      );
+    (f) => f.id == fontId,
+    orElse: () => kSupportedFonts.first,
+  );
 
   /// Builds a [TextStyle] applying the font family, weight, and variable font axes.
   TextStyle toTextStyle(TextStyle baseStyle) {
@@ -202,7 +207,9 @@ class RoleTypographyConfig {
         if (opticalSize != null) {
           variations.add(FontVariation('opsz', opticalSize!));
         } else if (baseStyle.fontSize != null) {
-          variations.add(FontVariation('opsz', baseStyle.fontSize!.clamp(6.0, 144.0)));
+          variations.add(
+            FontVariation('opsz', baseStyle.fontSize!.clamp(6.0, 144.0)),
+          );
         }
       }
     }
@@ -236,14 +243,14 @@ class RoleTypographyConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'fontId': fontId,
-        'weight': weight,
-        'width': width,
-        'slant': slant,
-        'roundness': roundness,
-        'grade': grade,
-        if (opticalSize != null) 'opticalSize': opticalSize,
-      };
+    'fontId': fontId,
+    'weight': weight,
+    'width': width,
+    'slant': slant,
+    'roundness': roundness,
+    'grade': grade,
+    if (opticalSize != null) 'opticalSize': opticalSize,
+  };
 
   factory RoleTypographyConfig.fromJson(
     Map<String, dynamic>? json, {
@@ -257,7 +264,8 @@ class RoleTypographyConfig {
       slant: (json['slant'] as num?)?.toDouble() ?? fallback.slant,
       roundness: (json['roundness'] as num?)?.toDouble() ?? fallback.roundness,
       grade: (json['grade'] as num?)?.toDouble() ?? fallback.grade,
-      opticalSize: (json['opticalSize'] as num?)?.toDouble() ?? fallback.opticalSize,
+      opticalSize:
+          (json['opticalSize'] as num?)?.toDouble() ?? fallback.opticalSize,
     );
   }
 
@@ -397,7 +405,8 @@ const List<TypographyPreset> kTypographyPresets = [
   TypographyPreset(
     id: 'modern-tech',
     name: 'Modern Tech Mono',
-    description: 'Condensed Google Sans with Roboto Mono for code & data precision',
+    description:
+        'Condensed Google Sans with Roboto Mono for code & data precision',
     headings: RoleTypographyConfig(
       fontId: 'google-sans-flex',
       weight: 800,

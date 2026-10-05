@@ -10,7 +10,6 @@ class RevisionSubjectCard extends StatelessWidget {
   final int totalTopics;
   final int completedTopics;
   final int dueCount;
-  final VoidCallback? onTap;
   final VoidCallback? onNotes;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -22,7 +21,6 @@ class RevisionSubjectCard extends StatelessWidget {
     required this.totalTopics,
     required this.completedTopics,
     required this.dueCount,
-    this.onTap,
     this.onNotes,
     this.onEdit,
     this.onDelete,
@@ -53,157 +51,100 @@ class RevisionSubjectCard extends StatelessWidget {
         : 0.0;
     final percent = (progress * 100).round();
 
-    final body = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      child: Row(
-        children: [
-          // Icon badge
-          Container(
-            width: 45,
-            height: 45,
+    final supportingText = StringBuffer(
+      '$totalTopics ${totalTopics == 1 ? 'topic' : 'topics'}'
+    );
+    if (dueCount > 0) supportingText.write(' · $dueCount due');
+
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        M3EListItem(
+          selected: isSelected,
+          leading: Container(
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: subject.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(50),
+              borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
               _getSubjectIcon(subject.iconName),
               color: subject.color,
-              size: 22,
+              size: 21,
             ),
           ),
-          const SizedBox(width: 14),
-
-          // Title + progress
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+          headline: subject.name,
+          supportingText: supportingText.toString(),
+          trailing: (onNotes != null || onEdit != null || onDelete != null)
+              ? GlassM3EMenu(
+                  position: M3EMenuAnchorPosition.bottomEnd,
+                  colorStyle: M3EMenuColorStyle.vibrant,
+                  anchorBuilder: (BuildContext context, VoidCallback open) {
+                    return M3EIconButton(
+                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                      onPressed: open,
+                      variant: M3EIconButtonVariant.standard,
+                      size: M3EIconButtonSize.sm,
+                    );
+                  },
                   children: [
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              subject.name,
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                                color: isSelected
-                                    ? colorScheme.onSecondaryContainer
-                                    : colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (subject.note?.isNotEmpty == true ||
-                              subject.attachments.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            Icon(
-                              Icons.description_outlined,
-                              size: 15,
-                              color: isSelected
-                                  ? colorScheme.onSecondaryContainer.withValues(alpha: 0.7)
-                                  : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                            ),
-                          ],
-                        ],
+                    if (onNotes != null)
+                      M3EMenuSelectable(
+                        value: 'notes',
+                        label: 'Notes & Attachments',
+                        leading: const Icon(Icons.description_outlined),
+                        onPressed: onNotes,
                       ),
-                    ),
-                    if (dueCount > 0)
-                      M3EChip(
-                        type: M3EChipType.assist,
-                        label: '$dueCount due',
-                        onPressed: () {},
+                    if (onEdit != null)
+                      M3EMenuSelectable(
+                        value: 'edit',
+                        label: 'Edit Subject',
+                        leading: const Icon(Icons.edit_outlined),
+                        onPressed: onEdit,
+                      ),
+                    if (onDelete != null)
+                      M3EMenuSelectable(
+                        value: 'delete',
+                        label: 'Delete Subject',
+                        leading: const Icon(Icons.delete_outline_rounded),
+                        onPressed: onDelete,
                       ),
                   ],
+                )
+              : null,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          child: Row(
+            children: [
+              Text(
+                '$percent%',
+                style: textTheme.labelSmall?.copyWith(
+                  color: isSelected
+                      ? colorScheme.onSecondaryContainer
+                      : colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      '$percent%',
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? colorScheme.onSecondaryContainer
-                            : colorScheme.onSurfaceVariant,
-                      ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: M3EProgressIndicator.linear(
+                    value: progress,
+                    color: isSelected ? colorScheme.primary : subject.color,
+                    trackColor: colorScheme.outlineVariant.withValues(
+                      alpha: 0.3,
                     ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: M3EProgressIndicator.linear(
-                          value: progress,
-                          color: isSelected
-                              ? colorScheme.primary
-                              : subject.color,
-                          trackColor: colorScheme.outlineVariant.withValues(
-                            alpha: 0.3,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-
-          if (onNotes != null || onEdit != null || onDelete != null) ...[
-            GlassM3EMenu(
-              position: M3EMenuAnchorPosition.bottomEnd,
-              colorStyle: M3EMenuColorStyle.vibrant,
-              anchorBuilder: (BuildContext context, VoidCallback open) {
-                return M3EIconButton(
-                  icon: const Icon(Icons.more_vert_rounded, size: 20),
-                  onPressed: open,
-                  variant: M3EIconButtonVariant.standard,
-                  size: M3EIconButtonSize.sm,
-                );
-              },
-              children: [
-                if (onNotes != null)
-                  M3EMenuSelectable(
-                    value: 'notes',
-                    label: 'Notes & Attachments',
-                    leading: const Icon(Icons.description_outlined),
-                    onPressed: onNotes,
-                  ),
-                if (onEdit != null)
-                  M3EMenuSelectable(
-                    value: 'edit',
-                    label: 'Edit Subject',
-                    leading: const Icon(Icons.edit_outlined),
-                    onPressed: onEdit,
-                  ),
-                if (onDelete != null)
-                  M3EMenuSelectable(
-                    value: 'delete',
-                    label: 'Delete Subject',
-                    leading: const Icon(Icons.delete_outline_rounded),
-                    onPressed: onDelete,
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
+        ),
+      ],
     );
-
-    if (onTap != null) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(isSelected ? 52 : 12),
-        child: body,
-      );
-    }
-
-    return body;
   }
 }

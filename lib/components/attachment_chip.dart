@@ -1,11 +1,10 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/attachment.dart';
 import '../services/url_metadata_service.dart';
 import '../utils/haptics.dart';
+import 'glass_surface.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 /// Reusable attachment chip matching the TaskDueDateChip design token language:
@@ -352,11 +351,9 @@ class _TaskAttachmentsChipGroupState extends State<TaskAttachmentsChipGroup>
               opacity: _fadeAnimation,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minWidth: 260, maxWidth: 320),
-                child: ClipRRect(
+                child: GlassSurface(
                   borderRadius: BorderRadius.circular(24),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                    child: Card(
+                  child: Card(
                       color: colorScheme.tertiaryContainer.withValues(
                         alpha: 0.4,
                       ),
@@ -445,7 +442,6 @@ class _TaskAttachmentsChipGroupState extends State<TaskAttachmentsChipGroup>
                           ],
                         ),
                       ),
-                    ),
                   ),
                 ),
               ),

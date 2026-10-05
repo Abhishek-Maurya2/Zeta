@@ -7,6 +7,8 @@ import '../../../providers/weather_provider.dart';
 import '../../../components/weather_icon.dart';
 import '../../../utils/app_snackbar.dart';
 import '../../../utils/haptics.dart';
+import '../../../components/settings_switch_tile.dart';
+import 'settings_section_heading.dart';
 
 class WeatherSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -298,15 +300,7 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 24),
 
             // ─── 2. CURRENT FORECAST & TELEMETRY ─────────────────────────────
-            Text(
-              'Current Forecast',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Current Forecast'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -575,15 +569,7 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 24),
 
             // ─── 3. LOCATION & SEARCH ────────────────────────────────────────
-            Text(
-              'Location & Search',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Location & Search'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -852,15 +838,7 @@ class _WeatherSectionState extends State<WeatherSection> {
             const SizedBox(height: 24),
 
             // ─── 4. DISPLAY & ATMOSPHERE ─────────────────────────────────────
-            Text(
-              'Display & Atmosphere',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Display & Atmosphere'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -870,7 +848,6 @@ class _WeatherSectionState extends State<WeatherSection> {
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _buildSwitchTile(
-                    context,
                     title: 'Show weather on Home screen',
                     subtitle: 'Display live temperature and weather badge on the weekly calendar strip',
                     value: weatherProvider.showWeatherInHeader,
@@ -1029,8 +1006,7 @@ class _WeatherSectionState extends State<WeatherSection> {
     );
   }
 
-  Widget _buildSwitchTile(
-    BuildContext context, {
+  Widget _buildSwitchTile({
     required String title,
     required String subtitle,
     required bool value,
@@ -1039,47 +1015,15 @@ class _WeatherSectionState extends State<WeatherSection> {
     Widget? selectedIcon,
     Widget? unselectedIcon,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: enabled
-                        ? colorScheme.onSurface
-                        : colorScheme.onSurface.withValues(alpha: 0.38),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: enabled
-                        ? colorScheme.onSurfaceVariant
-                        : colorScheme.onSurfaceVariant.withValues(alpha: 0.38),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          M3ESwitch(
-            value: value,
-            selectedIcon: selectedIcon,
-            unselectedIcon: unselectedIcon,
-            onChanged: enabled ? onChanged : null,
-          ),
-        ],
-      ),
+    return SettingsSwitchTile(
+      title: title,
+      subtitle: subtitle,
+      value: value,
+      onChanged: onChanged,
+      enabled: enabled,
+      selectedIcon: selectedIcon,
+      unselectedIcon: unselectedIcon,
+      layout: SettingsSwitchTileLayout.inline,
     );
   }
 }

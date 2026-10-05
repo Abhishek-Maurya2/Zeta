@@ -10,6 +10,7 @@ class RevisionTopicTile extends StatelessWidget {
   final VoidCallback? onNotes;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final VoidCallback? onResetRevision;
   final int? index;
   final bool canReorder;
 
@@ -20,6 +21,7 @@ class RevisionTopicTile extends StatelessWidget {
     this.onNotes,
     this.onEdit,
     this.onDelete,
+    this.onResetRevision,
     this.index,
     this.canReorder = false,
   });
@@ -128,7 +130,10 @@ class RevisionTopicTile extends StatelessWidget {
               ),
 
               // menu
-              if (onNotes != null || onEdit != null || onDelete != null)
+              if (onNotes != null ||
+                  onEdit != null ||
+                  onDelete != null ||
+                  onResetRevision != null)
                 GlassM3EMenu(
                   position: M3EMenuAnchorPosition.bottomEnd,
                   colorStyle: M3EMenuColorStyle.vibrant,
@@ -152,6 +157,13 @@ class RevisionTopicTile extends StatelessWidget {
                         label: 'Edit Topic',
                         leading: const Icon(Icons.edit_outlined),
                         onPressed: onEdit,
+                      ),
+                    if (onResetRevision != null)
+                      M3EMenuSelectable(
+                        value: 'reset_revision',
+                        label: 'Reset Revision',
+                        leading: const Icon(Icons.restart_alt_rounded),
+                        onPressed: onResetRevision,
                       ),
                     if (onDelete != null)
                       M3EMenuSelectable(

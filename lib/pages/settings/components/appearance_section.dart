@@ -7,6 +7,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../utils/haptics.dart';
 import '../../../providers/theme_provider.dart';
+import 'settings_section_heading.dart';
 
 class AppearanceSection extends StatelessWidget {
   final void Function(String message)? onToast;
@@ -99,100 +100,111 @@ class AppearanceSection extends StatelessWidget {
 
               const Divider(height: 1),
 
-              // Presets List
+              // Palette preset grid
               Flexible(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  shrinkWrap: true,
+                child: GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                   itemCount: kSeedPresets.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                  itemBuilder: (_, index) {
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 220,
+                    mainAxisExtent: 142,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemBuilder: (context, index) {
                     final preset = kSeedPresets[index];
-                    final isSelected =
-                        themeProvider.seedColor.toARGB32() ==
+                    final isSelected = themeProvider.seedColor.toARGB32() ==
                         preset.color.toARGB32();
 
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        themeProvider.setSeedColor(preset.color);
-                        Navigator.of(sheetContext).pop();
-                        onToast?.call('Applied ${preset.name} (${preset.hex})');
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? colorScheme.secondaryContainer
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(22),
+                        onTap: () {
+                          themeProvider.setSeedColor(preset.color);
+                          Navigator.of(sheetContext).pop();
+                          onToast?.call(
+                            'Applied ${preset.name} (${preset.hex})',
+                          );
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
                             color: isSelected
-                                ? colorScheme.primary
-                                : colorScheme.outlineVariant.withValues(
-                                    alpha: 0.3,
-                                  ),
+                                ? colorScheme.secondaryContainer
+                                : colorScheme.surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : colorScheme.outlineVariant.withValues(
+                                      alpha: 0.4,
+                                    ),
+                              width: isSelected ? 2 : 1,
+                            ),
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: preset.color,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: preset.color.withValues(alpha: 0.4),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check_rounded,
-                                      size: 18,
-                                      color: Colors.white,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Text(
-                                    preset.name,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected
-                                          ? colorScheme.onSecondaryContainer
-                                          : colorScheme.onSurface,
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: preset.color,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: preset.color.withValues(
+                                            alpha: 0.3,
+                                          ),
+                                          blurRadius: 10,
+                                          spreadRadius: 1,
+                                        ),
+                                      ],
                                     ),
+                                    child: isSelected
+                                        ? const Icon(
+                                            Icons.check_rounded,
+                                            color: Colors.white,
+                                          )
+                                        : null,
                                   ),
-                                  Text(
-                                    '${preset.desc} • ${preset.hex}',
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: isSelected
-                                          ? colorScheme.onSecondaryContainer
-                                                .withValues(alpha: 0.8)
-                                          : colorScheme.onSurfaceVariant,
+                                  const Spacer(),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: colorScheme.primary,
+                                      size: 20,
                                     ),
-                                  ),
                                 ],
                               ),
-                            ),
-                            if (isSelected)
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: colorScheme.primary,
-                                size: 20,
+                              const Spacer(),
+                              Text(
+                                preset.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? colorScheme.onSecondaryContainer
+                                      : colorScheme.onSurface,
+                                ),
                               ),
-                          ],
+                              const SizedBox(height: 3),
+                              Text(
+                                preset.hex,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: isSelected
+                                      ? colorScheme.onSecondaryContainer
+                                      : colorScheme.onSurfaceVariant,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -243,15 +255,7 @@ class AppearanceSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Theme',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Theme'),
             const SizedBox(height: 12),
 
             // ─── Theme & Scheme Selection ─────────────────────────────────────
@@ -298,7 +302,26 @@ class AppearanceSection extends StatelessWidget {
                             child: M3EButtonGroup(
                               type: M3EButtonGroupType.connected,
                               size: M3EButtonSize.sm,
-                              style: M3EButtonStyle.tonal,
+                              decoration: M3EButtonDecoration(
+                                backgroundColor:
+                                    WidgetStateProperty.resolveWith((states) {
+                                      if (states.contains(
+                                        WidgetState.selected,
+                                      )) {
+                                        return colorScheme.primary;
+                                      }
+                                      return colorScheme.tertiaryContainer;
+                                    }),
+                                foregroundColor:
+                                    WidgetStateProperty.resolveWith((states) {
+                                      if (states.contains(
+                                        WidgetState.selected,
+                                      )) {
+                                        return colorScheme.onPrimary;
+                                      }
+                                      return colorScheme.onTertiaryContainer;
+                                    }),
+                              ),
                               selectedIndex: themeModeIndex,
                               onSelectedIndexChanged: (index) {
                                 if (index != null) ZetaHaptics.selection();
@@ -385,7 +408,26 @@ class AppearanceSection extends StatelessWidget {
                             child: M3EButtonGroup(
                               type: M3EButtonGroupType.connected,
                               size: M3EButtonSize.sm,
-                              style: M3EButtonStyle.tonal,
+                              decoration: M3EButtonDecoration(
+                                backgroundColor:
+                                    WidgetStateProperty.resolveWith((states) {
+                                      if (states.contains(
+                                        WidgetState.selected,
+                                      )) {
+                                        return colorScheme.primary;
+                                      }
+                                      return colorScheme.tertiaryContainer;
+                                    }),
+                                foregroundColor:
+                                    WidgetStateProperty.resolveWith((states) {
+                                      if (states.contains(
+                                        WidgetState.selected,
+                                      )) {
+                                        return colorScheme.onPrimary;
+                                      }
+                                      return colorScheme.onTertiaryContainer;
+                                    }),
+                              ),
                               selectedIndex: variantIndex,
                               onSelectedIndexChanged: (index) {
                                 if (index != null) ZetaHaptics.selection();
@@ -545,15 +587,7 @@ class AppearanceSection extends StatelessWidget {
             const SizedBox(height: 20),
 
             // ─── Display & Visual Effects Switches ───────────────────────────
-            Text(
-              'Display & Motion',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Display & Motion'),
             const SizedBox(height: 12),
 
             M3EList(

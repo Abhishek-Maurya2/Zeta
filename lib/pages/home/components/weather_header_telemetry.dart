@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../../components/weather_icon.dart';
+import '../../../components/glass_surface.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/weather_provider.dart';
 import '../../settings/components/settings_category.dart';
@@ -357,11 +357,10 @@ class _WeatherFlyoutCard extends StatelessWidget {
     final maxTemp = weather?.maxTempToday?.round();
     final hourly = weather?.next24Hours ?? const [];
 
-    return ClipRRect(
+    return GlassSurface(
       borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Card(
+      blurSigma: 12,
+      child: Card(
           color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -653,7 +652,6 @@ class _WeatherFlyoutCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
       ),
     );
   }

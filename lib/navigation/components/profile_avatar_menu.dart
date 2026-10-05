@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../components/user_avatar.dart';
+import '../../components/glass_surface.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/pomodoro_provider.dart';
@@ -427,11 +427,9 @@ class _ProfileCardContent extends StatelessWidget {
       statusLabel = 'LOCAL';
     }
 
-    return ClipRRect(
+    return GlassSurface(
       borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Card(
+      child: Card(
           color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -731,7 +729,6 @@ class _ProfileCardContent extends StatelessWidget {
               ],
             ),
           ),
-        ),
       ),
     );
   }

@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../components/glass_alert_dialog.dart';
+import '../../../components/glass_surface.dart';
 import '../../../models/revision.dart';
 import '../../../providers/revision_provider.dart';
 
@@ -29,6 +28,34 @@ Future<bool?> showDeleteConfirmationDialog({
           isDestructive: true,
           onPressed: () => Navigator.pop(ctx, true),
           child: Text(confirmLabel),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Confirmation dialog before clearing a topic's spaced-repetition progress.
+Future<bool?> showResetRevisionConfirmationDialog({
+  required BuildContext context,
+  required String topicTitle,
+}) {
+  return showGlassDialog<bool>(
+    context: context,
+    builder: (ctx) => GlassAlertDialog(
+      maxWidth: 400.0,
+      title: const Text('Reset revision?'),
+      content: Text(
+        'Clear revision progress for "$topicTitle" and remove its linked reminder task?',
+      ),
+      actions: [
+        GlassButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        GlassButton(
+          isDestructive: true,
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Reset'),
         ),
       ],
     ),
@@ -172,11 +199,10 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
                 return InkWell(
                   onTap: () => setState(() => _selectedIcon = iconName),
                   borderRadius: BorderRadius.circular(12),
-                  child: ClipRRect(
+                  child: GlassSurface(
                     borderRadius: BorderRadius.circular(12),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                      child: AnimatedContainer(
+                    blurSigma: 4,
+                    child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         width: 44,
                         height: 44,
@@ -202,7 +228,6 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
                               : colorScheme.onSurfaceVariant,
                           size: 20,
                         ),
-                      ),
                     ),
                   ),
                 );

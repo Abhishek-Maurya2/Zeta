@@ -101,11 +101,35 @@ class RevisionPane1 extends StatelessWidget {
           )
         else
           M3EList(
-            color: colorScheme.surfaceContainerLowest,
             itemCount: subjects.length,
+            gap: 4,
+            colorBuilder: (index) {
+              final isSelected =
+                  isSplitPane && selectedSubject?.id == subjects[index].id;
+              return isSelected
+                  ? colorScheme.secondaryContainer
+                  : colorScheme.surfaceContainerLowest;
+            },
+            borderRadiusBuilder: (index, position) {
+              final isSelected =
+                  isSplitPane && selectedSubject?.id == subjects[index].id;
+              if (isSelected) return BorderRadius.circular(30);
+              return calculateCardRadius(
+                position: position,
+                outerRadius: M3EListCardListTheme.defaultOuterRadius,
+                innerRadius: M3EListCardListTheme.defaultInnerRadius,
+              );
+            },
+            onTap: (index) {
+              final subject = subjects[index];
+              ZetaHaptics.selection();
+              revProvider.selectSubject(subject.id);
+              onSubjectSelected?.call(subject);
+            },
             itemBuilder: (context, index) {
               final sub = subjects[index];
-              final isSelected = selectedSubject?.id == sub.id;
+              final isSelected =
+                  isSplitPane && selectedSubject?.id == sub.id;
               final subTopics = revProvider.topics
                   .where((t) => t.subjectId == sub.id)
                   .toList();
@@ -116,44 +140,33 @@ class RevisionPane1 extends StatelessWidget {
                   .where((t) => t.status == RevisionStatus.overdue)
                   .length;
 
-              return Container(
-                decoration: BoxDecoration(
-                  color: isSelected ? colorScheme.secondaryContainer : null,
-                  borderRadius: BorderRadius.circular(isSelected ? 52 : 12),
-                ),
-                child: RevisionSubjectCard(
-                  key: ValueKey(sub.id),
-                  subject: sub,
-                  isSelected: isSelected,
-                  totalTopics: subTopics.length,
-                  completedTopics: completedCount,
-                  dueCount: dueCount,
-                  onTap: () {
-                    ZetaHaptics.selection();
-                    revProvider.selectSubject(sub.id);
-                    onSubjectSelected?.call(sub);
-                  },
-                  onNotes: () {
-                    ZetaHaptics.light();
-                    onOpenNotes?.call(sub);
-                  },
-                  onEdit: () {
-                    ZetaHaptics.light();
-                    SubjectEditDialog.show(context, subject: sub);
-                  },
-                  onDelete: () async {
-                    ZetaHaptics.light();
-                    final confirmed = await showDeleteConfirmationDialog(
-                      context: context,
-                      title: 'Delete Subject?',
-                      message:
-                          'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
-                    );
-                    if (confirmed == true) {
-                      await revProvider.deleteSubject(sub.id, taskProvider);
-                    }
-                  },
-                ),
+              return RevisionSubjectCard(
+                key: ValueKey(sub.id),
+                subject: sub,
+                isSelected: isSelected,
+                totalTopics: subTopics.length,
+                completedTopics: completedCount,
+                dueCount: dueCount,
+                onNotes: () {
+                  ZetaHaptics.light();
+                  onOpenNotes?.call(sub);
+                },
+                onEdit: () {
+                  ZetaHaptics.light();
+                  SubjectEditDialog.show(context, subject: sub);
+                },
+                onDelete: () async {
+                  ZetaHaptics.light();
+                  final confirmed = await showDeleteConfirmationDialog(
+                    context: context,
+                    title: 'Delete Subject?',
+                    message:
+                        'Are you sure you want to delete "${sub.name}" and all of its topics? This cannot be undone.',
+                  );
+                  if (confirmed == true) {
+                    await revProvider.deleteSubject(sub.id, taskProvider);
+                  }
+                },
               );
             },
           ),

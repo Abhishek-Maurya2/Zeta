@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../theme/typography_config.dart';
 import '../../../utils/haptics.dart';
+import 'settings_section_heading.dart';
 
 class TypographySection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -17,6 +18,7 @@ class TypographySection extends StatefulWidget {
 
 class _TypographySectionState extends State<TypographySection> {
   TypographyRole _selectedRole = TypographyRole.headings;
+  int? _selectedPresetIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -31,98 +33,63 @@ class _TypographySectionState extends State<TypographySection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ─── Section Header ───────────────────────────────────────────────
-        Text(
-          'Typography',
-          style: textTheme.labelMedium?.copyWith(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
-            color: colorScheme.primary,
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // ─── Quick Presets Row ────────────────────────────────────────────
-        Text(
-          'QUICK STYLE PRESETS',
-          style: textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: kTypographyPresets.map((preset) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: M3EButton(
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.sm,
-                  onPressed: () {
-                    themeProvider.applyTypographyPreset(preset);
-                    widget.onToast?.call('Applied "${preset.name}" preset');
-                  },
-                  child: Text(preset.name),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-        const SizedBox(height: 20),
-
         // ─── Role Switcher ────────────────────────────────────────────────
-        Text(
-          'SELECT TYPOGRAPHIC ROLE',
-          style: textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
+        const SettingsSectionHeading('Select typographic role'),
         const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: M3EButtonGroup(
-            type: M3EButtonGroupType.connected,
-            size: M3EButtonSize.sm,
-            style: M3EButtonStyle.tonal,
-            selectedIndex: _selectedRole.index,
-            onSelectedIndexChanged: (index) {
-              if (index != null &&
-                  index >= 0 &&
-                  index < TypographyRole.values.length) {
-                ZetaHaptics.selection();
-                setState(() {
-                  _selectedRole = TypographyRole.values[index];
-                });
-              }
-            },
-            actions: TypographyRole.values.map((role) {
-              IconData icon;
-              switch (role) {
-                case TypographyRole.headings:
-                  icon = Icons.title_rounded;
-                  break;
-                case TypographyRole.titles:
-                  icon = Icons.subtitles_rounded;
-                  break;
-                case TypographyRole.body:
-                  icon = Icons.article_outlined;
-                  break;
-                case TypographyRole.labels:
-                  icon = Icons.smart_button_outlined;
-                  break;
-              }
-              return M3EButtonGroupAction(
-                icon: Icon(icon, size: 16),
-                label: Text(role.label.split(' ').first),
-              );
-            }).toList(),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            M3EButtonGroup(
+              type: M3EButtonGroupType.connected,
+              size: M3EButtonSize.sm,
+              decoration: M3EButtonDecoration(
+                backgroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return colorScheme.primary;
+                  }
+                  return colorScheme.tertiaryContainer;
+                }),
+                foregroundColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return colorScheme.onPrimary;
+                  }
+                  return colorScheme.onTertiaryContainer;
+                }),
+              ),
+              selectedIndex: _selectedRole.index,
+              onSelectedIndexChanged: (index) {
+                if (index != null &&
+                    index >= 0 &&
+                    index < TypographyRole.values.length) {
+                  ZetaHaptics.selection();
+                  setState(() {
+                    _selectedRole = TypographyRole.values[index];
+                  });
+                }
+              },
+              actions: TypographyRole.values.map((role) {
+                IconData icon;
+                switch (role) {
+                  case TypographyRole.headings:
+                    icon = Icons.title_rounded;
+                    break;
+                  case TypographyRole.titles:
+                    icon = Icons.subtitles_rounded;
+                    break;
+                  case TypographyRole.body:
+                    icon = Icons.article_outlined;
+                    break;
+                  case TypographyRole.labels:
+                    icon = Icons.label_rounded;
+                    break;
+                }
+                return M3EButtonGroupAction(
+                  icon: Icon(icon, size: 16),
+                  label: Text(role.label.split(' ').first),
+                );
+              }).toList(),
+            ),
+          ],
         ),
         const SizedBox(height: 14),
 
@@ -131,301 +98,370 @@ class _TypographySectionState extends State<TypographySection> {
         const SizedBox(height: 20),
 
         // ─── Font Selection ───────────────────────────────────────────────
-        Text(
-          'FONT FAMILY FOR ${_selectedRole.label.toUpperCase()}',
-          style: textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
+        SettingsSectionHeading('Font family for ${_selectedRole.label}'),
         const SizedBox(height: 8),
 
         M3EList(
           color: colorScheme.surfaceContainerLowest,
-          gap: 3,
-          itemCount: kSupportedFonts.length,
-          itemBuilder: (context, index) {
-            final font = kSupportedFonts[index];
-            final isSelected = currentConfig.fontId == font.id;
-            return InkWell(
-              onTap: () {
-                final updated = currentConfig.copyWith(fontId: font.id);
-                themeProvider.updateRoleTypography(_selectedRole, updated);
-                widget.onToast?.call('Selected ${font.name}');
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isSelected
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.radio_button_off_rounded,
-                      size: 20,
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.outlineVariant,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          expandStyle: M3EExpandableStyle(
+            expandedStateFill: false,
+            gap: 4,
+            expandedIconBackground: colorScheme.primary,
+            expandIcon: Icon(
+              Icons.expand_more_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            collapseIcon: Icon(
+              Icons.expand_more_rounded,
+              color: colorScheme.onPrimary,
+            ),
+          ),
+          itemCount: 1,
+          itemBuilder: (context, index) => M3EListItem(
+            headline: currentConfig.supportedFont.name,
+            supportingText:
+                '${currentConfig.supportedFont.category} · ${currentConfig.supportedFont.supportedAxes.length} variable axes',
+            leading: Icon(
+              Icons.font_download_outlined,
+              color: colorScheme.primary,
+            ),
+            trailing: const Icon(Icons.tune_rounded),
+            expanded: M3EExpandableExpanded.list(
+              M3EList(
+                color: colorScheme.surfaceContainerLowest,
+                gap: 3,
+                itemCount: kSupportedFonts.length,
+                itemBuilder: (context, index) {
+                  final font = kSupportedFonts[index];
+                  final isSelected = currentConfig.fontId == font.id;
+                  return InkWell(
+                    onTap: () {
+                      final updated = currentConfig.copyWith(fontId: font.id);
+                      themeProvider.updateRoleTypography(
+                        _selectedRole,
+                        updated,
+                      );
+                      widget.onToast?.call('Selected ${font.name}');
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Text(
-                                font.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.surfaceContainerHigh,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  font.category,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            isSelected
+                                ? Icons.radio_button_checked_rounded
+                                : Icons.radio_button_off_rounded,
+                            size: 20,
+                            color: isSelected
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant,
                           ),
-                          if (font.sampleText != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              font.sampleText!,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      font.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? colorScheme.primary
+                                            : colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        font.category,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
+                                          color: colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (font.sampleText != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    font.sampleText!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 5),
+                                Wrap(
+                                  spacing: 4,
+                                  runSpacing: 4,
+                                  children: font.supportedAxes.map((axis) {
+                                    final isRond = axis == 'ROND';
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 5,
+                                        vertical: 1.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isRond
+                                            ? colorScheme.primaryContainer
+                                            : colorScheme
+                                                  .surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        isRond ? '★ ROND (Roundness)' : axis,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w700,
+                                          color: isRond
+                                              ? colorScheme.onPrimaryContainer
+                                              : colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
                             ),
-                          ],
-                          const SizedBox(height: 5),
-                          Wrap(
-                            spacing: 4,
-                            runSpacing: 4,
-                            children: font.supportedAxes.map((axis) {
-                              final isRond = axis == 'ROND';
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1.5,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isRond
-                                      ? colorScheme.primaryContainer
-                                      : colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  isRond ? '★ ROND (Roundness)' : axis,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w700,
-                                    color: isRond
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
                           ),
+                          if (isSelected)
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 20,
+                              color: colorScheme.primary,
+                            ),
                         ],
                       ),
                     ),
-                    if (isSelected)
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ),
         ),
 
         const SizedBox(height: 20),
 
         // ─── Variable Axis Sliders ────────────────────────────────────────
-        Text(
-          'Axis Controls (${_selectedRole.label})',
-          style: textTheme.labelSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
+        SettingsSectionHeading('Axis controls (${_selectedRole.label})'),
         const SizedBox(height: 8),
 
         M3EList(
           color: colorScheme.surfaceContainerLowest,
-
-          itemCount: 5,
-          gap: 3,
-          itemBuilder: (context, index) {
-            switch (index) {
-              case 0:
-                return _buildAxisSliderRow(
-                  context: context,
-                  icon: Icons.format_bold_rounded,
-                  title: 'Weight (wght)',
-                  subtitle: _weightLabel(currentConfig.weight),
-                  value: currentConfig.weight,
-                  min: 100,
-                  max: 900,
-                  divisions: 80,
-                  badgeText: currentConfig.weight.round().toString(),
-                  isSupported: currentConfig.supportedFont.supportsAxis('wght'),
-                  onChanged: (val) {
-                    final updated = currentConfig.copyWith(weight: val);
-                    themeProvider.updateRoleTypography(_selectedRole, updated);
-                  },
-                );
-              case 1:
-                return _buildAxisSliderRow(
-                  context: context,
-                  icon: Icons.unfold_more_rounded,
-                  title: 'Width (wdth)',
-                  subtitle:
-                      '${currentConfig.width.round()}% ${currentConfig.width < 100
-                          ? 'Condensed'
-                          : currentConfig.width > 100
-                          ? 'Expanded'
-                          : 'Standard'}',
-                  value: currentConfig.width,
-                  min: 50,
-                  max: 151,
-                  divisions: 101,
-                  badgeText: '${currentConfig.width.round()}%',
-                  isSupported: currentConfig.supportedFont.supportsAxis('wdth'),
-                  unsupportedReason:
-                      'Width axis is not variable in ${currentConfig.supportedFont.name}',
-                  helperLabel: 'Switch to Google Sans Flex',
-                  onEnableHelper: () {
-                    themeProvider.updateRoleTypography(
-                      _selectedRole,
-                      currentConfig.copyWith(fontId: 'google-sans-flex'),
-                    );
-                    widget.onToast?.call('Switched to Google Sans Flex');
-                  },
-                  onChanged: (val) {
-                    final updated = currentConfig.copyWith(width: val);
-                    themeProvider.updateRoleTypography(_selectedRole, updated);
-                  },
-                );
-              case 2:
-                return _buildAxisSliderRow(
-                  context: context,
-                  icon: Icons.format_italic_rounded,
-                  title: 'Slant (slnt)',
-                  subtitle: currentConfig.slant == 0
-                      ? 'Upright (0°)'
-                      : 'Italic slant (${currentConfig.slant.toStringAsFixed(1)}°)',
-                  value: currentConfig.slant,
-                  min: -10,
-                  max: 0,
-                  divisions: 20,
-                  badgeText: '${currentConfig.slant.toStringAsFixed(1)}°',
-                  isSupported: currentConfig.supportedFont.supportsAxis('slnt'),
-                  unsupportedReason:
-                      'Slant axis is not variable in ${currentConfig.supportedFont.name}',
-                  helperLabel: 'Switch to Google Sans Flex',
-                  onEnableHelper: () {
-                    themeProvider.updateRoleTypography(
-                      _selectedRole,
-                      currentConfig.copyWith(fontId: 'google-sans-flex'),
-                    );
-                    widget.onToast?.call('Switched to Google Sans Flex');
-                  },
-                  onChanged: (val) {
-                    final updated = currentConfig.copyWith(slant: val);
-                    themeProvider.updateRoleTypography(_selectedRole, updated);
-                  },
-                );
-              case 3:
-                return _buildAxisSliderRow(
-                  context: context,
-                  icon: Icons.rounded_corner_rounded,
-                  title: 'Roundness (ROND)',
-                  subtitle: currentConfig.roundness == 0
-                      ? 'Geometric / Crisp'
-                      : currentConfig.roundness >= 70
-                      ? 'Fully Rounded Soft'
-                      : 'Subtle Corner Softness',
-                  value: currentConfig.roundness,
-                  min: 0,
-                  max: 100,
-                  divisions: 100,
-                  badgeText: currentConfig.roundness.round().toString(),
-                  isSupported: currentConfig.supportedFont.supportsAxis('ROND'),
-                  unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
-                  helperLabel: 'Switch to Google Sans Flex',
-                  onEnableHelper: () {
-                    themeProvider.updateRoleTypography(
-                      _selectedRole,
-                      currentConfig.copyWith(fontId: 'google-sans-flex'),
-                    );
-                    widget.onToast?.call(
-                      'Switched to Google Sans Flex with roundness',
-                    );
-                  },
-                  onChanged: (val) {
-                    final updated = currentConfig.copyWith(roundness: val);
-                    themeProvider.updateRoleTypography(_selectedRole, updated);
-                  },
-                );
-              case 4:
-              default:
-                return _buildAxisSliderRow(
-                  context: context,
-                  icon: Icons.line_weight_rounded,
-                  title: 'Grade (GRAD)',
-                  subtitle:
-                      'Fine-tune stroke density without altering text width',
-                  value: currentConfig.grade,
-                  min: -200,
-                  max: 150,
-                  divisions: 70,
-                  badgeText: currentConfig.grade >= 0
-                      ? '+${currentConfig.grade.round()}'
-                      : currentConfig.grade.round().toString(),
-                  isSupported: currentConfig.supportedFont.supportsAxis('GRAD'),
-                  unsupportedReason:
-                      'Grade (GRAD) is not variable in ${currentConfig.supportedFont.name}',
-                  helperLabel: 'Switch to Google Sans Flex',
-                  onEnableHelper: () {
-                    themeProvider.updateRoleTypography(
-                      _selectedRole,
-                      currentConfig.copyWith(fontId: 'google-sans-flex'),
-                    );
-                    widget.onToast?.call('Switched to Google Sans Flex');
-                  },
-                  onChanged: (val) {
-                    final updated = currentConfig.copyWith(grade: val);
-                    themeProvider.updateRoleTypography(_selectedRole, updated);
-                  },
-                );
-            }
-          },
+          expandStyle: M3EExpandableStyle(
+            expandedStateFill: false,
+            gap: 4,
+            expandedIconBackground: colorScheme.primary,
+            expandIcon: Icon(
+              Icons.expand_more_rounded,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            collapseIcon: Icon(
+              Icons.expand_more_rounded,
+              color: colorScheme.onPrimary,
+            ),
+          ),
+          itemCount: 1,
+          itemBuilder: (context, index) => M3EListItem(
+            headline: 'Variable font axes',
+            supportingText:
+                '${currentConfig.weight.round()} weight · ${currentConfig.width.round()}% width · ${currentConfig.roundness.round()} roundness',
+            leading: Icon(Icons.tune_rounded, color: colorScheme.primary),
+            expanded: M3EExpandableExpanded.list(
+              M3EList(
+                color: colorScheme.surfaceContainerLowest,
+                itemCount: 5,
+                gap: 3,
+                itemBuilder: (context, index) {
+                  switch (index) {
+                    case 0:
+                      return _buildAxisSliderRow(
+                        context: context,
+                        icon: Icons.format_bold_rounded,
+                        title: 'Weight (wght)',
+                        subtitle: _weightLabel(currentConfig.weight),
+                        value: currentConfig.weight,
+                        min: 100,
+                        max: 900,
+                        divisions: 80,
+                        badgeText: currentConfig.weight.round().toString(),
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'wght',
+                        ),
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(weight: val);
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                    case 1:
+                      return _buildAxisSliderRow(
+                        context: context,
+                        icon: Icons.unfold_more_rounded,
+                        title: 'Width (wdth)',
+                        subtitle:
+                            '${currentConfig.width.round()}% ${currentConfig.width < 100
+                                ? 'Condensed'
+                                : currentConfig.width > 100
+                                ? 'Expanded'
+                                : 'Standard'}',
+                        value: currentConfig.width,
+                        min: 50,
+                        max: 151,
+                        divisions: 101,
+                        badgeText: '${currentConfig.width.round()}%',
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'wdth',
+                        ),
+                        unsupportedReason:
+                            'Width axis is not variable in ${currentConfig.supportedFont.name}',
+                        helperLabel: 'Switch to Google Sans Flex',
+                        onEnableHelper: () {
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            currentConfig.copyWith(fontId: 'google-sans-flex'),
+                          );
+                          widget.onToast?.call('Switched to Google Sans Flex');
+                        },
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(width: val);
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                    case 2:
+                      return _buildAxisSliderRow(
+                        context: context,
+                        icon: Icons.format_italic_rounded,
+                        title: 'Slant (slnt)',
+                        subtitle: currentConfig.slant == 0
+                            ? 'Upright (0°)'
+                            : 'Italic slant (${currentConfig.slant.toStringAsFixed(1)}°)',
+                        value: currentConfig.slant,
+                        min: -10,
+                        max: 0,
+                        divisions: 20,
+                        badgeText: '${currentConfig.slant.toStringAsFixed(1)}°',
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'slnt',
+                        ),
+                        unsupportedReason:
+                            'Slant axis is not variable in ${currentConfig.supportedFont.name}',
+                        helperLabel: 'Switch to Google Sans Flex',
+                        onEnableHelper: () {
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            currentConfig.copyWith(fontId: 'google-sans-flex'),
+                          );
+                          widget.onToast?.call('Switched to Google Sans Flex');
+                        },
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(slant: val);
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                    case 3:
+                      return _buildAxisSliderRow(
+                        context: context,
+                        icon: Icons.rounded_corner_rounded,
+                        title: 'Roundness (ROND)',
+                        subtitle: currentConfig.roundness == 0
+                            ? 'Geometric / Crisp'
+                            : currentConfig.roundness >= 70
+                            ? 'Fully Rounded Soft'
+                            : 'Subtle Corner Softness',
+                        value: currentConfig.roundness,
+                        min: 0,
+                        max: 100,
+                        divisions: 100,
+                        badgeText: currentConfig.roundness.round().toString(),
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'ROND',
+                        ),
+                        unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
+                        helperLabel: 'Switch to Google Sans Flex',
+                        onEnableHelper: () {
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            currentConfig.copyWith(fontId: 'google-sans-flex'),
+                          );
+                          widget.onToast?.call(
+                            'Switched to Google Sans Flex with roundness',
+                          );
+                        },
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(
+                            roundness: val,
+                          );
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                    case 4:
+                    default:
+                      return _buildAxisSliderRow(
+                        context: context,
+                        icon: Icons.line_weight_rounded,
+                        title: 'Grade (GRAD)',
+                        subtitle: 'Fine-tune stroke density without altering text width',
+                        value: currentConfig.grade,
+                        min: -200,
+                        max: 150,
+                        divisions: 70,
+                        badgeText: currentConfig.grade >= 0
+                            ? '+${currentConfig.grade.round()}'
+                            : currentConfig.grade.round().toString(),
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'GRAD',
+                        ),
+                        unsupportedReason:
+                            'Grade (GRAD) is not variable in ${currentConfig.supportedFont.name}',
+                        helperLabel: 'Switch to Google Sans Flex',
+                        onEnableHelper: () {
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            currentConfig.copyWith(fontId: 'google-sans-flex'),
+                          );
+                          widget.onToast?.call('Switched to Google Sans Flex');
+                        },
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(grade: val);
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                  }
+                },
+              ),
+            ),
+          ),
         ),
 
         const SizedBox(height: 18),
@@ -434,25 +470,28 @@ class _TypographySectionState extends State<TypographySection> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            M3EButton(
-              style: M3EButtonStyle.outlined,
-              size: M3EButtonSize.sm,
+            M3EButton.icon(
+              icon: const Icon(Icons.refresh),
+              style: M3EButtonStyle.tonal,
+              size: M3EButtonSize.md,
               onPressed: () {
                 themeProvider.resetRoleTypography(_selectedRole);
                 widget.onToast?.call('Reset ${_selectedRole.label} to default');
               },
-              child: Text('Reset ${_selectedRole.label}'),
+              label: Text('Reset ${_selectedRole.label}'),
             ),
-            M3EButton(
-              style: M3EButtonStyle.tonal,
-              size: M3EButtonSize.sm,
+            M3EIconButton(
+              icon: const Icon(Icons.refresh),
+              variant: M3EIconButtonVariant.filled,
+              size: M3EIconButtonSize.md,
+              width: M3EIconButtonWidth.wide,
               onPressed: () {
                 themeProvider.resetAllTypography();
                 widget.onToast?.call(
                   'Reset all typography to factory defaults',
                 );
               },
-              child: const Text('Reset All Roles'),
+              tooltip: 'Reset All Roles',
             ),
           ],
         ),

@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
+import '../../components/glass_surface.dart';
 import '../../components/task_edit_pane.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
@@ -51,11 +50,9 @@ class FloatingBottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ClipRRect(
+              GlassSurface(
                 borderRadius: BorderRadius.circular(100),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                  child: M3EToolbar(
+                child: M3EToolbar(
                     screenOffset: 0,
                     elevation: 0.0,
                     backgroundColor: colorScheme.primaryContainer.withValues(
@@ -103,16 +100,13 @@ class FloatingBottomNav extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
                 ),
               ),
               if (isTasksPage) ...[
                 const SizedBox(width: 8),
-                ClipRRect(
+                GlassSurface(
                   borderRadius: BorderRadius.circular(16),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                    child: FloatingActionButton(
+                  child: FloatingActionButton(
                       elevation: 0.0,
                       backgroundColor: colorScheme.tertiaryContainer.withValues(
                         alpha: 0.7,
@@ -123,7 +117,6 @@ class FloatingBottomNav extends StatelessWidget {
                         TaskEditPane.show(context);
                       },
                       child: const Icon(Icons.add_rounded),
-                    ),
                   ),
                 ),
               ],

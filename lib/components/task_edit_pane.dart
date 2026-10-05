@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -14,6 +12,8 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
 import '../theme/success_colors.dart';
+import 'glass_sheet.dart';
+import 'glass_surface.dart';
 import 'zeta_timepicker.dart';
 
 /// Modal pane / dialog for creating or editing a task[cite: 1, 2].
@@ -38,6 +38,7 @@ class TaskEditPane {
         context: context,
         useRootNavigator: true,
         isScrollControlled: true,
+        isDismissible: true,
         useSafeArea: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -45,7 +46,6 @@ class TaskEditPane {
         builder: (ctx) {
           final colorScheme = Theme.of(ctx).colorScheme;
           final viewInsets = MediaQuery.of(ctx).viewInsets;
-          final maxHeight = MediaQuery.of(ctx).size.height * 0.90;
 
           return ChangeNotifierProvider.value(
             value: taskProvider,
@@ -53,71 +53,43 @@ class TaskEditPane {
               padding: EdgeInsets.only(bottom: viewInsets.bottom),
               duration: const Duration(milliseconds: 150),
               curve: Curves.easeOut,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: maxHeight),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colorScheme.shadow.withValues(alpha: 0.15),
-                        blurRadius: 20,
-                        offset: const Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(28),
-                    ),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+              child: GlassSheet(
+                maxHeightFactor: 0.90,
+                avoidKeyboard: false,
+                showBorder: false,
+                surfaceColor: colorScheme.primaryContainer.withValues(
+                  alpha: 0.45,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
                       child: Container(
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        width: 36,
+                        height: 4,
                         decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withValues(
-                            alpha: 0.45,
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.40,
                           ),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(28),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Center(
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                width: 36,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.40),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ),
-                            Flexible(
-                              child: TaskEditFormContent(
-                                task: task,
-                                initialTitle: initialTitle,
-                                initialDescription: initialDescription,
-                                initialDueDate: initialDueDate,
-                                initialDueTime: initialDueTime,
-                                initialHasTime: initialHasTime,
-                                initialSubtasks: initialSubtasks,
-                                initialAttachments: initialAttachments,
-                                onClose: () => Navigator.of(ctx).pop(),
-                              ),
-                            ),
-                          ],
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ),
-                  ),
+                    Flexible(
+                      child: TaskEditFormContent(
+                        task: task,
+                        initialTitle: initialTitle,
+                        initialDescription: initialDescription,
+                        initialDueDate: initialDueDate,
+                        initialDueTime: initialDueTime,
+                        initialHasTime: initialHasTime,
+                        initialSubtasks: initialSubtasks,
+                        initialAttachments: initialAttachments,
+                        onClose: () => Navigator.of(ctx).pop(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -632,23 +604,16 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     }
   }
 
-  Widget _buildGlassButton({
+  Widget _wrapWithGlassSurface({
     required Widget child,
     required bool isCompact,
     required Color borderColor,
     double borderRadius = 24.0,
   }) {
-    return ClipRRect(
+    if (!isCompact) return child;
+    return GlassSurface(
       borderRadius: BorderRadius.circular(borderRadius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(borderRadius),
-          ),
-          child: child,
-        ),
-      ),
+      child: child,
     );
   }
 
@@ -664,7 +629,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     bool boldIcon = false,
   }) {
     final effectiveIconColor = iconColor ?? foregroundColor;
-    return _buildGlassButton(
+    return _wrapWithGlassSurface(
       isCompact: isCompact,
       borderColor: backgroundColor.withValues(alpha: 0.35),
       borderRadius: isCompact ? 16.0 : 24.0,
@@ -715,27 +680,12 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   }) {
     if (!isCompact) return child;
     final radius = BorderRadius.circular(borderRadius);
-    return ClipRRect(
+    return GlassSurface(
       borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Stack(
-          fit: StackFit.passthrough,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                color: selected
-                    ? colorScheme.primary.withValues(alpha: 0.12)
-                    : colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.20,
-                      ),
-              ),
-              child: child,
-            ),
-          ],
-        ),
-      ),
+      color: selected
+          ? colorScheme.primary.withValues(alpha: 0.12)
+          : colorScheme.surfaceContainerHighest.withValues(alpha: 0.20),
+      child: child,
     );
   }
 
@@ -785,12 +735,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
 
     if (!isCompact) return inputWidget;
 
-    return ClipRRect(
+    return GlassSurface(
       borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-        child: inputWidget,
-      ),
+      blurSigma: 5,
+      child: inputWidget,
     );
   }
 
@@ -1621,55 +1569,53 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                   ),
                 ),
               ),
-              // ─── Footer Buttons ───
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Wrap(
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    if (isEditing)
-                      _buildActionButton(
-                        isCompact: isCompact,
-                        onPressed: _handleDelete,
-                        iconData: Icons.delete_outline_rounded,
-                        label: 'Delete',
-                        backgroundColor: colorScheme.errorContainer,
-                        foregroundColor: colorScheme.onErrorContainer,
-                        iconColor: colorScheme.error,
-                      )
-                    else
-                      _buildActionButton(
-                        isCompact: isCompact,
-                        onPressed: () {
-                          ZetaHaptics.light();
-                          _closePane();
-                        },
-                        iconData: Icons.close_rounded,
-                        label: 'Cancel',
-                        backgroundColor: colorScheme.errorContainer,
-                        foregroundColor: colorScheme.onErrorContainer,
-                        showIconOnDesktop: false,
-                      ),
-                    _buildActionButton(
-                      isCompact: isCompact,
-                      onPressed: _handleSave,
-                      iconData: isEditing
-                          ? Icons.check_rounded
-                          : Icons.add_rounded,
-                      label: isEditing ? 'Save' : 'Create',
-                      backgroundColor: colorScheme.success,
-                      foregroundColor: colorScheme.onSuccess,
-                      boldIcon: true,
-                    ),
-                  ],
-                ),
-              ),
             ],
+          ),
+          // ─── Footer Buttons ───
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                if (isEditing)
+                  _buildActionButton(
+                    isCompact: isCompact,
+                    onPressed: _handleDelete,
+                    iconData: Icons.delete_outline_rounded,
+                    label: 'Delete',
+                    backgroundColor: colorScheme.errorContainer,
+                    foregroundColor: colorScheme.onErrorContainer,
+                    iconColor: colorScheme.error,
+                  )
+                else
+                  _buildActionButton(
+                    isCompact: isCompact,
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      _closePane();
+                    },
+                    iconData: Icons.close_rounded,
+                    label: 'Cancel',
+                    backgroundColor: colorScheme.errorContainer,
+                    foregroundColor: colorScheme.onErrorContainer,
+                    showIconOnDesktop: false,
+                  ),
+                _buildActionButton(
+                  isCompact: isCompact,
+                  onPressed: _handleSave,
+                  iconData: isEditing ? Icons.check_rounded : Icons.add_rounded,
+                  label: isEditing ? 'Save' : 'Create',
+                  backgroundColor: colorScheme.success,
+                  foregroundColor: colorScheme.onSuccess,
+                  boldIcon: true,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1820,18 +1766,10 @@ class AttachmentChip extends StatelessWidget {
     if (!isCompact) return chipWidget;
 
     final radius = BorderRadius.circular(8.0);
-    return ClipRRect(
+    return GlassSurface(
       borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            color: colorScheme.primary.withValues(alpha: 0.12),
-          ),
-          child: chipWidget,
-        ),
-      ),
+      color: colorScheme.primary.withValues(alpha: 0.12),
+      child: chipWidget,
     );
   }
 }

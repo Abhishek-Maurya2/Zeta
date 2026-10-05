@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -10,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../components/add_attachment_dialog.dart';
 import '../../../components/attachment_chip.dart';
 import '../../../components/glass_alert_dialog.dart';
+import '../../../components/glass_surface.dart';
 import '../../../models/attachment.dart';
 import '../../../models/note_item.dart';
 import '../../../models/revision.dart';
@@ -49,17 +49,13 @@ class RevisionNotesSheet extends StatefulWidget {
         useSafeArea: true,
         backgroundColor: Colors.transparent,
         barrierColor: Colors.black.withValues(alpha: 0.2),
-        builder: (ctx) => ClipRRect(
+        builder: (ctx) => GlassSurface(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              color: Theme.of(ctx).colorScheme.surface,
-              child: RevisionNotesSheet(
-                subject: subject,
-                initialTopic: initialTopic,
-              ),
-            ),
+          blurSigma: 8,
+          color: Theme.of(ctx).colorScheme.surface,
+          child: RevisionNotesSheet(
+            subject: subject,
+            initialTopic: initialTopic,
           ),
         ),
       );
@@ -69,18 +65,16 @@ class RevisionNotesSheet extends StatefulWidget {
         builder: (ctx) => Dialog(
           backgroundColor: Colors.transparent,
           insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-          child: ClipRRect(
+          child: GlassSurface(
             borderRadius: BorderRadius.circular(28),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                width: 860,
-                height: 720,
-                color: Theme.of(ctx).colorScheme.surface.withValues(alpha: 0.95),
-                child: RevisionNotesSheet(
-                  subject: subject,
-                  initialTopic: initialTopic,
-                ),
+            blurSigma: 10,
+            color: Theme.of(ctx).colorScheme.surface.withValues(alpha: 0.95),
+            child: SizedBox(
+              width: 860,
+              height: 720,
+              child: RevisionNotesSheet(
+                subject: subject,
+                initialTopic: initialTopic,
               ),
             ),
           ),

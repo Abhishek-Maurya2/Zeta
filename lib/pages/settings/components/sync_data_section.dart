@@ -12,6 +12,7 @@ import '../../../providers/pomodoro_provider.dart';
 import '../../../providers/revision_provider.dart';
 import '../../../services/preferences_service.dart';
 import '../../../utils/haptics.dart';
+import 'settings_section_heading.dart';
 
 class SyncDataSection extends StatefulWidget {
   final void Function(String message)? onToast;
@@ -447,15 +448,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 24),
 
             // ─── BACKUP & RESTORE ────────────────────────────────────────────
-            Text(
-              'Backup & Restore',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Backup & Restore'),
             const SizedBox(height: 12),
 
             M3EList(
@@ -509,15 +502,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
             const SizedBox(height: 24),
 
             // ─── DATA & STORAGE ──────────────────────────────────────────────
-            Text(
-              'Data & Storage',
-              style: textTheme.labelMedium?.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: colorScheme.primary,
-              ),
-            ),
+            const SettingsSectionHeading('Data & Storage'),
             const SizedBox(height: 12),
 
             M3EList(

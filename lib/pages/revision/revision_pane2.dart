@@ -105,6 +105,19 @@ class RevisionPane2 extends StatelessWidget {
                   ZetaHaptics.light();
                   TopicEditDialog.show(context, topic: topic);
                 },
+                onResetRevision: () async {
+                  final confirmed = await showResetRevisionConfirmationDialog(
+                    context: context,
+                    topicTitle: topic.title,
+                  );
+                  if (confirmed == true) {
+                    ZetaHaptics.medium();
+                    await revProvider.resetTopicRevision(
+                      topic.id,
+                      taskProvider,
+                    );
+                  }
+                },
                 onDelete: () async {
                   ZetaHaptics.light();
                   final confirmed = await showDeleteConfirmationDialog(

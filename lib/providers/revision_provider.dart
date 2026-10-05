@@ -415,6 +415,36 @@ class RevisionProvider with ChangeNotifier {
     unawaited(_repository.saveTopic(_topics[index]));
   }
 
+  /// Clears a topic's revision progress and removes its linked reminder task.
+  Future<void> resetTopicRevision(
+    String topicId,
+    TaskProvider taskProvider,
+  ) async {
+    final index = _topics.indexWhere((topic) => topic.id == topicId);
+    if (index == -1) return;
+
+    final topic = _topics[index];
+    final taskId = topic.associatedTaskId;
+    if (taskId != null) {
+      taskProvider.deleteTask(taskId);
+    }
+
+    _topics[index] = ChapterTopic(
+      id: topic.id,
+      subjectId: topic.subjectId,
+      title: topic.title,
+      description: topic.description,
+      isCompleted: false,
+      revisionStage: 0,
+      sortOrder: topic.sortOrder,
+      note: topic.note,
+      attachments: topic.attachments,
+    );
+
+    notifyListeners();
+    unawaited(_repository.saveTopic(_topics[index]));
+  }
+
   /// Triggered bi-directionally when a Task linked to a revision topic is completed in [TaskProvider].
   Future<void> syncFromTaskCompletion(
     String taskId,

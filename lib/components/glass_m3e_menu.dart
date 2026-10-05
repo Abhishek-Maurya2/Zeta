@@ -1,8 +1,7 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import 'glass_surface.dart';
 import '../utils/haptics.dart';
 
 /// Shows an expressive menu popup with glassmorphism backdrop blur and translucent styling.
@@ -73,20 +72,12 @@ Future<T?> showGlassM3EMenu<T>({
             bottom: menuBottom,
             width: menuWidth,
             height: menuHeight,
-            child: ClipRRect(
+            child: GlassSurface(
               borderRadius: BorderRadius.circular(
                 zeroElevTheme.containerRadius,
               ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                      zeroElevTheme.containerRadius,
-                    ),
-                  ),
-                ),
-              ),
+              blurSigma: 5,
+              child: const SizedBox.expand(),
             ),
           ),
         ],
