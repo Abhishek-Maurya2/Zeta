@@ -92,7 +92,7 @@ class TasksDismissibleList extends StatelessWidget {
                 : () => provider.toggleTask(task.id),
             onToggleExpand: () => provider.toggleTaskExpanded(task.id),
             onToggleSubtask: (subtaskId) =>
-                provider.toggleSubtask(task.id, subtaskId),
+                provider.toggleSubtask(task.id, subtaskId, context: context),
             onTap: isSelectionMode
                 ? () {
                     ZetaHaptics.selection();

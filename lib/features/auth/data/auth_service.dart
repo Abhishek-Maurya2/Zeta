@@ -36,4 +36,9 @@ class AuthService {
   }
 
   Future<void> signOut() => _supabase.client.auth.signOut();
+
+  Future<void> resetPassword({required String email}) {
+    return _supabase.client.auth.resetPasswordForEmail(email.trim());
+  }
 }
+

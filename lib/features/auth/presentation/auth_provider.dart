@@ -170,6 +170,28 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> retry() async {
+    _error = null;
+    _status = AuthStatus.loading;
+    notifyListeners();
+    await _initialize();
+  }
+
+  Future<bool> resetPassword(String email) async {
+    _beginRequest();
+    try {
+      await _repository.resetPassword(email: email);
+      return true;
+    } catch (e) {
+      _error = _friendlyMessage(e);
+      return false;
+    } finally {
+      _authActionInProgress = false;
+      _status = AuthStatus.signedOut;
+      notifyListeners();
+    }
+  }
+
   void _beginRequest() {
     _authActionInProgress = true;
     _error = null;

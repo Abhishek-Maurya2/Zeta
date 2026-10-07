@@ -160,7 +160,7 @@ class UpNextSection extends StatelessWidget {
                     onToggle: () => tp.toggleTask(task.id),
                     onToggleExpand: () => tp.toggleTaskExpanded(task.id),
                     onToggleSubtask: (subtaskId) =>
-                        tp.toggleSubtask(task.id, subtaskId),
+                        tp.toggleSubtask(task.id, subtaskId, context: context),
                     onTap: () => TaskEditPane.show(context, task: task),
                     onContextMenu: (pos) =>
                         _showContextMenu(context, pos, task, tp),

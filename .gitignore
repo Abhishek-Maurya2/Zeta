@@ -53,3 +53,5 @@ artifacts/
 
 .vercel
 .env*
+
+.agents

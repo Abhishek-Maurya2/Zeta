@@ -18,6 +18,7 @@ import 'providers/update_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/revision_provider.dart';
 import 'theme/app_theme.dart';
+import 'utils/app_snackbar.dart';
 import 'navigation/app_scaffold.dart';
 import 'pages/splash_screen.dart';
 import 'services/notification_service.dart';
@@ -147,6 +148,7 @@ class _ZetaAppShell extends StatelessWidget {
 
         return MaterialApp(
           navigatorKey: AppExitService.navigatorKey,
+          scaffoldMessengerKey: AppSnackbar.scaffoldMessengerKey,
           title: 'Zeta',
           debugShowCheckedModeBanner: false,
           themeMode: themeMode,

@@ -186,7 +186,7 @@ class TodaysFocusCard extends StatelessWidget {
                       final st = task!.subtasks[index];
                       return InkWell(
                         onTap: () =>
-                            taskProvider.toggleSubtask(task!.id, st.id),
+                            taskProvider.toggleSubtask(task!.id, st.id, context: context),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 15,

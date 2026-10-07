@@ -52,4 +52,7 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _service.signOut();
+
+  Future<void> resetPassword({required String email}) =>
+      _service.resetPassword(email: email);
 }

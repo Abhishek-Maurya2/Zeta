@@ -162,6 +162,9 @@ class _AppScaffoldState extends State<AppScaffold>
     _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
+    if (AppSnackbar.rootContext == context) {
+      AppSnackbar.rootContext = null;
+    }
     super.dispose();
   }
 
@@ -451,6 +454,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
   @override
   Widget build(BuildContext context) {
+    AppSnackbar.rootContext = context;
     final navProvider = context.watch<NavigationProvider>();
     final isSelectionMode =
         context.select<TaskProvider, bool>((p) => p.isSelectionMode) &&

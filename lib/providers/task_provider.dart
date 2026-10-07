@@ -11,6 +11,7 @@ import '../services/preferences_service.dart';
 import '../database/daos/task_dao.dart';
 import '../services/supabase_sync_service.dart';
 import '../repositories/task_repository.dart';
+import '../utils/app_snackbar.dart';
 
 enum TaskFilter { all, completed, pending, revision }
 
@@ -729,7 +730,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void toggleSubtask(String taskId, String subtaskId) {
+  final Map<String, Timer> _subtaskCompletionTimers = {};
+
+  void toggleSubtask(String taskId, String subtaskId, {BuildContext? context}) {
     final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
     if (taskIndex != -1) {
       final subtaskIndex =
@@ -745,9 +748,44 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         _invalidateCache();
         notifyListeners();
         unawaited(_repository.saveTask(_tasks[taskIndex]));
+
+        // Auto-complete parent task logic
+        final currentTask = _tasks[taskIndex];
+        _subtaskCompletionTimers[taskId]?.cancel();
+        
+        if (currentTask.subtasks.isNotEmpty && 
+            currentTask.subtasks.every((s) => s.completed) && 
+            !currentTask.completed) {
+          
+          _subtaskCompletionTimers[taskId] = Timer(const Duration(seconds: 3), () {
+            final recheckIndex = _tasks.indexWhere((t) => t.id == taskId);
+            if (recheckIndex != -1) {
+              final taskToComplete = _tasks[recheckIndex];
+              if (taskToComplete.subtasks.isNotEmpty && 
+                  taskToComplete.subtasks.every((s) => s.completed) && 
+                  !taskToComplete.completed) {
+                
+                // Mark the parent task as complete
+                toggleTask(taskId);
+
+                // Show toast with Undo button
+                AppSnackbar.show(
+                  context,
+                  message: 'All subtasks completed. Task marked as done.',
+                  actionLabel: 'Undo',
+                  duration: const Duration(seconds: 4),
+                  onAction: () {
+                    toggleTask(taskId);
+                  },
+                );
+              }
+            }
+          });
+        }
       }
     }
   }
+
 
   Future<String> addTask({
     required String title,
