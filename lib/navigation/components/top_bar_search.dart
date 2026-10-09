@@ -1,159 +1,14 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
-import '../../providers/theme_provider.dart';
-import '../../utils/haptics.dart';
 import '../../components/zeta_empty_state.dart';
 import '../../components/task_edit_pane.dart';
 import '../../theme/breakpoints.dart';
 
-class TopBarSearch extends StatelessWidget {
-  final M3ESearchController searchController;
-
-  const TopBarSearch({super.key, required this.searchController});
-
-  @override
-  Widget build(BuildContext context) {
-    final navProvider = context.watch<NavigationProvider>();
-    final taskProvider = context.watch<TaskProvider>();
-    final themeProvider = context.watch<ThemeProvider>();
-
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    final isSearchOpen = searchController.isAttached && searchController.isOpen;
-    if (!isSearchOpen && searchController.text != taskProvider.searchQuery) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final currentlyOpen =
-            searchController.isAttached && searchController.isOpen;
-        if (!currentlyOpen &&
-            searchController.text != taskProvider.searchQuery) {
-          searchController.text = taskProvider.searchQuery;
-        }
-      });
-    }
-
-    return Expanded(
-      child: ClipRect(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: M3ESearchAnchor(
-              searchController: searchController,
-              builder: (BuildContext context, M3ESearchController controller) {
-                return M3ESearchBar(
-                  controller: controller,
-                  leading: isCompact
-                      ? null
-                      : const Icon(
-                          M3EIcons.search,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  readOnly: true,
-                  hintText: isCompact
-                      ? 'Search'
-                      : 'Search Tasks, Notes, Subjects',
-                  onTap: () {
-                    if (!controller.isOpen) {
-                      controller.openView();
-                    }
-                  },
-                  onSubmitted: (query) {
-                    final trimmed = query.trim();
-                    if (trimmed.isNotEmpty) {
-                      taskProvider.setSearchQuery(trimmed);
-                      navProvider.setActivePage(PageId.tasks);
-                      if (controller.isAttached && controller.isOpen) {
-                        controller.closeView(trimmed);
-                      }
-                    }
-                  },
-                  trailing: [
-                    if (taskProvider.searchQuery.isNotEmpty ||
-                        searchController.text.isNotEmpty)
-                      Tooltip(
-                        message: 'Clear search',
-                        child: M3EIconButton(
-                          variant: M3EIconButtonVariant.standard,
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            searchController.clear();
-                            taskProvider.clearSearchQuery();
-                          },
-                        ),
-                      ),
-                    // Keyboard shortcut badge [/] — non-compact only, hidden when searching
-                    if (!isCompact &&
-                        taskProvider.searchQuery.isEmpty &&
-                        searchController.text.isEmpty)
-                      Tooltip(
-                        message: 'Press / to search',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerLowest
-                                .withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: colorScheme.outlineVariant
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Text(
-                            '/',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontFamily: 'RobotoMono',
-                              fontWeight: FontWeight.w700,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Theme Switch Icon Button Standard inside SearchBar
-                    M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      icon: Icon(
-                        fontWeight: FontWeight.bold,
-                        isDark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                      ),
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        themeProvider.toggleTheme(isDark);
-                      },
-                    ),
-                  ],
-                );
-              },
-              suggestionsBuilder: (context, controller) {
-                return _buildSearchSuggestions(
-                  context,
-                  controller,
-                  navProvider,
-                  taskProvider,
-                  textTheme,
-                  colorScheme,
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Iterable<Widget> _buildSearchSuggestions(
+class TopBarSearch {
+  static Iterable<Widget> buildSuggestions(
     BuildContext context,
     M3ESearchController controller,
     NavigationProvider navProvider,
@@ -471,7 +326,7 @@ class TopBarSearch extends StatelessWidget {
     return widgets;
   }
 
-  Widget _shortcutTag(String label, String keyChar, ColorScheme colorScheme) {
+  static Widget _shortcutTag(String label, String keyChar, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -518,3 +373,5 @@ class TopBarSearch extends StatelessWidget {
     );
   }
 }
+
+

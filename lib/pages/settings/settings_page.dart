@@ -193,10 +193,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ? CustomScrollView(
                 key: const ValueKey<String>('settings_compact_root'),
                 slivers: [
-                  SliverAppBar.large(
-                    pinned: true,
-                    scrolledUnderElevation: 2,
-                    shape: _appBarShape,
+                  M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false,
                     leading: isCompact
                         ? M3EIconButton(
                             variant: M3EIconButtonVariant.standard,
@@ -242,10 +239,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'settings_compact_${selectedCategory.name}',
                 ),
                 slivers: [
-                  SliverAppBar.large(
-                    pinned: true,
-                    scrolledUnderElevation: 2,
-                    shape: _appBarShape,
+                  M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false,
                     leading: M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
                       size: M3EIconButtonSize.sm,
@@ -333,11 +327,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         'settings_wide_detail_${activeCategory?.name ?? "default"}',
                       ),
                       slivers: [
-                        SliverAppBar.large(
-                          backgroundColor: isDark
-                              ? colorScheme.surfaceContainerHigh
-                              : colorScheme.surfaceContainer,
-                          scrolledUnderElevation: 2,
+                        M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false, backgroundColor: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surfaceContainer,
                           title: Text(
                             activeCategoryMeta?.label ?? 'Settings',
                             style: textTheme.displaySmall,
@@ -412,11 +402,7 @@ class _SettingsPageState extends State<SettingsPage> {
           start: CustomScrollView(
             key: const PageStorageKey<String>('settings_wide_nav'),
             slivers: [
-              SliverAppBar.large(
-                pinned: true,
-                automaticallyImplyLeading: false,
-                scrolledUnderElevation: 2,
-                shape: _appBarShape,
+              M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false, 
                 title: Text('Settings', style: textTheme.displaySmall),
               ),
               SliverPadding(
@@ -450,11 +436,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   'settings_wide_detail_${activeCategory?.name ?? "default"}',
                 ),
                 slivers: [
-                  SliverAppBar.large(
-                    backgroundColor: isDark
-                        ? colorScheme.surfaceContainerHigh
-                        : colorScheme.surfaceContainer,
-                    scrolledUnderElevation: 2,
+                  M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false, backgroundColor: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surfaceContainer,
                     title: Text(
                       activeCategoryMeta?.label ?? 'Settings',
                       style: textTheme.displaySmall,
@@ -580,3 +562,4 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
+

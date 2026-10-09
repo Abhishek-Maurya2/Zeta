@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -25,14 +24,12 @@ import '../providers/profile_provider.dart';
 import 'components/body_pane.dart';
 import 'components/floating_bottom_nav.dart';
 import 'components/navigation_rail_widget.dart';
-import 'components/pull_to_refresh_container.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
 import '../components/m3e_split_pane.dart';
 
 import '../theme/breakpoints.dart';
-import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
 
 import 'dart:ui';
@@ -58,12 +55,6 @@ class _AppScaffoldState extends State<AppScaffold>
   /// subsequent shortcuts (N, R, /) work immediately without a click.
   final FocusNode _rootFocus = FocusNode(debugLabel: 'ScaffoldRoot');
 
-  late final AnimationController _refreshController;
-  late Animation<double> _refreshAnimation;
-  double _dragOffset = 0.0;
-  bool _isRefreshing = false;
-  bool _isUserPulling = false;
-
   late final M3EToolbarVisibilityController _toolbarController;
   late final M3EToolbarScrollBehavior _toolbarBehavior;
 
@@ -72,18 +63,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
-
-  static const double _targetHeight = 80.0;
-
-  double get _refreshHeight {
-    if (_refreshController.isAnimating) {
-      return _refreshAnimation.value;
-    }
-    if (_isRefreshing) {
-      return _targetHeight;
-    }
-    return _dragOffset;
-  }
 
   void _onNavigationChanged() {
     final nav = context.read<NavigationProvider>();
@@ -113,18 +92,6 @@ class _AppScaffoldState extends State<AppScaffold>
     _toolbarBehavior = M3EToolbarScrollBehavior.exitAlways(
       exitDirection: M3EToolbarExitDirection.bottom,
       controller: _toolbarController,
-    );
-
-    _refreshController =
-        AnimationController(vsync: this, duration: M3MotionDuration.medium2)
-          ..addListener(() {
-            setState(() {});
-          });
-    _refreshAnimation = Tween<double>(begin: 0.0, end: _targetHeight).animate(
-      CurvedAnimation(
-        parent: _refreshController,
-        curve: M3MotionEasing.emphasizedDecelerate,
-      ),
     );
 
     _navProvider = context.read<NavigationProvider>();
@@ -159,7 +126,6 @@ class _AppScaffoldState extends State<AppScaffold>
     _pomodoroProvider.removeListener(_onPomodoroChanged);
 
     AndroidTasksWidgetService.instance.dispose();
-    _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
     if (AppSnackbar.rootContext == context) {
@@ -169,16 +135,9 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   Future<void> _triggerRefresh() async {
-    if (_isRefreshing) return;
     final nav = context.read<NavigationProvider>();
     if (nav.activePage == PageId.settings) return;
 
-    final initialOffset = _dragOffset;
-    setState(() {
-      _isRefreshing = true;
-      _isUserPulling = false;
-      _dragOffset = _targetHeight;
-    });
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
@@ -186,22 +145,6 @@ class _AppScaffoldState extends State<AppScaffold>
     final profileProvider = context.read<ProfileProvider>();
     final themeProvider = context.read<ThemeProvider>();
     final revisionProvider = context.read<RevisionProvider>();
-
-    if (initialOffset < _targetHeight) {
-      _refreshAnimation =
-          Tween<double>(
-            begin: initialOffset > 0 ? initialOffset : 0.0,
-            end: _targetHeight,
-          ).animate(
-            CurvedAnimation(
-              parent: _refreshController,
-              curve: M3MotionEasing.emphasizedDecelerate,
-            ),
-          );
-      await _refreshController.forward(from: 0.0);
-    } else {
-      _refreshController.value = 1.0;
-    }
 
     try {
       final minDelay = Future.delayed(const Duration(milliseconds: 1400));
@@ -220,146 +163,13 @@ class _AppScaffoldState extends State<AppScaffold>
     if (!mounted) return;
     ZetaHaptics.light();
 
-    _refreshAnimation = Tween<double>(begin: _targetHeight, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _refreshController,
-        curve: M3MotionEasing.emphasizedAccelerate,
-      ),
+    AppSnackbar.show(
+      context,
+      message: 'Refreshed',
+      duration: const Duration(seconds: 2),
     );
-    await _refreshController.forward(from: 0.0);
-
-    if (mounted) {
-      setState(() {
-        _isRefreshing = false;
-        _dragOffset = 0.0;
-      });
-      AppSnackbar.show(
-        context,
-        message: 'Refreshed',
-        duration: const Duration(seconds: 2),
-      );
-    }
   }
 
-  void _snapBackToZero() {
-    if (_dragOffset <= 0.0) return;
-    _refreshAnimation = Tween<double>(begin: _dragOffset, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _refreshController,
-        curve: M3MotionEasing.emphasizedDecelerate,
-      ),
-    );
-    _refreshController.forward(from: 0.0).then((_) {
-      if (mounted) {
-        setState(() {
-          _dragOffset = 0.0;
-        });
-      }
-    });
-  }
-
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (_isRefreshing) return false;
-    final nav = context.read<NavigationProvider>();
-    if (nav.activePage == PageId.settings) return false;
-
-    // 1. Only listen to primary vertical scroll notifications.
-    // notification.depth != 0 ignores nested lists, dialogs, drawers, and split panes.
-    if (notification.depth != 0) return false;
-    if (notification.metrics.axis != Axis.vertical) return false;
-
-    // 2. ScrollStartNotification: only begin tracking pull-to-refresh if:
-    //    - this is an active physical drag gesture (dragDetails != null)
-    //    - the scroll view is already at or near the top edge (pixels <= 1.0)
-    //    Mouse wheel, trackpad scrolling, ballistic flings, and window resizing
-    //    always have dragDetails == null, so they will NEVER start a pull gesture.
-    if (notification is ScrollStartNotification) {
-      if (notification.dragDetails != null &&
-          notification.metrics.pixels <= 1.0) {
-        _isUserPulling = true;
-      } else {
-        _isUserPulling = false;
-      }
-    }
-
-    // 3. OverscrollNotification: fired when pulling past boundary (e.g. ClampingScrollPhysics)
-    if (notification is OverscrollNotification) {
-      if (notification.dragDetails != null && notification.overscroll < 0) {
-        _isUserPulling = true;
-        final newDrag = _dragOffset - notification.overscroll * 0.5;
-        if (newDrag >= _targetHeight) {
-          _dragOffset = _targetHeight;
-          setState(() {});
-          _triggerRefresh();
-        } else {
-          setState(() {
-            _dragOffset = newDrag.clamp(0.0, _targetHeight);
-          });
-        }
-      }
-    }
-    // 4. ScrollUpdateNotification: fired during scroll (e.g. BouncingScrollPhysics)
-    else if (notification is ScrollUpdateNotification) {
-      if (notification.dragDetails != null) {
-        if (notification.metrics.pixels <= 0 &&
-            (notification.scrollDelta ?? 0) < 0) {
-          _isUserPulling = true;
-          final newDrag = _dragOffset - (notification.scrollDelta ?? 0) * 0.5;
-          if (newDrag >= _targetHeight) {
-            _dragOffset = _targetHeight;
-            setState(() {});
-            _triggerRefresh();
-          } else {
-            setState(() {
-              _dragOffset = newDrag.clamp(0.0, _targetHeight);
-            });
-          }
-        } else if (_isUserPulling &&
-            _dragOffset > 0 &&
-            (notification.scrollDelta ?? 0) > 0) {
-          final newDrag = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-              .clamp(0.0, _targetHeight);
-          setState(() {
-            _dragOffset = newDrag;
-          });
-        }
-      } else if (notification.dragDetails == null) {
-        // Non-drag event (mouse wheel tick, trackpad scroll, ballistic fling, or window resize)
-        if (_isUserPulling || _dragOffset > 0) {
-          _isUserPulling = false;
-          if (_dragOffset > 0) {
-            _snapBackToZero();
-          }
-        }
-      }
-    }
-    // 5. ScrollEndNotification: user released pointer
-    else if (notification is ScrollEndNotification) {
-      final wasPulling = _isUserPulling;
-      _isUserPulling = false;
-
-      if (!_isRefreshing) {
-        if (wasPulling && _dragOffset >= _targetHeight) {
-          _triggerRefresh();
-        } else if (_dragOffset > 0) {
-          _snapBackToZero();
-        }
-      }
-    }
-    // 6. UserScrollNotification: if scroll direction becomes idle
-    else if (notification is UserScrollNotification) {
-      if (notification.direction == ScrollDirection.idle &&
-          !_isRefreshing &&
-          _dragOffset > 0) {
-        _isUserPulling = false;
-        _snapBackToZero();
-      }
-    }
-
-    return false;
-  }
-
-  /// Global key handler — fires before any widget-level handlers.
   bool _globalKeyHandler(KeyEvent event) {
     if (event is! KeyDownEvent) return false;
     if (!mounted) return false;
@@ -597,152 +407,197 @@ class _AppScaffoldState extends State<AppScaffold>
                 children: [
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
-
-                  // 2. Expandable Stretchable Refresh Container below topappbar
-                  if (navProvider.activePage != PageId.settings)
-                    PullToRefreshContainer(
-                      refreshHeight: _refreshHeight,
-                      targetHeight: _targetHeight,
-                      isRefreshing: _isRefreshing,
-                    ),
-
                   // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
                   Expanded(
-                    child: NotificationListener<ScrollNotification>(
-                      onNotification: _handleScrollNotification,
-                      child: ScrollConfiguration(
-                        behavior: const MaterialScrollBehavior().copyWith(
-                          physics: const BouncingScrollPhysics(
-                            parent: AlwaysScrollableScrollPhysics(),
-                          ),
-                          dragDevices: {
-                            PointerDeviceKind.touch,
-                            PointerDeviceKind.mouse,
-                            PointerDeviceKind.trackpad,
-                            PointerDeviceKind.stylus,
-                          },
+                    child: ScrollConfiguration(
+                      behavior: const MaterialScrollBehavior().copyWith(
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
                         ),
-                        child: isCompact
-                            ? M3EToolbarScrollWrapper(
-                                key: ValueKey(navProvider.activePage),
-                                behavior: _toolbarBehavior,
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: BodyPane(
-                                        activePage: navProvider.activePage,
-                                      ),
-                                    ),
-                                    FloatingBottomNav(
-                                      navProvider: navProvider,
-                                      isSelectionMode: isSelectionMode,
-                                      scrollBehavior: _toolbarBehavior,
-                                      keepVisible: isPomodoroTimerPane,
-                                    ),
-                                    TaskSelectionToolbar(
-                                      taskProvider: context
-                                          .read<TaskProvider>(),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                        dragDevices: {
+                          PointerDeviceKind.touch,
+                          PointerDeviceKind.mouse,
+                          PointerDeviceKind.trackpad,
+                          PointerDeviceKind.stylus,
+                        },
+                      ),
+                      child: isCompact
+                          ? M3EToolbarScrollWrapper(
+                              key: ValueKey(navProvider.activePage),
+                              behavior: _toolbarBehavior,
+                              child: Stack(
                                 children: [
-                                  NavigationRailWidget(
-                                    isExpanded: navProvider.isRailExpanded,
-                                    navProvider: navProvider,
-                                  ),
-                                  Expanded(
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: !isEditPaneOpen
-                                              ? BodyPane(
-                                                  activePage: navProvider.activePage,
-                                                )
-                                              : LayoutBuilder(
-                                                  builder: (context, constraints) {
-                                                    final totalWidth = constraints.maxWidth;
-                                                    const minEditorWidth = 300.0;
-                                                    const maxEditorWidth = 600.0;
-                                                    final editorWidth = _taskEditPaneWidth
-                                                        .clamp(
-                                                          minEditorWidth,
-                                                          maxEditorWidth,
-                                                        );
-                                                    final maxStartWidth = totalWidth -
-                                                        minEditorWidth -
-                                                        24.0;
-                                                    final minStartWidth = totalWidth -
-                                                        maxEditorWidth -
-                                                        24.0;
-                                                    final startWidth = (totalWidth -
-                                                            editorWidth -
-                                                            24.0)
-                                                        .clamp(minStartWidth, maxStartWidth);
-
-                                                    return M3ESplitPane(
-                                                      value: (startWidth / totalWidth * 100)
-                                                          .clamp(
-                                                            minStartWidth / totalWidth * 100,
-                                                            maxStartWidth / totalWidth * 100,
-                                                          ),
-                                                      min: minStartWidth / totalWidth * 100,
-                                                      max: maxStartWidth / totalWidth * 100,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          _taskEditPaneWidth =
-                                                              (totalWidth - totalWidth * value / 100 - 24)
-                                                                  .clamp(minEditorWidth, maxEditorWidth);
-                                                        });
-                                                      },
-                                                      onDoubleTap: () {
-                                                        setState(() => _taskEditPaneWidth = 380.0);
-                                                        ZetaHaptics.medium();
-                                                      },
-                                                      start: BodyPane(
-                                                        activePage: navProvider.activePage,
-                                                      ),
-                                                      end: Container(
-                                                        margin: const EdgeInsets.fromLTRB(0, 10, 10, 6),
-                                                        decoration: BoxDecoration(
-                                                          color: colorScheme.surfaceContainerHigh,
-                                                          borderRadius: BorderRadius.circular(20),
-                                                        ),
-                                                        clipBehavior: Clip.antiAlias,
-                                                        child: SafeArea(
-                                                          child: Consumer<TaskProvider>(
-                                                            builder: (context, taskProvider, _) => TaskEditFormContent(
-                                                              key: ValueKey(
-                                                                '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
-                                                              ),
-                                                              task: taskProvider.editingTask,
-                                                              initialTitle: taskProvider.editingInitialTitle,
-                                                              initialDescription: taskProvider.editingInitialDescription,
-                                                              initialDueDate: taskProvider.editingInitialDueDate,
-                                                              initialDueTime: taskProvider.editingInitialDueTime,
-                                                              initialHasTime: taskProvider.editingInitialHasTime,
-                                                              initialSubtasks: taskProvider.editingInitialSubtasks,
-                                                              onClose: taskProvider.closeEditPane,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                        ),
-                                        TaskSelectionToolbar(
-                                          taskProvider: context
-                                              .read<TaskProvider>(),
-                                        ),
-                                      ],
+                                  Positioned.fill(
+                                    child: BodyPane(
+                                      activePage: navProvider.activePage,
                                     ),
+                                  ),
+                                  FloatingBottomNav(
+                                    navProvider: navProvider,
+                                    isSelectionMode: isSelectionMode,
+                                    scrollBehavior: _toolbarBehavior,
+                                    keepVisible: isPomodoroTimerPane,
+                                  ),
+                                  TaskSelectionToolbar(
+                                    taskProvider: context.read<TaskProvider>(),
                                   ),
                                 ],
                               ),
-                      ),
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                NavigationRailWidget(
+                                  isExpanded: navProvider.isRailExpanded,
+                                  navProvider: navProvider,
+                                ),
+                                Expanded(
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: !isEditPaneOpen
+                                            ? BodyPane(
+                                                activePage:
+                                                    navProvider.activePage,
+                                              )
+                                            : LayoutBuilder(
+                                                builder: (context, constraints) {
+                                                  final totalWidth =
+                                                      constraints.maxWidth;
+                                                  const minEditorWidth = 300.0;
+                                                  const maxEditorWidth = 600.0;
+                                                  final editorWidth =
+                                                      _taskEditPaneWidth.clamp(
+                                                        minEditorWidth,
+                                                        maxEditorWidth,
+                                                      );
+                                                  final maxStartWidth =
+                                                      totalWidth -
+                                                      minEditorWidth -
+                                                      24.0;
+                                                  final minStartWidth =
+                                                      totalWidth -
+                                                      maxEditorWidth -
+                                                      24.0;
+                                                  final startWidth =
+                                                      (totalWidth -
+                                                              editorWidth -
+                                                              24.0)
+                                                          .clamp(
+                                                            minStartWidth,
+                                                            maxStartWidth,
+                                                          );
+
+                                                  return M3ESplitPane(
+                                                    value:
+                                                        (startWidth /
+                                                                totalWidth *
+                                                                100)
+                                                            .clamp(
+                                                              minStartWidth /
+                                                                  totalWidth *
+                                                                  100,
+                                                              maxStartWidth /
+                                                                  totalWidth *
+                                                                  100,
+                                                            ),
+                                                    min:
+                                                        minStartWidth /
+                                                        totalWidth *
+                                                        100,
+                                                    max:
+                                                        maxStartWidth /
+                                                        totalWidth *
+                                                        100,
+                                                    onChanged: (value) {
+                                                      setState(() {
+                                                        _taskEditPaneWidth =
+                                                            (totalWidth -
+                                                                    totalWidth *
+                                                                        value /
+                                                                        100 -
+                                                                    24)
+                                                                .clamp(
+                                                                  minEditorWidth,
+                                                                  maxEditorWidth,
+                                                                );
+                                                      });
+                                                    },
+                                                    onDoubleTap: () {
+                                                      setState(
+                                                        () =>
+                                                            _taskEditPaneWidth =
+                                                                380.0,
+                                                      );
+                                                      ZetaHaptics.medium();
+                                                    },
+                                                    start: BodyPane(
+                                                      activePage: navProvider
+                                                          .activePage,
+                                                    ),
+                                                    end: Container(
+                                                      margin:
+                                                          const EdgeInsets.fromLTRB(
+                                                            0,
+                                                            10,
+                                                            10,
+                                                            6,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: colorScheme
+                                                            .surfaceContainerHigh,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              20,
+                                                            ),
+                                                      ),
+                                                      clipBehavior:
+                                                          Clip.antiAlias,
+                                                      child: SafeArea(
+                                                        child: Consumer<TaskProvider>(
+                                                          builder: (context, taskProvider, _) => TaskEditFormContent(
+                                                            key: ValueKey(
+                                                              '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                            ),
+                                                            task: taskProvider
+                                                                .editingTask,
+                                                            initialTitle:
+                                                                taskProvider
+                                                                    .editingInitialTitle,
+                                                            initialDescription:
+                                                                taskProvider
+                                                                    .editingInitialDescription,
+                                                            initialDueDate:
+                                                                taskProvider
+                                                                    .editingInitialDueDate,
+                                                            initialDueTime:
+                                                                taskProvider
+                                                                    .editingInitialDueTime,
+                                                            initialHasTime:
+                                                                taskProvider
+                                                                    .editingInitialHasTime,
+                                                            initialSubtasks:
+                                                                taskProvider
+                                                                    .editingInitialSubtasks,
+                                                            onClose: taskProvider
+                                                                .closeEditPane,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                      ),
+                                      TaskSelectionToolbar(
+                                        taskProvider: context
+                                            .read<TaskProvider>(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ],
@@ -754,3 +609,4 @@ class _AppScaffoldState extends State<AppScaffold>
     );
   }
 }
+
