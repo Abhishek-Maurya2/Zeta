@@ -576,7 +576,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                   supportingText:
                       'Resets all appearance & settings to defaults',
                   trailing: M3EIconButton(
-                    icon: Icon(Icons.restore),
+                    icon: const Icon(Icons.restore),
                     variant: M3EIconButtonVariant.filled,
                     width: M3EIconButtonWidth.wide,
                     onPressed: () => _showResetDialog(context, themeProvider),

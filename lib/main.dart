@@ -210,9 +210,11 @@ class ZetaAppRoot extends StatefulWidget {
   State<ZetaAppRoot> createState() => _ZetaAppRootState();
 }
 
-class _ZetaAppRootState extends State<ZetaAppRoot> { 
+class _ZetaAppRootState extends State<ZetaAppRoot> {
   static bool _hasCompletedInitialSplash = false;
   late bool _displaySplash;
+  bool _splashWarmupCompleted = false;
+  bool _isFadingOut = false;
 
   @override
   void initState() {
@@ -220,8 +222,30 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
     _displaySplash = widget.showSplash && !_hasCompletedInitialSplash;
   }
 
+  void _checkAndTriggerDismissal(AuthStatus authStatus) {
+    if (!_displaySplash || _isFadingOut) return;
+    final isAuthReady = _isTestMode || authStatus != AuthStatus.loading;
+    if (_splashWarmupCompleted && isAuthReady) {
+      setState(() {
+        _isFadingOut = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authStatus = context.select<AuthProvider, AuthStatus>(
+      (p) => p.status,
+    );
+
+    if (_splashWarmupCompleted && !_isFadingOut) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _checkAndTriggerDismissal(authStatus);
+        }
+      });
+    }
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -230,15 +254,31 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
           bypassAuth: _isTestMode,
         ),
         if (_displaySplash)
-          SplashScreen(
-            onInitializationComplete: () {
-              _hasCompletedInitialSplash = true;
+          AnimatedOpacity(
+            opacity: _isFadingOut ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            onEnd: () {
               if (mounted) {
                 setState(() {
                   _displaySplash = false;
+                  _hasCompletedInitialSplash = true;
                 });
               }
             },
+            child: IgnorePointer(
+              ignoring: _isFadingOut,
+              child: SplashScreen(
+                onInitializationComplete: () {
+                  if (mounted) {
+                    setState(() {
+                      _splashWarmupCompleted = true;
+                    });
+                    _checkAndTriggerDismissal(authStatus);
+                  }
+                },
+              ),
+            ),
           ),
       ],
     );

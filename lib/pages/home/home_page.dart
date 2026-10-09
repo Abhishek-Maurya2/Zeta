@@ -9,7 +9,6 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
-import '../../utils/task_date_formatter.dart';
 import '../../theme/breakpoints.dart';
 
 /// Production-ready HomePage mirroring Sharva's architecture:
@@ -35,18 +34,6 @@ class _HomePageState extends State<HomePage> {
     _selectedDate = DateTime(now.year, now.month, now.day);
   }
 
-  bool _isSameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
-  }
-
-  bool _isTaskOnDate(Task task, DateTime target) {
-    if (task.dueDate == null) return false;
-    final parsed = TaskDateFormatter.parse(task.dueDate!);
-    if (parsed != null) {
-      return _isSameDay(parsed, target);
-    }
-    return false;
-  }
 
   void _handleSelectDate(DateTime date) {
     setState(() {
@@ -104,15 +91,13 @@ class _HomePageState extends State<HomePage> {
         ? ((completedCount / totalCount) * 100).round()
         : 0;
 
-    // Filter tasks for selected date
-    final selectedDateTasks = taskProvider.allTasks
-        .where((t) => _isTaskOnDate(t, _selectedDate))
-        .toList();
-
-    // Tasks for today
-    final todayTasks = taskProvider.allTasks
-        .where((t) => _isTaskOnDate(t, today))
-        .toList();
+    // Filter tasks for selected date and today using cached date index
+    final dateMap = taskProvider.tasksByDateKey;
+    final selectedKey =
+        '${_selectedDate.year}-${_selectedDate.month}-${_selectedDate.day}';
+    final todayKey = '${today.year}-${today.month}-${today.day}';
+    final selectedDateTasks = dateMap[selectedKey] ?? const <Task>[];
+    final todayTasks = dateMap[todayKey] ?? const <Task>[];
     final todayActiveCount = todayTasks.where((t) => !t.completed).length;
 
     // Focus Task: pick first active task on selected date; else first completed; else null

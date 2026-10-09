@@ -664,8 +664,8 @@ class _AppScaffoldState extends State<AppScaffold>
                                               : LayoutBuilder(
                                                   builder: (context, constraints) {
                                                     final totalWidth = constraints.maxWidth;
-                                                    final minEditorWidth = 300.0;
-                                                    final maxEditorWidth = 600.0;
+                                                    const minEditorWidth = 300.0;
+                                                    const maxEditorWidth = 600.0;
                                                     final editorWidth = _taskEditPaneWidth
                                                         .clamp(
                                                           minEditorWidth,

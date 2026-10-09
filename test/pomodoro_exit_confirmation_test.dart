@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/pages/pomodoro/components/pomodoro_exit_dialog.dart';
@@ -8,25 +8,35 @@ import 'package:zeta/services/app_exit_service.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  Widget buildTestableApp({
+    required PomodoroProvider provider,
+    required Widget child,
+  }) {
+    return ChangeNotifierProvider<PomodoroProvider>.value(
+      value: provider,
+      child: MaterialApp(
+        home: child,
+      ),
+    );
+  }
+
   group('Pomodoro Exit Confirmation Tests', () {
     testWidgets('confirmExitIfPomodoroRunning returns true when timer is not running', (tester) async {
       final pomodoroProvider = PomodoroProvider();
 
       bool? result;
       await tester.pumpWidget(
-        ChangeNotifierProvider<PomodoroProvider>.value(
-          value: pomodoroProvider,
-          child: MaterialApp(
-            home: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    result = await confirmExitIfPomodoroRunning(context);
-                  },
-                  child: const Text('Check Exit'),
-                );
-              },
-            ),
+        buildTestableApp(
+          provider: pomodoroProvider,
+          child: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  result = await confirmExitIfPomodoroRunning(context);
+                },
+                child: const Text('Check Exit'),
+              );
+            },
           ),
         ),
       );
@@ -48,19 +58,17 @@ void main() {
 
       bool? result;
       await tester.pumpWidget(
-        ChangeNotifierProvider<PomodoroProvider>.value(
-          value: pomodoroProvider,
-          child: MaterialApp(
-            home: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    result = await confirmExitIfPomodoroRunning(context);
-                  },
-                  child: const Text('Check Exit'),
-                );
-              },
-            ),
+        buildTestableApp(
+          provider: pomodoroProvider,
+          child: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  result = await confirmExitIfPomodoroRunning(context);
+                },
+                child: const Text('Check Exit'),
+              );
+            },
           ),
         ),
       );
@@ -90,19 +98,17 @@ void main() {
 
       bool? result;
       await tester.pumpWidget(
-        ChangeNotifierProvider<PomodoroProvider>.value(
-          value: pomodoroProvider,
-          child: MaterialApp(
-            home: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    result = await confirmExitIfPomodoroRunning(context);
-                  },
-                  child: const Text('Check Exit'),
-                );
-              },
-            ),
+        buildTestableApp(
+          provider: pomodoroProvider,
+          child: Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  result = await confirmExitIfPomodoroRunning(context);
+                },
+                child: const Text('Check Exit'),
+              );
+            },
           ),
         ),
       );

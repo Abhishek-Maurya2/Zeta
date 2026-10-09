@@ -248,9 +248,32 @@ class RoleTypographyConfig {
     'width': width,
     'slant': slant,
     'roundness': roundness,
-    'grade': grade,
     if (opticalSize != null) 'opticalSize': opticalSize,
   };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RoleTypographyConfig &&
+          runtimeType == other.runtimeType &&
+          fontId == other.fontId &&
+          weight == other.weight &&
+          width == other.width &&
+          slant == other.slant &&
+          roundness == other.roundness &&
+          grade == other.grade &&
+          opticalSize == other.opticalSize;
+
+  @override
+  int get hashCode => Object.hash(
+        fontId,
+        weight,
+        width,
+        slant,
+        roundness,
+        grade,
+        opticalSize,
+      );
 
   factory RoleTypographyConfig.fromJson(
     Map<String, dynamic>? json, {

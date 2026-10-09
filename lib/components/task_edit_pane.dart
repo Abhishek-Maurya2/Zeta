@@ -893,6 +893,23 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Tooltip(
+                  message: 'Edit subtask',
+                  child: M3EIconButton(
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    size: M3EIconButtonSize.xs,
+                    variant: M3EIconButtonVariant.standard,
+                    tooltip: 'Edit subtask',
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      _startEditingSubtask(st);
+                    },
+                  ),
+                ),
                 const SizedBox(width: 2),
                 M3EIconButton(
                   icon: Icon(
@@ -902,6 +919,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                   ),
                   size: M3EIconButtonSize.xs,
                   variant: M3EIconButtonVariant.standard,
+                  tooltip: 'Delete subtask',
                   onPressed: () {
                     ZetaHaptics.light();
                     _removeSubtask(st.id);

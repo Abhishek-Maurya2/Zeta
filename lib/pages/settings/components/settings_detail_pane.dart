@@ -11,8 +11,6 @@ import 'cross_device_section.dart';
 import 'updates_section.dart';
 import 'tasks_section.dart';
 
-import 'package:material_3_expressive/material_3_expressive.dart';
-
 class SettingsDetailPane extends StatelessWidget {
   final SettingsCategory? activeCategory;
   final SettingsCategoryItem? activeCategoryMeta;

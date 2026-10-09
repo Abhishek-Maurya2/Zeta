@@ -109,11 +109,8 @@ class TasksPage extends StatelessWidget {
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
     final isSearching = taskProvider.searchQuery.isNotEmpty;
-    final totalCount = isSearching
-        ? pending.length + completed.length
-        : taskProvider.totalCount;
-
     final revisionTasksCount = taskProvider.revisionTasks.length;
+    final totalCount = pendingNonRevision.length + revisionTasksCount;
 
     return Stack(
       children: [

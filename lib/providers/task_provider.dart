@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../models/attachment.dart';
-import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../services/notification_service.dart';
 import '../services/preferences_service.dart';
@@ -21,6 +20,7 @@ enum CompletedTaskSortOption { newestFirst, oldestFirst }
 
 class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   static const String _soundEffectsKey = PreferencesService.keySoundEffects;
+  static const String _filterPrefKey = PreferencesService.keyTaskFilter;
   static const String _sortByPrefKey = PreferencesService.keyTaskSortBy;
   static const String _completedSortByPrefKey =
       PreferencesService.keyCompletedTaskSortBy;
@@ -62,7 +62,20 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   final List<Task> _tasks = [];
   final List<Task> _binTasks = [];
 
-  TaskFilter _filter = TaskFilter.all;
+  static TaskFilter _loadInitialFilter() {
+    try {
+      final saved = PreferencesService.instance.getString(_filterPrefKey);
+      if (saved != null) {
+        return TaskFilter.values.firstWhere(
+          (e) => e.name == saved,
+          orElse: () => TaskFilter.all,
+        );
+      }
+    } catch (_) {}
+    return TaskFilter.all;
+  }
+
+  TaskFilter _filter = _loadInitialFilter();
   TaskSortOption _sortBy = TaskSortOption.creationDesc;
   CompletedTaskSortOption _completedSortBy =
       CompletedTaskSortOption.newestFirst;
@@ -201,12 +214,36 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task>? _cachedPendingTasks;
   List<Task>? _cachedCompletedTasks;
   List<Task>? _cachedRevisionTasks;
+  Map<String, List<Task>>? _cachedTasksByDateKey;
 
   void _invalidateCache() {
     _cachedFilteredAndSortedTasks = null;
     _cachedPendingTasks = null;
     _cachedCompletedTasks = null;
     _cachedRevisionTasks = null;
+    _cachedTasksByDateKey = null;
+  }
+
+  /// Cached lookup of all tasks (active & bin) indexed by 'YYYY-M-D'.
+  Map<String, List<Task>> get tasksByDateKey {
+    if (_cachedTasksByDateKey != null) return _cachedTasksByDateKey!;
+    final map = <String, List<Task>>{};
+    for (final task in _tasks) {
+      final parsed = task.parsedDueDate;
+      if (parsed != null) {
+        final key = '${parsed.year}-${parsed.month}-${parsed.day}';
+        (map[key] ??= []).add(task);
+      }
+    }
+    for (final task in _binTasks) {
+      final parsed = task.parsedDueDate;
+      if (parsed != null) {
+        final key = '${parsed.year}-${parsed.month}-${parsed.day}';
+        (map[key] ??= []).add(task);
+      }
+    }
+    _cachedTasksByDateKey = map;
+    return _cachedTasksByDateKey!;
   }
 
   void setSearchQuery(String query) {
@@ -275,6 +312,14 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _filter = filter;
     _invalidateCache();
     notifyListeners();
+    _persistFilter();
+  }
+
+  Future<void> _persistFilter() async {
+    try {
+      final prefs = PreferencesService.instance;
+      await prefs.setString(_filterPrefKey, _filter.name);
+    } catch (_) {}
   }
 
   void setSortBy(TaskSortOption sortBy) {
@@ -403,8 +448,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
           }
           if (a.dueDate == null) return 1;
           if (b.dueDate == null) return -1;
-          final dateA = TaskDateFormatter.parse(a.dueDate!);
-          final dateB = TaskDateFormatter.parse(b.dueDate!);
+          final dateA = a.parsedDueDate;
+          final dateB = b.parsedDueDate;
           if (dateA != null && dateB != null) {
             final dateComp = dateA.compareTo(dateB);
             if (dateComp != 0) return dateComp;
@@ -485,8 +530,18 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _loadFromStorage() async {
     try {
-      // ── Load sort preference ────────────────────────────────────────────────
       final prefs = PreferencesService.instance;
+
+      // ── Load filter preference ──────────────────────────────────────────────
+      final savedFilter = prefs.getString(_filterPrefKey);
+      if (savedFilter != null) {
+        _filter = TaskFilter.values.firstWhere(
+          (e) => e.name == savedFilter,
+          orElse: () => TaskFilter.all,
+        );
+      }
+
+      // ── Load sort preference ────────────────────────────────────────────────
       final savedSort = prefs.getString(_sortByPrefKey);
       if (savedSort != null) {
         _sortBy = TaskSortOption.values.firstWhere(

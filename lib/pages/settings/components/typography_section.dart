@@ -18,13 +18,11 @@ class TypographySection extends StatefulWidget {
 
 class _TypographySectionState extends State<TypographySection> {
   TypographyRole _selectedRole = TypographyRole.headings;
-  int? _selectedPresetIndex;
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     final currentConfig = themeProvider.getTypographyConfigForRole(
       _selectedRole,

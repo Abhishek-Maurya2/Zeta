@@ -12,10 +12,15 @@ class ZetaLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveRadius = borderRadius ?? BorderRadius.circular(size * 0.22);
 
+    final pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.0;
+    final cacheDimension = (size * pixelRatio).round().clamp(48, 512);
+
     Widget logoWidget = Image.asset(
       'assets/logo/logo.png',
       width: size,
       height: size,
+      cacheWidth: cacheDimension,
+      cacheHeight: cacheDimension,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.medium,
       errorBuilder: (context, error, stackTrace) {

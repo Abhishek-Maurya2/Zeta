@@ -17,7 +17,7 @@ class PreferencesService {
       return;
     }
     try {
-      _prefs ??= await SharedPreferences.getInstance();
+      _prefs = await SharedPreferences.getInstance();
     } catch (e, st) {
       AppLogger.error(
         'Failed to initialize PreferencesService',
@@ -60,6 +60,7 @@ class PreferencesService {
   // ─── General Keys ──────────────────────────────────────────────────────────
   static const String keySoundEffects = 'zeta_sound_effects';
   static const String keySwapSwipeActions = 'zeta_swap_swipe_actions';
+  static const String keyTaskFilter = 'zeta_task_filter_v1';
   static const String keyTaskSortBy = 'zeta_task_sort_by_v1';
   static const String keyCompletedTaskSortBy = 'zeta_completed_task_sort_by_v1';
   static const String keyPomodoroSettings = 'zeta_pomodoro_settings_v1';

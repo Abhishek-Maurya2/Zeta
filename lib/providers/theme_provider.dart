@@ -124,7 +124,6 @@ class ThemeProvider extends ChangeNotifier {
 
   ThemeProvider({WeatherProvider? weatherProvider})
     : _weather = weatherProvider ?? WeatherProvider() {
-    _weather.addListener(notifyListeners);
     _loadSettings();
   }
 

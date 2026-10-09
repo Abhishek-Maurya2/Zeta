@@ -34,12 +34,12 @@ class FloatingBottomNav extends StatelessWidget {
       left: 0,
       right: 0,
       child: AnimatedBuilder(
-        animation: scrollBehavior.controller!,
+        animation: scrollBehavior.controller,
         builder: (context, child) {
           return Transform.translate(
             offset: keepVisible
                 ? Offset.zero
-                : Offset(0, -scrollBehavior.controller!.offset),
+                : Offset(0, -scrollBehavior.controller.offset),
             child: child,
           );
         },

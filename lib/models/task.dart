@@ -45,6 +45,23 @@ class Task {
   DateTime? deletedAt;
   DateTime? lastSyncedAt;
 
+  DateTime? _cachedParsedDueDate;
+  String? _lastParsedDueDateString;
+
+  DateTime? get parsedDueDate {
+    if (dueDate == null || dueDate!.isEmpty) {
+      _cachedParsedDueDate = null;
+      _lastParsedDueDateString = null;
+      return null;
+    }
+    if (_lastParsedDueDateString == dueDate) {
+      return _cachedParsedDueDate;
+    }
+    _lastParsedDueDateString = dueDate;
+    _cachedParsedDueDate = TaskDateFormatter.parse(dueDate!);
+    return _cachedParsedDueDate;
+  }
+
   Task({
     required this.id,
     this.userId,

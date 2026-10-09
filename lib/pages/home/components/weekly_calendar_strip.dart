@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
-import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
 import 'weather_header_telemetry.dart';
@@ -344,17 +343,8 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     );
     final headlineLabel = DateTimeUtils.formatHeadline(widget.selectedDate);
 
-    // Pre-index task counts by date string
-    final allTasks = [...taskProvider.allTasks, ...taskProvider.binTasks];
-    final Map<String, List<Task>> tasksByDateKey = {};
-    for (final task in allTasks) {
-      if (task.dueDate == null) continue;
-      final parsed = TaskDateFormatter.parse(task.dueDate!);
-      if (parsed != null) {
-        final key = '${parsed.year}-${parsed.month}-${parsed.day}';
-        (tasksByDateKey[key] ??= []).add(task);
-      }
-    }
+    // Use pre-indexed task counts by date string
+    final tasksByDateKey = taskProvider.tasksByDateKey;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

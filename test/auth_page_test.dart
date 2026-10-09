@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'
+    as flutter_localizations;
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/features/auth/presentation/auth_provider.dart';
@@ -16,6 +18,11 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MaterialApp(
+        localizationsDelegates: const [
+          flutter_localizations.GlobalMaterialLocalizations.delegate,
+          flutter_localizations.GlobalWidgetsLocalizations.delegate,
+          flutter_localizations.GlobalCupertinoLocalizations.delegate,
+        ],
         home: LoginPage(
           initialMode: initialMode,
           unavailable: unavailable,

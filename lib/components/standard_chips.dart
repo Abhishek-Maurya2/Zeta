@@ -369,54 +369,70 @@ class RevisionTagInfo {
     r'^[•·\-\|\,\s]+|[•·\-\|\,\s]+$',
   );
 
+  static final Map<int, RevisionTagInfo> _parseCache = {};
+  static const int _maxCacheSize = 256;
+
   static RevisionTagInfo parse(String? rawDescription, {String? taskTitle}) {
+    final cacheKey = Object.hash(rawDescription, taskTitle);
+    final cached = _parseCache[cacheKey];
+    if (cached != null) return cached;
+
     final hasTitleRevise =
         taskTitle != null &&
         taskTitle.trim().toLowerCase().startsWith('revise:');
 
+    RevisionTagInfo result;
     if (rawDescription == null || rawDescription.trim().isEmpty) {
       if (hasTitleRevise) {
-        return const RevisionTagInfo(
+        result = const RevisionTagInfo(
           isRevision: true,
           label: 'Revision',
           cleanedDescription: null,
         );
+      } else {
+        result = const RevisionTagInfo(
+          isRevision: false,
+          label: '',
+          cleanedDescription: null,
+        );
       }
-      return const RevisionTagInfo(
-        isRevision: false,
-        label: '',
-        cleanedDescription: null,
-      );
+    } else {
+      final hasTag = _revisionRegex.hasMatch(rawDescription);
+      if (!hasTag && !hasTitleRevise) {
+        result = RevisionTagInfo(
+          isRevision: false,
+          label: '',
+          cleanedDescription: rawDescription,
+        );
+      } else {
+        // Extract stage if present (e.g., "#Revision • Stage 2 Spaced Repetition")
+        String label = 'Revision';
+        final stageMatch = _stageRegex.firstMatch(rawDescription);
+        if (stageMatch != null) {
+          final stageNum = stageMatch.group(1);
+          label = 'Revision • Stage $stageNum';
+        }
+
+        // Strip the revision tag and stage repetition marker from the description
+        String cleaned =
+            rawDescription.replaceAll(_stripRevisionRegex, '').trim();
+
+        // Clean up any dangling leading/trailing bullets, dashes, or separators
+        cleaned = cleaned.replaceAll(_cleanSeparatorsRegex, '').trim();
+
+        result = RevisionTagInfo(
+          isRevision: true,
+          label: label,
+          cleanedDescription: cleaned.isEmpty ? null : cleaned,
+        );
+      }
     }
 
-    final hasTag = _revisionRegex.hasMatch(rawDescription);
-    if (!hasTag && !hasTitleRevise) {
-      return RevisionTagInfo(
-        isRevision: false,
-        label: '',
-        cleanedDescription: rawDescription,
-      );
+    if (_parseCache.length >= _maxCacheSize) {
+      _parseCache.clear();
     }
-
-    // Extract stage if present (e.g., "#Revision • Stage 2 Spaced Repetition")
-    String label = 'Revision';
-    final stageMatch = _stageRegex.firstMatch(rawDescription);
-    if (stageMatch != null) {
-      final stageNum = stageMatch.group(1);
-      label = 'Revision • Stage $stageNum';
-    }
-
-    // Strip the revision tag and stage repetition marker from the description
-    String cleaned = rawDescription.replaceAll(_stripRevisionRegex, '').trim();
-
-    // Clean up any dangling leading/trailing bullets, dashes, or separators
-    cleaned = cleaned.replaceAll(_cleanSeparatorsRegex, '').trim();
-
-    return RevisionTagInfo(
-      isRevision: true,
-      label: label,
-      cleanedDescription: cleaned.isEmpty ? null : cleaned,
-    );
+    _parseCache[cacheKey] = result;
+    return result;
   }
 }
 

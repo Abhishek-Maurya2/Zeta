@@ -173,7 +173,7 @@ class UpdatesSection extends StatelessWidget {
                 M3EButton.icon(
                   icon: const Icon(Icons.download_rounded, size: 25),
                   label: Text(
-                    style: TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 20),
                     'Update to v${info.latestVersion}',
                   ),
                   style: M3EButtonStyle.filled,

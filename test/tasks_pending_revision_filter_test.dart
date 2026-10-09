@@ -95,5 +95,77 @@ void main() {
       expect(find.text('Revise: Physics Notes'), findsOneWidget);
       expect(find.text('Regular Task 1'), findsNothing);
     });
+
+    test('TaskProvider remembers last selected filter via PreferencesService', () async {
+      final taskProvider = TaskProvider();
+      expect(taskProvider.filter, TaskFilter.all);
+
+      taskProvider.setFilter(TaskFilter.pending);
+      expect(taskProvider.filter, TaskFilter.pending);
+      expect(
+        PreferencesService.instance.getString(PreferencesService.keyTaskFilter),
+        equals(TaskFilter.pending.name),
+      );
+
+      // Re-instantiate TaskProvider (simulating app restart)
+      final restoredProvider = TaskProvider();
+      expect(restoredProvider.filter, equals(TaskFilter.pending));
+
+      // Switch to revision
+      restoredProvider.setFilter(TaskFilter.revision);
+      expect(
+        PreferencesService.instance.getString(PreferencesService.keyTaskFilter),
+        equals(TaskFilter.revision.name),
+      );
+
+      final secondRestoredProvider = TaskProvider();
+      expect(secondRestoredProvider.filter, equals(TaskFilter.revision));
+    });
+
+    testWidgets('TasksPage buttongroup interaction persists and remembers selected filter', (tester) async {
+      final taskProvider = TaskProvider();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<TaskProvider>.value(value: taskProvider),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: TasksPage(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await taskProvider.addTask(title: 'Regular Task 1');
+      await taskProvider.addTask(title: 'Revise: Physics Notes');
+      await tester.pumpAndSettle();
+
+      // Tap on Revisions tab in buttongroup
+      final revisionTab = find.textContaining('Revisions');
+      expect(revisionTab, findsWidgets);
+      await tester.tap(revisionTab.first);
+      await tester.pumpAndSettle();
+
+      expect(taskProvider.filter, equals(TaskFilter.revision));
+      expect(
+        PreferencesService.instance.getString(PreferencesService.keyTaskFilter),
+        equals(TaskFilter.revision.name),
+      );
+
+      // Tap on Pending tab in buttongroup
+      final pendingTab = find.textContaining('Pending');
+      expect(pendingTab, findsWidgets);
+      await tester.tap(pendingTab.first);
+      await tester.pumpAndSettle();
+
+      expect(taskProvider.filter, equals(TaskFilter.pending));
+      expect(
+        PreferencesService.instance.getString(PreferencesService.keyTaskFilter),
+        equals(TaskFilter.pending.name),
+      );
+    });
   });
 }

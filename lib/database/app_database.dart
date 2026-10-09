@@ -31,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -47,10 +47,19 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
       );
       await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_user_active ON tasks (user_id, deleted_at_ms, created_at_ms DESC);',
+      );
+      await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
       );
       await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_revision_topics_user_subject ON revision_topics (user_id, subject_id, sort_order);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
       );
     },
     onUpgrade: (m, from, to) async {
@@ -128,6 +137,17 @@ class AppDatabase extends _$AppDatabase {
           m,
           revisionTopicsTable,
           revisionTopicsTable.attachmentsJson,
+        );
+      }
+      if (from < 9) {
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_tasks_user_active ON tasks (user_id, deleted_at_ms, created_at_ms DESC);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_revision_topics_user_subject ON revision_topics (user_id, subject_id, sort_order);',
+        );
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
         );
       }
     },

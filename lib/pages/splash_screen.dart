@@ -24,7 +24,7 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({
     super.key,
     this.onInitializationComplete,
-    this.minDuration = const Duration(milliseconds: 1200),
+    this.minDuration = const Duration(milliseconds: 350),
     this.isPreview = false,
   });
 
@@ -51,7 +51,6 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       await Future.wait([
         if (!isTest) SupabaseService().init(),
-        _precacheAssets(),
       ]);
     } catch (e) {
       debugPrint('SplashScreen warmup notice: $e');
@@ -73,6 +72,12 @@ class _SplashScreenState extends State<SplashScreen> {
         widget.onInitializationComplete?.call();
       }
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _precacheAssets();
   }
 
   Future<void> _precacheAssets() async {
@@ -107,6 +112,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 'assets/logo/logo.png',
                 width: 120,
                 height: 120,
+                cacheWidth: 240,
+                cacheHeight: 240,
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => Container(
                   width: 120,

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
-import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
 import '../../../theme/breakpoints.dart';
@@ -54,8 +53,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
   }
 
   bool _isTaskOnDate(Task task, DateTime date) {
-    if (task.dueDate == null) return false;
-    final parsed = TaskDateFormatter.parse(task.dueDate!);
+    final parsed = task.parsedDueDate;
     if (parsed != null) {
       return DateTimeUtils.isSameDay(parsed, date);
     }
@@ -78,7 +76,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     final completedDateStrings = <String>{};
     for (final t in allTasks) {
       if (t.completed && t.dueDate != null) {
-        final parsed = TaskDateFormatter.parse(t.dueDate!);
+        final parsed = t.parsedDueDate;
         if (parsed != null) {
           completedDateStrings.add(DateTimeUtils.formatDateYMD(parsed));
         }

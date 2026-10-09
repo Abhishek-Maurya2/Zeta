@@ -40,6 +40,12 @@ class AppTheme {
     }
   }
 
+  static int? _lightCacheKey;
+  static ThemeData? _cachedLightTheme;
+
+  static int? _darkCacheKey;
+  static ThemeData? _cachedDarkTheme;
+
   static ThemeData light(
     Color seedColor, [
     M3EColorVariant variant = M3EColorVariant.expressive,
@@ -52,12 +58,28 @@ class AppTheme {
     RoleTypographyConfig? bodyTypography,
     RoleTypographyConfig? labelsTypography,
   ]) {
+    final cacheKey = Object.hash(
+      seedColor.toARGB32(),
+      variant,
+      cornerStyle,
+      highContrast,
+      compactDensity,
+      animations,
+      headingsTypography,
+      titlesTypography,
+      bodyTypography,
+      labelsTypography,
+    );
+    if (_lightCacheKey == cacheKey && _cachedLightTheme != null) {
+      return _cachedLightTheme!;
+    }
+
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: Brightness.light,
       dynamicSchemeVariant: variant.toDynamicSchemeVariant(),
     );
-    return _buildTheme(
+    final theme = _buildTheme(
       colorScheme,
       seedColor: seedColor,
       cornerStyle: cornerStyle,
@@ -69,6 +91,9 @@ class AppTheme {
       bodyTypography: bodyTypography,
       labelsTypography: labelsTypography,
     );
+    _lightCacheKey = cacheKey;
+    _cachedLightTheme = theme;
+    return theme;
   }
 
   static ThemeData dark(
@@ -83,12 +108,28 @@ class AppTheme {
     RoleTypographyConfig? bodyTypography,
     RoleTypographyConfig? labelsTypography,
   ]) {
+    final cacheKey = Object.hash(
+      seedColor.toARGB32(),
+      variant,
+      cornerStyle,
+      highContrast,
+      compactDensity,
+      animations,
+      headingsTypography,
+      titlesTypography,
+      bodyTypography,
+      labelsTypography,
+    );
+    if (_darkCacheKey == cacheKey && _cachedDarkTheme != null) {
+      return _cachedDarkTheme!;
+    }
+
     final colorScheme = ColorScheme.fromSeed(
       seedColor: seedColor,
       brightness: Brightness.dark,
       dynamicSchemeVariant: variant.toDynamicSchemeVariant(),
     );
-    return _buildTheme(
+    final theme = _buildTheme(
       colorScheme,
       seedColor: seedColor,
       cornerStyle: cornerStyle,
@@ -100,6 +141,9 @@ class AppTheme {
       bodyTypography: bodyTypography,
       labelsTypography: labelsTypography,
     );
+    _darkCacheKey = cacheKey;
+    _cachedDarkTheme = theme;
+    return theme;
   }
 
   static ThemeData _buildTheme(

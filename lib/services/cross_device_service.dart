@@ -449,7 +449,17 @@ class CrossDeviceService with WidgetsBindingObserver {
         _pomodoroProvider!.setActiveTab(pomodoroTab);
       }
 
-      // 4. Task Form / Edit Pane Resume
+      // 4. Task Filter Resume
+      final taskFilterName = context?['taskFilter'] as String?;
+      if (taskFilterName != null && _taskProvider != null) {
+        try {
+          final filter =
+              TaskFilter.values.firstWhere((e) => e.name == taskFilterName);
+          _taskProvider!.setFilter(filter);
+        } catch (_) {}
+      }
+
+      // 5. Task Form / Edit Pane Resume
       final taskDraft = context?['taskDraft'] as Map<String, dynamic>?;
       final openedTaskId = context?['openedTaskId'] as String? ?? event.itemId;
 
@@ -641,6 +651,7 @@ class CrossDeviceService with WidgetsBindingObserver {
 
     // 3. Task Context with payload compression
     if (page == PageId.tasks && _taskProvider != null) {
+      contextData['taskFilter'] = _taskProvider!.filter.name;
       if (_taskProvider!.taskFormDraft != null) {
         final draftCopy =
             Map<String, dynamic>.from(_taskProvider!.taskFormDraft!);
