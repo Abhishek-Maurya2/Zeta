@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+
 import 'components/top_bar_brand.dart';
 import 'components/top_bar_search.dart';
 import 'components/top_bar_avatar.dart';
@@ -62,11 +63,15 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final taskProvider = context.watch<TaskProvider>();
     final themeProvider = context.watch<ThemeProvider>();
 
-    final isSearchOpenState = _searchController.isAttached && _searchController.isOpen;
-    if (!isSearchOpenState && _searchController.text != taskProvider.searchQuery) {
+    final isSearchOpenState =
+        _searchController.isAttached && _searchController.isOpen;
+    if (!isSearchOpenState &&
+        _searchController.text != taskProvider.searchQuery) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final currentlyOpen = _searchController.isAttached && _searchController.isOpen;
-        if (!currentlyOpen && _searchController.text != taskProvider.searchQuery) {
+        final currentlyOpen =
+            _searchController.isAttached && _searchController.isOpen;
+        if (!currentlyOpen &&
+            _searchController.text != taskProvider.searchQuery) {
           _searchController.text = taskProvider.searchQuery;
         }
       });
@@ -99,7 +104,8 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         }
       },
       barTrailing: [
-        if (taskProvider.searchQuery.isNotEmpty || _searchController.text.isNotEmpty)
+        if (taskProvider.searchQuery.isNotEmpty ||
+            _searchController.text.isNotEmpty)
           Tooltip(
             message: 'Clear search',
             child: M3EIconButton(
@@ -112,13 +118,17 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
               },
             ),
           ),
-        if (!isCompact && taskProvider.searchQuery.isEmpty && _searchController.text.isEmpty)
+        if (!isCompact &&
+            taskProvider.searchQuery.isEmpty &&
+            _searchController.text.isEmpty)
           Tooltip(
             message: 'Press / to search',
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.5),
+                color: colorScheme.surfaceContainerLowest.withValues(
+                  alpha: 0.5,
+                ),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: colorScheme.outlineVariant.withValues(alpha: 0.5),
