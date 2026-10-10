@@ -27,6 +27,9 @@ class FlutterWindow : public Win32Window {
   void RemoveTray();
   void ForceClose();
 
+  bool Show() override;
+  bool IsFullscreen() const override { return is_fullscreen_; }
+
  protected:
   // Win32Window:
   bool OnCreate() override;
@@ -57,6 +60,7 @@ class FlutterWindow : public Win32Window {
   // System tray state
   bool tray_initialized_ = false;
   bool minimize_to_tray_ = true;
+  bool is_hidden_to_tray_ = false;
   NOTIFYICONDATA nid_ = {};
   HMENU tray_menu_ = nullptr;
 };

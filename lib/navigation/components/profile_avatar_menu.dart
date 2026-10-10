@@ -6,6 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import '../../components/user_avatar.dart';
 import '../../components/glass_surface.dart';
 import '../../providers/navigation_provider.dart';
@@ -248,7 +249,8 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
 
-    final tooltipMsg = widget.tooltipMessage ??
+    final tooltipMsg =
+        widget.tooltipMessage ??
         (syncError != null
             ? '${profileProvider.userName} • Sync Error: $syncError'
             : profileProvider.userName);
@@ -263,24 +265,20 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
           child: MouseRegion(
             onEnter: isTouch ? null : (_) => _handleAvatarHoverEnter(),
             onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
-            child: Tooltip(
-              message: tooltipMsg,
-              triggerMode: TooltipTriggerMode.longPress,
-              child: Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => _handleAvatarTap(context, isCompact),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: UserAvatar(
-                      radius: 20,
-                      ringWidth: 2,
-                      ringColor: syncRingColor,
-                      hasError: syncError != null,
-                    ),
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => _handleAvatarTap(context, isCompact),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: UserAvatar(
+                    radius: 20,
+                    ringWidth: 2,
+                    ringColor: syncRingColor,
+                    hasError: syncError != null,
                   ),
                 ),
               ),
@@ -324,7 +322,8 @@ class _ProfileCardContent extends StatelessWidget {
         revisionProvider.refreshData(),
       ]);
       if (context.mounted) {
-        final anyError = taskProvider.syncError ??
+        final anyError =
+            taskProvider.syncError ??
             pomodoroProvider.syncError ??
             revisionProvider.syncError ??
             profileProvider.syncError;
@@ -378,28 +377,46 @@ class _ProfileCardContent extends StatelessWidget {
 
     // Collect all active sync errors
     final List<({String source, String error})> activeErrors = [];
-    if (taskProvider.syncError != null && taskProvider.syncError!.trim().isNotEmpty) {
-      activeErrors.add((source: 'Tasks', error: taskProvider.syncError!.trim()));
+    if (taskProvider.syncError != null &&
+        taskProvider.syncError!.trim().isNotEmpty) {
+      activeErrors.add((
+        source: 'Tasks',
+        error: taskProvider.syncError!.trim(),
+      ));
     }
-    if (pomodoroProvider.syncError != null && pomodoroProvider.syncError!.trim().isNotEmpty) {
-      activeErrors.add((source: 'Pomodoro', error: pomodoroProvider.syncError!.trim()));
+    if (pomodoroProvider.syncError != null &&
+        pomodoroProvider.syncError!.trim().isNotEmpty) {
+      activeErrors.add((
+        source: 'Pomodoro',
+        error: pomodoroProvider.syncError!.trim(),
+      ));
     }
-    if (revisionProvider.syncError != null && revisionProvider.syncError!.trim().isNotEmpty) {
-      activeErrors.add((source: 'Revision', error: revisionProvider.syncError!.trim()));
+    if (revisionProvider.syncError != null &&
+        revisionProvider.syncError!.trim().isNotEmpty) {
+      activeErrors.add((
+        source: 'Revision',
+        error: revisionProvider.syncError!.trim(),
+      ));
     }
-    if (profileProvider.syncError != null && profileProvider.syncError!.trim().isNotEmpty) {
-      activeErrors.add((source: 'Profile', error: profileProvider.syncError!.trim()));
+    if (profileProvider.syncError != null &&
+        profileProvider.syncError!.trim().isNotEmpty) {
+      activeErrors.add((
+        source: 'Profile',
+        error: profileProvider.syncError!.trim(),
+      ));
     }
 
     final bool hasSyncError = activeErrors.isNotEmpty;
     final primaryError = hasSyncError ? activeErrors.first : null;
 
-    final isSyncing = taskProvider.isSyncing ||
+    final isSyncing =
+        taskProvider.isSyncing ||
         pomodoroProvider.isSyncing ||
         revisionProvider.isSyncing ||
         profileProvider.isSyncing;
 
-    final allSynced = !hasSyncError &&
+    final allSynced =
+        !hasSyncError &&
         taskProvider.lastSyncedAt != null &&
         pomodoroProvider.lastSyncedAt != null &&
         revisionProvider.lastSyncedAt != null &&
@@ -430,277 +447,246 @@ class _ProfileCardContent extends StatelessWidget {
     return GlassSurface(
       borderRadius: BorderRadius.circular(24),
       child: Card(
-          color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ─── Header: [Name, Email] + Photo ──────────────────────────
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: Row(
-                    children: [
-                      UserAvatar(
-                        radius: 28,
-                        showRing: true,
-                        ringWidth: 2,
-                        ringColor: hasSyncError ? colorScheme.error : syncRingColor,
-                        hasError: hasSyncError,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              userName,
-                              style: textTheme.headlineSmall?.copyWith(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: colorScheme.onSurface,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ─── Header: [Name, Email] + Photo ──────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                child: Row(
+                  children: [
+                    UserAvatar(
+                      radius: 28,
+                      showRing: true,
+                      ringWidth: 2,
+                      ringColor: hasSyncError
+                          ? colorScheme.error
+                          : syncRingColor,
+                      hasError: hasSyncError,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            userName,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: colorScheme.onSurface,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              userEmail,
-                              style: textTheme.bodySmall?.copyWith(
-                                fontSize: 12,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            userEmail,
+                            style: textTheme.bodySmall?.copyWith(
+                              fontSize: 12,
+                              color: colorScheme.onSurfaceVariant,
                             ),
-                            const SizedBox(height: 5),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 5),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(
+                                alpha: isDark ? 0.22 : 0.12,
                               ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(
-                                  alpha: isDark ? 0.22 : 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    statusIcon,
-                                    size: 11,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(statusIcon, size: 11, color: statusColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  statusLabel,
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w800,
                                     color: statusColor,
+                                    letterSpacing: 0.5,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    statusLabel,
-                                    style: TextStyle(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w800,
-                                      color: statusColor,
-                                      letterSpacing: 0.5,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ─── Sync Error Card (if any active error) ───────────────────
+              if (hasSyncError && primaryError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer.withValues(
+                      alpha: isDark ? 0.35 : 0.6,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: colorScheme.error.withValues(alpha: 0.35),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.sync_problem_rounded,
+                            size: 16,
+                            color: colorScheme.error,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              activeErrors.length > 1
+                                  ? 'Sync Error (${activeErrors.map((e) => e.source).join(', ')})'
+                                  : '${primaryError.source} Sync Error',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.error,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Tooltip(
+                            message: 'Copy error message',
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () async {
+                                ZetaHaptics.light();
+                                await Clipboard.setData(
+                                  ClipboardData(text: primaryError.error),
+                                );
+                                if (context.mounted) {
+                                  AppSnackbar.show(
+                                    context,
+                                    message: 'Error copied to clipboard',
+                                    duration: const Duration(seconds: 2),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.copy_rounded,
+                                      size: 13,
+                                      color: colorScheme.error,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Copy',
+                                      style: textTheme.labelSmall?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: colorScheme.error,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Tooltip(
+                        message: primaryError.error,
+                        child: Text(
+                          primaryError.error,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onErrorContainer,
+                            fontSize: 11.5,
+                            height: 1.25,
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+              ] else ...[
+                const SizedBox(height: 16),
+              ],
 
-                // ─── Sync Error Card (if any active error) ───────────────────
-                if (hasSyncError && primaryError != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: colorScheme.errorContainer.withValues(
-                        alpha: isDark ? 0.35 : 0.6,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: colorScheme.error.withValues(alpha: 0.35),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.sync_problem_rounded,
-                              size: 16,
-                              color: colorScheme.error,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                activeErrors.length > 1
-                                    ? 'Sync Error (${activeErrors.map((e) => e.source).join(', ')})'
-                                    : '${primaryError.source} Sync Error',
-                                style: textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.error,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Tooltip(
-                              message: 'Copy error message',
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(6),
-                                onTap: () async {
-                                  ZetaHaptics.light();
-                                  await Clipboard.setData(
-                                    ClipboardData(text: primaryError.error),
-                                  );
-                                  if (context.mounted) {
-                                    AppSnackbar.show(
-                                      context,
-                                      message: 'Error copied to clipboard',
-                                      duration: const Duration(seconds: 2),
-                                    );
-                                  }
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.copy_rounded,
-                                        size: 13,
-                                        color: colorScheme.error,
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'Copy',
-                                        style: textTheme.labelSmall?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: colorScheme.error,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 5),
-                        Tooltip(
-                          message: primaryError.error,
-                          child: Text(
-                            primaryError.error,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onErrorContainer,
-                              fontSize: 11.5,
-                              height: 1.25,
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ] else ...[
-                  const SizedBox(height: 16),
-                ],
+              // ─── Segmented List: Refresh, Settings, Bin ─────────────────
+              Builder(
+                builder: (context) {
+                  final menuItems = <Widget>[];
+                  final menuActions = <VoidCallback>[];
 
-                // ─── Segmented List: Refresh, Settings, Bin ─────────────────
-                Builder(
-                  builder: (context) {
-                    final menuItems = <Widget>[];
-                    final menuActions = <VoidCallback>[];
-
-                    // 1. Refresh Tile
-                    menuItems.add(
-                      M3EListItem(
-                        leading: Icon(
-                          hasSyncError
-                              ? Icons.sync_problem_rounded
-                              : (isSyncing
+                  // 1. Refresh Tile
+                  menuItems.add(
+                    M3EListItem(
+                      leading: Icon(
+                        hasSyncError
+                            ? Icons.sync_problem_rounded
+                            : (isSyncing
                                   ? Icons.sync_rounded
                                   : Icons.refresh_rounded),
-                          size: 20,
-                          color: hasSyncError
-                              ? colorScheme.error
-                              : colorScheme.onSurfaceVariant,
-                        ),
-                        headline: hasSyncError
-                            ? 'Retry Sync'
-                            : (isSyncing ? 'Syncing…' : 'Refresh'),
-                        supportingText: hasSyncError
-                            ? 'Tap to retry failed sync'
-                            : (isSyncing
-                                ? 'Syncing with cloud…'
-                                : null),
+                        size: 20,
+                        color: hasSyncError
+                            ? colorScheme.error
+                            : colorScheme.onSurfaceVariant,
                       ),
-                    );
-                    menuActions.add(() {
-                      onDismiss();
-                      _triggerRefresh(context);
-                    });
+                      headline: hasSyncError
+                          ? 'Retry Sync'
+                          : (isSyncing ? 'Syncing…' : 'Refresh'),
+                      supportingText: hasSyncError
+                          ? 'Tap to retry failed sync'
+                          : (isSyncing ? 'Syncing with cloud…' : null),
+                    ),
+                  );
+                  menuActions.add(() {
+                    onDismiss();
+                    _triggerRefresh(context);
+                  });
 
-                    // 2. Bin Tile (if Android or compact)
-                    if (isAndroid || isCompact) {
-                      menuItems.add(
-                        M3EListItem(
-                          leading: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 20,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          headline: 'Bin',
-                          trailing: Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.7,
-                            ),
-                          ),
-                        ),
-                      );
-                      menuActions.add(() {
-                        onDismiss();
-                        ZetaHaptics.selection();
-                        navProvider.setActivePage(PageId.bin);
-                      });
-                    }
-
-                    // 3. Settings Tile
+                  // 2. Bin Tile (if Android or compact)
+                  if (isAndroid || isCompact) {
                     menuItems.add(
                       M3EListItem(
                         leading: Icon(
-                          Icons.settings_outlined,
+                          Icons.delete_outline_rounded,
                           size: 20,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        headline: 'Settings',
+                        headline: 'Bin',
                         trailing: Icon(
                           Icons.chevron_right_rounded,
                           size: 18,
@@ -713,22 +699,47 @@ class _ProfileCardContent extends StatelessWidget {
                     menuActions.add(() {
                       onDismiss();
                       ZetaHaptics.selection();
-                      navProvider.setActivePage(PageId.settings);
+                      navProvider.setActivePage(PageId.bin);
                     });
+                  }
 
-                    return M3EList(
-                      color: isDark
-                          ? colorScheme.tertiary.withValues(alpha: 0.3)
-                          : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
-                      itemCount: menuItems.length,
-                      onTap: (index) => menuActions[index](),
-                      itemBuilder: (context, index) => menuItems[index],
-                    );
-                  },
-                ),
-              ],
-            ),
+                  // 3. Settings Tile
+                  menuItems.add(
+                    M3EListItem(
+                      leading: Icon(
+                        Icons.settings_outlined,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      headline: 'Settings',
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                  );
+                  menuActions.add(() {
+                    onDismiss();
+                    ZetaHaptics.selection();
+                    navProvider.setActivePage(PageId.settings);
+                  });
+
+                  return M3EList(
+                    color: isDark
+                        ? colorScheme.tertiary.withValues(alpha: 0.3)
+                        : colorScheme.tertiaryFixedDim.withValues(alpha: 0.5),
+                    itemCount: menuItems.length,
+                    onTap: (index) => menuActions[index](),
+                    itemBuilder: (context, index) => menuItems[index],
+                  );
+                },
+              ),
+            ],
           ),
+        ),
       ),
     );
   }
