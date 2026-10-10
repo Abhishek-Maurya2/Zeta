@@ -194,8 +194,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 key: const ValueKey<String>('settings_compact_root'),
                 slivers: [
                   M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
+                    titleText: 'Settings',
+                    subtitleText: null,
+                    centerTitle: true,
+                    density: M3EAppBarDensity.regular,
+                    shapeFamily: M3EAppBarShapeFamily.round,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
                     leading: isCompact
                         ? M3EIconButton(
                             variant: M3EIconButtonVariant.standard,
@@ -217,7 +222,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             tooltip: 'Back',
                           )
                         : null,
-                    title: const Text('Settings'),
                   ),
                   SliverPadding(
                     padding: EdgeInsets.symmetric(
@@ -242,8 +246,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 slivers: [
                   M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
+                    titleText: activeCategoryMeta?.label ?? 'Settings',
+                    subtitleText: null,
+                    centerTitle: true,
+                    density: M3EAppBarDensity.regular,
+                    shapeFamily: M3EAppBarShapeFamily.round,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
                     leading: M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
                       size: M3EIconButtonSize.sm,
@@ -263,7 +272,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                       tooltip: 'Back',
                     ),
-                    title: Text(activeCategoryMeta?.label ?? 'Settings'),
                   ),
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(
@@ -304,8 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
           maxAllowedWidth,
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final textTheme = Theme.of(context).textTheme;
-
+        
         if (_isPaneCollapsed) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -332,15 +339,16 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       slivers: [
                         M3EAppBar.sliver(
-                          variant: M3EAppBarVariant.largeFlexible,
-                          hideOnScroll: false,
+                          titleText: activeCategoryMeta?.label ?? 'Settings',
+                          subtitleText: null,
+                          centerTitle: true,
+                          density: M3EAppBarDensity.regular,
+                          shapeFamily: M3EAppBarShapeFamily.round,
+                          variant: M3EAppBarVariant.large,
+                          hideMode: M3EAppBarHideMode.actions,
                           backgroundColor: isDark
                               ? colorScheme.surfaceContainerHigh
                               : colorScheme.surfaceContainer,
-                          title: Text(
-                            activeCategoryMeta?.label ?? 'Settings',
-                            style: textTheme.displaySmall,
-                          ),
                         ),
                         SliverPadding(
                           padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
@@ -412,9 +420,13 @@ class _SettingsPageState extends State<SettingsPage> {
             key: const PageStorageKey<String>('settings_wide_nav'),
             slivers: [
               M3EAppBar.sliver(
-                variant: M3EAppBarVariant.largeFlexible,
-                hideOnScroll: false,
-                title: Text('Settings', style: textTheme.displaySmall),
+                titleText: 'Settings',
+                subtitleText: null,
+                centerTitle: true,
+                density: M3EAppBarDensity.regular,
+                shapeFamily: M3EAppBarShapeFamily.round,
+                variant: M3EAppBarVariant.large,
+                hideMode: M3EAppBarHideMode.actions,
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -448,15 +460,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 slivers: [
                   M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
+                    titleText: activeCategoryMeta?.label ?? 'Settings',
+                    subtitleText: null,
+                    centerTitle: true,
+                    density: M3EAppBarDensity.regular,
+                    shapeFamily: M3EAppBarShapeFamily.round,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
                     backgroundColor: isDark
                         ? colorScheme.surfaceContainerHigh
                         : colorScheme.surfaceContainer,
-                    title: Text(
-                      activeCategoryMeta?.label ?? 'Settings',
-                      style: textTheme.displaySmall,
-                    ),
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
@@ -484,8 +497,7 @@ class _SettingsPageState extends State<SettingsPage> {
     required bool isTwoPane,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
+    
     bool isUpdateAvailable = false;
     try {
       isUpdateAvailable = context.watch<UpdateProvider>().isUpdateAvailable;
