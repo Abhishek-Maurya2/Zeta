@@ -182,6 +182,8 @@ class _SettingsPageState extends State<SettingsPage> {
       _widePreviousIndex = currentWideIdx;
       _wideLastCategory = activeCategory;
     }
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     if (!isTwoPane) {
       return M3EPageTransition(
@@ -194,36 +196,26 @@ class _SettingsPageState extends State<SettingsPage> {
                 key: const ValueKey<String>('settings_compact_root'),
                 slivers: [
                   M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
-                    leading: isCompact
-                        ? M3EIconButton(
-                            variant: M3EIconButtonVariant.standard,
-                            size: M3EIconButtonSize.sm,
-                            width: M3EIconButtonWidth.wide,
-                            icon: Icon(
-                              Icons.arrow_back_rounded,
-                              color: colorScheme.onSurface,
-                            ),
-                            decoration: M3EIconButtonDecoration(
-                              backgroundColor: WidgetStateProperty.all(
-                                colorScheme.surfaceContainerLowest,
-                              ),
-                            ),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              navProvider.setActivePage(PageId.home);
-                            },
-                            tooltip: 'Back',
-                          )
-                        : null,
-                    title: const Text('Settings'),
+                    backgroundColor: isDark
+                        ? colorScheme.surfaceContainer
+                        : colorScheme.surface,
+                    titleText: 'Settings',
+                    centerTitle: true,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
+                    leading: M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      width: M3EIconButtonWidth.wide,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        navProvider.setActivePage(PageId.home);
+                      },
+                    ),
                   ),
                   SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isCompact
-                          ? ZetaBreakpoints.marginCompact
-                          : ZetaBreakpoints.marginExpanded,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: ZetaBreakpoints.marginCompact,
                       vertical: 8,
                     ),
                     sliver: SliverToBoxAdapter(
@@ -242,36 +234,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 slivers: [
                   M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
+                    titleText: activeCategoryMeta?.label ?? 'Settings',
+                    backgroundColor: isDark
+                        ? colorScheme.surfaceContainer
+                        : colorScheme.surface,
+                    centerTitle: true,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
                     leading: M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
-                      size: M3EIconButtonSize.sm,
-                      width: M3EIconButtonWidth.wide,
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: colorScheme.onSurface,
-                      ),
-                      decoration: M3EIconButtonDecoration(
-                        backgroundColor: WidgetStateProperty.all(
-                          colorScheme.surfaceContainerLowest,
-                        ),
-                      ),
+                      icon: const Icon(Icons.arrow_back_rounded),
                       onPressed: () {
                         ZetaHaptics.light();
                         navProvider.clearSettingsCategory();
                       },
-                      tooltip: 'Back',
                     ),
-                    title: Text(activeCategoryMeta?.label ?? 'Settings'),
                   ),
                   SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      isCompact ? 12 : 24,
-                      12,
-                      isCompact ? 12 : 24,
-                      isCompact ? 90 : 24,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                     sliver: SliverToBoxAdapter(
                       child: SettingsDetailPane(
                         activeCategory: selectedCategory,
