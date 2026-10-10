@@ -166,64 +166,127 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
             ),
           )
         else
-          M3EList(
-            color: colorScheme.surfaceContainerLowest,
-            itemCount: visibleSessions.length,
-            itemBuilder: (context, index) {
-              final entry = visibleSessions[index];
-              final date = DateTime.fromMillisecondsSinceEpoch(
-                entry.completedAt,
-              );
-              final timeStr =
-                  '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-              final dateStr = '${date.day} ${monthName(date.month)}';
-              final isFocus = entry.mode == PomodoroMode.focus;
+          Builder(
+            builder: (context) {
+              final groupedSessions = <String, List<dynamic>>{};
+              for (final session in visibleSessions) {
+                final date = DateTime.fromMillisecondsSinceEpoch(
+                  session.completedAt as int,
+                );
+                final dateStr = '${date.day} ${monthName(date.month)}';
+                groupedSessions.putIfAbsent(dateStr, () => []).add(session);
+              }
+              final groupedKeys = groupedSessions.keys.toList();
 
-              return M3EListItem(
-                leading: M3EShapeContainer(
-                  kind: isFocus
-                      ? M3EShapeKind.ghostish
-                      : (entry.mode == PomodoroMode.shortBreak
-                            ? M3EShapeKind.softBoom
-                            : M3EShapeKind.pill),
-                  width: 40,
-                  height: 40,
-                  color: isFocus
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainerHighest,
-                  child: Center(
-                    child: Icon(
-                      isFocus
-                          ? Icons.psychology_rounded
-                          : (entry.mode == PomodoroMode.shortBreak
-                                ? Icons.coffee_rounded
-                                : Icons.hotel_rounded),
-                      size: 28,
-                      color: isFocus
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
-                    ),
+              return M3EList(
+                color: colorScheme.surfaceContainerLowest,
+                itemCount: groupedKeys.length,
+                expandStyle: M3EExpandableStyle(
+                  expandedStateFill: false,
+                  gap: 5,
+                  expandedIconBackground: colorScheme.surfaceContainerHighest,
+                  expandIcon: Icon(
+                    Icons.expand_more_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  collapseIcon: Icon(
+                    Icons.expand_less_rounded,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                headline: entry.mode.label,
-                supportingText: '$dateStr at $timeStr',
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${entry.minutes}m',
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSecondaryContainer,
+                itemBuilder: (context, index) {
+                  final dateStr = groupedKeys[index];
+                  final sessionsForDay = groupedSessions[dateStr]!;
+
+                  int focusTime = 0;
+                  for (final s in sessionsForDay) {
+                    if (s.mode == PomodoroMode.focus) {
+                      focusTime += s.minutes as int;
+                    }
+                  }
+
+                  String? focusStr;
+                  if (focusTime > 0) {
+                    final int h = focusTime ~/ 60;
+                    final int m = focusTime % 60;
+                    if (h > 0 && m > 0) {
+                      focusStr = '${h}h ${m}m focus';
+                    } else if (h > 0) {
+                      focusStr = '${h}h focus';
+                    } else {
+                      focusStr = '${m}m focus';
+                    }
+                  }
+
+                  return M3EListItem(
+                    headline: dateStr,
+                    supportingText: focusStr,
+                    leading: const Icon(Icons.calendar_today_rounded),
+                    expanded: M3EExpandableExpanded.list(
+                      M3EList(
+                        color: colorScheme.tertiaryContainer,
+                        haptic: M3EHapticFeedback.heavy,
+                        itemCount: sessionsForDay.length,
+                        itemBuilder: (context, sessionIndex) {
+                          final entry = sessionsForDay[sessionIndex];
+                          final date = DateTime.fromMillisecondsSinceEpoch(
+                            entry.completedAt as int,
+                          );
+                          final isPm = date.hour >= 12;
+                          final hour12 = date.hour == 0
+                              ? 12
+                              : (date.hour > 12 ? date.hour - 12 : date.hour);
+                          final timeStr =
+                              '$hour12:${date.minute.toString().padLeft(2, '0')} ${isPm ? 'PM' : 'AM'}';
+                          final isFocus = entry.mode == PomodoroMode.focus;
+
+                          return M3EListItem(
+                            leading: M3EShapeContainer(
+                              kind: isFocus
+                                  ? M3EShapeKind.ghostish
+                                  : (entry.mode == PomodoroMode.shortBreak
+                                        ? M3EShapeKind.softBoom
+                                        : M3EShapeKind.pill),
+                              width: 40,
+                              height: 40,
+                              color: colorScheme.onTertiary,
+                              child: Center(
+                                child: Icon(
+                                  isFocus
+                                      ? Icons.psychology_rounded
+                                      : (entry.mode == PomodoroMode.shortBreak
+                                            ? Icons.coffee_rounded
+                                            : Icons.hotel_rounded),
+                                  size: 28,
+                                  color: colorScheme.onTertiaryContainer,
+                                ),
+                              ),
+                            ),
+                            headline: entry.mode.label,
+                            supportingText: '@ $timeStr',
+                            trailing: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.tertiary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${entry.minutes}m',
+                                style: textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.onTertiary,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),

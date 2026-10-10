@@ -173,22 +173,7 @@ class TasksPage extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // 3. Task List Section
-                  if (filter == TaskFilter.completed) ...[
-                    if (completed.isEmpty)
-                      TasksEmptyView(
-                        filter: filter,
-                        isSearching: isSearching,
-                        searchQuery: taskProvider.searchQuery,
-                        onClearSearch: () => taskProvider.clearSearchQuery(),
-                      )
-                    else
-                      _buildCompletedList(
-                        context,
-                        completed,
-                        taskProvider,
-                        true,
-                      ),
-                  ] else if (filter == TaskFilter.pending) ...[
+                  if (filter == TaskFilter.pending) ...[
                     if (pendingNonRevision.isEmpty)
                       TasksEmptyView(
                         filter: filter,
@@ -202,6 +187,45 @@ class TasksPage extends StatelessWidget {
                         provider: taskProvider,
                         onContextMenu: _showContextMenu,
                       ),
+                    // Completed Section
+                    if (completed.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      M3EList(
+                        itemCount: 1,
+                        color: colorScheme.primaryContainer,
+                        expandStyle: M3EExpandableStyle(
+                          expandedStateFill: false,
+                          gap: 5,
+                          expandedIconBackground: colorScheme.primary,
+                          expandIcon: Icon(
+                            Icons.expand_more_rounded,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                          collapseIcon: Icon(
+                            Icons.expand_more_rounded,
+                            color: colorScheme.onPrimary,
+                          ),
+                        ),
+                        itemBuilder: (context, index) {
+                          return M3EListItem(
+                            headline: 'Completed (${completed.length})',
+                            leading: const Icon(
+                              Icons.task_alt_rounded,
+                              size: 20,
+                              color: Color(0xFF10B981),
+                            ),
+                            expanded: M3EExpandableExpanded.list(
+                              _buildCompletedList(
+                                context,
+                                completed,
+                                taskProvider,
+                                true,
+                              ).build(context) as M3EList,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ] else if (filter == TaskFilter.revision) ...[
                     if (taskProvider.revisionTasks.isEmpty)
                       TasksEmptyView(
@@ -231,6 +255,13 @@ class TasksPage extends StatelessWidget {
                           tasks: pending,
                           provider: taskProvider,
                           onContextMenu: _showContextMenu,
+                        )
+                      else
+                        TasksEmptyView(
+                          filter: filter,
+                          isSearching: isSearching,
+                          searchQuery: taskProvider.searchQuery,
+                          onClearSearch: () => taskProvider.clearSearchQuery(),
                         ),
 
                       // Completed Section

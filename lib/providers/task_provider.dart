@@ -826,7 +826,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
                 // Show toast with Undo button
                 AppSnackbar.show(
                   context,
-                  message: 'All subtasks completed. Task marked as done.',
+                  message: 'Task marked as done.',
                   actionLabel: 'Undo',
                   duration: const Duration(seconds: 4),
                   onAction: () {
