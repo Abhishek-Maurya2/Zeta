@@ -249,12 +249,6 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
 
-    final tooltipMsg =
-        widget.tooltipMessage ??
-        (syncError != null
-            ? '${profileProvider.userName} • Sync Error: $syncError'
-            : profileProvider.userName);
-
     return OverlayPortal(
       controller: _overlayController,
       overlayChildBuilder: _buildOverlayChild,

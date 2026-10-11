@@ -34,10 +34,10 @@ class _TypographySectionState extends State<TypographySection> {
         // ─── Role Switcher ────────────────────────────────────────────────
         const SettingsSectionHeading('Select typographic role'),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            M3EButtonGroup(
+        Center(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: M3EButtonGroup(
               type: M3EButtonGroupType.connected,
               size: M3EButtonSize.sm,
               decoration: M3EButtonDecoration(
@@ -87,7 +87,7 @@ class _TypographySectionState extends State<TypographySection> {
                 );
               }).toList(),
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 14),
 
@@ -542,12 +542,12 @@ class _TypographySectionState extends State<TypographySection> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
+        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
         ),
       ),
       child: Column(

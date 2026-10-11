@@ -230,7 +230,11 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           const SizedBox(height: 35),
 
           // ─── Summary Stat Cards Grid ──────────────────────────────
-          PomodoroSummaryCards(sessionLog: sessionLog),
+          PomodoroSummaryCards(
+            sessionLog: sessionLog,
+            range: _range,
+            offset: _offset,
+          ),
 
           const SizedBox(height: 30),
 

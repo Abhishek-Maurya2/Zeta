@@ -52,7 +52,7 @@ class PomodoroQueuePane extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               M3EIconButton(
-                icon: const Icon(Icons.tune_rounded, size: 16),
+                icon: const Icon(Icons.tune_rounded, ),
                 variant: M3EIconButtonVariant.tonal,
                 width: M3EIconButtonWidth.wide,
                 onPressed: () => PomodoroSettingsSheet.show(context),

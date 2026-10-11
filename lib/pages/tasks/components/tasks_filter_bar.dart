@@ -96,18 +96,23 @@ class TasksFilterBar extends StatelessWidget {
         onSortChanged(val);
       },
       decoration: M3ESplitButtonDecoration(
-        menuBackgroundColor: colorScheme.tertiaryContainer,
-        menuForegroundColor: colorScheme.onTertiaryContainer,
         popupDecoration: M3ESplitButtonPopupDecoration(
-          backgroundColor: colorScheme.tertiaryContainer,
-          selectedColor: colorScheme.tertiary,
+          backgroundColor: colorScheme.tertiaryContainer.withValues(alpha: 0.7),
+          selectedColor: colorScheme.onTertiaryContainer,
           elevation: 0,
         ),
       ),
       items: TaskSortOption.values.map((opt) {
         return M3ESplitButtonItem<TaskSortOption>(
           value: opt,
-          child: taskProvider.getSortLabel(opt),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(taskProvider.getSortIcon(opt), size: 18),
+              const SizedBox(width: 8),
+              Text(taskProvider.getSortLabel(opt)),
+            ],
+          ),
         );
       }).toList(),
     );

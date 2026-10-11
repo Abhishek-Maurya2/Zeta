@@ -81,7 +81,9 @@ class PomodoroHeroStat extends StatelessWidget {
       minutesToDisplay = entries.fold<int>(0, (sum, e) => sum + e.minutes);
       subtitle = ds == todayStr ? 'focus today' : 'focus recorded';
       totalPeriodMinutes = minutesToDisplay;
-      periodBadgeLabel = ds == todayStr ? 'Today' : '${target.day} ${monthName(target.month)}';
+      periodBadgeLabel = ds == todayStr
+          ? 'Today'
+          : '${target.day} ${monthName(target.month)}';
     } else if (range == ChartRange.week) {
       if (offset == 0) {
         final targetEndDay = DateTime(now.year, now.month, now.day);
@@ -107,7 +109,7 @@ class PomodoroHeroStat extends StatelessWidget {
         );
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 7).round();
-        subtitle = '/ day (avg)';
+        subtitle = '/ day';
 
         int maxDayMins = 0;
         for (int i = 0; i < 7; i++) {
@@ -126,7 +128,7 @@ class PomodoroHeroStat extends StatelessWidget {
           maxDayMins = math.max(maxDayMins, dayMins);
         }
         peakDayMinutes = maxDayMins;
-        periodBadgeLabel = 'Last 7 days';
+        periodBadgeLabel = '7 days';
       } else {
         final startOfWeek = now
             .subtract(Duration(days: now.weekday % 7))
@@ -151,7 +153,7 @@ class PomodoroHeroStat extends StatelessWidget {
         });
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 7).round();
-        subtitle = '/ day (avg)';
+        subtitle = '/ day';
 
         int maxDayMins = 0;
         for (int i = 0; i < 7; i++) {
@@ -174,7 +176,7 @@ class PomodoroHeroStat extends StatelessWidget {
           maxDayMins = math.max(maxDayMins, dayMins);
         }
         peakDayMinutes = maxDayMins;
-        periodBadgeLabel = 'Last week';
+        periodBadgeLabel = 'Week';
       }
     } else if (range == ChartRange.month) {
       if (offset == 0) {
@@ -201,8 +203,8 @@ class PomodoroHeroStat extends StatelessWidget {
         );
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 28).round();
-        subtitle = 'per day (avg)';
-        periodBadgeLabel = 'Last 4 weeks';
+        subtitle = 'per day';
+        periodBadgeLabel = '4 weeks';
       } else {
         final target = DateTime(now.year, now.month + offset, 1);
         final lastDay = DateTime(target.year, target.month + 1, 0).day;
@@ -214,7 +216,7 @@ class PomodoroHeroStat extends StatelessWidget {
         });
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / lastDay).round();
-        subtitle = 'per day (avg)';
+        subtitle = 'per day';
         periodBadgeLabel = '${monthName(target.month)} ${target.year}';
       }
     } else if (range == ChartRange.year) {
@@ -241,8 +243,8 @@ class PomodoroHeroStat extends StatelessWidget {
         });
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 365).round();
-        subtitle = 'per day (avg)';
-        periodBadgeLabel = 'Last 12 months';
+        subtitle = 'per day';
+        periodBadgeLabel = '12 months';
       } else {
         final targetYear = now.year + offset;
         final entries = sessionLog.where((e) {
@@ -258,7 +260,7 @@ class PomodoroHeroStat extends StatelessWidget {
             ).difference(DateTime(targetYear, 1, 1)).inDays +
             1);
         minutesToDisplay = (totalPeriodMinutes / daysCount).round();
-        subtitle = 'per day (avg)';
+        subtitle = 'per day';
         periodBadgeLabel = '$targetYear';
       }
     }
@@ -290,7 +292,7 @@ class PomodoroHeroStat extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Wrap(
-          spacing: 8,
+          spacing: 6,
           runSpacing: 8,
           children: [
             if (totalPeriodMinutes != null && totalPeriodMinutes > 0)
@@ -304,7 +306,7 @@ class PomodoroHeroStat extends StatelessWidget {
             if (peakDayMinutes != null && peakDayMinutes > 0)
               _StatChip(
                 icon: Icons.bolt_rounded,
-                label: 'Peak day',
+                label: 'Peak',
                 value: formatDuration(peakDayMinutes),
                 backgroundColor: colorScheme.tertiaryContainer,
                 textColor: colorScheme.onTertiaryContainer,
@@ -312,7 +314,7 @@ class PomodoroHeroStat extends StatelessWidget {
             if (periodBadgeLabel != null && range != ChartRange.day)
               _StatChip(
                 icon: Icons.calendar_today_rounded,
-                label: 'Period',
+                label: 'Last',
                 value: periodBadgeLabel,
                 backgroundColor: colorScheme.surfaceContainerHigh,
                 textColor: colorScheme.onSurfaceVariant,
@@ -344,7 +346,7 @@ class _StatChip extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
@@ -352,7 +354,7 @@ class _StatChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: textColor),
+          Icon(icon, size: 15, color: textColor),
           const SizedBox(width: 5),
           Text(
             '$label: ',

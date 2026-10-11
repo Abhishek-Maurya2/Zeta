@@ -9,13 +9,25 @@ import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
-import 'components/tasks_fab.dart';
 import 'components/tasks_filter_bar.dart';
 import 'components/tasks_search_banner.dart';
 
 /// Main page coordinator for the Tasks feature.
-class TasksPage extends StatelessWidget {
+class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
+
+  @override
+  State<TasksPage> createState() => _TasksPageState();
+}
+
+class _TasksPageState extends State<TasksPage> {
+  final _fabController = M3EExtendedFabController();
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    super.dispose();
+  }
 
   void _showContextMenu(
     BuildContext context,
@@ -112,10 +124,12 @@ class TasksPage extends StatelessWidget {
     final revisionTasksCount = taskProvider.revisionTasks.length;
     final totalCount = pendingNonRevision.length + revisionTasksCount;
 
-    return Stack(
-      children: [
-        // Main Scrollable Content
-        SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: M3EExtendedFabScrollVisibility(
+        controller: _fabController,
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isCompact
                 ? ZetaBreakpoints.marginCompact
@@ -311,14 +325,19 @@ class TasksPage extends StatelessWidget {
             ),
           ),
         ),
-
-        // Floating Action Button
-        if (!isCompact)
-          TasksFab(
-            isSelectionMode: taskProvider.isSelectionMode,
-            onPressed: () => TaskEditPane.show(context),
-          ),
-      ],
+      ),
+      floatingActionButton: !isCompact && !taskProvider.isSelectionMode
+          ? M3EExtendedFab(
+              controller: _fabController,
+              appear: true,
+              scaleAlignment: AlignmentDirectional.bottomEnd,
+              onPressed: () => TaskEditPane.show(context),
+              icon: const Icon(Icons.add_rounded),
+              label: 'Add Task',
+              size: M3EExtendedFabSize.small,
+              color: M3EFabColor.primary,
+            )
+          : null,
     );
   }
 }

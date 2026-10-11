@@ -497,7 +497,7 @@ class _WeatherSectionState extends State<WeatherSection> {
 
                         // Stat Chips Row: Humidity, Wind, Daylight
                         Wrap(
-                          spacing: 8,
+                          spacing: 6,
                           runSpacing: 6,
                           children: [
                             _buildStatChip(
@@ -510,16 +510,6 @@ class _WeatherSectionState extends State<WeatherSection> {
                               context,
                               icon: Icons.air_rounded,
                               label: 'Wind $windDisplay',
-                              enabled: isMasterOn,
-                            ),
-                            _buildStatChip(
-                              context,
-                              icon: (weather?.isEffectivelyDay ?? true)
-                                  ? Icons.wb_sunny_rounded
-                                  : Icons.nightlight_round,
-                              label: (weather?.isEffectivelyDay ?? true)
-                                  ? 'Daytime'
-                                  : 'Nighttime',
                               enabled: isMasterOn,
                             ),
                           ],
@@ -547,7 +537,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                             : null,
                       ),
                       M3EIconButton(
-                                icon: isLoading
+                        icon: isLoading
                             ? const SizedBox(
                                 width: 14,
                                 height: 14,
@@ -851,7 +841,7 @@ class _WeatherSectionState extends State<WeatherSection> {
                 if (index == 0) {
                   return _buildSwitchTile(
                     title: 'Show weather on Home screen',
-                    subtitle: 'Display live temperature and weather badge on the weekly calendar strip',
+                    subtitle: 'Display live weather in weekly calendar strip',
                     value: weatherProvider.showWeatherInHeader,
                     enabled: isMasterOn,
                     selectedIcon: const Icon(Icons.home_rounded, size: 16),
@@ -901,30 +891,6 @@ class _WeatherSectionState extends State<WeatherSection> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondaryContainer.withValues(
-                            alpha: isMasterOn ? 1.0 : 0.38,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '°C Metric',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: isMasterOn
-                                ? colorScheme.onSecondaryContainer
-                                : colorScheme.onSecondaryContainer.withValues(
-                                    alpha: 0.38,
-                                  ),
-                          ),
                         ),
                       ),
                     ],

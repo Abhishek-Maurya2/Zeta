@@ -90,7 +90,7 @@ const List<NavDestination> kNavDestinations = [
     id: PageId.home,
     label: 'Home',
     icon: Icons.home_outlined,
-    selectedIcon: Icons.home,
+    selectedIcon: Icons.home_rounded,
   ),
   NavDestination(
     id: PageId.tasks,
@@ -101,14 +101,14 @@ const List<NavDestination> kNavDestinations = [
   NavDestination(
     id: PageId.revision,
     label: 'Subjects',
-    icon: Icons.menu_book_outlined,
-    selectedIcon: Icons.menu_book,
+    icon: Icons.book,
+    selectedIcon: Icons.menu_book_rounded,
   ),
   NavDestination(
     id: PageId.pomodoro,
     label: 'Pomodoro',
     icon: Icons.timer_outlined,
-    selectedIcon: Icons.timer,
+    selectedIcon: Icons.timer_rounded,
   ),
   NavDestination(
     id: PageId.bin,

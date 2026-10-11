@@ -305,7 +305,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                           M3EButtonGroupAction(
                             icon: const Icon(
                               Icons.file_upload_outlined,
-                              size: 16,
+                  
                             ),
                             label: const Text('Upload'),
                             tooltip: 'Upload image from local storage',
@@ -318,7 +318,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                             M3EButtonGroupAction(
                               icon: const Icon(
                                 Icons.delete_outline_rounded,
-                                size: 16,
+                             
                               ),
                               label: const Text('Remove'),
                               tooltip: 'Remove custom photo',
@@ -391,7 +391,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   _isEditingName
                                       ? Icons.close_rounded
                                       : Icons.edit_rounded,
-                                  size: 15,
+                               
                                 ),
                                 tooltip: _isEditingName ? 'Cancel' : 'Edit',
                                 variant: _isEditingName
@@ -443,7 +443,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   M3EIconButton(
                                     icon: const Icon(
                                       Icons.check_rounded,
-                                      size: 16,
+                                   
                                     ),
 
                                     variant: M3EIconButtonVariant.filled,
@@ -493,12 +493,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                               ],
                             ),
                           ),
-                          Text(
-                            'Managed by account',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
+           
                         ],
                       ),
                     ),
@@ -527,7 +522,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                     size: 22,
                   ),
                 ),
-                headline: 'Supabase Profiles Storage',
+                headline: 'Profile Storage',
                 supportingText: 'Profile name, email, and avatar are syned',
                 trailing: M3EIconButton(
                   icon: _isSyncing
@@ -536,7 +531,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.sync_rounded, size: 16),
+                      : const Icon(Icons.sync_rounded, ),
 
                   variant: M3EIconButtonVariant.tonal,
                   width: M3EIconButtonWidth.wide,
