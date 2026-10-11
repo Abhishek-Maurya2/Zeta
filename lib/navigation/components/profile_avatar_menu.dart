@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -20,13 +21,8 @@ import '../../utils/app_snackbar.dart';
 import '../../utils/haptics.dart';
 
 /// Interactive Profile Avatar Component:
-/// - Hovering or clicking on avatar opens a Card with [surfaceContainerLowest] background.
-/// - Inside the Card:
-///   - Header Row: photo + Column[name, email]
-///   - Segmented list (M3ESegmentedColumn): Refresh, Settings, and Bin (if on Android)
-/// - Closes when mouse is no longer hovering over avatar or card (with a smooth grace timer).
-/// - Scales in and out anchored from the avatar in the top app bar.
-/// - In compact mode, this Card acts as a Dialog.
+/// - Tap (or hover on desktop) opens a Card with user profile & quick navigation.
+/// - Uses [MenuAnchor] for clean, accessible overlay anchoring and dismissal.
 class ProfileAvatarMenu extends StatefulWidget {
   final Color? syncRingColor;
   final String? tooltipMessage;
@@ -43,72 +39,16 @@ class ProfileAvatarMenu extends StatefulWidget {
   State<ProfileAvatarMenu> createState() => _ProfileAvatarMenuState();
 }
 
-class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
-    with SingleTickerProviderStateMixin {
-  final OverlayPortalController _overlayController = OverlayPortalController();
-  final LayerLink _layerLink = LayerLink();
-  final Object _tapRegionGroupId = Object();
-
-  late final AnimationController _animController;
-  late final Animation<double> _scaleAnimation;
-  late final Animation<double> _fadeAnimation;
-
+class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
+  final MenuController _menuController = MenuController();
   Timer? _closeTimer;
   bool _isHoveringAvatar = false;
   bool _isHoveringCard = false;
-  bool _isOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-      reverseDuration: const Duration(milliseconds: 150),
-    );
-
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      ),
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeOut,
-        reverseCurve: Curves.easeIn,
-      ),
-    );
-  }
 
   @override
   void dispose() {
     _closeTimer?.cancel();
-    _animController.dispose();
     super.dispose();
-  }
-
-  void _openMenu() {
-    _closeTimer?.cancel();
-    if (!_isOpen) {
-      _isOpen = true;
-      _overlayController.show();
-    }
-    _animController.forward();
-  }
-
-  void _closeMenu() {
-    if (!_isOpen) return;
-    _closeTimer?.cancel();
-    _isOpen = false;
-    _animController.reverse().then((_) {
-      if (mounted && !_isOpen) {
-        _overlayController.hide();
-      }
-    });
   }
 
   void _startCloseTimer() {
@@ -116,7 +56,7 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
     _closeTimer = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) return;
       if (!_isHoveringAvatar && !_isHoveringCard) {
-        _closeMenu();
+        _menuController.close();
       }
     });
   }
@@ -124,8 +64,8 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
   void _handleAvatarHoverEnter() {
     _isHoveringAvatar = true;
     _closeTimer?.cancel();
-    if (!_isOpen) {
-      _openMenu();
+    if (!_menuController.isOpen) {
+      _menuController.open();
     }
   }
 
@@ -142,14 +82,6 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
   void _handleCardHoverExit() {
     _isHoveringCard = false;
     _startCloseTimer();
-  }
-
-  void _handleAvatarTap(BuildContext context, bool isCompact) {
-    if (_isOpen) {
-      _closeMenu();
-    } else {
-      _openMenu();
-    }
   }
 
   Color _resolveSyncRingColor(BuildContext context) {
@@ -189,47 +121,8 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
     }
   }
 
-  Widget _buildOverlayChild(BuildContext overlayContext) {
-    return Align(
-      alignment: Alignment.topLeft,
-      child: CompositedTransformFollower(
-        link: _layerLink,
-        showWhenUnlinked: false,
-        targetAnchor: Alignment.center,
-        followerAnchor: Alignment.topRight,
-        offset: const Offset(28, -27),
-        child: TapRegion(
-          groupId: _tapRegionGroupId,
-          onTapOutside: (_) => _closeMenu(),
-          child: MouseRegion(
-            onEnter: (_) => _handleCardHoverEnter(),
-            onExit: (_) => _handleCardHoverExit(),
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              alignment: Alignment.topRight,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(
-                    minWidth: 280,
-                    maxWidth: 320,
-                  ),
-                  child: _ProfileCardContent(
-                    onDismiss: _closeMenu,
-                    syncRingColor: _resolveSyncRingColor(context),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    context.watch<ThemeProvider>();
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final revisionProvider = context.watch<RevisionProvider>();
@@ -241,45 +134,58 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
         revisionProvider.syncError ??
         profileProvider.syncError;
 
-    final sizeClass = ZetaWindowSizeClass.of(context);
-    final isCompact = widget.isCompact ?? sizeClass.isCompact;
     final syncRingColor = _resolveSyncRingColor(context);
-
     final isTouch =
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
 
-    return OverlayPortal(
-      controller: _overlayController,
-      overlayChildBuilder: _buildOverlayChild,
-      child: CompositedTransformTarget(
-        link: _layerLink,
-        child: TapRegion(
-          groupId: _tapRegionGroupId,
-          child: MouseRegion(
-            onEnter: isTouch ? null : (_) => _handleAvatarHoverEnter(),
-            onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
-            child: Material(
-              color: Colors.transparent,
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(24),
-                onTap: () => _handleAvatarTap(context, isCompact),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: UserAvatar(
-                    radius: 20,
-                    ringWidth: 2,
-                    ringColor: syncRingColor,
-                    hasError: syncError != null,
-                  ),
-                ),
-              ),
+    return MenuAnchor(
+      controller: _menuController,
+      alignmentOffset: const Offset(28, 6),
+      style: const MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(Colors.transparent),
+        elevation: WidgetStatePropertyAll(0),
+        shadowColor: WidgetStatePropertyAll(Colors.transparent),
+        surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        padding: WidgetStatePropertyAll(EdgeInsets.zero),
+      ),
+      menuChildren: [
+        MouseRegion(
+          onEnter: isTouch ? null : (_) => _handleCardHoverEnter(),
+          onExit: isTouch ? null : (_) => _handleCardHoverExit(),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 280, maxWidth: 320),
+            child: _ProfileCardContent(
+              onDismiss: () => _menuController.close(),
+              syncRingColor: syncRingColor,
             ),
           ),
         ),
-      ),
+      ],
+      builder: (context, controller, child) {
+        return MouseRegion(
+          onEnter: isTouch ? null : (_) => _handleAvatarHoverEnter(),
+          onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
+          child: IconButton(
+            padding: const EdgeInsets.all(4),
+            visualDensity: VisualDensity.compact,
+            tooltip: widget.tooltipMessage,
+            onPressed: () {
+              if (controller.isOpen) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            icon: UserAvatar(
+              radius: 20,
+              ringWidth: 2,
+              ringColor: syncRingColor,
+              hasError: syncError != null,
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -422,26 +328,26 @@ class _ProfileCardContent extends StatelessWidget {
 
     if (hasSyncError) {
       statusColor = colorScheme.error;
-      statusIcon = Icons.cloud_off_rounded;
+      statusIcon = Symbols.cloud_off_rounded;
       statusLabel = 'SYNC ERROR';
     } else if (isSyncing) {
       statusColor = const Color(0xFFF59E0B);
-      statusIcon = Icons.sync_rounded;
+      statusIcon = Symbols.sync_rounded;
       statusLabel = 'SYNCING';
     } else if (allSynced) {
       statusColor = const Color(0xFF10B981);
-      statusIcon = Icons.cloud_done_rounded;
+      statusIcon = Symbols.cloud_done_rounded;
       statusLabel = 'SYNCED';
     } else {
       statusColor = const Color(0xFFF59E0B);
-      statusIcon = Icons.cloud_queue_rounded;
+      statusIcon = Symbols.cloud_queue_rounded;
       statusLabel = 'LOCAL';
     }
 
     return GlassSurface(
       borderRadius: BorderRadius.circular(24),
       child: Card(
-        color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 0,
         margin: EdgeInsets.zero,
@@ -553,7 +459,7 @@ class _ProfileCardContent extends StatelessWidget {
                       Row(
                         children: [
                           Icon(
-                            Icons.sync_problem_rounded,
+                            Symbols.sync_problem_rounded,
                             size: 16,
                             color: colorScheme.error,
                           ),
@@ -597,7 +503,7 @@ class _ProfileCardContent extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      Icons.copy_rounded,
+                                      Symbols.content_copy_rounded,
                                       size: 13,
                                       color: colorScheme.error,
                                     ),
@@ -649,11 +555,12 @@ class _ProfileCardContent extends StatelessWidget {
                     M3EListItem(
                       leading: Icon(
                         hasSyncError
-                            ? Icons.sync_problem_rounded
+                            ? Symbols.sync_problem_rounded
                             : (isSyncing
-                                  ? Icons.sync_rounded
-                                  : Icons.refresh_rounded),
-                        size: 20,
+                                  ? Symbols.sync_rounded
+                                  : Symbols.refresh_rounded),
+                        fill: 1,
+                        weight: 700,
                         color: hasSyncError
                             ? colorScheme.error
                             : colorScheme.onSurfaceVariant,
@@ -676,17 +583,17 @@ class _ProfileCardContent extends StatelessWidget {
                     menuItems.add(
                       M3EListItem(
                         leading: Icon(
-                          Icons.delete_outline_rounded,
-                          size: 20,
+                          Symbols.delete_rounded,
+                          fill: 1,
+                          weight: 700,
                           color: colorScheme.onSurfaceVariant,
                         ),
                         headline: 'Bin',
                         trailing: Icon(
-                          Icons.chevron_right_rounded,
-                          size: 18,
-                          color: colorScheme.onSurfaceVariant.withValues(
-                            alpha: 0.7,
-                          ),
+                          Symbols.chevron_right_rounded,
+                          weight: 700,
+
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     );
@@ -701,17 +608,17 @@ class _ProfileCardContent extends StatelessWidget {
                   menuItems.add(
                     M3EListItem(
                       leading: Icon(
-                        Icons.settings_outlined,
-                        size: 20,
+                        Symbols.settings_rounded,
+                        fill: 1,
+                        weight: 700,
                         color: colorScheme.onSurfaceVariant,
                       ),
                       headline: 'Settings',
                       trailing: Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: colorScheme.onSurfaceVariant.withValues(
-                          alpha: 0.7,
-                        ),
+                        Symbols.chevron_right_rounded,
+                        weight: 700,
+
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   );

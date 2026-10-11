@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../components/glass_m3e_menu.dart';
 import '../../../providers/task_provider.dart';
 import '../../../utils/haptics.dart';
 
@@ -81,40 +82,12 @@ class TasksFilterBar extends StatelessWidget {
       ),
     );
 
-    final sortButton = M3ESplitButton<TaskSortOption>(
-      size: M3EButtonSize.sm,
-      style: M3EButtonStyle.filled,
-      leadingIcon: taskProvider.getSortIcon(sortBy),
-      label: taskProvider.getSortLabel(sortBy),
-      selectedValue: sortBy,
-      onPressed: () {
-        ZetaHaptics.light();
-        onCycleSort();
-      },
-      onSelected: (val) {
-        ZetaHaptics.selection();
-        onSortChanged(val);
-      },
-      decoration: M3ESplitButtonDecoration(
-        popupDecoration: M3ESplitButtonPopupDecoration(
-          backgroundColor: colorScheme.tertiaryContainer.withValues(alpha: 0.7),
-          selectedColor: colorScheme.onTertiaryContainer,
-          elevation: 0,
-        ),
-      ),
-      items: TaskSortOption.values.map((opt) {
-        return M3ESplitButtonItem<TaskSortOption>(
-          value: opt,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(taskProvider.getSortIcon(opt), size: 18),
-              const SizedBox(width: 8),
-              Text(taskProvider.getSortLabel(opt)),
-            ],
-          ),
-        );
-      }).toList(),
+    final sortButton = _TasksSortSplitButton(
+      sortBy: sortBy,
+      taskProvider: taskProvider,
+      colorScheme: colorScheme,
+      onSortChanged: onSortChanged,
+      onCycleSort: onCycleSort,
     );
 
     if (isCompact) {
@@ -135,6 +108,95 @@ class TasksFilterBar extends StatelessWidget {
         const SizedBox(width: 12),
         sortButton,
       ],
+    );
+  }
+}
+
+class _TasksSortSplitButton extends StatefulWidget {
+  const _TasksSortSplitButton({
+    required this.sortBy,
+    required this.taskProvider,
+    required this.colorScheme,
+    required this.onSortChanged,
+    required this.onCycleSort,
+  });
+
+  final TaskSortOption sortBy;
+  final TaskProvider taskProvider;
+  final ColorScheme colorScheme;
+  final ValueChanged<TaskSortOption> onSortChanged;
+  final VoidCallback onCycleSort;
+
+  @override
+  State<_TasksSortSplitButton> createState() => _TasksSortSplitButtonState();
+}
+
+class _TasksSortSplitButtonState extends State<_TasksSortSplitButton> {
+  int _buttonGeneration = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: (buttonContext) {
+        return M3ESplitButton<TaskSortOption>(
+          key: ValueKey(_buttonGeneration),
+          size: M3EButtonSize.sm,
+          style: M3EButtonStyle.filled,
+          items: const [],
+          leadingIcon: widget.taskProvider.getSortIcon(widget.sortBy),
+          label: widget.taskProvider.getSortLabel(widget.sortBy),
+          selectedValue: widget.sortBy,
+          onPressed: () {
+            ZetaHaptics.light();
+            widget.onCycleSort();
+          },
+          decoration: M3ESplitButtonDecoration(
+            popupDecoration: M3ESplitButtonPopupDecoration(
+              backgroundColor: widget.colorScheme.tertiaryContainer.withValues(
+                alpha: 0.50,
+              ),
+              elevation: 0,
+            ),
+          ),
+          menuBuilder: (_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              final renderBox =
+                  buttonContext.findRenderObject() as RenderBox?;
+              final anchor = renderBox != null
+                  ? (renderBox.localToGlobal(Offset.zero) & renderBox.size)
+                  : Rect.zero;
+              await showGlassM3EMenu<TaskSortOption>(
+                context: buttonContext,
+                anchor: anchor,
+                position: M3EMenuAnchorPosition.bottomEnd,
+                colorStyle: M3EMenuColorStyle.vibrant,
+                selectedValue: widget.sortBy,
+                preferredWidth: 200,
+                menuHeightOverride: 52.0 * TaskSortOption.values.length,
+                children: TaskSortOption.values.map((option) {
+                  return M3EMenuSelectable(
+                    value: option,
+                    label: widget.taskProvider.getSortLabel(option),
+                    leading: Icon(
+                      widget.taskProvider.getSortIcon(option),
+                      size: 22,
+                    ),
+                    selected: option == widget.sortBy,
+                    onPressed: () {
+                      ZetaHaptics.selection();
+                      widget.onSortChanged(option);
+                    },
+                  );
+                }).toList(),
+              );
+              if (mounted) {
+                setState(() => _buttonGeneration++);
+              }
+            });
+            return const [];
+          },
+        );
+      },
     );
   }
 }
