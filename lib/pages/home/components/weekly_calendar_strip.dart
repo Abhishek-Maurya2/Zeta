@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -386,14 +387,15 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
                           message: 'Reset to Today',
                           child: M3EIconButton(
                             size: M3EIconButtonSize.xs,
-                            variant: M3EIconButtonVariant.standard,
-                            icon: Icon(
-                              Icons.calendar_month_rounded,
-                              size: 25,
-                              color: colorScheme.primary,
+                            variant: M3EIconButtonVariant.tonal,
+                            icon: const Icon(
+                              Symbols.event_upcoming_rounded,
+                              weight: 700,
+                              fill: 1,
                             ),
+                            shape: M3EIconButtonShapeVariant.square,
                             onPressed: () {
-                              ZetaHaptics.light();
+                              ZetaHaptics.heavy();
                               _centerOnToday();
                               widget.onResetToToday();
                             },

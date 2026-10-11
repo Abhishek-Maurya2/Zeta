@@ -53,53 +53,51 @@ class FloatingBottomNav extends StatelessWidget {
               GlassSurface(
                 borderRadius: BorderRadius.circular(100),
                 child: M3EToolbar(
-                    screenOffset: 0,
-                    elevation: 0.0,
-                    backgroundColor: colorScheme.primaryContainer.withValues(
-                      alpha: 0.65,
-                    ),
-                    size: M3EToolbarSize.large,
-                    colorStyle: M3EToolbarColorStyle.vibrant,
-                    padding: const EdgeInsets.symmetric(horizontal: 1),
-                    actions: [
-                      M3EToolbarWidget(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: kNavDestinations
-                              .where(
-                                (dest) =>
-                                    dest.id != PageId.settings &&
-                                    dest.id != PageId.bin,
-                              )
-                              .map((dest) {
-                                final isSelected =
-                                    dest.id == navProvider.activePage;
+                  screenOffset: 0,
+                  elevation: 0.0,
+                  backgroundColor: colorScheme.primaryContainer.withValues(
+                    alpha: 0.65,
+                  ),
+                  size: M3EToolbarSize.large,
+                  colorStyle: M3EToolbarColorStyle.vibrant,
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                  actions: [
+                    M3EToolbarWidget(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: kNavDestinations
+                            .where(
+                              (dest) =>
+                                  dest.id != PageId.settings &&
+                                  dest.id != PageId.bin,
+                            )
+                            .map((dest) {
+                              final isSelected =
+                                  dest.id == navProvider.activePage;
 
-                                return ToolbarNavItem(
-                                  destination: dest,
-                                  isSelected: isSelected,
-                                  onTap: () {
-                                    ZetaHaptics.selection();
+                              return ToolbarNavItem(
+                                destination: dest,
+                                isSelected: isSelected,
+                                onTap: () {
+                                  ZetaHaptics.selection();
+                                  context.read<TaskProvider>().clearSelection();
+
+                                  if (navProvider.activePage ==
+                                          PageId.revision &&
+                                      dest.id != PageId.revision) {
                                     context
-                                        .read<TaskProvider>()
-                                        .clearSelection();
+                                        .read<RevisionProvider>()
+                                        .selectSubject(null);
+                                  }
 
-                                    if (navProvider.activePage ==
-                                            PageId.revision &&
-                                        dest.id != PageId.revision) {
-                                      context
-                                          .read<RevisionProvider>()
-                                          .selectSubject(null);
-                                    }
-
-                                    navProvider.setActivePage(dest.id);
-                                  },
-                                );
-                              })
-                              .toList(),
-                        ),
+                                  navProvider.setActivePage(dest.id);
+                                },
+                              );
+                            })
+                            .toList(),
                       ),
-                    ],
+                    ),
+                  ],
                 ),
               ),
               if (isTasksPage) ...[
@@ -107,16 +105,16 @@ class FloatingBottomNav extends StatelessWidget {
                 GlassSurface(
                   borderRadius: BorderRadius.circular(16),
                   child: FloatingActionButton(
-                      elevation: 0.0,
-                      backgroundColor: colorScheme.tertiaryContainer.withValues(
-                        alpha: 0.7,
-                      ),
-                      foregroundColor: colorScheme.onTertiaryContainer,
-                      onPressed: () {
-                        ZetaHaptics.medium();
-                        TaskEditPane.show(context);
-                      },
-                      child: const Icon(Icons.add_rounded),
+                    elevation: 0.0,
+                    backgroundColor: colorScheme.tertiaryContainer.withValues(
+                      alpha: 0.7,
+                    ),
+                    foregroundColor: colorScheme.onTertiaryContainer,
+                    onPressed: () {
+                      ZetaHaptics.medium();
+                      TaskEditPane.show(context);
+                    },
+                    child: const Icon(Icons.add_rounded),
                   ),
                 ),
               ],
@@ -154,6 +152,8 @@ class ToolbarNavItem extends StatelessWidget {
           color: isSelected
               ? colorScheme.onSurface
               : colorScheme.onPrimaryContainer,
+          fill: isSelected ? 1 : 0,
+          weight: 700,
         ),
         if (isSelected) ...[
           const SizedBox(width: 8),
