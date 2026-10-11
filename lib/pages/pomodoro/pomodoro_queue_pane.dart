@@ -42,7 +42,7 @@ class PomodoroQueuePane extends StatelessWidget {
               Flexible(
                 child: Text(
                   'Up next',
-                  style: textTheme.titleLarge?.copyWith(
+                  style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.3,
                     color: colorScheme.onSurface,
@@ -52,7 +52,7 @@ class PomodoroQueuePane extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               M3EIconButton(
-                icon: const Icon(Icons.tune_rounded, ),
+                icon: const Icon(Icons.tune_rounded),
                 variant: M3EIconButtonVariant.tonal,
                 width: M3EIconButtonWidth.wide,
                 onPressed: () => PomodoroSettingsSheet.show(context),

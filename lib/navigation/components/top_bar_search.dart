@@ -190,6 +190,7 @@ class TopBarSearch extends StatelessWidget {
                 gap: 3,
                 color: colorScheme.surfaceContainerLowest,
                 itemCount: 3,
+                haptic: M3EHapticFeedback.heavy,
                 onTap: (index) {
                   safeCloseView(null);
                   switch (index) {
@@ -203,7 +204,7 @@ class TopBarSearch extends StatelessWidget {
                 },
                 itemBuilder: (context, index) => switch (index) {
                   0 => const M3EListItem(
-                    leading: Icon(Icons.add_circle_outline_rounded),
+                    leading: Icon(Icons.add_rounded),
                     headline: 'New Task',
                   ),
                   1 => M3EListItem(
@@ -335,8 +336,8 @@ class TopBarSearch extends StatelessWidget {
                     Icons.search_rounded,
                     color: colorScheme.primary,
                   ),
-                  headline: 'Search all for \'$query\'',
-                  supportingText: '${matchingTasks.length} found',
+                  headline:
+                      '${matchingTasks.length} results found for \'$query\'',
                 )
               : M3EListItem(
                   leading: Icon(

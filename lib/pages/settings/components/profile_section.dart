@@ -285,12 +285,6 @@ class _ProfileSectionState extends State<ProfileSection> {
                       child: M3EButtonGroup(
                         type: M3EButtonGroupType.standard,
                         style: M3EButtonStyle.tonal,
-                        // size: M3EButtonSize.custom(
-                        //   height: 96,
-                        //   hPadding: 48,
-                        //   iconSize: 32,
-                        //   iconGap: 10,
-                        // ),
                         shape: M3EButtonShape.round,
                         selectedIndex: null,
                         onSelectedIndexChanged: (index) {
@@ -305,10 +299,10 @@ class _ProfileSectionState extends State<ProfileSection> {
                           M3EButtonGroupAction(
                             icon: const Icon(
                               Icons.file_upload_outlined,
-                  
+                              size: 25,
                             ),
                             label: const Text('Upload'),
-                            tooltip: 'Upload image from local storage',
+
                             decoration: M3EButtonDecoration.styleFrom(
                               backgroundColor: colorScheme.secondaryContainer,
                               foregroundColor: colorScheme.onSecondaryContainer,
@@ -318,10 +312,9 @@ class _ProfileSectionState extends State<ProfileSection> {
                             M3EButtonGroupAction(
                               icon: const Icon(
                                 Icons.delete_outline_rounded,
-                             
+                                size: 25,
                               ),
                               label: const Text('Remove'),
-                              tooltip: 'Remove custom photo',
                               decoration: M3EButtonDecoration.styleFrom(
                                 backgroundColor: colorScheme.errorContainer,
                                 foregroundColor: colorScheme.onErrorContainer,
@@ -358,7 +351,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                             children: [
                               Icon(
                                 Icons.badge_rounded,
-                                size: 22,
+                                size: 25,
                                 color: colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(width: 14),
@@ -391,7 +384,6 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   _isEditingName
                                       ? Icons.close_rounded
                                       : Icons.edit_rounded,
-                               
                                 ),
                                 tooltip: _isEditingName ? 'Cancel' : 'Edit',
                                 variant: _isEditingName
@@ -441,10 +433,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                   const SizedBox(width: 8),
 
                                   M3EIconButton(
-                                    icon: const Icon(
-                                      Icons.check_rounded,
-                                   
-                                    ),
+                                    icon: const Icon(Icons.check_rounded),
 
                                     variant: M3EIconButtonVariant.filled,
                                     width: M3EIconButtonWidth.wide,
@@ -466,7 +455,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                         children: [
                           Icon(
                             Icons.alternate_email_rounded,
-                            size: 22,
+                            size: 25,
                             color: colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 14),
@@ -493,7 +482,6 @@ class _ProfileSectionState extends State<ProfileSection> {
                               ],
                             ),
                           ),
-           
                         ],
                       ),
                     ),
@@ -509,19 +497,8 @@ class _ProfileSectionState extends State<ProfileSection> {
               itemCount: 1,
               color: colorScheme.surfaceContainerLowest,
               itemBuilder: (context, index) => M3EListItem(
-                leading: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4285F4).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.cloud_sync_rounded,
-                    color: Color(0xFF4285F4),
-                    size: 22,
-                  ),
-                ),
+                leading: const Icon(Icons.cloud_sync_rounded, size: 25),
+
                 headline: 'Profile Storage',
                 supportingText: 'Profile name, email, and avatar are syned',
                 trailing: M3EIconButton(
@@ -531,7 +508,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.sync_rounded, ),
+                      : const Icon(Icons.sync_rounded),
 
                   variant: M3EIconButtonVariant.tonal,
                   width: M3EIconButtonWidth.wide,

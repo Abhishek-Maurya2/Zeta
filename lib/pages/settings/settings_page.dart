@@ -523,7 +523,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
             return M3EListItem(
               selected: isSelected,
-              leading: Icon(isSelected ? category.selectedIcon : category.icon),
+              leading: Icon(
+                isSelected ? category.selectedIcon : category.icon,
+                fill: isSelected ? 1 : 0,
+                weight: 700,
+                size: 23,
+              ),
               headline: category.label,
               supportingText: category.description,
               trailing: Row(

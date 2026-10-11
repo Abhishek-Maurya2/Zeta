@@ -79,7 +79,7 @@ class FloatingBottomNav extends StatelessWidget {
                                 destination: dest,
                                 isSelected: isSelected,
                                 onTap: () {
-                                  ZetaHaptics.selection();
+                                  ZetaHaptics.heavy();
                                   context.read<TaskProvider>().clearSelection();
 
                                   if (navProvider.activePage ==
