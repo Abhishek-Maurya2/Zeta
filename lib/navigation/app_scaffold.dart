@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -22,6 +23,7 @@ import '../providers/revision_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/profile_provider.dart';
 import 'components/body_pane.dart';
+import 'components/pull_to_refresh_container.dart';
 import 'components/floating_bottom_nav.dart';
 import 'components/navigation_rail_widget.dart';
 import 'components/global_shortcuts_handler.dart';
@@ -30,6 +32,7 @@ import '../components/task_selection_toolbar.dart';
 import '../components/m3e_split_pane.dart';
 
 import '../theme/breakpoints.dart';
+import '../theme/motion_tokens.dart';
 import 'top_app_bar.dart';
 
 import 'dart:ui';
@@ -64,6 +67,17 @@ class _AppScaffoldState extends State<AppScaffold>
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
 
+  static const double _refreshTargetHeight = 80;
+  late final AnimationController _refreshController;
+  late Animation<double> _refreshAnimation;
+  double _dragOffset = 0;
+  bool _isRefreshing = false;
+  bool _isUserPulling = false;
+
+  double get _refreshHeight => _refreshController.isAnimating
+      ? _refreshAnimation.value
+      : (_isRefreshing ? _refreshTargetHeight : _dragOffset);
+
   void _onNavigationChanged() {
     final nav = context.read<NavigationProvider>();
     if (_lastPage != nav.activePage) {
@@ -93,6 +107,17 @@ class _AppScaffoldState extends State<AppScaffold>
       exitDirection: M3EToolbarExitDirection.bottom,
       controller: _toolbarController,
     );
+    _refreshController = AnimationController(
+      vsync: this,
+      duration: M3MotionDuration.medium2,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+    _refreshAnimation = Tween<double>(begin: 0, end: _refreshTargetHeight)
+        .animate(CurvedAnimation(
+      parent: _refreshController,
+      curve: M3MotionEasing.emphasizedDecelerate,
+    ));
 
     _navProvider = context.read<NavigationProvider>();
     _pomodoroProvider = context.read<PomodoroProvider>();
@@ -126,6 +151,7 @@ class _AppScaffoldState extends State<AppScaffold>
     _pomodoroProvider.removeListener(_onPomodoroChanged);
 
     AndroidTasksWidgetService.instance.dispose();
+    _refreshController.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
     if (AppSnackbar.rootContext == context) {
@@ -135,9 +161,16 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   Future<void> _triggerRefresh() async {
+    if (_isRefreshing) return;
     final nav = context.read<NavigationProvider>();
     if (nav.activePage == PageId.settings) return;
 
+    final initialOffset = _dragOffset;
+    setState(() {
+      _isRefreshing = true;
+      _isUserPulling = false;
+      _dragOffset = _refreshTargetHeight;
+    });
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
@@ -145,6 +178,19 @@ class _AppScaffoldState extends State<AppScaffold>
     final profileProvider = context.read<ProfileProvider>();
     final themeProvider = context.read<ThemeProvider>();
     final revisionProvider = context.read<RevisionProvider>();
+
+    if (initialOffset < _refreshTargetHeight) {
+      _refreshAnimation = Tween<double>(
+        begin: initialOffset > 0 ? initialOffset : 0,
+        end: _refreshTargetHeight,
+      ).animate(CurvedAnimation(
+        parent: _refreshController,
+        curve: M3MotionEasing.emphasizedDecelerate,
+      ));
+      await _refreshController.forward(from: 0);
+    } else {
+      _refreshController.value = 1;
+    }
 
     try {
       final minDelay = Future.delayed(const Duration(milliseconds: 1400));
@@ -163,11 +209,111 @@ class _AppScaffoldState extends State<AppScaffold>
     if (!mounted) return;
     ZetaHaptics.light();
 
-    AppSnackbar.show(
-      context,
-      message: 'Refreshed',
-      duration: const Duration(seconds: 2),
+    _refreshAnimation = Tween<double>(
+      begin: _refreshTargetHeight,
+      end: 0,
+    ).animate(CurvedAnimation(
+      parent: _refreshController,
+      curve: M3MotionEasing.emphasizedAccelerate,
+    ));
+    await _refreshController.forward(from: 0);
+
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+        _dragOffset = 0;
+      });
+      AppSnackbar.show(
+        context,
+        message: 'Refreshed',
+        duration: const Duration(seconds: 2),
+      );
+    }
+  }
+
+  void _snapBackToZero() {
+    if (_dragOffset <= 0) return;
+    _refreshAnimation = Tween<double>(begin: _dragOffset, end: 0).animate(
+      CurvedAnimation(
+        parent: _refreshController,
+        curve: M3MotionEasing.emphasizedDecelerate,
+      ),
     );
+    _refreshController.forward(from: 0).then((_) {
+      if (mounted) setState(() => _dragOffset = 0);
+    });
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (_isRefreshing ||
+        context.read<NavigationProvider>().activePage == PageId.settings ||
+        notification.depth != 0 ||
+        notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+
+    if (notification is ScrollStartNotification) {
+      _isUserPulling = notification.dragDetails != null &&
+          notification.metrics.pixels <= 1;
+    }
+
+    if (notification is OverscrollNotification) {
+      if (notification.dragDetails != null && notification.overscroll < 0) {
+        _isUserPulling = true;
+        final newDrag = _dragOffset - notification.overscroll * 0.5;
+        if (newDrag >= _refreshTargetHeight) {
+          _dragOffset = _refreshTargetHeight;
+          setState(() {});
+          unawaited(_triggerRefresh());
+        } else {
+          setState(() {
+            _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
+          });
+        }
+      }
+    } else if (notification is ScrollUpdateNotification) {
+      if (notification.dragDetails != null) {
+        if (notification.metrics.pixels <= 0 &&
+            (notification.scrollDelta ?? 0) < 0) {
+          _isUserPulling = true;
+          final newDrag = _dragOffset - (notification.scrollDelta ?? 0) * 0.5;
+          if (newDrag >= _refreshTargetHeight) {
+            _dragOffset = _refreshTargetHeight;
+            setState(() {});
+            unawaited(_triggerRefresh());
+          } else {
+            setState(() {
+              _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
+            });
+          }
+        } else if (_isUserPulling &&
+            _dragOffset > 0 &&
+            (notification.scrollDelta ?? 0) > 0) {
+          setState(() {
+            _dragOffset = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+                .clamp(0.0, _refreshTargetHeight)
+                .toDouble();
+          });
+        }
+      } else if (_isUserPulling || _dragOffset > 0) {
+        _isUserPulling = false;
+        _snapBackToZero();
+      }
+    } else if (notification is ScrollEndNotification) {
+      final wasPulling = _isUserPulling;
+      _isUserPulling = false;
+      if (wasPulling && _dragOffset >= _refreshTargetHeight) {
+        unawaited(_triggerRefresh());
+      } else if (_dragOffset > 0) {
+        _snapBackToZero();
+      }
+    } else if (notification is UserScrollNotification &&
+        notification.direction == ScrollDirection.idle &&
+        _dragOffset > 0) {
+      _isUserPulling = false;
+      _snapBackToZero();
+    }
+    return false;
   }
 
   bool _globalKeyHandler(KeyEvent event) {
@@ -243,7 +389,7 @@ class _AppScaffoldState extends State<AppScaffold>
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       final nav = context.read<NavigationProvider>();
       if (nav.activePage != PageId.settings) {
-        _triggerRefresh();
+        unawaited(_triggerRefresh());
         return true;
       }
     }
@@ -407,22 +553,30 @@ class _AppScaffoldState extends State<AppScaffold>
                 children: [
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
+                  if (navProvider.activePage != PageId.settings)
+                    PullToRefreshContainer(
+                      refreshHeight: _refreshHeight,
+                      targetHeight: _refreshTargetHeight,
+                      isRefreshing: _isRefreshing,
+                    ),
                   // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
                   Expanded(
-                    child: ScrollConfiguration(
-                      behavior: const MaterialScrollBehavior().copyWith(
-                        physics: const BouncingScrollPhysics(
-                          parent: AlwaysScrollableScrollPhysics(),
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: _handleScrollNotification,
+                      child: ScrollConfiguration(
+                        behavior: const MaterialScrollBehavior().copyWith(
+                          physics: const BouncingScrollPhysics(
+                            parent: AlwaysScrollableScrollPhysics(),
+                          ),
+                          dragDevices: {
+                            PointerDeviceKind.touch,
+                            PointerDeviceKind.mouse,
+                            PointerDeviceKind.trackpad,
+                            PointerDeviceKind.stylus,
+                          },
                         ),
-                        dragDevices: {
-                          PointerDeviceKind.touch,
-                          PointerDeviceKind.mouse,
-                          PointerDeviceKind.trackpad,
-                          PointerDeviceKind.stylus,
-                        },
-                      ),
-                      child: isCompact
-                          ? M3EToolbarScrollWrapper(
+                        child: isCompact
+                            ? M3EToolbarScrollWrapper(
                               key: ValueKey(navProvider.activePage),
                               behavior: _toolbarBehavior,
                               child: Stack(
@@ -444,7 +598,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                 ],
                               ),
                             )
-                          : Row(
+                            : Row(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 NavigationRailWidget(
@@ -598,6 +752,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                 ),
                               ],
                             ),
+                      ),
                     ),
                   ),
                 ],
