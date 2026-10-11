@@ -11,8 +11,8 @@ import '../../../providers/pomodoro_provider.dart';
 import '../../../components/zeta_empty_state.dart';
 import '../../../utils/haptics.dart';
 
-/// Recent completed focus sessions list showing 5 sessions initially,
-/// displaying a button to load the next batch of 5 sessions.
+/// Recent completed focus sessions list grouped by day, displaying 5 days of
+/// session data initially, with pagination to load 5 days per batch.
 class PomodoroSessionList extends StatefulWidget {
   const PomodoroSessionList({super.key});
 
@@ -21,9 +21,9 @@ class PomodoroSessionList extends StatefulWidget {
 }
 
 class _PomodoroSessionListState extends State<PomodoroSessionList> {
-  static const int _batchSize = 5;
+  static const int _daysBatchSize = 5;
 
-  int _displayedCount = _batchSize;
+  int _displayedDaysCount = _daysBatchSize;
   bool _isLoading = false;
   Timer? _loadTimer;
 
@@ -62,7 +62,7 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
           GlassButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              setState(() => _displayedCount = _batchSize);
+              setState(() => _displayedDaysCount = _daysBatchSize);
               provider.clearSessionLog();
             },
             isDestructive: true,
@@ -73,8 +73,8 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     );
   }
 
-  void _loadNextBatch(int totalSessions) {
-    if (_isLoading || _displayedCount >= totalSessions) return;
+  void _loadNextBatch(int totalDays) {
+    if (_isLoading || _displayedDaysCount >= totalDays) return;
     setState(() {
       _isLoading = true;
     });
@@ -83,9 +83,9 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     _loadTimer = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
       setState(() {
-        _displayedCount = (_displayedCount + _batchSize).clamp(
+        _displayedDaysCount = (_displayedDaysCount + _daysBatchSize).clamp(
           0,
-          totalSessions,
+          totalDays,
         );
         _isLoading = false;
       });
@@ -106,11 +106,25 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
+    // Group ALL sessions by calendar day first (newest to oldest)
     final reversedLogs = sessionLog.reversed.toList();
-    final totalSessions = reversedLogs.length;
-    final hasMore = totalSessions > _displayedCount;
+    final groupedSessions = <DateTime, List<PomodoroSessionLog>>{};
+    for (final session in reversedLogs) {
+      final date = DateTime.fromMillisecondsSinceEpoch(session.completedAt);
+      final dayKey = DateTime(date.year, date.month, date.day);
+      groupedSessions.putIfAbsent(dayKey, () => []).add(session);
+    }
 
-    final visibleSessions = reversedLogs.take(_displayedCount).toList();
+    final allDays = groupedSessions.keys.toList();
+    final totalDays = allDays.length;
+    final hasMore = totalDays > _displayedDaysCount;
+    final remainingDays = totalDays - _displayedDaysCount;
+    final nextBatchDays = remainingDays < _daysBatchSize
+        ? remainingDays
+        : _daysBatchSize;
+
+    // Take the requested number of full days
+    final visibleDays = allDays.take(_displayedDaysCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,60 +182,115 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
         else
           M3EList(
             color: colorScheme.surfaceContainerLowest,
-            itemCount: visibleSessions.length,
+            itemCount: visibleDays.length,
+            expandStyle: M3EExpandableStyle(
+              expandedStateFill: false,
+              gap: 5,
+              expandedIconBackground: colorScheme.surfaceContainerHighest,
+              expandIcon: Icon(
+                Icons.expand_more_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              collapseIcon: Icon(
+                Icons.expand_less_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             itemBuilder: (context, index) {
-              final entry = visibleSessions[index];
-              final date = DateTime.fromMillisecondsSinceEpoch(
-                entry.completedAt,
-              );
-              final timeStr =
-                  '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-              final dateStr = '${date.day} ${monthName(date.month)}';
-              final isFocus = entry.mode == PomodoroMode.focus;
+              final dayKey = visibleDays[index];
+              final sessionsForDay = groupedSessions[dayKey]!;
+
+              int focusTime = 0;
+              for (final s in sessionsForDay) {
+                if (s.mode == PomodoroMode.focus) {
+                  focusTime += s.minutes;
+                }
+              }
+
+              String? focusStr;
+              if (focusTime > 0) {
+                final int h = focusTime ~/ 60;
+                final int m = focusTime % 60;
+                if (h > 0 && m > 0) {
+                  focusStr = '${h}h ${m}m focus';
+                } else if (h > 0) {
+                  focusStr = '${h}h focus';
+                } else {
+                  focusStr = '${m}m focus';
+                }
+              }
+
+              final now = DateTime.now();
+              final isCurrentYear = dayKey.year == now.year;
+              final dateStr = isCurrentYear
+                  ? '${dayKey.day} ${monthName(dayKey.month)}'
+                  : '${dayKey.day} ${monthName(dayKey.month)} ${dayKey.year}';
 
               return M3EListItem(
-                leading: M3EShapeContainer(
-                  kind: isFocus
-                      ? M3EShapeKind.ghostish
-                      : (entry.mode == PomodoroMode.shortBreak
-                            ? M3EShapeKind.softBoom
-                            : M3EShapeKind.pill),
-                  width: 40,
-                  height: 40,
-                  color: isFocus
-                      ? colorScheme.primaryContainer
-                      : colorScheme.surfaceContainerHighest,
-                  child: Center(
-                    child: Icon(
-                      isFocus
-                          ? Icons.psychology_rounded
-                          : (entry.mode == PomodoroMode.shortBreak
-                                ? Icons.coffee_rounded
-                                : Icons.hotel_rounded),
-                      size: 28,
-                      color: isFocus
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-                headline: entry.mode.label,
-                supportingText: '$dateStr at $timeStr',
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${entry.minutes}m',
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.onSecondaryContainer,
-                    ),
+                headline: dateStr,
+                supportingText: focusStr,
+                leading: const Icon(Icons.calendar_today_rounded),
+                expanded: M3EExpandableExpanded.list(
+                  M3EList(
+                    color: colorScheme.tertiaryContainer,
+                    haptic: M3EHapticFeedback.heavy,
+                    itemCount: sessionsForDay.length,
+                    itemBuilder: (context, sessionIndex) {
+                      final entry = sessionsForDay[sessionIndex];
+                      final date = DateTime.fromMillisecondsSinceEpoch(
+                        entry.completedAt,
+                      );
+                      final isPm = date.hour >= 12;
+                      final hour12 = date.hour == 0
+                          ? 12
+                          : (date.hour > 12 ? date.hour - 12 : date.hour);
+                      final timeStr =
+                          '$hour12:${date.minute.toString().padLeft(2, '0')} ${isPm ? 'PM' : 'AM'}';
+                      final isFocus = entry.mode == PomodoroMode.focus;
+
+                      return M3EListItem(
+                        leading: M3EShapeContainer(
+                          kind: isFocus
+                              ? M3EShapeKind.ghostish
+                              : (entry.mode == PomodoroMode.shortBreak
+                                    ? M3EShapeKind.softBoom
+                                    : M3EShapeKind.pill),
+                          width: 40,
+                          height: 40,
+                          color: colorScheme.onTertiary,
+                          child: Center(
+                            child: Icon(
+                              isFocus
+                                  ? Icons.psychology_rounded
+                                  : (entry.mode == PomodoroMode.shortBreak
+                                        ? Icons.coffee_rounded
+                                        : Icons.hotel_rounded),
+                              size: 28,
+                              color: colorScheme.onTertiaryContainer,
+                            ),
+                          ),
+                        ),
+                        headline: entry.mode.label,
+                        supportingText: '@ $timeStr',
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.tertiary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${entry.minutes}m',
+                            style: textTheme.labelSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.onTertiary,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               );
@@ -242,11 +311,10 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
                 : Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: M3EIconButton(
-                      onPressed: () => _loadNextBatch(totalSessions),
+                      onPressed: () => _loadNextBatch(totalDays),
                       variant: M3EIconButtonVariant.filled,
                       width: M3EIconButtonWidth.wide,
-                      icon: const Icon(Icons.expand_more_rounded, size: 25),
-                      tooltip: 'Load ${totalSessions - _displayedCount} more',
+                      icon: const Icon(Icons.expand_more_rounded),
                     ),
                   ),
           ),

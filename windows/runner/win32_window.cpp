@@ -1,11 +1,68 @@
 #include "win32_window.h"
 
+#include <algorithm>
 #include <dwmapi.h>
 #include <flutter_windows.h>
 
 #include "resource.h"
 
 namespace {
+
+constexpr const wchar_t kWindowStateRegKey[] = L"Software\\Zeta\\WindowState";
+constexpr const wchar_t kRegValueX[] = L"X";
+constexpr const wchar_t kRegValueY[] = L"Y";
+constexpr const wchar_t kRegValueWidth[] = L"Width";
+constexpr const wchar_t kRegValueHeight[] = L"Height";
+constexpr const wchar_t kRegValueMaximized[] = L"Maximized";
+
+struct SavedWindowState {
+  int x = 10;
+  int y = 10;
+  int width = 1280;
+  int height = 720;
+  bool is_maximized = false;
+  bool has_saved_state = false;
+};
+
+SavedWindowState LoadSavedWindowState() {
+  SavedWindowState state;
+  HKEY hkey = nullptr;
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, kWindowStateRegKey, 0, KEY_READ, &hkey) != ERROR_SUCCESS) {
+    return state;
+  }
+
+  DWORD dw_x = 0, dw_y = 0, dw_w = 0, dw_h = 0, dw_max = 0;
+  DWORD size = sizeof(DWORD);
+  DWORD type = 0;
+
+  bool ok_w = (RegQueryValueExW(hkey, kRegValueWidth, nullptr, &type,
+                               reinterpret_cast<BYTE*>(&dw_w), &size) == ERROR_SUCCESS) && (type == REG_DWORD);
+  size = sizeof(DWORD);
+  bool ok_h = (RegQueryValueExW(hkey, kRegValueHeight, nullptr, &type,
+                               reinterpret_cast<BYTE*>(&dw_h), &size) == ERROR_SUCCESS) && (type == REG_DWORD);
+  size = sizeof(DWORD);
+  bool ok_x = (RegQueryValueExW(hkey, kRegValueX, nullptr, &type,
+                               reinterpret_cast<BYTE*>(&dw_x), &size) == ERROR_SUCCESS) && (type == REG_DWORD);
+  size = sizeof(DWORD);
+  bool ok_y = (RegQueryValueExW(hkey, kRegValueY, nullptr, &type,
+                               reinterpret_cast<BYTE*>(&dw_y), &size) == ERROR_SUCCESS) && (type == REG_DWORD);
+  size = sizeof(DWORD);
+  bool ok_max = (RegQueryValueExW(hkey, kRegValueMaximized, nullptr, &type,
+                                 reinterpret_cast<BYTE*>(&dw_max), &size) == ERROR_SUCCESS) && (type == REG_DWORD);
+
+  RegCloseKey(hkey);
+
+  if (ok_w && ok_h && dw_w >= 200 && dw_h >= 200) {
+    state.width = static_cast<int>(dw_w);
+    state.height = static_cast<int>(dw_h);
+    if (ok_x) state.x = static_cast<int>(dw_x);
+    if (ok_y) state.y = static_cast<int>(dw_y);
+    if (ok_max) state.is_maximized = (dw_max != 0);
+    state.has_saved_state = true;
+  }
+
+  return state;
+}
 
 /// Window attribute that enables dark mode window decorations.
 ///
@@ -128,16 +185,97 @@ bool Win32Window::Create(const std::wstring& title,
   const wchar_t* window_class =
       WindowClassRegistrar::GetInstance()->GetWindowClass();
 
-  const POINT target_point = {static_cast<LONG>(origin.x),
-                              static_cast<LONG>(origin.y)};
-  HMONITOR monitor = MonitorFromPoint(target_point, MONITOR_DEFAULTTONEAREST);
-  UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
-  double scale_factor = dpi / 96.0;
+  SavedWindowState saved_state = LoadSavedWindowState();
+
+  int window_x = 0;
+  int window_y = 0;
+  int window_width = 0;
+  int window_height = 0;
+
+  if (saved_state.has_saved_state) {
+    RECT target_rect = {
+        saved_state.x, saved_state.y,
+        saved_state.x + saved_state.width, saved_state.y + saved_state.height};
+    HMONITOR monitor = MonitorFromRect(&target_rect, MONITOR_DEFAULTTONULL);
+
+    if (monitor == nullptr) {
+      // Monitor is disconnected or window is completely off-screen.
+      // Fallback safely to primary monitor work area while maintaining saved dimensions.
+      HMONITOR primary = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
+      MONITORINFO mi = {sizeof(mi)};
+      if (GetMonitorInfo(primary, &mi)) {
+        int work_w = mi.rcWork.right - mi.rcWork.left;
+        int work_h = mi.rcWork.bottom - mi.rcWork.top;
+        window_width = (std::min)(saved_state.width, work_w);
+        window_height = (std::min)(saved_state.height, work_h);
+        window_x = mi.rcWork.left + (work_w - window_width) / 2;
+        window_y = mi.rcWork.top + (work_h - window_height) / 2;
+      } else {
+        window_x = 10;
+        window_y = 10;
+        window_width = saved_state.width;
+        window_height = saved_state.height;
+      }
+    } else {
+      // Monitor exists; make sure the title bar and window fit within visible work area.
+      MONITORINFO mi = {sizeof(mi)};
+      if (GetMonitorInfo(monitor, &mi)) {
+        int work_w = mi.rcWork.right - mi.rcWork.left;
+        int work_h = mi.rcWork.bottom - mi.rcWork.top;
+        window_width = (std::min)(saved_state.width, work_w);
+        window_height = (std::min)(saved_state.height, work_h);
+        window_x = saved_state.x;
+        window_y = saved_state.y;
+
+        if (window_x + window_width < mi.rcWork.left + 100) {
+          window_x = mi.rcWork.left;
+        }
+        if (window_x > mi.rcWork.right - 100) {
+          window_x = mi.rcWork.right - window_width;
+        }
+        if (window_y < mi.rcWork.top) {
+          window_y = mi.rcWork.top;
+        }
+        if (window_y > mi.rcWork.bottom - 80) {
+          window_y = mi.rcWork.bottom - window_height;
+        }
+      } else {
+        window_x = saved_state.x;
+        window_y = saved_state.y;
+        window_width = saved_state.width;
+        window_height = saved_state.height;
+      }
+    }
+
+    is_maximized_ = saved_state.is_maximized;
+    show_command_ = saved_state.is_maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+  } else {
+    // First launch or no saved state: scale default logical coordinates by monitor DPI.
+    const POINT target_point = {static_cast<LONG>(origin.x),
+                                static_cast<LONG>(origin.y)};
+    HMONITOR monitor = MonitorFromPoint(target_point, MONITOR_DEFAULTTONEAREST);
+    UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+    double scale_factor = dpi / 96.0;
+
+    window_x = Scale(origin.x, scale_factor);
+    window_y = Scale(origin.y, scale_factor);
+    window_width = Scale(size.width, scale_factor);
+    window_height = Scale(size.height, scale_factor);
+
+    is_maximized_ = false;
+    show_command_ = SW_SHOWNORMAL;
+  }
+
+  // Ensure reasonable minimum dimensions
+  if (window_width < 400) window_width = 1280;
+  if (window_height < 500) window_height = 720;
+
+  last_normal_rect_ = {window_x, window_y,
+                       window_x + window_width, window_y + window_height};
 
   HWND window = CreateWindow(
       window_class, title.c_str(), WS_OVERLAPPEDWINDOW,
-      Scale(origin.x, scale_factor), Scale(origin.y, scale_factor),
-      Scale(size.width, scale_factor), Scale(size.height, scale_factor),
+      window_x, window_y, window_width, window_height,
       nullptr, nullptr, GetModuleHandle(nullptr), this);
 
   if (!window) {
@@ -150,7 +288,80 @@ bool Win32Window::Create(const std::wstring& title,
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  return ShowWindow(window_handle_, show_command_);
+}
+
+void Win32Window::SaveWindowState() {
+  if (!window_handle_ || !IsWindow(window_handle_)) {
+    return;
+  }
+  if (IsFullscreen()) {
+    return;
+  }
+  if (IsIconic(window_handle_)) {
+    return;
+  }
+
+  bool is_maximized = (IsZoomed(window_handle_) != FALSE);
+  is_maximized_ = is_maximized;
+
+  HKEY hkey = nullptr;
+  if (RegCreateKeyExW(HKEY_CURRENT_USER, kWindowStateRegKey, 0, nullptr,
+                      REG_OPTION_NON_VOLATILE, KEY_SET_VALUE, nullptr,
+                      &hkey, nullptr) != ERROR_SUCCESS) {
+    return;
+  }
+
+  DWORD max_val = is_maximized ? 1 : 0;
+  RegSetValueExW(hkey, kRegValueMaximized, 0, REG_DWORD,
+                 reinterpret_cast<const BYTE*>(&max_val), sizeof(max_val));
+
+  if (!is_maximized) {
+    GetWindowRect(window_handle_, &last_normal_rect_);
+  } else {
+    WINDOWPLACEMENT wp = {sizeof(WINDOWPLACEMENT)};
+    if (GetWindowPlacement(window_handle_, &wp)) {
+      if (last_normal_rect_.right - last_normal_rect_.left <= 0 ||
+          last_normal_rect_.bottom - last_normal_rect_.top <= 0) {
+        last_normal_rect_ = wp.rcNormalPosition;
+      }
+    }
+  }
+
+  int width = last_normal_rect_.right - last_normal_rect_.left;
+  int height = last_normal_rect_.bottom - last_normal_rect_.top;
+  int x = last_normal_rect_.left;
+  int y = last_normal_rect_.top;
+
+  if (width >= 200 && height >= 200) {
+    DWORD dw_x = static_cast<DWORD>(x);
+    DWORD dw_y = static_cast<DWORD>(y);
+    DWORD dw_w = static_cast<DWORD>(width);
+    DWORD dw_h = static_cast<DWORD>(height);
+
+    RegSetValueExW(hkey, kRegValueX, 0, REG_DWORD,
+                   reinterpret_cast<const BYTE*>(&dw_x), sizeof(dw_x));
+    RegSetValueExW(hkey, kRegValueY, 0, REG_DWORD,
+                   reinterpret_cast<const BYTE*>(&dw_y), sizeof(dw_y));
+    RegSetValueExW(hkey, kRegValueWidth, 0, REG_DWORD,
+                   reinterpret_cast<const BYTE*>(&dw_w), sizeof(dw_w));
+    RegSetValueExW(hkey, kRegValueHeight, 0, REG_DWORD,
+                   reinterpret_cast<const BYTE*>(&dw_h), sizeof(dw_h));
+  }
+
+  RegCloseKey(hkey);
+}
+
+void Win32Window::ResetWindowState() {
+  HKEY hkey = nullptr;
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, kWindowStateRegKey, 0, KEY_SET_VALUE, &hkey) == ERROR_SUCCESS) {
+    RegDeleteValueW(hkey, kRegValueX);
+    RegDeleteValueW(hkey, kRegValueY);
+    RegDeleteValueW(hkey, kRegValueWidth);
+    RegDeleteValueW(hkey, kRegValueHeight);
+    RegDeleteValueW(hkey, kRegValueMaximized);
+    RegCloseKey(hkey);
+  }
 }
 
 // static
@@ -179,7 +390,26 @@ Win32Window::MessageHandler(HWND hwnd,
                             WPARAM const wparam,
                             LPARAM const lparam) noexcept {
   switch (message) {
+    case WM_GETMINMAXINFO: {
+      auto minMax = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale = dpi / 96.0;
+      minMax->ptMinTrackSize.x = static_cast<LONG>(400 * scale);
+      minMax->ptMinTrackSize.y = static_cast<LONG>(500 * scale);
+      return 0;
+    }
+
+    case WM_EXITSIZEMOVE: {
+      if (!IsZoomed(hwnd) && !IsIconic(hwnd) && !IsFullscreen()) {
+        GetWindowRect(hwnd, &last_normal_rect_);
+      }
+      SaveWindowState();
+      return 0;
+    }
+
     case WM_DESTROY:
+      SaveWindowState();
       window_handle_ = nullptr;
       Destroy();
       if (quit_on_close_) {
@@ -203,6 +433,22 @@ Win32Window::MessageHandler(HWND hwnd,
         // Size and position the child window.
         MoveWindow(child_content_, rect.left, rect.top, rect.right - rect.left,
                    rect.bottom - rect.top, TRUE);
+      }
+      if (wparam == SIZE_MAXIMIZED) {
+        is_maximized_ = true;
+        SaveWindowState();
+      } else if (wparam == SIZE_RESTORED) {
+        if (is_maximized_) {
+          is_maximized_ = false;
+          SaveWindowState();
+        }
+      }
+      return 0;
+    }
+
+    case WM_ENDSESSION: {
+      if (wparam) {
+        SaveWindowState();
       }
       return 0;
     }

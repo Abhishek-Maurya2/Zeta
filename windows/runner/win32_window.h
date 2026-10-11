@@ -37,7 +37,7 @@ class Win32Window {
   bool Create(const std::wstring& title, const Point& origin, const Size& size);
 
   // Show the current window. Returns true if the window was successfully shown.
-  bool Show();
+  virtual bool Show();
 
   // Release OS resources associated with window.
   void Destroy();
@@ -55,6 +55,15 @@ class Win32Window {
   // Return a RECT representing the bounds of the current client area.
   RECT GetClientArea();
 
+  // Saves current window placement (dimensions, position, maximized state) to registry.
+  void SaveWindowState();
+
+  // Restores default window state by clearing saved registry keys.
+  void ResetWindowState();
+
+  // Whether the window is currently in borderless fullscreen mode.
+  virtual bool IsFullscreen() const { return false; }
+
  protected:
   // Processes and route salient window messages for mouse handling,
   // size change and DPI. Delegates handling of these to member overloads that
@@ -70,6 +79,10 @@ class Win32Window {
 
   // Called when Destroy is called.
   virtual void OnDestroy();
+
+  bool is_maximized_ = false;
+  int show_command_ = SW_SHOWNORMAL;
+  RECT last_normal_rect_ = {};
 
  private:
   friend class WindowClassRegistrar;

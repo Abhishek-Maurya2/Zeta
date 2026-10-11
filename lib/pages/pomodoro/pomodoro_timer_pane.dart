@@ -44,13 +44,8 @@ class PomodoroTimerPane extends StatelessWidget {
           ),
           M3EIconButton(
             variant: M3EIconButtonVariant.tonal,
-            size: M3EIconButtonSize.sm,
             tooltip: 'Always-on display',
-            icon: const Icon(
-              Icons.fullscreen_rounded,
-              size: 25,
-              fontWeight: FontWeight.bold,
-            ),
+            icon: const Icon(Icons.fullscreen_rounded),
             onPressed: onToggleAod != null
                 ? () {
                     ZetaHaptics.light();

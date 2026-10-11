@@ -1,3 +1,4 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -25,13 +26,12 @@ class TopBarBrand extends StatelessWidget {
             message: navProvider.isRailExpanded
                 ? 'Collapse navigation'
                 : 'Expand navigation',
-            child: IconButton(
+            child: M3EIconButton(
+              variant: M3EIconButtonVariant.standard,
               icon: Icon(
-                fontWeight: FontWeight.bold,
                 navProvider.isRailExpanded
                     ? Icons.menu_open_rounded
                     : Icons.menu_rounded,
-                color: colorScheme.onSurfaceVariant,
               ),
               onPressed: () {
                 ZetaHaptics.light();

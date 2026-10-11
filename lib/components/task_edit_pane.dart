@@ -1183,9 +1183,9 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             child: M3EButtonGroup(
                               type: M3EButtonGroupType.standard,
                               shape: M3EButtonShape.round,
-                              size: M3EButtonSize.custom(height: 45),
-                              spacing: 4,
-                              expandedRatio: 0.3,
+                              size: M3EButtonSize.md,
+                              spacing: 6,
+                              expandedRatio: 0.2,
                               neighborSquish: true,
                               selectedIndex: null,
                               onSelectedIndexChanged: (int? index) {
@@ -1206,10 +1206,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               },
                               actions: [
                                 M3EButtonGroupAction(
-                                  minWidth: 60,
+                                  minWidth: 67,
                                   icon: const Icon(
                                     Icons.notes_rounded,
-                                    size: 20,
+                                    size: 22,
                                   ),
                                   tooltip: 'Add notes',
                                   decoration: M3EButtonDecoration.styleFrom(
@@ -1223,10 +1223,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   ),
                                 ),
                                 M3EButtonGroupAction(
-                                  minWidth: 60,
+                                  minWidth: 67,
                                   icon: const Icon(
                                     Icons.checklist_rounded,
-                                    size: 20,
+                                    size: 22,
                                   ),
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _showSubtasks
@@ -1239,10 +1239,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   ),
                                 ),
                                 M3EButtonGroupAction(
-                                  minWidth: 60,
+                                  minWidth: 67,
                                   icon: const Icon(
                                     Icons.calendar_month_rounded,
-                                    size: 20,
+                                    size: 22,
                                   ),
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _dueDate != null
@@ -1255,10 +1255,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   ),
                                 ),
                                 M3EButtonGroupAction(
-                                  minWidth: 60,
+                                  minWidth: 67,
                                   icon: const Icon(
                                     Icons.schedule_rounded,
-                                    size: 20,
+                                    size: 22,
                                   ),
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _hasTime
@@ -1271,10 +1271,10 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   ),
                                 ),
                                 M3EButtonGroupAction(
-                                  minWidth: 60,
+                                  minWidth: 67,
                                   icon: const Icon(
                                     Icons.attach_file_rounded,
-                                    size: 20,
+                                    size: 22,
                                   ),
                                   decoration: M3EButtonDecoration.styleFrom(
                                     backgroundColor: _showAttachments

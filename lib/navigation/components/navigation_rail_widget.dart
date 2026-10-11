@@ -75,8 +75,8 @@ class NavigationRailWidget extends StatelessWidget {
             destinations: kNavDestinations
                 .map(
                   (d) => M3ENavigationRailDestination(
-                    icon: Icon(d.icon),
-                    selectedIcon: Icon(d.selectedIcon),
+                    icon: Icon(d.icon, weight: 700),
+                    selectedIcon: Icon(d.selectedIcon, fill: 1, weight: 700),
                     label: d.label,
                   ),
                 )

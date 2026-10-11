@@ -63,10 +63,11 @@ class PomodoroChartCanvas extends StatelessWidget {
 
   static String formatAxisDuration(int minutes) {
     if (minutes <= 0) return '0';
-    if (minutes < 60) return '${minutes}m';
-    final hours = minutes / 60;
-    if (minutes % 60 == 0) return '${hours.toInt()}h';
-    return '${hours.toStringAsFixed(1)}h';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0 && m > 0) return '$h:${m.toString().padLeft(2, '0')}';
+    if (h > 0) return '${h}h';
+    return '${m}m';
   }
 
   static String toLocalDateStr(DateTime date) {
@@ -473,7 +474,7 @@ class PomodoroChartCanvas extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        const rightAxisWidth = 52.0;
+        const rightAxisWidth = 26.0;
         final availableWidth = math.max(120.0, totalWidth - rightAxisWidth);
 
         const labelAreaHeight = 24.0;
@@ -662,17 +663,7 @@ class PomodoroChartCanvas extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: rightAxisWidth + 4,
-                top: 0,
-                child: Container(
-                  height: 1,
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
-
-              Positioned(
-                left: 0,
-                right: rightAxisWidth + 4,
-                bottom: (0.5 * barAreaHeight) + labelAreaHeight,
+                top: 5,
                 child: Container(
                   height: 1,
                   color: colorScheme.outlineVariant.withValues(alpha: 0.5),

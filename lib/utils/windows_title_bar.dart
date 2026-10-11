@@ -50,4 +50,12 @@ class WindowsTitleBar {
       await _channel.invokeMethod('setWakeLock', {'enable': enable});
     } catch (_) {}
   }
+
+  /// Reset Windows window size to default (1280x720) and clear saved window placement.
+  static Future<void> resetWindowSize() async {
+    if (kIsWeb || !Platform.isWindows) return;
+    try {
+      await _channel.invokeMethod('resetWindowSize');
+    } catch (_) {}
+  }
 }

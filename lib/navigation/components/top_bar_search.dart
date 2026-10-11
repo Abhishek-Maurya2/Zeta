@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../models/task.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -39,114 +40,108 @@ class TopBarSearch extends StatelessWidget {
     }
 
     return Expanded(
-      child: ClipRect(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: M3ESearchAnchor(
-              searchController: searchController,
-              builder: (BuildContext context, M3ESearchController controller) {
-                return M3ESearchBar(
-                  controller: controller,
-                  leading: isCompact
-                      ? null
-                      : const Icon(
-                          M3EIcons.search,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  readOnly: true,
-                  hintText: isCompact
-                      ? 'Search'
-                      : 'Search Tasks, Notes, Subjects',
-                  onTap: () {
-                    if (!controller.isOpen) {
-                      controller.openView();
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: M3ESearchAnchor(
+            searchController: searchController,
+            builder: (BuildContext context, M3ESearchController controller) {
+              return M3ESearchBar(
+                controller: controller,
+                margin: isCompact ? 6 : null,
+                focusedMargin: isCompact ? 0 : null,
+                leading: isCompact
+                    ? const SizedBox(width: 1)
+                    : const Icon(M3EIcons.search_rounded),
+                readOnly: true,
+                alignment: AlignmentDirectional.center,
+                wrapActions: false,
+                hintText: isCompact
+                    ? 'Search'
+                    : 'Search Tasks, Notes, Subjects',
+                onTap: () {
+                  if (!controller.isOpen) {
+                    controller.openView();
+                  }
+                },
+                onSubmitted: (query) {
+                  final trimmed = query.trim();
+                  if (trimmed.isNotEmpty) {
+                    taskProvider.setSearchQuery(trimmed);
+                    navProvider.setActivePage(PageId.tasks);
+                    if (controller.isAttached && controller.isOpen) {
+                      controller.closeView(trimmed);
                     }
-                  },
-                  onSubmitted: (query) {
-                    final trimmed = query.trim();
-                    if (trimmed.isNotEmpty) {
-                      taskProvider.setSearchQuery(trimmed);
-                      navProvider.setActivePage(PageId.tasks);
-                      if (controller.isAttached && controller.isOpen) {
-                        controller.closeView(trimmed);
-                      }
-                    }
-                  },
-                  trailing: [
-                    if (taskProvider.searchQuery.isNotEmpty ||
-                        searchController.text.isNotEmpty)
-                      Tooltip(
-                        message: 'Clear search',
-                        child: M3EIconButton(
-                          variant: M3EIconButtonVariant.standard,
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            searchController.clear();
-                            taskProvider.clearSearchQuery();
-                          },
-                        ),
-                      ),
-                    // Keyboard shortcut badge [/] — non-compact only, hidden when searching
-                    if (!isCompact &&
-                        taskProvider.searchQuery.isEmpty &&
-                        searchController.text.isEmpty)
-                      Tooltip(
-                        message: 'Press / to search',
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerLowest
-                                .withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: colorScheme.outlineVariant
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Text(
-                            '/',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontFamily: 'RobotoMono',
-                              fontWeight: FontWeight.w700,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Theme Switch Icon Button Standard inside SearchBar
+                  }
+                },
+                trailing: [
+                  if (taskProvider.searchQuery.isNotEmpty ||
+                      searchController.text.isNotEmpty)
                     M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
-                      icon: Icon(
-                        fontWeight: FontWeight.bold,
-                        isDark
-                            ? Icons.light_mode_outlined
-                            : Icons.dark_mode_outlined,
-                      ),
+                      icon: const Icon(Icons.close_rounded),
                       onPressed: () {
                         ZetaHaptics.light();
-                        themeProvider.toggleTheme(isDark);
+                        searchController.clear();
+                        taskProvider.clearSearchQuery();
                       },
                     ),
-                  ],
-                );
-              },
-              suggestionsBuilder: (context, controller) {
-                return _buildSearchSuggestions(
-                  context,
-                  controller,
-                  navProvider,
-                  taskProvider,
-                  textTheme,
-                  colorScheme,
-                );
-              },
-            ),
+                  // Keyboard shortcut badge [/] — non-compact only, hidden when searching
+                  if (!isCompact &&
+                      taskProvider.searchQuery.isEmpty &&
+                      searchController.text.isEmpty)
+                    Tooltip(
+                      message: 'Press / to search',
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLowest.withValues(
+                            alpha: 0.5,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          '/',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontFamily: 'RobotoMono',
+                            fontWeight: FontWeight.w700,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Theme Switch Icon Button Standard inside SearchBar
+                  M3EIconButton(
+                    variant: M3EIconButtonVariant.standard,
+                    icon: Icon(
+                      isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                    ),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      themeProvider.toggleTheme(isDark);
+                    },
+                  ),
+                ],
+              );
+            },
+            suggestionsBuilder: (context, controller) {
+              return _buildSearchSuggestions(
+                context,
+                controller,
+                navProvider,
+                taskProvider,
+                textTheme,
+                colorScheme,
+              );
+            },
           ),
         ),
       ),
@@ -169,10 +164,15 @@ class TopBarSearch extends StatelessWidget {
       }
     }
 
+    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
+
     if (query.isEmpty) {
       return [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: isCompact ? 4 : 12,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -189,7 +189,8 @@ class TopBarSearch extends StatelessWidget {
               M3EList(
                 gap: 3,
                 color: colorScheme.surfaceContainerLowest,
-                itemCount: 4,
+                itemCount: 3,
+                haptic: M3EHapticFeedback.heavy,
                 onTap: (index) {
                   safeCloseView(null);
                   switch (index) {
@@ -198,16 +199,13 @@ class TopBarSearch extends StatelessWidget {
                     case 1:
                       navProvider.setActivePage(PageId.bin);
                     case 2:
-                      navProvider.setActivePage(PageId.pomodoro);
-                    case 3:
                       navProvider.setActivePage(PageId.settings);
                   }
                 },
                 itemBuilder: (context, index) => switch (index) {
                   0 => const M3EListItem(
-                    leading: Icon(Icons.add_circle_outline_rounded),
+                    leading: Icon(Icons.add_rounded),
                     headline: 'New Task',
-                    supportingText: 'Create a new task or note  [N]',
                   ),
                   1 => M3EListItem(
                     leading: Icon(
@@ -215,15 +213,6 @@ class TopBarSearch extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Bin',
-                    supportingText: 'Recycle bin and archived tasks',
-                  ),
-                  2 => M3EListItem(
-                    leading: Icon(
-                      Icons.timer_outlined,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    headline: 'Pomodoro Timer',
-                    supportingText: 'Focus intervals and session tracker',
                   ),
                   _ => M3EListItem(
                     leading: Icon(
@@ -231,7 +220,6 @@ class TopBarSearch extends StatelessWidget {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Settings',
-                    supportingText: 'Customize theme, typography and sync',
                   ),
                 },
               ),
@@ -248,8 +236,8 @@ class TopBarSearch extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                  spacing: 4,
+                  runSpacing: 4,
                   children: [
                     _shortcutTag('Search', '/', colorScheme),
                     _shortcutTag('New Task', 'N', colorScheme),
@@ -266,11 +254,68 @@ class TopBarSearch extends StatelessWidget {
 
     final matchingTasks = taskProvider.searchTasks(query);
     final matchingBinTasks = taskProvider.searchBinTasks(query);
+    final activeTasks = matchingTasks.where((t) => !t.completed).toList();
+    final completedTasks = matchingTasks.where((t) => t.completed).toList();
+
+    int scoreTask(Task task) {
+      final q = query.toLowerCase();
+      final title = task.title.toLowerCase();
+      int score = 0;
+      if (title == q) {
+        score += 1000;
+      } else if (title.startsWith(q)) {
+        score += 800;
+      } else {
+        final words = title.split(RegExp(r'\s+'));
+        if (words.any((w) => w.startsWith(q))) {
+          score += 600;
+        } else if (title.contains(q)) {
+          score += 400;
+        }
+      }
+      for (final subtask in task.subtasks) {
+        final subTitle = subtask.title.toLowerCase();
+        if (subTitle == q) {
+          score += 300;
+        } else if (subTitle.startsWith(q)) {
+          score += 250;
+        } else if (subTitle.contains(q)) {
+          score += 200;
+        }
+      }
+      if (task.description != null) {
+        final desc = task.description!.toLowerCase();
+        if (desc.startsWith(q)) {
+          score += 150;
+        } else if (desc.contains(q)) {
+          score += 100;
+        }
+      }
+      if (task.dueDate != null && task.dueDate!.toLowerCase().contains(q)) {
+        score += 50;
+      }
+      return score;
+    }
+
+    int compareTasks(Task a, Task b) {
+      final sA = scoreTask(a);
+      final sB = scoreTask(b);
+      if (sA != sB) return sB.compareTo(sA);
+      return b.updatedAt.compareTo(a.updatedAt);
+    }
+
+    final activeList = (activeTasks..sort(compareTasks)).take(5).toList();
+    final completedList = (completedTasks..sort(compareTasks)).take(5).toList();
+    final binList = (matchingBinTasks..sort(compareTasks)).take(5).toList();
+
     final widgets = <Widget>[];
 
     widgets.add(
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 4 : 12,
+          vertical: isCompact ? 4 : 12,
+        ),
         child: M3EList(
           gap: 3,
           color: colorScheme.surfaceContainerLowest,
@@ -291,28 +336,75 @@ class TopBarSearch extends StatelessWidget {
                     Icons.search_rounded,
                     color: colorScheme.primary,
                   ),
-                  headline: 'Search all for "$query"',
-                  supportingText:
-                      'Filter Tasks page • ${matchingTasks.length} found',
+                  headline:
+                      '${matchingTasks.length} results found for \'$query\'',
                 )
               : M3EListItem(
                   leading: Icon(
                     Icons.add_task_rounded,
                     color: colorScheme.primary,
                   ),
-                  headline: 'Create task "$query"',
+                  headline: 'Create task \'$query\'',
                 ),
         ),
       ),
     );
 
-    if (matchingTasks.isNotEmpty) {
-      widgets.add(const SizedBox(height: 8));
+    final qLower = query.toLowerCase();
+
+    M3EListItem buildTaskTile(Task task) {
+      String? snippet;
+      if (task.description != null &&
+          task.description!.toLowerCase().contains(qLower)) {
+        final desc = task.description!;
+        final idx = desc.toLowerCase().indexOf(qLower);
+        final start = (idx - 15).clamp(0, desc.length);
+        final end = (idx + query.length + 25).clamp(0, desc.length);
+        final prefix = start > 0 ? '…' : '';
+        final suffix = end < desc.length ? '…' : '';
+        snippet =
+            'Note: $prefix${desc.substring(start, end).replaceAll('\n', ' ')}$suffix';
+      }
+
+      return M3EListItem(
+        leading: Icon(
+          task.completed
+              ? Icons.check_rounded
+              : Icons.radio_button_unchecked_rounded,
+          color: task.completed
+              ? const Color(0xFF10B981)
+              : colorScheme.onSurfaceVariant,
+        ),
+        headline: task.title,
+        supportingText: snippet,
+        trailing: task.dueDate != null
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  task.dueDate!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              )
+            : null,
+      );
+    }
+
+    if (activeList.isNotEmpty) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
           child: Text(
-            'Tasks (${matchingTasks.length})',
+            'Tasks (${activeTasks.length})',
             style: textTheme.labelMedium?.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w800,
@@ -323,82 +415,20 @@ class TopBarSearch extends StatelessWidget {
         ),
       );
 
-      final qLower = query.toLowerCase();
-      final taskList = matchingTasks.take(15).toList();
-      final taskTiles = <Widget>[];
-      for (final task in taskList) {
-        String? snippet;
-        if (task.description != null &&
-            task.description!.toLowerCase().contains(qLower)) {
-          final desc = task.description!;
-          final idx = desc.toLowerCase().indexOf(qLower);
-          final start = (idx - 15).clamp(0, desc.length);
-          final end = (idx + query.length + 25).clamp(0, desc.length);
-          final prefix = start > 0 ? '…' : '';
-          final suffix = end < desc.length ? '…' : '';
-          snippet =
-              'Note: $prefix${desc.substring(start, end).replaceAll('\n', ' ')}$suffix';
-        } else {
-          final matchedSubtask = task.subtasks
-              .where((s) => s.title.toLowerCase().contains(qLower))
-              .firstOrNull;
-          if (matchedSubtask != null) {
-            snippet = 'Subtask: ${matchedSubtask.title}';
-          } else if (task.dueDate != null) {
-            snippet =
-                'Due: ${task.dueDate}${task.hasTime && task.dueTime != null ? ' at ${task.dueTime}' : ''}';
-          } else if (task.subtasks.isNotEmpty) {
-            final compSub = task.subtasks.where((s) => s.completed).length;
-            snippet = '$compSub/${task.subtasks.length} subtasks completed';
-          }
-        }
-
-        taskTiles.add(
-          M3EListItem(
-            leading: Icon(
-              task.completed
-                  ? Icons.check_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              size: 20,
-              color: task.completed
-                  ? const Color(0xFF10B981)
-                  : colorScheme.onSurfaceVariant,
-            ),
-            headline: task.title,
-            supportingText: snippet,
-            trailing: task.dueDate != null
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      task.dueDate!,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  )
-                : null,
-          ),
-        );
-      }
-
+      final taskTiles = activeList.map(buildTaskTile).toList();
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
           child: M3EList(
             gap: 3,
             color: colorScheme.surfaceContainerLowest,
             itemCount: taskTiles.length,
             onTap: (index) {
               safeCloseView(null);
-              TaskEditPane.show(context, task: taskList[index]);
+              TaskEditPane.show(context, task: activeList[index]);
             },
             itemBuilder: (context, index) => taskTiles[index],
           ),
@@ -406,11 +436,53 @@ class TopBarSearch extends StatelessWidget {
       );
     }
 
-    if (matchingBinTasks.isNotEmpty) {
-      widgets.add(const SizedBox(height: 8));
+    if (completedList.isNotEmpty) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
+          child: Text(
+            'Completed (${completedTasks.length})',
+            style: textTheme.labelMedium?.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: colorScheme.primary,
+            ),
+          ),
+        ),
+      );
+
+      final completedTiles = completedList.map(buildTaskTile).toList();
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
+          child: M3EList(
+            gap: 3,
+            color: colorScheme.surfaceContainerLowest,
+            itemCount: completedTiles.length,
+            onTap: (index) {
+              safeCloseView(null);
+              TaskEditPane.show(context, task: completedList[index]);
+            },
+            itemBuilder: (context, index) => completedTiles[index],
+          ),
+        ),
+      );
+    }
+
+    if (binList.isNotEmpty) {
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
           child: Text(
             'Bin (${matchingBinTasks.length})',
             style: textTheme.labelMedium?.copyWith(
@@ -424,23 +496,24 @@ class TopBarSearch extends StatelessWidget {
       );
 
       final binTiles = <Widget>[];
-      for (final binTask in matchingBinTasks.take(5)) {
+      for (final binTask in binList) {
         binTiles.add(
           M3EListItem(
             leading: Icon(
               Icons.delete_outline_rounded,
               color: colorScheme.error,
-              size: 20,
             ),
             headline: binTask.title,
-            supportingText: 'In Bin (Deleted)',
           ),
         );
       }
 
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 4 : 12,
+            vertical: 6,
+          ),
           child: M3EList(
             gap: 3,
             color: colorScheme.surfaceContainerLowest,
@@ -455,10 +528,12 @@ class TopBarSearch extends StatelessWidget {
       );
     }
 
-    if (matchingTasks.isEmpty && matchingBinTasks.isEmpty) {
+    if (activeTasks.isEmpty &&
+        completedTasks.isEmpty &&
+        matchingBinTasks.isEmpty) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: ZetaEmptyState.search(
             query: query,
             subtitle: 'Tap "Create task" above to add it to your list.',
@@ -473,9 +548,9 @@ class TopBarSearch extends StatelessWidget {
 
   Widget _shortcutTag(String label, String keyChar, ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.45),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.25),
@@ -493,7 +568,7 @@ class TopBarSearch extends StatelessWidget {
               fontFamily: 'RobotoMono',
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(

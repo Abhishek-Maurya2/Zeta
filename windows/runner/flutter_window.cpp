@@ -208,6 +208,24 @@ bool FlutterWindow::OnCreate() {
             RegCloseKey(hkey);
           }
           result->Success(flutter::EncodableValue(success));
+        } else if (call.method_name() == "resetWindowSize") {
+          this->ResetWindowState();
+          HWND hwnd = GetHandle();
+          if (hwnd && IsWindow(hwnd)) {
+            HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+            double scale = dpi / 96.0;
+            int w = static_cast<int>(1280 * scale);
+            int h = static_cast<int>(720 * scale);
+            MONITORINFO mi = { sizeof(mi) };
+            if (GetMonitorInfo(monitor, &mi)) {
+              int x = mi.rcWork.left + ((mi.rcWork.right - mi.rcWork.left) - w) / 2;
+              int y = mi.rcWork.top + ((mi.rcWork.bottom - mi.rcWork.top) - h) / 2;
+              ShowWindow(hwnd, SW_RESTORE);
+              SetWindowPos(hwnd, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+            }
+          }
+          result->Success();
         } else if (call.method_name() == "forceClose") {
           this->ForceClose();
           result->Success();
@@ -327,12 +345,20 @@ void FlutterWindow::InitTray(bool minimize_to_tray) {
   tray_initialized_ = true;
 }
 
+bool FlutterWindow::Show() {
+  if (is_hidden_to_tray_) {
+    return false;
+  }
+  return Win32Window::Show();
+}
+
 void FlutterWindow::ShowFromTray() {
   HWND hwnd = GetHandle();
   if (!hwnd) return;
-  ShowWindow(hwnd, SW_SHOW);
+  is_hidden_to_tray_ = false;
+  ShowWindow(hwnd, is_maximized_ ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL);
   if (IsIconic(hwnd)) {
-    ShowWindow(hwnd, SW_RESTORE);
+    ShowWindow(hwnd, is_maximized_ ? SW_SHOWMAXIMIZED : SW_RESTORE);
   }
   SetForegroundWindow(hwnd);
   if (title_bar_channel_) {
@@ -343,6 +369,8 @@ void FlutterWindow::ShowFromTray() {
 void FlutterWindow::HideToTray() {
   HWND hwnd = GetHandle();
   if (!hwnd) return;
+  SaveWindowState();
+  is_hidden_to_tray_ = true;
   ShowWindow(hwnd, SW_HIDE);
   if (title_bar_channel_) {
     title_bar_channel_->InvokeMethod("trayHide", nullptr);
@@ -361,6 +389,7 @@ void FlutterWindow::RemoveTray() {
 }
 
 void FlutterWindow::ForceClose() {
+  SaveWindowState();
   RemoveTray();
   HWND hwnd = GetHandle();
   if (hwnd) {
@@ -389,6 +418,7 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
     // ─── Window Close / Minimize to Tray ──────────────────────────────────
     case WM_CLOSE:
+      SaveWindowState();
       if (title_bar_channel_) {
         title_bar_channel_->InvokeMethod("windowCloseRequested", nullptr);
         return 0;  // Prevent default close/destroy so Flutter can confirm or minimize

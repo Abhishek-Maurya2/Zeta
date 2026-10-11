@@ -33,15 +33,26 @@ class UpdatesSection extends StatelessWidget {
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     try {
-      // Android package visibility can make canLaunchUrl return false even
-      // when a browser is able to handle this URL. Try launching directly.
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      bool launched = false;
+      try {
+        launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      } catch (_) {
+        launched = false;
+      }
+      if (!launched) {
+        launched = await launchUrl(uri);
+      }
       if (!launched) onToast?.call('Could not open link');
     } catch (_) {
-      onToast?.call('Could not open link');
+      try {
+        final fallback = await launchUrl(uri);
+        if (!fallback) onToast?.call('Could not open link');
+      } catch (_) {
+        onToast?.call('Could not open link');
+      }
     }
   }
 
@@ -156,13 +167,12 @@ class UpdatesSection extends StatelessWidget {
               ] else if (isDownloaded) ...[
                 // Install button
                 M3EButton.icon(
-                  icon: const Icon(Icons.system_update_alt_rounded, size: 25),
+                  icon: const Icon(Icons.system_update_alt_rounded, ),
                   label: const Text(
-                    style: TextStyle(fontSize: 20),
                     'Install Update',
                   ),
                   style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.lg,
+                  size: M3EButtonSize.md,
                   onPressed: () {
                     ZetaHaptics.medium();
                     updateProvider.install();
@@ -205,7 +215,7 @@ class UpdatesSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     M3EIconButton(
-                      icon: const Icon(Icons.refresh_rounded, size: 25),
+                      icon: const Icon(Icons.refresh_rounded, ),
                       tooltip: 'Retry',
                       variant: M3EIconButtonVariant.filled,
                       size: M3EIconButtonSize.md,
@@ -341,6 +351,14 @@ class UpdatesSection extends StatelessWidget {
                 itemCount: 2,
                 color: colorScheme.surfaceContainerLowest,
                 gap: 3,
+                onTap: (index) {
+                  ZetaHaptics.light();
+                  if (index == 0) {
+                    _launchUrl('https://github.com/Abhishek-Maurya2');
+                  } else {
+                    _launchUrl('https://github.com/Abhishek-Maurya2/Zeta');
+                  }
+                },
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return M3EListItem(

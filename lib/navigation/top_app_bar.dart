@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+
 import 'components/top_bar_brand.dart';
 import 'components/top_bar_search.dart';
 import 'components/top_bar_avatar.dart';
@@ -61,7 +62,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
     return Container(
       height: isCompact ? 56 : 64,
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 12),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
       decoration: BoxDecoration(
         color: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
       ),

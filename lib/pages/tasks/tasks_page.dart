@@ -9,13 +9,25 @@ import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
-import 'components/tasks_fab.dart';
 import 'components/tasks_filter_bar.dart';
 import 'components/tasks_search_banner.dart';
 
 /// Main page coordinator for the Tasks feature.
-class TasksPage extends StatelessWidget {
+class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
+
+  @override
+  State<TasksPage> createState() => _TasksPageState();
+}
+
+class _TasksPageState extends State<TasksPage> {
+  final _fabController = M3EExtendedFabController();
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    super.dispose();
+  }
 
   void _showContextMenu(
     BuildContext context,
@@ -112,10 +124,12 @@ class TasksPage extends StatelessWidget {
     final revisionTasksCount = taskProvider.revisionTasks.length;
     final totalCount = pendingNonRevision.length + revisionTasksCount;
 
-    return Stack(
-      children: [
-        // Main Scrollable Content
-        SingleChildScrollView(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: M3EExtendedFabScrollVisibility(
+        controller: _fabController,
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
             horizontal: isCompact
                 ? ZetaBreakpoints.marginCompact
@@ -173,22 +187,7 @@ class TasksPage extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // 3. Task List Section
-                  if (filter == TaskFilter.completed) ...[
-                    if (completed.isEmpty)
-                      TasksEmptyView(
-                        filter: filter,
-                        isSearching: isSearching,
-                        searchQuery: taskProvider.searchQuery,
-                        onClearSearch: () => taskProvider.clearSearchQuery(),
-                      )
-                    else
-                      _buildCompletedList(
-                        context,
-                        completed,
-                        taskProvider,
-                        true,
-                      ),
-                  ] else if (filter == TaskFilter.pending) ...[
+                  if (filter == TaskFilter.pending) ...[
                     if (pendingNonRevision.isEmpty)
                       TasksEmptyView(
                         filter: filter,
@@ -202,6 +201,45 @@ class TasksPage extends StatelessWidget {
                         provider: taskProvider,
                         onContextMenu: _showContextMenu,
                       ),
+                    // Completed Section
+                    if (completed.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      M3EList(
+                        itemCount: 1,
+                        color: colorScheme.primaryContainer,
+                        expandStyle: M3EExpandableStyle(
+                          expandedStateFill: false,
+                          gap: 5,
+                          expandedIconBackground: colorScheme.primary,
+                          expandIcon: Icon(
+                            Icons.expand_more_rounded,
+                            color: colorScheme.onPrimaryContainer,
+                          ),
+                          collapseIcon: Icon(
+                            Icons.expand_more_rounded,
+                            color: colorScheme.onPrimary,
+                          ),
+                        ),
+                        itemBuilder: (context, index) {
+                          return M3EListItem(
+                            headline: 'Completed (${completed.length})',
+                            leading: const Icon(
+                              Icons.task_alt_rounded,
+                              size: 20,
+                              color: Color(0xFF10B981),
+                            ),
+                            expanded: M3EExpandableExpanded.list(
+                              _buildCompletedList(
+                                context,
+                                completed,
+                                taskProvider,
+                                true,
+                              ).build(context) as M3EList,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ] else if (filter == TaskFilter.revision) ...[
                     if (taskProvider.revisionTasks.isEmpty)
                       TasksEmptyView(
@@ -231,6 +269,13 @@ class TasksPage extends StatelessWidget {
                           tasks: pending,
                           provider: taskProvider,
                           onContextMenu: _showContextMenu,
+                        )
+                      else
+                        TasksEmptyView(
+                          filter: filter,
+                          isSearching: isSearching,
+                          searchQuery: taskProvider.searchQuery,
+                          onClearSearch: () => taskProvider.clearSearchQuery(),
                         ),
 
                       // Completed Section
@@ -280,14 +325,19 @@ class TasksPage extends StatelessWidget {
             ),
           ),
         ),
-
-        // Floating Action Button
-        if (!isCompact)
-          TasksFab(
-            isSelectionMode: taskProvider.isSelectionMode,
-            onPressed: () => TaskEditPane.show(context),
-          ),
-      ],
+      ),
+      floatingActionButton: !isCompact && !taskProvider.isSelectionMode
+          ? M3EExtendedFab(
+              controller: _fabController,
+              appear: true,
+              scaleAlignment: AlignmentDirectional.bottomEnd,
+              onPressed: () => TaskEditPane.show(context),
+              icon: const Icon(Icons.add_rounded),
+              label: 'Add Task',
+              size: M3EExtendedFabSize.small,
+              color: M3EFabColor.primary,
+            )
+          : null,
     );
   }
 }
