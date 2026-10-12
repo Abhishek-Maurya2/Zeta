@@ -77,6 +77,8 @@ class RevisionProvider with ChangeNotifier {
   List<Subject> _subjects = [];
   List<ChapterTopic> _topics = [];
   String? _selectedSubjectId;
+  bool _isNotesOpen = false;
+  ChapterTopic? _activeTopicForNotes;
   bool _isLoading = true;
   bool _isCloudSyncing = false;
   RevisionSettings _settings = const RevisionSettings();
@@ -89,6 +91,12 @@ class RevisionProvider with ChangeNotifier {
   List<Subject> get subjects => List.unmodifiable(_subjects);
   List<ChapterTopic> get topics => List.unmodifiable(_topics);
   String? get selectedSubjectId => _selectedSubjectId;
+  bool get isNotesOpen => _isNotesOpen;
+  ChapterTopic? get activeTopicForNotes => _activeTopicForNotes;
+
+  /// Whether a subject topics list or notes subpage is actively open in Revision.
+  bool get isSubpageActive => _selectedSubjectId != null || _isNotesOpen;
+
   bool get isLoading => _isLoading;
   RevisionSettings get settings => _settings;
   bool get isSyncing => _isCloudSyncing || _repository.isSyncing;
@@ -130,7 +138,24 @@ class RevisionProvider with ChangeNotifier {
   }
 
   void selectSubject(String? subjectId) {
+    if (_selectedSubjectId == subjectId && !_isNotesOpen) return;
     _selectedSubjectId = subjectId;
+    if (subjectId == null) {
+      _isNotesOpen = false;
+      _activeTopicForNotes = null;
+    }
+    notifyListeners();
+  }
+
+  void openNotes({ChapterTopic? topic}) {
+    _activeTopicForNotes = topic;
+    _isNotesOpen = true;
+    notifyListeners();
+  }
+
+  void closeNotes() {
+    _activeTopicForNotes = null;
+    _isNotesOpen = false;
     notifyListeners();
   }
 

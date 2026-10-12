@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../components/m3e_page_transition.dart';
 import '../../providers/navigation_provider.dart';
 import '../../pages/home_page.dart';
@@ -11,7 +12,10 @@ import '../../pages/settings_page.dart';
 /// Body router pane that manages animated page transitions between main destinations.
 class BodyPane extends StatefulWidget {
   final PageId activePage;
-  const BodyPane({super.key, required this.activePage});
+  const BodyPane({
+    super.key,
+    required this.activePage,
+  });
 
   @override
   State<BodyPane> createState() => _BodyPaneState();
@@ -32,9 +36,19 @@ class _BodyPaneState extends State<BodyPane> {
   void didUpdateWidget(covariant BodyPane oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.activePage != widget.activePage) {
+      final nav = context.read<NavigationProvider>();
+      final oldIdx = _getPageIndex(oldWidget.activePage);
+      final newIdx = _getPageIndex(widget.activePage);
+
       setState(() {
-        _previousIndex = _getPageIndex(oldWidget.activePage);
-        _currentIndex = _getPageIndex(widget.activePage);
+        if (nav.isNavigatingBack) {
+          // Force backward transition direction
+          _previousIndex = 1;
+          _currentIndex = 0;
+        } else {
+          _previousIndex = oldIdx;
+          _currentIndex = newIdx;
+        }
       });
     }
   }
@@ -50,7 +64,7 @@ class _BodyPaneState extends State<BodyPane> {
       currentIndex: _currentIndex,
       previousIndex: _previousIndex,
       transitionType: M3EPageTransitionType.sharedAxisX,
-      duration: const Duration(milliseconds: 580),
+      duration: const Duration(milliseconds: 380),
       child: _buildPage(widget.activePage),
     );
   }

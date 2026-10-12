@@ -494,7 +494,42 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
           ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLow,
+      appBar: M3EAppBar.top(
+        backgroundColor: colorScheme.surfaceContainerLow,
+        titleText: 'Notes',
+        centerTitle: true,
+        leading: widget.onBack != null
+            ? M3EIconButton(
+                variant: M3EIconButtonVariant.standard,
+                width: M3EIconButtonWidth.wide,
+                icon: const Icon(Icons.arrow_back_rounded),
+                tooltip: 'Back to topics',
+                onPressed: () {
+                  _triggerImmediateSave();
+                  widget.onBack!();
+                },
+              )
+            : null,
+        actions: [
+          M3EIconButton(
+            variant: M3EIconButtonVariant.standard,
+            size: M3EIconButtonSize.sm,
+            icon: const Icon(Icons.add_link_rounded, size: 20),
+            tooltip: 'Add resource link',
+            onPressed: () {
+              setState(() => _showAttachmentInput = !_showAttachmentInput);
+              if (_showAttachmentInput) {
+                Future.delayed(
+                  const Duration(milliseconds: 60),
+                  () => _attachmentFocusNode.requestFocus(),
+                );
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -545,71 +580,36 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      color: colorScheme.surface,
-      child: Row(
-        children: [
-          if (widget.onBack != null) ...[
-            M3EIconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              size: M3EIconButtonSize.sm,
-              variant: M3EIconButtonVariant.standard,
-              tooltip: 'Back to topics',
-              onPressed: () {
-                _triggerImmediateSave();
-                widget.onBack!();
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            child: M3EDropdownMenu<String>(
-              singleSelect: true,
-              searchEnabled: true,
-              enabled: true,
-              items: dropdownItems,
-              fieldStyle: M3EDropdownFieldStyle(
-                hintText: _selectedViewId == null
-                    ? 'Subject Overview'
-                    : _selectedViewId == '__all__'
-                    ? 'Combined View'
-                    : topics
-                              .where((t) => t.id == _selectedViewId)
-                              .firstOrNull
-                              ?.title ??
-                          'Select topic',
-                showClearIcon: false,
-              ),
-              dropdownStyle: const M3EDropdownPanelStyle(
-                expandDirection: M3EDropdownExpandDirection.auto,
-              ),
-              onSelectionChanged: (List<M3EDropdownItem<String>> items) {
-                if (items.isEmpty) return;
-                final val = items.first.value;
-                if (val == '__overview__') {
-                  _switchView(null);
-                } else {
-                  _switchView(val);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 6),
-          M3EIconButton(
-            variant: M3EIconButtonVariant.standard,
-            size: M3EIconButtonSize.sm,
-            icon: const Icon(Icons.add_link_rounded, size: 20),
-            tooltip: 'Add resource link',
-            onPressed: () {
-              setState(() => _showAttachmentInput = !_showAttachmentInput);
-              if (_showAttachmentInput) {
-                Future.delayed(
-                  const Duration(milliseconds: 60),
-                  () => _attachmentFocusNode.requestFocus(),
-                );
-              }
-            },
-          ),
-        ],
+      color: colorScheme.surfaceContainerLow,
+      child: M3EDropdownMenu<String>(
+        singleSelect: true,
+        searchEnabled: true,
+        enabled: true,
+        items: dropdownItems,
+        fieldStyle: M3EDropdownFieldStyle(
+          hintText: _selectedViewId == null
+              ? 'Subject Overview'
+              : _selectedViewId == '__all__'
+              ? 'Combined View'
+              : topics
+                        .where((t) => t.id == _selectedViewId)
+                        .firstOrNull
+                        ?.title ??
+                    'Select topic',
+          showClearIcon: false,
+        ),
+        dropdownStyle: const M3EDropdownPanelStyle(
+          expandDirection: M3EDropdownExpandDirection.auto,
+        ),
+        onSelectionChanged: (List<M3EDropdownItem<String>> items) {
+          if (items.isEmpty) return;
+          final val = items.first.value;
+          if (val == '__overview__') {
+            _switchView(null);
+          } else {
+            _switchView(val);
+          }
+        },
       ),
     );
   }

@@ -33,9 +33,6 @@ class _SettingsPageState extends State<SettingsPage> {
   static const double _collapseThreshold = 180.0;
   static const String _prefKeyPaneWidth = 'settings_pane_width';
   static const String _prefKeyPaneCollapsed = 'settings_pane_collapsed';
-  static const ShapeBorder _appBarShape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-  );
 
   double _paneWidth = _defaultPaneWidth;
   bool _hasCustomWidth = false;
@@ -182,91 +179,92 @@ class _SettingsPageState extends State<SettingsPage> {
       _widePreviousIndex = currentWideIdx;
       _wideLastCategory = activeCategory;
     }
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     if (!isTwoPane) {
-      return M3EPageTransition(
-        currentIndex: currentCompactIdx,
-        previousIndex: prevCompactIdx,
-        transitionType: M3EPageTransitionType.sharedAxisX,
-        duration: M3MotionDuration.medium2,
-        child: selectedCategory == null
-            ? CustomScrollView(
-                key: const ValueKey<String>('settings_compact_root'),
-                slivers: [
-                  M3EAppBar.sliver(
-                    backgroundColor: isDark
-                        ? colorScheme.surfaceContainer
-                        : colorScheme.surface,
-                    titleText: 'Settings',
-                    centerTitle: true,
-                    variant: M3EAppBarVariant.large,
-                    hideMode: M3EAppBarHideMode.actions,
-                    leading: isCompact
-                        ? M3EIconButton(
-                            variant: M3EIconButtonVariant.standard,
-                            width: M3EIconButtonWidth.wide,
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              Navigator.pop(context);
-                            },
-                          )
-                        : null,
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ZetaBreakpoints.marginCompact,
-                      vertical: 8,
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          ZetaHaptics.light();
+          navProvider.pop();
+        },
+        child: M3EPageTransition(
+          currentIndex: currentCompactIdx,
+          previousIndex: prevCompactIdx,
+          transitionType: M3EPageTransitionType.sharedAxisX,
+          duration: M3MotionDuration.medium2,
+          child: selectedCategory == null
+              ? CustomScrollView(
+                  key: const ValueKey<String>('settings_compact_root'),
+                  slivers: [
+                    M3EAppBar.sliver(
+                      backgroundColor: colorScheme.surfaceContainerLow,
+                      titleText: 'Settings',
+                      centerTitle: true,
+                      variant: M3EAppBarVariant.large,
+                      hideMode: M3EAppBarHideMode.actions,
+                      leading: isCompact
+                          ? M3EIconButton(
+                              variant: M3EIconButtonVariant.standard,
+                              width: M3EIconButtonWidth.wide,
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              onPressed: () {
+                                ZetaHaptics.light();
+                                navProvider.pop();
+                              },
+                            )
+                          : null,
                     ),
-                    sliver: SliverToBoxAdapter(
-                      child: _buildCategoryList(
-                        context,
-                        activeCategory: null,
-                        isTwoPane: false,
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: ZetaBreakpoints.marginCompact,
+                        vertical: 8,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: _buildCategoryList(
+                          context,
+                          activeCategory: null,
+                          isTwoPane: false,
+                        ),
                       ),
                     ),
+                  ],
+                )
+              : CustomScrollView(
+                  key: ValueKey<String>(
+                    'settings_compact_${selectedCategory.name}',
                   ),
-                ],
-              )
-            : CustomScrollView(
-                key: ValueKey<String>(
-                  'settings_compact_${selectedCategory.name}',
+                  slivers: [
+                    M3EAppBar.sliver(
+                      titleText: activeCategoryMeta?.label ?? 'Settings',
+                      backgroundColor: colorScheme.surfaceContainerLow,
+                      centerTitle: true,
+                      variant: M3EAppBarVariant.large,
+                      hideMode: M3EAppBarHideMode.actions,
+                      leading: M3EIconButton(
+                        variant: M3EIconButtonVariant.standard,
+                        width: M3EIconButtonWidth.wide,
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        onPressed: () {
+                          ZetaHaptics.light();
+                          navProvider.pop();
+                        },
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                      sliver: SliverToBoxAdapter(
+                        child: SettingsDetailPane(
+                          activeCategory: selectedCategory,
+                          activeCategoryMeta: activeCategoryMeta,
+                          isTwoPane: false,
+                          isCompact: isCompact,
+                          onToast: _showToast,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                slivers: [
-                  M3EAppBar.sliver(
-                    titleText: activeCategoryMeta?.label ?? 'Settings',
-                    backgroundColor: isDark
-                        ? colorScheme.surfaceContainer
-                        : colorScheme.surface,
-                    centerTitle: true,
-                    variant: M3EAppBarVariant.large,
-                    hideMode: M3EAppBarHideMode.actions,
-                    leading: M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      width: M3EIconButtonWidth.wide,
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        navProvider.clearSettingsCategory();
-                      },
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                    sliver: SliverToBoxAdapter(
-                      child: SettingsDetailPane(
-                        activeCategory: selectedCategory,
-                        activeCategoryMeta: activeCategoryMeta,
-                        isTwoPane: false,
-                        isCompact: isCompact,
-                        onToast: _showToast,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+        ),
       );
     }
 
@@ -371,8 +369,7 @@ class _SettingsPageState extends State<SettingsPage> {
           min: math.min(minPercent, maxPercent),
           max: math.max(minPercent, maxPercent),
           detents: snapPointsPercent,
-          label:
-              'Drag to resize navigation · Double-tap to reset (${(totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth).toInt()}dp)',
+          label: 'Drag to resize navigation · Double-tap to reset',
           onChanged: (val) {
             final newWidth = totalWidth * (val / 100);
             if (newWidth < _collapseThreshold) {
@@ -398,6 +395,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 variant: M3EAppBarVariant.largeFlexible,
                 hideOnScroll: false,
                 title: Text('Settings', style: textTheme.displaySmall),
+                backgroundColor: colorScheme.surfaceContainerLow,
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -414,9 +412,7 @@ class _SettingsPageState extends State<SettingsPage> {
           end: Container(
             margin: const EdgeInsets.fromLTRB(0, 16, 16, 6),
             decoration: BoxDecoration(
-              color: isDark
-                  ? colorScheme.surfaceContainerHigh
-                  : colorScheme.surfaceContainer,
+              color: colorScheme.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(20),
             ),
             clipBehavior: Clip.antiAlias,
@@ -433,9 +429,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   M3EAppBar.sliver(
                     variant: M3EAppBarVariant.largeFlexible,
                     hideOnScroll: false,
-                    backgroundColor: isDark
-                        ? colorScheme.surfaceContainerHigh
-                        : colorScheme.surfaceContainer,
+                    backgroundColor: colorScheme.surfaceContainerHigh,
                     title: Text(
                       activeCategoryMeta?.label ?? 'Settings',
                       style: textTheme.displaySmall,

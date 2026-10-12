@@ -58,14 +58,11 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final colorScheme = Theme.of(context).colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: isCompact ? 56 : 64,
       padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
-      decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
-      ),
+      decoration: BoxDecoration(color: colorScheme.surfaceContainerLow),
       child: Row(
         children: [
           const TopBarBrand(),

@@ -158,7 +158,6 @@ class AppTheme {
     RoleTypographyConfig? bodyTypography,
     RoleTypographyConfig? labelsTypography,
   }) {
-    final radius = getCornerRadius(cornerStyle);
 
     final effectiveColorScheme = highContrast
         ? colorScheme.copyWith(
@@ -225,74 +224,9 @@ class AppTheme {
       labelSmall: labels.toTextStyle(defaultText.labelSmall!),
     );
 
-    final buttonRadius = (radius * 0.6).clamp(6.0, 20.0);
-
     return baseTheme.copyWith(
       textTheme: effectiveTextTheme,
-      navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: effectiveColorScheme.surface,
-        selectedIconTheme: IconThemeData(
-          color: effectiveColorScheme.onSecondaryContainer,
-        ),
-        unselectedIconTheme: IconThemeData(
-          color: effectiveColorScheme.onSurfaceVariant,
-        ),
-        indicatorColor: effectiveColorScheme.secondaryContainer,
-        labelType: NavigationRailLabelType.all,
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: effectiveColorScheme.brightness == Brightness.dark
-            ? effectiveColorScheme.surfaceContainer
-            : effectiveColorScheme.surface,
-        indicatorColor: effectiveColorScheme.secondaryContainer,
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: effectiveColorScheme.brightness == Brightness.dark
-            ? effectiveColorScheme.surfaceContainer
-            : effectiveColorScheme.surface,
-        foregroundColor: effectiveColorScheme.onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 2,
-      ),
-      scaffoldBackgroundColor:
-          effectiveColorScheme.brightness == Brightness.dark
-          ? effectiveColorScheme.surfaceContainer
-          : effectiveColorScheme.surface,
-      cardTheme: CardThemeData(
-        color: effectiveColorScheme.surfaceContainerLow,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
-        ),
-      ),
-      dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius),
-        ),
-      ),
-      bottomSheetTheme: BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(radius)),
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(buttonRadius),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(buttonRadius),
-          ),
-        ),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
+      scaffoldBackgroundColor: effectiveColorScheme.surfaceContainerLow,
     );
   }
 }

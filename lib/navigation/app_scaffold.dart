@@ -107,17 +107,18 @@ class _AppScaffoldState extends State<AppScaffold>
       exitDirection: M3EToolbarExitDirection.bottom,
       controller: _toolbarController,
     );
-    _refreshController = AnimationController(
-      vsync: this,
-      duration: M3MotionDuration.medium2,
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    _refreshController =
+        AnimationController(vsync: this, duration: M3MotionDuration.medium2)
+          ..addListener(() {
+            if (mounted) setState(() {});
+          });
     _refreshAnimation = Tween<double>(begin: 0, end: _refreshTargetHeight)
-        .animate(CurvedAnimation(
-      parent: _refreshController,
-      curve: M3MotionEasing.emphasizedDecelerate,
-    ));
+        .animate(
+          CurvedAnimation(
+            parent: _refreshController,
+            curve: M3MotionEasing.emphasizedDecelerate,
+          ),
+        );
 
     _navProvider = context.read<NavigationProvider>();
     _pomodoroProvider = context.read<PomodoroProvider>();
@@ -163,7 +164,9 @@ class _AppScaffoldState extends State<AppScaffold>
   Future<void> _triggerRefresh() async {
     if (_isRefreshing) return;
     final nav = context.read<NavigationProvider>();
-    if (nav.activePage == PageId.settings) return;
+    if (nav.activePage == PageId.settings || nav.activePage == PageId.bin) {
+      return;
+    }
 
     final initialOffset = _dragOffset;
     setState(() {
@@ -180,13 +183,16 @@ class _AppScaffoldState extends State<AppScaffold>
     final revisionProvider = context.read<RevisionProvider>();
 
     if (initialOffset < _refreshTargetHeight) {
-      _refreshAnimation = Tween<double>(
-        begin: initialOffset > 0 ? initialOffset : 0,
-        end: _refreshTargetHeight,
-      ).animate(CurvedAnimation(
-        parent: _refreshController,
-        curve: M3MotionEasing.emphasizedDecelerate,
-      ));
+      _refreshAnimation =
+          Tween<double>(
+            begin: initialOffset > 0 ? initialOffset : 0,
+            end: _refreshTargetHeight,
+          ).animate(
+            CurvedAnimation(
+              parent: _refreshController,
+              curve: M3MotionEasing.emphasizedDecelerate,
+            ),
+          );
       await _refreshController.forward(from: 0);
     } else {
       _refreshController.value = 1;
@@ -209,13 +215,13 @@ class _AppScaffoldState extends State<AppScaffold>
     if (!mounted) return;
     ZetaHaptics.light();
 
-    _refreshAnimation = Tween<double>(
-      begin: _refreshTargetHeight,
-      end: 0,
-    ).animate(CurvedAnimation(
-      parent: _refreshController,
-      curve: M3MotionEasing.emphasizedAccelerate,
-    ));
+    _refreshAnimation = Tween<double>(begin: _refreshTargetHeight, end: 0)
+        .animate(
+          CurvedAnimation(
+            parent: _refreshController,
+            curve: M3MotionEasing.emphasizedAccelerate,
+          ),
+        );
     await _refreshController.forward(from: 0);
 
     if (mounted) {
@@ -247,14 +253,15 @@ class _AppScaffoldState extends State<AppScaffold>
   bool _handleScrollNotification(ScrollNotification notification) {
     if (_isRefreshing ||
         context.read<NavigationProvider>().activePage == PageId.settings ||
+        context.read<NavigationProvider>().activePage == PageId.bin ||
         notification.depth != 0 ||
         notification.metrics.axis != Axis.vertical) {
       return false;
     }
 
     if (notification is ScrollStartNotification) {
-      _isUserPulling = notification.dragDetails != null &&
-          notification.metrics.pixels <= 1;
+      _isUserPulling =
+          notification.dragDetails != null && notification.metrics.pixels <= 1;
     }
 
     if (notification is OverscrollNotification) {
@@ -322,7 +329,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final logical = event.logicalKey;
 
-    // ── Esc: dismiss search or task edit split pane ──────
+    // ── Esc: dismiss search or task edit split pane or go back ──────
     if (logical == LogicalKeyboardKey.escape) {
       final topBar = _topBarKey.currentState;
       if (topBar != null && topBar.isSearchOpen) {
@@ -339,6 +346,13 @@ class _AppScaffoldState extends State<AppScaffold>
         taskProvider.closeEditPane();
         return true;
       }
+
+      final nav = context.read<NavigationProvider>();
+      if (nav.canPop) {
+        nav.pop();
+        return true;
+      }
+
       return false;
     }
 
@@ -388,7 +402,7 @@ class _AppScaffoldState extends State<AppScaffold>
             !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       final nav = context.read<NavigationProvider>();
-      if (nav.activePage != PageId.settings) {
+      if (nav.activePage != PageId.settings && nav.activePage != PageId.bin) {
         unawaited(_triggerRefresh());
         return true;
       }
@@ -435,11 +449,18 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final isCompact = sizeClass.isCompact;
 
+    final revProvider = context.watch<RevisionProvider>();
+    final isRevisionSubpage = navProvider.activePage == PageId.revision &&
+        revProvider.isSubpageActive;
+
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
-    // On compact screens (< 600dp), Settings provides its own dedicated top header with back navigation.
+    // On compact screens (< 600dp), Settings, Bin, Topics, and Notes provide their own dedicated top header with back navigation.
     final showTopAppBar =
-        !isCompact || navProvider.activePage != PageId.settings;
+        !isCompact ||
+        (navProvider.activePage != PageId.settings &&
+            navProvider.activePage != PageId.bin &&
+            !isRevisionSubpage);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
@@ -447,7 +468,7 @@ class _AppScaffoldState extends State<AppScaffold>
     // Sync native Windows window title bar with theme colors safely via MethodChannel
     WindowsTitleBar.update(
       isDark: isDark,
-      captionColor: isDark ? colorScheme.surfaceContainer : colorScheme.surface,
+      captionColor: colorScheme.surfaceContainerLow,
       textColor: colorScheme.onSurface,
     );
 
@@ -474,7 +495,8 @@ class _AppScaffoldState extends State<AppScaffold>
         !isPomodoroRunning &&
         !isSelectionMode &&
         !isEditPaneOpen &&
-        navProvider.activePage == PageId.home &&
+        !navProvider.canPop &&
+        !isRevisionSubpage &&
         (_topBarKey.currentState == null ||
             !_topBarKey.currentState!.isSearchOpen);
 
@@ -512,22 +534,33 @@ class _AppScaffoldState extends State<AppScaffold>
           return;
         }
 
-        // 4. If on Pomodoro page and Pomodoro is actively running, ask before closing app / ending session
+        // 3.1. If in Revision and on Notes, pop back to Topics first
+        if (navProvider.activePage == PageId.revision && revProvider.isNotesOpen) {
+          ZetaHaptics.light();
+          revProvider.closeNotes();
+          return;
+        }
+
+        // 3.2. If in Revision and on Topics, pop back to Subjects first
+        if (navProvider.activePage == PageId.revision && revProvider.selectedSubjectId != null) {
+          ZetaHaptics.light();
+          revProvider.selectSubject(null);
+          return;
+        }
+
+        // 4. Pop through navigation history stack
+        if (navProvider.canPop) {
+          ZetaHaptics.light();
+          navProvider.pop();
+          return;
+        }
+
+        // 5. If on Pomodoro page and Pomodoro is actively running, ask before closing app / ending session
         if (navProvider.activePage == PageId.pomodoro && isPomodoroRunning) {
           final shouldExit = await confirmExitIfPomodoroRunning(context);
           if (shouldExit) {
             await AppExitService.instance.exitApp();
           }
-          return;
-        }
-
-        // 5. If on any other page (including Settings main page), return to Home page
-        if (navProvider.activePage != PageId.home) {
-          ZetaHaptics.light();
-          if (navProvider.activePage == PageId.revision) {
-            context.read<RevisionProvider>().selectSubject(null);
-          }
-          navProvider.setActivePage(PageId.home);
           return;
         }
 
@@ -553,7 +586,9 @@ class _AppScaffoldState extends State<AppScaffold>
                 children: [
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
-                  if (navProvider.activePage != PageId.settings)
+                  if (navProvider.activePage != PageId.settings &&
+                      navProvider.activePage != PageId.bin &&
+                      !isRevisionSubpage)
                     PullToRefreshContainer(
                       refreshHeight: _refreshHeight,
                       targetHeight: _refreshTargetHeight,
@@ -577,181 +612,185 @@ class _AppScaffoldState extends State<AppScaffold>
                         ),
                         child: isCompact
                             ? M3EToolbarScrollWrapper(
-                              key: ValueKey(navProvider.activePage),
-                              behavior: _toolbarBehavior,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: BodyPane(
-                                      activePage: navProvider.activePage,
+                                key: ValueKey(navProvider.activePage),
+                                behavior: _toolbarBehavior,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: BodyPane(
+                                        activePage: navProvider.activePage,
+                                      ),
                                     ),
-                                  ),
-                                  FloatingBottomNav(
-                                    navProvider: navProvider,
-                                    isSelectionMode: isSelectionMode,
-                                    scrollBehavior: _toolbarBehavior,
-                                    keepVisible: isPomodoroTimerPane,
-                                  ),
-                                  TaskSelectionToolbar(
-                                    taskProvider: context.read<TaskProvider>(),
-                                  ),
-                                ],
-                              ),
-                            )
-                            : Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                NavigationRailWidget(
-                                  isExpanded: navProvider.isRailExpanded,
-                                  navProvider: navProvider,
+                                    FloatingBottomNav(
+                                      navProvider: navProvider,
+                                      isSelectionMode: isSelectionMode,
+                                      scrollBehavior: _toolbarBehavior,
+                                      keepVisible: isPomodoroTimerPane,
+                                    ),
+                                    TaskSelectionToolbar(
+                                      taskProvider: context
+                                          .read<TaskProvider>(),
+                                    ),
+                                  ],
                                 ),
-                                Expanded(
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        child: !isEditPaneOpen
-                                            ? BodyPane(
-                                                activePage:
-                                                    navProvider.activePage,
-                                              )
-                                            : LayoutBuilder(
-                                                builder: (context, constraints) {
-                                                  final totalWidth =
-                                                      constraints.maxWidth;
-                                                  const minEditorWidth = 300.0;
-                                                  const maxEditorWidth = 600.0;
-                                                  final editorWidth =
-                                                      _taskEditPaneWidth.clamp(
-                                                        minEditorWidth,
-                                                        maxEditorWidth,
-                                                      );
-                                                  final maxStartWidth =
-                                                      totalWidth -
-                                                      minEditorWidth -
-                                                      24.0;
-                                                  final minStartWidth =
-                                                      totalWidth -
-                                                      maxEditorWidth -
-                                                      24.0;
-                                                  final startWidth =
-                                                      (totalWidth -
-                                                              editorWidth -
-                                                              24.0)
-                                                          .clamp(
-                                                            minStartWidth,
-                                                            maxStartWidth,
-                                                          );
-
-                                                  return M3ESplitPane(
-                                                    value:
-                                                        (startWidth /
-                                                                totalWidth *
-                                                                100)
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  NavigationRailWidget(
+                                    isExpanded: navProvider.isRailExpanded,
+                                    navProvider: navProvider,
+                                  ),
+                                  Expanded(
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: !isEditPaneOpen
+                                              ? BodyPane(
+                                                  activePage:
+                                                      navProvider.activePage,
+                                                )
+                                              : LayoutBuilder(
+                                                  builder: (context, constraints) {
+                                                    final totalWidth =
+                                                        constraints.maxWidth;
+                                                    const minEditorWidth =
+                                                        300.0;
+                                                    const maxEditorWidth =
+                                                        600.0;
+                                                    final editorWidth =
+                                                        _taskEditPaneWidth
                                                             .clamp(
-                                                              minStartWidth /
+                                                              minEditorWidth,
+                                                              maxEditorWidth,
+                                                            );
+                                                    final maxStartWidth =
+                                                        totalWidth -
+                                                        minEditorWidth -
+                                                        24.0;
+                                                    final minStartWidth =
+                                                        totalWidth -
+                                                        maxEditorWidth -
+                                                        24.0;
+                                                    final startWidth =
+                                                        (totalWidth -
+                                                                editorWidth -
+                                                                24.0)
+                                                            .clamp(
+                                                              minStartWidth,
+                                                              maxStartWidth,
+                                                            );
+
+                                                    return M3ESplitPane(
+                                                      value:
+                                                          (startWidth /
                                                                   totalWidth *
-                                                                  100,
-                                                              maxStartWidth /
-                                                                  totalWidth *
-                                                                  100,
-                                                            ),
-                                                    min:
-                                                        minStartWidth /
-                                                        totalWidth *
-                                                        100,
-                                                    max:
-                                                        maxStartWidth /
-                                                        totalWidth *
-                                                        100,
-                                                    onChanged: (value) {
-                                                      setState(() {
-                                                        _taskEditPaneWidth =
-                                                            (totalWidth -
+                                                                  100)
+                                                              .clamp(
+                                                                minStartWidth /
                                                                     totalWidth *
-                                                                        value /
-                                                                        100 -
-                                                                    24)
-                                                                .clamp(
-                                                                  minEditorWidth,
-                                                                  maxEditorWidth,
-                                                                );
-                                                      });
-                                                    },
-                                                    onDoubleTap: () {
-                                                      setState(
-                                                        () =>
-                                                            _taskEditPaneWidth =
-                                                                380.0,
-                                                      );
-                                                      ZetaHaptics.medium();
-                                                    },
-                                                    start: BodyPane(
-                                                      activePage: navProvider
-                                                          .activePage,
-                                                    ),
-                                                    end: Container(
-                                                      margin:
-                                                          const EdgeInsets.fromLTRB(
-                                                            0,
-                                                            10,
-                                                            10,
-                                                            6,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: colorScheme
-                                                            .surfaceContainerHigh,
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              20,
-                                                            ),
+                                                                    100,
+                                                                maxStartWidth /
+                                                                    totalWidth *
+                                                                    100,
+                                                              ),
+                                                      min:
+                                                          minStartWidth /
+                                                          totalWidth *
+                                                          100,
+                                                      max:
+                                                          maxStartWidth /
+                                                          totalWidth *
+                                                          100,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          _taskEditPaneWidth =
+                                                              (totalWidth -
+                                                                      totalWidth *
+                                                                          value /
+                                                                          100 -
+                                                                      24)
+                                                                  .clamp(
+                                                                    minEditorWidth,
+                                                                    maxEditorWidth,
+                                                                  );
+                                                        });
+                                                      },
+                                                      onDoubleTap: () {
+                                                        setState(
+                                                          () =>
+                                                              _taskEditPaneWidth =
+                                                                  380.0,
+                                                        );
+                                                        ZetaHaptics.medium();
+                                                      },
+                                                      start: BodyPane(
+                                                        activePage: navProvider
+                                                            .activePage,
                                                       ),
-                                                      clipBehavior:
-                                                          Clip.antiAlias,
-                                                      child: SafeArea(
-                                                        child: Consumer<TaskProvider>(
-                                                          builder: (context, taskProvider, _) => TaskEditFormContent(
-                                                            key: ValueKey(
-                                                              '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                      end: Container(
+                                                        margin:
+                                                            const EdgeInsets.fromLTRB(
+                                                              0,
+                                                              10,
+                                                              10,
+                                                              6,
                                                             ),
-                                                            task: taskProvider
-                                                                .editingTask,
-                                                            initialTitle:
-                                                                taskProvider
-                                                                    .editingInitialTitle,
-                                                            initialDescription:
-                                                                taskProvider
-                                                                    .editingInitialDescription,
-                                                            initialDueDate:
-                                                                taskProvider
-                                                                    .editingInitialDueDate,
-                                                            initialDueTime:
-                                                                taskProvider
-                                                                    .editingInitialDueTime,
-                                                            initialHasTime:
-                                                                taskProvider
-                                                                    .editingInitialHasTime,
-                                                            initialSubtasks:
-                                                                taskProvider
-                                                                    .editingInitialSubtasks,
-                                                            onClose: taskProvider
-                                                                .closeEditPane,
+                                                        decoration: BoxDecoration(
+                                                          color: colorScheme
+                                                              .surfaceContainerHigh,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                20,
+                                                              ),
+                                                        ),
+                                                        clipBehavior:
+                                                            Clip.antiAlias,
+                                                        child: SafeArea(
+                                                          child: Consumer<TaskProvider>(
+                                                            builder: (context, taskProvider, _) => TaskEditFormContent(
+                                                              key: ValueKey(
+                                                                '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                              ),
+                                                              task: taskProvider
+                                                                  .editingTask,
+                                                              initialTitle:
+                                                                  taskProvider
+                                                                      .editingInitialTitle,
+                                                              initialDescription:
+                                                                  taskProvider
+                                                                      .editingInitialDescription,
+                                                              initialDueDate:
+                                                                  taskProvider
+                                                                      .editingInitialDueDate,
+                                                              initialDueTime:
+                                                                  taskProvider
+                                                                      .editingInitialDueTime,
+                                                              initialHasTime:
+                                                                  taskProvider
+                                                                      .editingInitialHasTime,
+                                                              initialSubtasks:
+                                                                  taskProvider
+                                                                      .editingInitialSubtasks,
+                                                              onClose: taskProvider
+                                                                  .closeEditPane,
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                      ),
-                                      TaskSelectionToolbar(
-                                        taskProvider: context
-                                            .read<TaskProvider>(),
-                                      ),
-                                    ],
+                                                    );
+                                                  },
+                                                ),
+                                        ),
+                                        TaskSelectionToolbar(
+                                          taskProvider: context
+                                              .read<TaskProvider>(),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -764,4 +803,3 @@ class _AppScaffoldState extends State<AppScaffold>
     );
   }
 }
-

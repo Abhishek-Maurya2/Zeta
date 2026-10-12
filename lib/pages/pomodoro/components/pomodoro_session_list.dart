@@ -118,10 +118,6 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     final allDays = groupedSessions.keys.toList();
     final totalDays = allDays.length;
     final hasMore = totalDays > _displayedDaysCount;
-    final remainingDays = totalDays - _displayedDaysCount;
-    final nextBatchDays = remainingDays < _daysBatchSize
-        ? remainingDays
-        : _daysBatchSize;
 
     // Take the requested number of full days
     final visibleDays = allDays.take(_displayedDaysCount).toList();
@@ -187,14 +183,7 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
               expandedStateFill: false,
               gap: 5,
               expandedIconBackground: colorScheme.surfaceContainerHighest,
-              expandIcon: Icon(
-                Icons.expand_more_rounded,
-                color: colorScheme.onSurfaceVariant,
-              ),
-              collapseIcon: Icon(
-                Icons.expand_less_rounded,
-                color: colorScheme.onSurfaceVariant,
-              ),
+           
             ),
             itemBuilder: (context, index) {
               final dayKey = visibleDays[index];

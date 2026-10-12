@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../providers/revision_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/preferences_service.dart';
 import 'components/topic_edit_dialog.dart';
 import 'components/revision_notes_pane.dart';
@@ -43,60 +44,14 @@ class _RevisionPageState extends State<RevisionPage> {
   bool _hasCustomWidth = false;
   bool _isPaneCollapsed = false;
 
-  // ─── Pane Switching State ──────────────────────────────────────────────────
-  RevisionRightPaneMode _rightPaneMode = RevisionRightPaneMode.topics;
-  ChapterTopic? _activeTopicForNotes;
-
-  // ─── Compact mobile hierarchical navigation state ──────────────────────────
-  String? _selectedSubjectForMobile;
-  bool _isMobileNotesOpen = false;
+  // ─── Compact mobile hierarchical navigation tracking ───────────────────────
   String? _lastSubjectId;
   int _previousSubjectIndex = 0;
-  RevisionProvider? _revProvider;
 
   @override
   void initState() {
     super.initState();
-    _selectedSubjectForMobile = null;
-    _isMobileNotesOpen = false;
     _loadSavedPaneSettings();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<RevisionProvider>().selectSubject(null);
-      }
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _revProvider = Provider.of<RevisionProvider>(context, listen: false);
-  }
-
-  @override
-  void deactivate() {
-    _selectedSubjectForMobile = null;
-    _isMobileNotesOpen = false;
-    final rev = _revProvider;
-    if (rev != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        rev.selectSubject(null);
-      });
-    }
-    super.deactivate();
-  }
-
-  @override
-  void dispose() {
-    _selectedSubjectForMobile = null;
-    _isMobileNotesOpen = false;
-    final rev = _revProvider;
-    if (rev != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        rev.selectSubject(null);
-      });
-    }
-    super.dispose();
   }
 
   void _loadSavedPaneSettings() {
@@ -186,19 +141,12 @@ class _RevisionPageState extends State<RevisionPage> {
 
   void _openNotes({ChapterTopic? topic}) {
     ZetaHaptics.light();
-    setState(() {
-      _activeTopicForNotes = topic;
-      _rightPaneMode = RevisionRightPaneMode.notes;
-      _isMobileNotesOpen = true;
-    });
+    context.read<RevisionProvider>().openNotes(topic: topic);
   }
 
   void _closeNotes() {
     ZetaHaptics.light();
-    setState(() {
-      _rightPaneMode = RevisionRightPaneMode.topics;
-      _isMobileNotesOpen = false;
-    });
+    context.read<RevisionProvider>().closeNotes();
   }
 
   @override
@@ -232,39 +180,37 @@ class _RevisionPageState extends State<RevisionPage> {
     ZetaWindowSizeClass sizeClass,
   ) {
     final isCompact = sizeClass.isCompact;
-    final selectedSubject = _selectedSubjectForMobile != null
-        ? revProvider.subjects
-              .where((s) => s.id == _selectedSubjectForMobile)
-              .firstOrNull
-        : null;
+    final selectedSubject = revProvider.selectedSubject;
+    final isMobileNotesOpen = revProvider.isNotesOpen;
+    final activeTopicForNotes = revProvider.activeTopicForNotes;
+    final isActivePage = context.select<NavigationProvider, bool>(
+      (navigation) => navigation.activePage == PageId.revision,
+    );
 
     int currentSubjectIndex = 0;
-    if (_isMobileNotesOpen && selectedSubject != null) {
+    if (isMobileNotesOpen && selectedSubject != null) {
       currentSubjectIndex = 2;
     } else if (selectedSubject != null) {
       currentSubjectIndex = 1;
     }
 
     final int prevIdx = _previousSubjectIndex;
-    if (_lastSubjectId != '${selectedSubject?.id}_$_isMobileNotesOpen') {
+    if (_lastSubjectId != '${selectedSubject?.id}_$isMobileNotesOpen') {
       _previousSubjectIndex = currentSubjectIndex;
-      _lastSubjectId = '${selectedSubject?.id}_$_isMobileNotesOpen';
+      _lastSubjectId = '${selectedSubject?.id}_$isMobileNotesOpen';
     }
 
     return PopScope(
-      canPop: selectedSubject == null && !_isMobileNotesOpen,
+      canPop: !isActivePage || (selectedSubject == null && !isMobileNotesOpen),
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_isMobileNotesOpen) {
+        if (didPop || !isActivePage) return;
+        if (isMobileNotesOpen) {
           _closeNotes();
           return;
         }
-        if (_selectedSubjectForMobile != null) {
+        if (selectedSubject != null) {
           ZetaHaptics.light();
-          setState(() {
-            _selectedSubjectForMobile = null;
-            revProvider.selectSubject(null);
-          });
+          revProvider.selectSubject(null);
         }
       },
       child: M3EPageTransition(
@@ -273,18 +219,13 @@ class _RevisionPageState extends State<RevisionPage> {
         transitionType: M3EPageTransitionType.sharedAxisX,
         duration: M3MotionDuration.medium2,
         child: currentSubjectIndex == 2 && selectedSubject != null
-            ? Scaffold(
+            ? RevisionNotesPane(
                 key: ValueKey<String>(
-                  'revision_mobile_notes_${selectedSubject.id}_${_activeTopicForNotes?.id}',
+                  'revision_mobile_notes_${selectedSubject.id}_${activeTopicForNotes?.id}',
                 ),
-                backgroundColor: colorScheme.surface,
-                body: SafeArea(
-                  child: RevisionNotesPane(
-                    subject: selectedSubject,
-                    initialTopic: _activeTopicForNotes,
-                    onBack: _closeNotes,
-                  ),
-                ),
+                subject: selectedSubject,
+                initialTopic: activeTopicForNotes,
+                onBack: _closeNotes,
               )
             : currentSubjectIndex == 1 && selectedSubject != null
             ? CustomScrollView(
@@ -292,59 +233,40 @@ class _RevisionPageState extends State<RevisionPage> {
                   'revision_compact_topics_${selectedSubject.id}',
                 ),
                 slivers: [
-                  M3EAppBar.sliver(variant: M3EAppBarVariant.small, hideOnScroll: true, 
+                  M3EAppBar.sliver(
+                    backgroundColor: colorScheme.surfaceContainerLow,
+                    titleText: selectedSubject.name,
+                    centerTitle: true,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
                     leading: M3EIconButton(
                       variant: M3EIconButtonVariant.standard,
-                      size: M3EIconButtonSize.sm,
                       width: M3EIconButtonWidth.wide,
-                      icon: Icon(
-                        Icons.arrow_back_rounded,
-                        color: colorScheme.onSurface,
-                      ),
-                      decoration: M3EIconButtonDecoration(
-                        backgroundColor: WidgetStateProperty.all(
-                          colorScheme.surfaceContainerLowest,
-                        ),
-                      ),
+                      icon: const Icon(Icons.arrow_back_rounded),
                       onPressed: () {
                         ZetaHaptics.light();
-                        setState(() {
-                          _selectedSubjectForMobile = null;
-                          revProvider.selectSubject(null);
-                        });
+                        revProvider.selectSubject(null);
                       },
                       tooltip: 'Back',
                     ),
-                    title: Text(selectedSubject.name),
                     actions: [
                       M3EIconButton(
                         variant: M3EIconButtonVariant.tonal,
-                        size: M3EIconButtonSize.sm,
-                        width: M3EIconButtonWidth.wide,
-                        icon: const Icon(Icons.description_outlined, size: 19),
+                        icon: const Icon(Icons.description_outlined),
                         tooltip: 'Notes',
                         onPressed: () => _openNotes(),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8, left: 4),
-                        child: M3EIconButton(
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            AddTopicDialog.show(
-                              context,
-                              subjectId: selectedSubject.id,
-                            );
-                          },
-                          variant: M3EIconButtonVariant.filled,
-                          size: M3EIconButtonSize.sm,
-                          width: M3EIconButtonWidth.wide,
-                          icon: const Icon(
-                            Icons.add_rounded,
-                            size: 23,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          tooltip: 'Add Topic',
-                        ),
+                      M3EIconButton(
+                        onPressed: () {
+                          ZetaHaptics.light();
+                          AddTopicDialog.show(
+                            context,
+                            subjectId: selectedSubject.id,
+                          );
+                        },
+                        variant: M3EIconButtonVariant.filled,
+                        icon: const Icon(Icons.add_rounded),
+                        tooltip: 'Add Topic',
                       ),
                     ],
                   ),
@@ -353,7 +275,7 @@ class _RevisionPageState extends State<RevisionPage> {
                       isCompact ? 16 : 24,
                       16,
                       isCompact ? 16 : 24,
-                      80,
+                      isCompact ? 24 : 80,
                     ),
                     sliver: SliverToBoxAdapter(
                       child: RevisionPane2(
@@ -379,15 +301,12 @@ class _RevisionPageState extends State<RevisionPage> {
                 child: RevisionPane1(
                   isSplitPane: false,
                   onSubjectSelected: (sub) {
-                    setState(() {
-                      _selectedSubjectForMobile = sub.id;
-                    });
+                    ZetaHaptics.light();
+                    revProvider.selectSubject(sub.id);
                   },
                   onOpenNotes: (sub) {
-                    setState(() {
-                      _selectedSubjectForMobile = sub.id;
-                      revProvider.selectSubject(sub.id);
-                    });
+                    ZetaHaptics.light();
+                    revProvider.selectSubject(sub.id);
                     _openNotes();
                   },
                 ),
@@ -437,14 +356,13 @@ class _RevisionPageState extends State<RevisionPage> {
                   clipBehavior: Clip.antiAlias,
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
-                    child: _rightPaneMode == RevisionRightPaneMode.notes &&
-                            selectedSubject != null
+                    child: revProvider.isNotesOpen && selectedSubject != null
                         ? RevisionNotesPane(
                             key: ValueKey(
-                              'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
+                              'notes_pane_${selectedSubject.id}_${revProvider.activeTopicForNotes?.id}',
                             ),
                             subject: selectedSubject,
-                            initialTopic: _activeTopicForNotes,
+                            initialTopic: revProvider.activeTopicForNotes,
                             onBack: _closeNotes,
                           )
                         : CustomScrollView(
@@ -452,7 +370,11 @@ class _RevisionPageState extends State<RevisionPage> {
                               'revision_topics_${selectedSubject?.id ?? "none"}',
                             ),
                             slivers: [
-                              M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false, backgroundColor: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surfaceContainer, 
+                              M3EAppBar.sliver(
+                                variant: M3EAppBarVariant.largeFlexible,
+                                hideOnScroll: false,
+                                backgroundColor:
+                                    colorScheme.surfaceContainerLow,
                                 title: Text(selectedSubject?.name ?? 'Topics'),
                                 actions: [
                                   if (selectedSubject != null) ...[
@@ -538,22 +460,23 @@ class _RevisionPageState extends State<RevisionPage> {
           min: minPercent,
           max: maxPercent,
           detents: snapPointsPercent,
-          label: 'Drag to resize · Double-tap to reset (${(_hasCustomWidth ? _paneWidth : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)).toInt()}dp)',
+          label:
+              'Drag to resize · Double-tap to reset (${(_hasCustomWidth ? _paneWidth : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth)).toInt()}dp)',
           onChanged: (val) {
-             final newWidth = totalWidth * (val / 100);
-             if (newWidth < _collapseThreshold) {
-                setState(() {
-                  _isPaneCollapsed = true;
-                  _hasCustomWidth = true;
-                });
-                ZetaHaptics.light();
-             } else {
-                setState(() {
-                  _paneWidth = newWidth;
-                  _hasCustomWidth = true;
-                  _isPaneCollapsed = false;
-                });
-             }
+            final newWidth = totalWidth * (val / 100);
+            if (newWidth < _collapseThreshold) {
+              setState(() {
+                _isPaneCollapsed = true;
+                _hasCustomWidth = true;
+              });
+              ZetaHaptics.light();
+            } else {
+              setState(() {
+                _paneWidth = newWidth;
+                _hasCustomWidth = true;
+                _isPaneCollapsed = false;
+              });
+            }
           },
           onChangeEnd: (val) => _persistPaneSettings(),
           onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
@@ -579,14 +502,13 @@ class _RevisionPageState extends State<RevisionPage> {
             clipBehavior: Clip.antiAlias,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
-              child: _rightPaneMode == RevisionRightPaneMode.notes &&
-                      selectedSubject != null
+              child: revProvider.isNotesOpen && selectedSubject != null
                   ? RevisionNotesPane(
                       key: ValueKey(
-                        'notes_pane_${selectedSubject.id}_${_activeTopicForNotes?.id}',
+                        'notes_pane_${selectedSubject.id}_${revProvider.activeTopicForNotes?.id}',
                       ),
                       subject: selectedSubject,
-                      initialTopic: _activeTopicForNotes,
+                      initialTopic: revProvider.activeTopicForNotes,
                       onBack: _closeNotes,
                     )
                   : CustomScrollView(
@@ -594,7 +516,12 @@ class _RevisionPageState extends State<RevisionPage> {
                         'revision_topics_${selectedSubject?.id ?? "none"}',
                       ),
                       slivers: [
-                        M3EAppBar.sliver(variant: M3EAppBarVariant.largeFlexible, hideOnScroll: false, backgroundColor: isDark ? colorScheme.surfaceContainerHigh : colorScheme.surfaceContainer, 
+                        M3EAppBar.sliver(
+                          variant: M3EAppBarVariant.largeFlexible,
+                          hideOnScroll: false,
+                          backgroundColor: isDark
+                              ? colorScheme.surfaceContainerHigh
+                              : colorScheme.surfaceContainer,
                           title: Text(selectedSubject?.name ?? 'Topics'),
                           actions: [
                             if (selectedSubject != null) ...[
@@ -641,12 +568,7 @@ class _RevisionPageState extends State<RevisionPage> {
                           )
                         else
                           SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                              20,
-                              4,
-                              20,
-                              80,
-                            ),
+                            padding: const EdgeInsets.fromLTRB(20, 4, 20, 80),
                             sliver: SliverToBoxAdapter(
                               child: RevisionPane2(
                                 isSplitPane: true,

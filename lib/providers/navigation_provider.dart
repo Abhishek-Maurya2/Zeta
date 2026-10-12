@@ -8,8 +8,11 @@ enum PageId { home, tasks, revision, pomodoro, bin, settings }
 
 /// Mirrors Sharva's useNavigationStore — manages active page, rail state, drawer state, and settings navigation.
 class NavigationProvider extends ChangeNotifier {
-  PageId _activePage = PageId.home;
-  PageId get activePage => _activePage;
+  final List<PageId> _pageStack = [PageId.home];
+  List<PageId> get pageStack => List.unmodifiable(_pageStack);
+
+  PageId get activePage =>
+      _pageStack.isNotEmpty ? _pageStack.last : PageId.home;
 
   SettingsCategory? _selectedSettingsCategory;
   SettingsCategory? get selectedSettingsCategory => _selectedSettingsCategory;
@@ -17,24 +20,99 @@ class NavigationProvider extends ChangeNotifier {
   bool _isRailExpanded = true;
   bool get isRailExpanded => _isRailExpanded;
 
+  bool _isNavigatingBack = false;
+  bool get isNavigatingBack => _isNavigatingBack;
+
+  PageId? _previousPage;
+  PageId? get previousPage => _previousPage;
+
+  /// Whether there is navigation history or sub-category state that can be popped.
+  bool get canPop =>
+      (activePage == PageId.settings && _selectedSettingsCategory != null) ||
+      _pageStack.length > 1;
+
   void setActivePage(PageId page) {
-    if (_activePage != page) {
-      _activePage = page;
-      if (page != PageId.settings) {
+    if (activePage == page) return;
+
+    _previousPage = activePage;
+    _isNavigatingBack = false;
+
+    if (page == PageId.home) {
+      _pageStack.clear();
+      _pageStack.add(PageId.home);
+    } else {
+      _pageStack.remove(page);
+      _pageStack.add(page);
+    }
+
+    if (page != PageId.settings) {
+      _selectedSettingsCategory = null;
+    }
+    notifyListeners();
+  }
+
+  void pushPage(PageId page, {SettingsCategory? category}) {
+    if (activePage == page) {
+      if (category != null && category != _selectedSettingsCategory) {
+        _selectedSettingsCategory = category;
+        notifyListeners();
+      }
+      return;
+    }
+
+    _previousPage = activePage;
+    _isNavigatingBack = false;
+    _pageStack.remove(page);
+    _pageStack.add(page);
+
+    if (category != null) {
+      _selectedSettingsCategory = category;
+    } else if (page != PageId.settings) {
+      _selectedSettingsCategory = null;
+    }
+    notifyListeners();
+  }
+
+  /// Pops the navigation hierarchy:
+  /// 1. If inside a Settings category section -> pops to Settings main page.
+  /// 2. If on a pushed page (e.g. Settings, Bin, or another destination) ->
+  ///    pops back to the page from where it was opened.
+  /// Returns true if a pop was handled, false otherwise.
+  bool pop() {
+    // 1. Pop settings category first
+    if (activePage == PageId.settings && _selectedSettingsCategory != null) {
+      _selectedSettingsCategory = null;
+      notifyListeners();
+      return true;
+    }
+
+    // 2. Pop page stack
+    if (_pageStack.length > 1) {
+      _previousPage = activePage;
+      _isNavigatingBack = true;
+      _pageStack.removeLast();
+      if (activePage != PageId.settings) {
         _selectedSettingsCategory = null;
       }
+      notifyListeners();
+      return true;
+    }
+
+    return false;
+  }
+
+  void setSettingsCategory(SettingsCategory? category) {
+    if (_selectedSettingsCategory != category) {
+      _selectedSettingsCategory = category;
       notifyListeners();
     }
   }
 
-  void setSettingsCategory(SettingsCategory? category) {
-    _selectedSettingsCategory = category;
-    notifyListeners();
-  }
-
   void clearSettingsCategory() {
-    _selectedSettingsCategory = null;
-    notifyListeners();
+    if (_selectedSettingsCategory != null) {
+      _selectedSettingsCategory = null;
+      notifyListeners();
+    }
   }
 
   void toggleRailExpanded() {
@@ -57,7 +135,15 @@ class NavigationProvider extends ChangeNotifier {
     String? itemId,
     SettingsCategory? category,
   }) {
-    _activePage = page;
+    _previousPage = activePage;
+    _isNavigatingBack = false;
+    if (page == PageId.home) {
+      _pageStack.clear();
+      _pageStack.add(PageId.home);
+    } else {
+      _pageStack.remove(page);
+      _pageStack.add(page);
+    }
     _selectedSettingsCategory = category;
     _resumeItemId = itemId;
     notifyListeners();

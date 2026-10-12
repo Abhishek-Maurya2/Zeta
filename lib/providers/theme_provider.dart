@@ -154,9 +154,8 @@ class ThemeProvider extends ChangeNotifier {
   /// Navigation rail background color matching the rest of the application.
   /// In dark mode, matches the surface canvas instead of an elevated container.
   Color navRailColor(BuildContext context) {
-    final isDark = isDarkMode(context);
     final colorScheme = Theme.of(context).colorScheme;
-    return isDark ? colorScheme.surfaceContainer : colorScheme.surface;
+    return colorScheme.surfaceContainerLow;
   }
 
   /// Alias for [navRailColor].

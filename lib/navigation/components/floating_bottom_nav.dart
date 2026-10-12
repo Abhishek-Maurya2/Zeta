@@ -28,6 +28,9 @@ class FloatingBottomNav extends StatelessWidget {
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
     final colorScheme = Theme.of(context).colorScheme;
+    final revProvider = context.watch<RevisionProvider>();
+    final isRevisionSubpage = navProvider.activePage == PageId.revision &&
+        revProvider.isSubpageActive;
 
     return Positioned(
       bottom: 5,
@@ -44,7 +47,12 @@ class FloatingBottomNav extends StatelessWidget {
           );
         },
         child: AnimatedSlide(
-          offset: isSelectionMode ? const Offset(0, 2.0) : Offset.zero,
+          offset: (isSelectionMode ||
+                  navProvider.activePage == PageId.settings ||
+                  navProvider.activePage == PageId.bin ||
+                  isRevisionSubpage)
+              ? const Offset(0, 2.0)
+              : Offset.zero,
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeInOutCubicEmphasized,
           child: Row(

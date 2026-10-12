@@ -50,6 +50,9 @@ class TopBarSearch extends StatelessWidget {
                 controller: controller,
                 margin: isCompact ? 6 : null,
                 focusedMargin: isCompact ? 0 : null,
+                backgroundColor: WidgetStatePropertyAll(
+                  colorScheme.surfaceContainerLowest,
+                ),
                 leading: isCompact
                     ? const SizedBox(width: 1)
                     : const Icon(M3EIcons.search_rounded),
