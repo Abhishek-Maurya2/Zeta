@@ -323,15 +323,16 @@ class _AuthenticatedProvidersWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final isAuthenticated = _isTestMode || auth.status == AuthStatus.signedIn;
+    final status = context.select<AuthProvider, AuthStatus>((a) => a.status);
+    final userId = context.select<AuthProvider, String?>((a) => a.user?.id);
+    final isAuthenticated = _isTestMode || status == AuthStatus.signedIn;
 
     if (!isAuthenticated) {
       return child;
     }
 
     return MultiProvider(
-      key: ValueKey(auth.user?.id ?? 'authenticated_session'),
+      key: ValueKey(userId ?? 'authenticated_session'),
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),

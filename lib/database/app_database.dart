@@ -62,146 +62,27 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
       );
     },
-    onUpgrade: (m, from, to) async {
-      if (from < 2) {
-        await _safeCreateTable(m, profilesTable);
-      }
-      if (from < 3) {
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
-        );
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
-        );
-      }
-      if (from < 4) {
-        await _safeCreateTable(m, revisionSubjectsTable);
-        await _safeCreateTable(m, revisionTopicsTable);
-        await _safeAddColumn(
-          m,
-          pomodoroSessionsTable,
-          pomodoroSessionsTable.lastSyncedAtMs,
-        );
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
-        );
-      }
-      if (from < 5) {
-        await _safeAddColumn(
-          m,
-          pomodoroSessionsTable,
-          pomodoroSessionsTable.userId,
-        );
-        if (from >= 4) {
-          await _safeAddColumn(
-            m,
-            revisionSubjectsTable,
-            revisionSubjectsTable.userId,
-          );
-          await _safeAddColumn(
-            m,
-            revisionTopicsTable,
-            revisionTopicsTable.userId,
-          );
-        }
-      }
-      if (from >= 2 && from < 6) {
-        await _safeAddColumn(m, profilesTable, profilesTable.lastSyncedAtMs);
-      }
-      if (from < 7) {
-        await customStatement(
-          'CREATE TABLE IF NOT EXISTS sync_outbox (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, feature TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, operation TEXT NOT NULL, created_at_ms INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT NULL);',
-        );
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_sync_outbox_account_order ON sync_outbox (user_id, created_at_ms);',
-        );
-      }
-      if (from < 8) {
-        await _safeAddColumn(m, tasksTable, tasksTable.attachmentsJson);
-        await _safeAddColumn(
-          m,
-          revisionSubjectsTable,
-          revisionSubjectsTable.notesJson,
-        );
-        await _safeAddColumn(
-          m,
-          revisionSubjectsTable,
-          revisionSubjectsTable.attachmentsJson,
-        );
-        await _safeAddColumn(
-          m,
-          revisionTopicsTable,
-          revisionTopicsTable.notesJson,
-        );
-        await _safeAddColumn(
-          m,
-          revisionTopicsTable,
-          revisionTopicsTable.attachmentsJson,
-        );
-      }
-      if (from < 9) {
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_tasks_user_active ON tasks (user_id, deleted_at_ms, created_at_ms DESC);',
-        );
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_revision_topics_user_subject ON revision_topics (user_id, subject_id, sort_order);',
-        );
-        await customStatement(
-          'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
-        );
-      }
-    },
+    onUpgrade: (m, from, to) async {},
   );
-
-  Future<bool> _columnExists(String tableName, String columnName) async {
-    try {
-      final rows = await customSelect('PRAGMA table_info("$tableName")').get();
-      return rows.any((r) => r.data['name'] == columnName);
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _safeAddColumn(
-    Migrator m,
-    TableInfo table,
-    GeneratedColumn column,
-  ) async {
-    try {
-      if (!await _columnExists(table.actualTableName, column.$name)) {
-        await m.addColumn(table, column);
-      }
-    } catch (e) {
-      if (!e.toString().contains('duplicate column name')) {
-        rethrow;
-      }
-    }
-  }
-
-  Future<void> _safeCreateTable(Migrator m, TableInfo table) async {
-    try {
-      await m.createTable(table);
-    } catch (e) {
-      if (!e.toString().contains('already exists')) {
-        rethrow;
-      }
-    }
-  }
 
   // ─── Task helpers ───────────────────────────────────────────────────────────
 
   /// Converts a drift [TasksTableData] row into a domain [Task].
   static Task rowToTask(TasksTableData row) {
-    final subtasks = (jsonDecode(row.subtasksJson) as List<dynamic>)
-        .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
-        .toList();
+    final subtasks = (row.subtasksJson.isEmpty || row.subtasksJson == '[]')
+        ? <Subtask>[]
+        : (jsonDecode(row.subtasksJson) as List<dynamic>)
+            .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
+            .toList();
 
-    List<AttachmentItem> attachments = [];
-    try {
-      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-          .toList();
-    } catch (_) {}
+    List<AttachmentItem> attachments = const [];
+    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
+      try {
+        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
 
     return Task(
       id: row.id,
@@ -282,19 +163,23 @@ class AppDatabase extends _$AppDatabase {
 
   static Subject rowToSubject(RevisionSubjectsTableData row) {
     NoteItem? note;
-    try {
-      final decoded = jsonDecode(row.notesJson);
-      if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
-        note = NoteItem.fromJson(decoded);
-      }
-    } catch (_) {}
+    if (row.notesJson.isNotEmpty && row.notesJson != '{}') {
+      try {
+        final decoded = jsonDecode(row.notesJson);
+        if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
+          note = NoteItem.fromJson(decoded);
+        }
+      } catch (_) {}
+    }
 
-    List<AttachmentItem> attachments = [];
-    try {
-      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-          .toList();
-    } catch (_) {}
+    List<AttachmentItem> attachments = const [];
+    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
+      try {
+        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
 
     return Subject(
       id: row.id,
@@ -324,19 +209,23 @@ class AppDatabase extends _$AppDatabase {
 
   static ChapterTopic rowToTopic(RevisionTopicsTableData row) {
     NoteItem? note;
-    try {
-      final decoded = jsonDecode(row.notesJson);
-      if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
-        note = NoteItem.fromJson(decoded);
-      }
-    } catch (_) {}
+    if (row.notesJson.isNotEmpty && row.notesJson != '{}') {
+      try {
+        final decoded = jsonDecode(row.notesJson);
+        if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
+          note = NoteItem.fromJson(decoded);
+        }
+      } catch (_) {}
+    }
 
-    List<AttachmentItem> attachments = [];
-    try {
-      attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-          .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-          .toList();
-    } catch (_) {}
+    List<AttachmentItem> attachments = const [];
+    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
+      try {
+        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
 
     return ChapterTopic(
       id: row.id,

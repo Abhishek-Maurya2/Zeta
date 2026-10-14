@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -208,33 +209,37 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     }
 
     _titleController.addListener(_syncDraft);
-    _descController.addListener(() {
-      setState(() {});
-      _syncDraft();
-    });
+    _descController.addListener(_syncDraft);
   }
 
+  Timer? _draftDebounceTimer;
+
   void _syncDraft() {
-    if (!mounted) return;
-    try {
-      final tp = context.read<TaskProvider>();
-      tp.updateTaskDraft(
-        title: _titleController.text,
-        description: _descController.text,
-        dueDate: _dueDate,
-        dueTime: _dueTime,
-        hasTime: _hasTime,
-        subtasks: _subtasks.map((s) => s.title).toList(),
-        editingTaskId: widget.task?.id,
-        isCreating: widget.task == null,
-      );
-      CrossDeviceService.instance.notifyDraftActivity();
-    } catch (_) {}
+    _draftDebounceTimer?.cancel();
+    _draftDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      try {
+        final tp = context.read<TaskProvider>();
+        tp.updateTaskDraft(
+          title: _titleController.text,
+          description: _descController.text,
+          dueDate: _dueDate,
+          dueTime: _dueTime,
+          hasTime: _hasTime,
+          subtasks: _subtasks.map((s) => s.title).toList(),
+          editingTaskId: widget.task?.id,
+          isCreating: widget.task == null,
+        );
+        CrossDeviceService.instance.notifyDraftActivity();
+      } catch (_) {}
+    });
   }
 
   @override
   void dispose() {
+    _draftDebounceTimer?.cancel();
     _titleController.removeListener(_syncDraft);
+    _descController.removeListener(_syncDraft);
     _titleController.dispose();
     _descController.dispose();
     _descFocusNode.dispose();
@@ -1155,21 +1160,28 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   ),
                                 ),
                               ),
-                              if (_descController.text.trim().isEmpty)
-                                M3EIconButton(
-                                  icon: const Icon(
-                                    Icons.close_rounded,
-                                    size: 16,
-                                  ),
-                                  size: M3EIconButtonSize.xs,
-                                  variant: M3EIconButtonVariant.standard,
-                                  tooltip: 'Hide notes',
-                                  onPressed: () {
-                                    setState(() {
-                                      _showDescriptionSection = false;
-                                    });
-                                  },
-                                ),
+                              ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: _descController,
+                                builder: (context, val, _) {
+                                  if (val.text.trim().isNotEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return M3EIconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                    ),
+                                    size: M3EIconButtonSize.xs,
+                                    variant: M3EIconButtonVariant.standard,
+                                    tooltip: 'Hide notes',
+                                    onPressed: () {
+                                      setState(() {
+                                        _showDescriptionSection = false;
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ],

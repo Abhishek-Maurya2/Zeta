@@ -145,7 +145,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       'editingTaskId': editingTaskId,
       'isCreating': isCreating ?? (editingTaskId == null),
     };
-    notifyListeners();
+    // Note: Do not call notifyListeners() here.
+    // _taskFormDraft is strictly read by CrossDeviceService on a 2-second debounce.
+    // Calling notifyListeners() on keystrokes causes full-app rebuild cascades.
   }
 
   void clearTaskDraft() {
@@ -196,9 +198,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   TaskSortOption get sortBy => _sortBy;
   String get searchQuery => _searchQuery;
 
+  int? _cachedCompletedCount;
+
   int get totalCount => _tasks.length;
-  int get completedCount => _tasks.where((t) => t.completed).length;
-  int get pendingCount => _tasks.where((t) => !t.completed).length;
+  int get completedCount {
+    if (_cachedCompletedCount != null) return _cachedCompletedCount!;
+    int c = 0;
+    for (final t in _tasks) {
+      if (t.completed) c++;
+    }
+    _cachedCompletedCount = c;
+    return c;
+  }
+  int get pendingCount => _tasks.length - completedCount;
   int get binCount => _binTasks.length;
 
   int _completedDisplayedCount = 5;
@@ -230,6 +242,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _cachedCompletedTasks = null;
     _cachedRevisionTasks = null;
     _cachedTasksByDateKey = null;
+    _cachedCompletedCount = null;
   }
 
   /// Cached lookup of all tasks (active & bin) indexed by 'YYYY-M-D'.
@@ -614,6 +627,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!_loadCompleter.isCompleted) {
       _loadCompleter.complete();
     }
+    if (_isDisposed) return;
     _startupSyncTimer = Timer(const Duration(seconds: 4), () {
       if (!_isDisposed) unawaited(syncWithCloud());
     });

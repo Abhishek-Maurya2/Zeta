@@ -114,16 +114,23 @@ class PomodoroSyncService {
       }
     }
 
-    for (final entry in pending.where((item) => item.operation == 'delete')) {
+    final deleteEntries =
+        pending.where((item) => item.operation == 'delete').toList();
+    if (deleteEntries.isNotEmpty) {
+      final ids = deleteEntries.map((e) => e.entityId).toList();
       try {
         await _supabaseService.client
             .from('pomodoro_sessions')
             .delete()
-            .eq('id', entry.entityId)
+            .inFilter('id', ids)
             .timeout(const Duration(seconds: 15));
-        await _outbox.complete(entry.id, entry.createdAtMs);
+        for (final entry in deleteEntries) {
+          await _outbox.complete(entry.id, entry.createdAtMs);
+        }
       } catch (error) {
-        await _outbox.recordFailure(entry.id, entry.createdAtMs, error);
+        for (final entry in deleteEntries) {
+          await _outbox.recordFailure(entry.id, entry.createdAtMs, error);
+        }
       }
     }
 

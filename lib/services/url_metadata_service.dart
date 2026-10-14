@@ -12,7 +12,22 @@ class UrlMetadataService {
   UrlMetadataService._();
   static final UrlMetadataService instance = UrlMetadataService._();
 
+  static const int _maxCacheSize = 100;
+  static final RegExp _titleRegExp = RegExp(
+    r'<title>(.*?)</title>',
+    caseSensitive: false,
+    dotAll: true,
+  );
+  static final RegExp _whitespaceRegExp = RegExp(r'\s+');
+
   final Map<String, UrlMetadata> _cache = {};
+
+  void _putCache(String key, UrlMetadata value) {
+    if (_cache.length >= _maxCacheSize) {
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[key] = value;
+  }
 
   Future<UrlMetadata> fetchMetadata(String urlString) async {
     if (_cache.containsKey(urlString)) {
@@ -22,12 +37,13 @@ class UrlMetadataService {
     final uri = Uri.tryParse(urlString);
     if (uri == null || !uri.hasScheme) {
       final fallback = UrlMetadata(title: urlString, faviconUrl: null);
-      _cache[urlString] = fallback;
+      _putCache(urlString, fallback);
       return fallback;
     }
 
     // Google Favicon service provides a reliable high-res favicon fallback
-    final domainFavicon = 'https://www.google.com/s2/favicons?domain=${uri.host}&sz=64';
+    final domainFavicon =
+        'https://www.google.com/s2/favicons?domain=${uri.host}&sz=64';
 
     try {
       final response = await http
@@ -36,19 +52,19 @@ class UrlMetadataService {
 
       if (response.statusCode == 200) {
         final body = utf8.decode(response.bodyBytes, allowMalformed: true);
-        final titleMatch = RegExp(r'<title>(.*?)</title>', caseSensitive: false, dotAll: true)
-            .firstMatch(body);
-        
+        final titleMatch = _titleRegExp.firstMatch(body);
+
         String resolvedTitle = uri.host;
         if (titleMatch != null && titleMatch.group(1) != null) {
-          resolvedTitle = titleMatch.group(1)!.trim().replaceAll(RegExp(r'\s+'), ' ');
+          resolvedTitle =
+              titleMatch.group(1)!.trim().replaceAll(_whitespaceRegExp, ' ');
         }
 
         final metadata = UrlMetadata(
           title: resolvedTitle.isNotEmpty ? resolvedTitle : uri.host,
           faviconUrl: domainFavicon,
         );
-        _cache[urlString] = metadata;
+        _putCache(urlString, metadata);
         return metadata;
       }
     } catch (_) {
@@ -59,7 +75,7 @@ class UrlMetadataService {
       title: uri.host.isNotEmpty ? uri.host : urlString,
       faviconUrl: domainFavicon,
     );
-    _cache[urlString] = fallback;
+    _putCache(urlString, fallback);
     return fallback;
   }
 }

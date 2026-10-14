@@ -59,8 +59,13 @@ class AndroidTasksWidgetService with WidgetsBindingObserver {
     }
   }
 
+  Timer? _debounceTimer;
+
   void _onProviderChanged() {
-    unawaited(_publishWidgetState());
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 1500), () {
+      unawaited(_publishWidgetState());
+    });
   }
 
   @override
@@ -213,6 +218,7 @@ class AndroidTasksWidgetService with WidgetsBindingObserver {
   }
 
   void dispose() {
+    _debounceTimer?.cancel();
     if (_initialized) {
       _taskProvider?.removeListener(_onProviderChanged);
       WidgetsBinding.instance.removeObserver(this);

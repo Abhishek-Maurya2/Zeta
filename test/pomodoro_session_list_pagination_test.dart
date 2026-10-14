@@ -21,7 +21,7 @@ void main() {
   ) async {
     final provider = PomodoroProvider();
     // Allow provider._init() to complete
-    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
 
     // Create sessions across 7 distinct days
     final now = DateTime.now();
@@ -74,6 +74,7 @@ void main() {
     expect(loadButton, findsOneWidget);
 
     // Tap the load more icon button to load next 5 days (which covers the remaining 2 days)
+    await tester.ensureVisible(loadButton);
     await tester.tap(loadButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

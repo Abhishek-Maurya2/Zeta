@@ -43,6 +43,7 @@ class NetworkService with WidgetsBindingObserver {
 
   /// Call this when an HTTP operation succeeds to confirm online state.
   void markOnline() {
+    _offlineRetryCount = 0;
     if (!_isOnline) {
       _isOnline = true;
       _connectivityController.add(true);
@@ -109,22 +110,35 @@ class NetworkService with WidgetsBindingObserver {
     return _isOnline;
   }
 
+  int _offlineRetryCount = 0;
+
   void _schedulePeriodicCheck({required bool background}) {
     _checkTimer?.cancel();
     _backgroundMode = background;
-    final interval = background
-        ? (_isOnline ? const Duration(minutes: 3) : const Duration(seconds: 45))
-        : (_isOnline
-              ? const Duration(seconds: 60)
-              : const Duration(seconds: 15));
-    _checkTimer = Timer.periodic(interval, (_) async {
+    Duration interval;
+    if (background) {
+      interval = _isOnline ? const Duration(minutes: 5) : const Duration(minutes: 2);
+    } else {
+      if (_isOnline) {
+        _offlineRetryCount = 0;
+        interval = const Duration(seconds: 60);
+      } else {
+        // Exponential backoff when offline: 15s -> 30s -> 60s -> 120s max
+        final backoffSec = (15 * (1 << _offlineRetryCount)).clamp(15, 120);
+        interval = Duration(seconds: backoffSec);
+        if (_offlineRetryCount < 3) _offlineRetryCount++;
+      }
+    }
+    _checkTimer = Timer(interval, () async {
       await checkConnectivity(force: true);
+      _schedulePeriodicCheck(background: _backgroundMode);
     });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _offlineRetryCount = 0;
       _schedulePeriodicCheck(background: false);
       unawaited(checkConnectivity(force: true));
     } else if (_isBackgroundState(state)) {

@@ -121,22 +121,25 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     required ColorScheme colorScheme,
     required VoidCallback onPressed,
   }) {
-    return M3EIconButton(
-      size: M3EIconButtonSize.md,
-      width: M3EIconButtonWidth.narrow,
-      haptic: M3EHapticFeedback.heavy,
-      decoration: M3EIconButtonDecoration(
-        backgroundColor: WidgetStateProperty.all(
-          colorScheme.surfaceContainerHighest,
+    return Tooltip(
+      message: isNext ? 'Next days' : 'Previous days',
+      child: M3EIconButton(
+        size: M3EIconButtonSize.md,
+        width: M3EIconButtonWidth.narrow,
+        haptic: M3EHapticFeedback.heavy,
+        decoration: M3EIconButtonDecoration(
+          backgroundColor: WidgetStateProperty.all(
+            colorScheme.surfaceContainerHighest,
+          ),
+          foregroundColor: WidgetStateProperty.all(colorScheme.onSurface),
         ),
-        foregroundColor: WidgetStateProperty.all(colorScheme.onSurface),
+        icon: Icon(
+          isNext ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+          size: 40,
+          fontWeight: FontWeight.bold,
+        ),
+        onPressed: onPressed,
       ),
-      icon: Icon(
-        isNext ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
-        size: 40,
-        fontWeight: FontWeight.bold,
-      ),
-      onPressed: onPressed,
     );
   }
 

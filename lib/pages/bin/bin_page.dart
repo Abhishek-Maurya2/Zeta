@@ -81,7 +81,9 @@ class _BinPageState extends State<BinPage> {
     final totalCount = binTasks.length;
     final hasMore = totalCount > _initialCount;
 
-    _checkAutoLoad(totalCount);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkAutoLoad(totalCount);
+    });
 
     final visibleTasks = (_loadedAll || !hasMore)
         ? binTasks

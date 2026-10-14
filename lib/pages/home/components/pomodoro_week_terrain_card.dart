@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../../../providers/theme_provider.dart'; // Adjust path as needed
 
+import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../pomodoro/components/pomodoro_chart_canvas.dart';
@@ -25,8 +26,8 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PomodoroProvider>();
-    final sessionLog = provider.sessionLog;
+    final sessionLog = context.select<PomodoroProvider, List<PomodoroSessionLog>>((p) => p.sessionLog);
+    final weekDailyGoalMinutes = context.select<PomodoroProvider, int>((p) => p.settings.weekDailyGoalMinutes);
     final now = DateTime.now();
     final todayStr = PomodoroChartCanvas.toLocalDateStr(now);
 
@@ -36,7 +37,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
       now,
       0,
       todayStr,
-      provider.settings.weekDailyGoalMinutes,
+      weekDailyGoalMinutes,
     );
 
     // Extract daily focus minutes (7 values)

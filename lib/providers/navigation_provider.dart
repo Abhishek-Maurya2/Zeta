@@ -20,6 +20,9 @@ class NavigationProvider extends ChangeNotifier {
   bool _isRailExpanded = true;
   bool get isRailExpanded => _isRailExpanded;
 
+  bool _isNavigatingBack = false;
+  bool get isNavigatingBack => _isNavigatingBack;
+
   /// Whether a destination route or Settings category can be popped.
   bool get canPop =>
       (activePage == PageId.settings && _selectedSettingsCategory != null) ||
@@ -28,6 +31,7 @@ class NavigationProvider extends ChangeNotifier {
   void setActivePage(PageId page) {
     if (activePage == page) return;
 
+    _isNavigatingBack = false;
     if (page == PageId.home) {
       _pageStack.clear();
       _pageStack.add(PageId.home);
@@ -37,6 +41,27 @@ class NavigationProvider extends ChangeNotifier {
     }
 
     if (page != PageId.settings) {
+      _selectedSettingsCategory = null;
+    }
+    notifyListeners();
+  }
+
+  void pushPage(PageId page, {SettingsCategory? category}) {
+    if (activePage == page) {
+      if (category != null && category != _selectedSettingsCategory) {
+        _selectedSettingsCategory = category;
+        notifyListeners();
+      }
+      return;
+    }
+
+    _isNavigatingBack = false;
+    _pageStack.remove(page);
+    _pageStack.add(page);
+
+    if (category != null) {
+      _selectedSettingsCategory = category;
+    } else if (page != PageId.settings) {
       _selectedSettingsCategory = null;
     }
     notifyListeners();
@@ -57,6 +82,7 @@ class NavigationProvider extends ChangeNotifier {
 
     // 2. Pop page stack
     if (_pageStack.length > 1) {
+      _isNavigatingBack = true;
       _pageStack.removeLast();
       if (activePage != PageId.settings) {
         _selectedSettingsCategory = null;

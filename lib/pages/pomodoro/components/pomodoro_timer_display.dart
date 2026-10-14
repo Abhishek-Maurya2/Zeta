@@ -61,11 +61,7 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
     final textTheme = Theme.of(context).textTheme;
 
     final isRunning = provider.isRunning;
-    final providerProgress = provider.progress;
-    final formattedTime = provider.formattedTime;
 
-    // Update target; start/stop the repeating animation
-    _targetProgress = providerProgress;
     if (isRunning) {
       if (!_controller.isAnimating) {
         _controller.repeat();
@@ -75,14 +71,21 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
         _controller.stop();
       }
       // Snap immediately when paused
-      _currentProgress = providerProgress;
+      _currentProgress = provider.progress;
     }
 
-    return Center(
-      child: SizedBox(
-        width: widget.size,
-        height: widget.size,
-        child: Stack(
+    return AnimatedBuilder(
+      animation: provider.tickNotifier,
+      builder: (context, _) {
+        final providerProgress = provider.progress;
+        final formattedTime = provider.formattedTime;
+        _targetProgress = providerProgress;
+
+        return Center(
+          child: SizedBox(
+            width: widget.size,
+            height: widget.size,
+            child: Stack(
           alignment: Alignment.center,
           children: [
             // Circular Wavy Progress Indicator (smooth 60fps interpolation)
@@ -159,6 +162,8 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
         ),
       ),
     );
+  },
+);
   }
 }
 

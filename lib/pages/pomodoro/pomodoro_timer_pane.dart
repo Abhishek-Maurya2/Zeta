@@ -16,11 +16,10 @@ class PomodoroTimerPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PomodoroProvider>();
+    final modeTitle = context.select<PomodoroProvider, String>((p) => p.mode.label);
+    final provider = context.read<PomodoroProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-
-    final modeTitle = provider.mode.label;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
     final bottomPadding = isCompact ? 96.0 : 24.0;

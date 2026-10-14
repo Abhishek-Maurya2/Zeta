@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../models/pomodoro.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../components/zeta_empty_state.dart';
 import 'components/pomodoro_settings_sheet.dart';
@@ -15,11 +16,11 @@ class PomodoroQueuePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PomodoroProvider>();
-    final queue = provider.queue;
-    final activeIndex = provider.activeQueueIndex;
-    final settings = provider.settings;
-    final isRunning = provider.isRunning;
+    final queue = context.select<PomodoroProvider, List<PomodoroSessionItem>>((p) => p.queue);
+    final activeIndex = context.select<PomodoroProvider, int>((p) => p.activeQueueIndex);
+    final settings = context.select<PomodoroProvider, PomodoroSettings>((p) => p.settings);
+    final isRunning = context.select<PomodoroProvider, bool>((p) => p.isRunning);
+    final provider = context.read<PomodoroProvider>();
 
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;

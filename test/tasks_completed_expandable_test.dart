@@ -118,6 +118,7 @@ void main() {
     expect(loadMoreFinder, findsOneWidget);
 
     // Tap to load the next 5
+    await tester.ensureVisible(loadMoreFinder);
     await tester.tap(loadMoreFinder);
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();

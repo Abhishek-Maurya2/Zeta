@@ -6,8 +6,6 @@ import 'daos/revision_dao.dart';
 import 'daos/sync_outbox_dao.dart';
 import 'account_scope.dart';
 
-import 'package:drift/drift.dart';
-
 /// Global singleton accessor for the drift SQLite database and its DAOs.
 ///
 /// Usage:
@@ -70,45 +68,7 @@ class DatabaseProvider {
     return _db!;
   }
 
-  /// Assigns rows imported from the former shared workspace to the first
-  /// account that signs in on this installation.
-  Future<void> claimLegacyRows(String userId) async {
-    final database = db;
-    await database.transaction(() async {
-      const legacyOwner = Value('singleton');
-      await (database.update(database.tasksTable)..where(
-            (t) => t.userId.isNull() | t.userId.equals(legacyOwner.value),
-          ))
-          .write(TasksTableCompanion(userId: Value(userId)));
-      await (database.update(database.pomodoroSessionsTable)..where(
-            (t) => t.userId.isNull() | t.userId.equals(legacyOwner.value),
-          ))
-          .write(PomodoroSessionsTableCompanion(userId: Value(userId)));
-      await (database.update(database.revisionSubjectsTable)..where(
-            (t) => t.userId.isNull() | t.userId.equals(legacyOwner.value),
-          ))
-          .write(RevisionSubjectsTableCompanion(userId: Value(userId)));
-      await (database.update(database.revisionTopicsTable)..where(
-            (t) => t.userId.isNull() | t.userId.equals(legacyOwner.value),
-          ))
-          .write(RevisionTopicsTableCompanion(userId: Value(userId)));
-
-      final legacyProfile = await profileDao.getProfile('singleton');
-      if (legacyProfile != null) {
-        final accountProfile = await profileDao.getProfile(userId);
-        await profileDao.upsertProfile(
-          id: userId,
-          displayName: accountProfile?.displayName.isNotEmpty == true
-              ? accountProfile!.displayName
-              : legacyProfile.displayName,
-          email: accountProfile?.email.isNotEmpty == true
-              ? accountProfile!.email
-              : legacyProfile.email,
-          avatarImage: accountProfile?.avatarImage ?? legacyProfile.avatarImage,
-        );
-        await profileDao.deleteProfile('singleton');
-      }
-    });
+  void setAccountScope(String userId) {
     AccountScope.userId = userId;
   }
 

@@ -73,6 +73,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Call this whenever tasks change so the provider has an up-to-date list.
   void updateTasks(List<Task> tasks) {
+    if (identical(_tasks, tasks)) return;
     _tasks = tasks;
   }
 

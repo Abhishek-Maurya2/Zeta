@@ -209,6 +209,14 @@ class DateTimeUtils {
     return formatString(dueDate);
   }
 
+  static final RegExp _whitespaceRegex = RegExp(r'\s+');
+  static const Map<String, int> _monthMap = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4,
+    'may': 5, 'jun': 6, 'jul': 7, 'aug': 8,
+    'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+  };
+  static final Map<String, DateTime?> _parseCache = {};
+
   /// Parses strings like 'Today', 'Tomorrow', 'Yesterday', '13, Sep', '13 Sep',
   /// composite strings like 'Today • 10:00 AM', or ISO timestamps.
   static DateTime? parse(String str) {
@@ -217,43 +225,53 @@ class DateTimeUtils {
       clean = clean.split('•')[0].trim();
     }
 
+    final lower = clean.toLowerCase();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final lower = clean.toLowerCase();
     if (lower == 'today') return today;
     if (lower == 'tomorrow') return today.add(const Duration(days: 1));
     if (lower == 'yesterday') return today.subtract(const Duration(days: 1));
 
+    if (_parseCache.containsKey(clean)) {
+      return _parseCache[clean];
+    }
+
+    DateTime? result;
+
     // Formats like "13, Sep", "13 Sep", or "13, Sep 2026"
-    final parts = clean.replaceAll(',', ' ').split(RegExp(r'\s+'));
+    final parts = clean.replaceAll(',', ' ').split(_whitespaceRegex);
     if (parts.length >= 2) {
       final day = int.tryParse(parts[0]);
-      final monthLower = parts[1].toLowerCase();
-      final monthIndex =
-          monthsShort.indexWhere((m) => m.toLowerCase() == monthLower);
+      final month = _monthMap[parts[1].toLowerCase()];
       final year =
           parts.length >= 3 ? int.tryParse(parts[2]) ?? now.year : now.year;
-      if (day != null && monthIndex != -1) {
-        return DateTime(year, monthIndex + 1, day);
-      }
-
-      // Check reverse format: "Sep 13" or "Sep 13 2026"
-      final revMonthIndex = monthsShort.indexWhere(
-        (m) => m.toLowerCase() == parts[0].toLowerCase(),
-      );
-      final revDay = int.tryParse(parts[1]);
-      if (revMonthIndex != -1 && revDay != null) {
-        return DateTime(year, revMonthIndex + 1, revDay);
+      if (day != null && month != null) {
+        result = DateTime(year, month, day);
+      } else {
+        // Check reverse format: "Sep 13" or "Sep 13 2026"
+        final revMonth = _monthMap[parts[0].toLowerCase()];
+        final revDay = int.tryParse(parts[1]);
+        if (revMonth != null && revDay != null) {
+          result = DateTime(year, revMonth, revDay);
+        }
       }
     }
 
-    // Try ISO or standard DateTime parse (ensure local representation)
-    try {
-      final dt = DateTime.parse(clean);
-      return dt.isUtc ? dt.toLocal() : dt;
-    } catch (_) {
-      return null;
+    if (result == null) {
+      // Try ISO or standard DateTime parse (ensure local representation)
+      try {
+        final dt = DateTime.parse(clean);
+        result = dt.isUtc ? dt.toLocal() : dt;
+      } catch (_) {
+        result = null;
+      }
     }
+
+    if (_parseCache.length > 300) {
+      _parseCache.clear();
+    }
+    _parseCache[clean] = result;
+    return result;
   }
 }

@@ -7,6 +7,10 @@ import 'package:flutter/services.dart';
 class WindowsTitleBar {
   static const MethodChannel _channel = MethodChannel('zeta/windows_title_bar');
 
+  static bool? _lastIsDark;
+  static int? _lastCaptionColor;
+  static int? _lastTextColor;
+
   /// Update native title bar colors and dark mode style.
   /// Uses purely asynchronous Flutter MethodChannel - 100% safe against FFI crashes.
   static void update({
@@ -17,11 +21,19 @@ class WindowsTitleBar {
     if (kIsWeb || !Platform.isWindows) return;
 
     final int c = captionColor.toARGB32();
+    final int tc = textColor.toARGB32();
+
+    if (_lastIsDark == isDark &&
+        _lastCaptionColor == c &&
+        _lastTextColor == tc) {
+      return;
+    }
+    _lastIsDark = isDark;
+    _lastCaptionColor = c;
+    _lastTextColor = tc;
     final int r = (c >> 16) & 0xFF;
     final int g = (c >> 8) & 0xFF;
     final int b = c & 0xFF;
-
-    final int tc = textColor.toARGB32();
     final int tr = (tc >> 16) & 0xFF;
     final int tg = (tc >> 8) & 0xFF;
     final int tb = tc & 0xFF;

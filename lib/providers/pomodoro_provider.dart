@@ -27,6 +27,10 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<PomodoroSessionLog> _sessionLog = [];
   DateTime? _targetEndTime;
 
+  /// High-frequency ticker notifier for countdown display widgets.
+  /// Updates once per second without triggering app-wide notifyListeners() rebuilds.
+  final ValueNotifier<int> tickNotifier = ValueNotifier<int>(25 * 60);
+
   Timer? _timer;
   Timer? _startupSyncTimer;
   bool _isDisposed = false;
@@ -232,6 +236,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         _syncWithCurrentQueueItem();
       }
 
+      tickNotifier.value = _timeLeft;
       if (!_isDisposed) notifyListeners();
     } catch (e) {
       debugPrint('PomodoroProvider: _loadFromStorage error - $e');
@@ -279,6 +284,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     final item = _queue[_activeQueueIndex];
     _totalDuration = item.durationMinutes * 60;
     _timeLeft = _totalDuration;
+    tickNotifier.value = _timeLeft;
   }
 
   // ─── Timer Controls ────────────────────────────────────────────────────────
@@ -347,12 +353,13 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     final remaining = _targetEndTime!.difference(now).inSeconds;
     if (remaining <= 0) {
       _timeLeft = 0;
+      tickNotifier.value = 0;
       notifyListeners();
       _onSessionComplete();
     } else {
       if (_timeLeft != remaining) {
         _timeLeft = remaining;
-        notifyListeners();
+        tickNotifier.value = remaining;
         _updateLiveNotification();
         // Throttle disk writes to at most every 50 seconds
         if (now.difference(_lastSaveTime).inSeconds >= 50) {
@@ -526,6 +533,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       NotificationService.instance.onPomodoroAction = null;
     }
     NotificationService.instance.cancelPomodoroProgress();
+    tickNotifier.dispose();
     super.dispose();
   }
 }

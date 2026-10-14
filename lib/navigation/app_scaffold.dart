@@ -72,6 +72,7 @@ class _AppScaffoldState extends State<AppScaffold>
   static const double _refreshTargetHeight = 80;
   late final AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
+  final ValueNotifier<double> _refreshHeightNotifier = ValueNotifier<double>(0.0);
   double _dragOffset = 0;
   bool _isRefreshing = false;
   bool _isUserPulling = false;
@@ -112,7 +113,7 @@ class _AppScaffoldState extends State<AppScaffold>
     _refreshController =
         AnimationController(vsync: this, duration: M3MotionDuration.medium2)
           ..addListener(() {
-            if (mounted) setState(() {});
+            _refreshHeightNotifier.value = _refreshHeight;
           });
     _refreshAnimation = Tween<double>(begin: 0, end: _refreshTargetHeight)
         .animate(
@@ -155,6 +156,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
+    _refreshHeightNotifier.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
     if (AppSnackbar.rootContext == context) {
@@ -176,6 +178,7 @@ class _AppScaffoldState extends State<AppScaffold>
       _isUserPulling = false;
       _dragOffset = _refreshTargetHeight;
     });
+    _refreshHeightNotifier.value = _refreshTargetHeight;
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
@@ -231,6 +234,7 @@ class _AppScaffoldState extends State<AppScaffold>
         _isRefreshing = false;
         _dragOffset = 0;
       });
+      _refreshHeightNotifier.value = 0;
       AppSnackbar.show(
         context,
         message: 'Refreshed',
@@ -248,7 +252,8 @@ class _AppScaffoldState extends State<AppScaffold>
       ),
     );
     _refreshController.forward(from: 0).then((_) {
-      if (mounted) setState(() => _dragOffset = 0);
+      _dragOffset = 0;
+      _refreshHeightNotifier.value = 0;
     });
   }
 
@@ -272,12 +277,11 @@ class _AppScaffoldState extends State<AppScaffold>
         final newDrag = _dragOffset - notification.overscroll * 0.5;
         if (newDrag >= _refreshTargetHeight) {
           _dragOffset = _refreshTargetHeight;
-          setState(() {});
+          _refreshHeightNotifier.value = _refreshTargetHeight;
           unawaited(_triggerRefresh());
         } else {
-          setState(() {
-            _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
-          });
+          _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
+          _refreshHeightNotifier.value = _dragOffset;
         }
       }
     } else if (notification is ScrollUpdateNotification) {
@@ -288,21 +292,19 @@ class _AppScaffoldState extends State<AppScaffold>
           final newDrag = _dragOffset - (notification.scrollDelta ?? 0) * 0.5;
           if (newDrag >= _refreshTargetHeight) {
             _dragOffset = _refreshTargetHeight;
-            setState(() {});
+            _refreshHeightNotifier.value = _refreshTargetHeight;
             unawaited(_triggerRefresh());
           } else {
-            setState(() {
-              _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
-            });
+            _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
+            _refreshHeightNotifier.value = _dragOffset;
           }
         } else if (_isUserPulling &&
             _dragOffset > 0 &&
             (notification.scrollDelta ?? 0) > 0) {
-          setState(() {
-            _dragOffset = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
-                .clamp(0.0, _refreshTargetHeight)
-                .toDouble();
-          });
+          _dragOffset = (_dragOffset - (notification.scrollDelta ?? 0) * 0.5)
+              .clamp(0.0, _refreshTargetHeight)
+              .toDouble();
+          _refreshHeightNotifier.value = _dragOffset;
         }
       } else if (_isUserPulling || _dragOffset > 0) {
         _isUserPulling = false;
@@ -451,10 +453,9 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final isCompact = sizeClass.isCompact;
 
-    final revProvider = context.watch<RevisionProvider>();
     final isRevisionSubpage =
         navProvider.activePage == PageId.revision &&
-        revProvider.isSubpageActive;
+        context.select<RevisionProvider, bool>((p) => p.isSubpageActive);
     final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
     final backHandledByScaffold =
         isEditPaneOpen ||
@@ -544,19 +545,20 @@ class _AppScaffoldState extends State<AppScaffold>
         }
 
         // 3.1. If in Revision and on Notes, pop back to Topics first
-        if (navProvider.activePage == PageId.revision &&
-            revProvider.isNotesOpen) {
-          ZetaHaptics.light();
-          revProvider.closeNotes();
-          return;
-        }
+        if (navProvider.activePage == PageId.revision) {
+          final revProvider = context.read<RevisionProvider>();
+          if (revProvider.isNotesOpen) {
+            ZetaHaptics.light();
+            revProvider.closeNotes();
+            return;
+          }
 
-        // 3.2. If in Revision and on Topics, pop back to Subjects first
-        if (navProvider.activePage == PageId.revision &&
-            revProvider.selectedSubjectId != null) {
-          ZetaHaptics.light();
-          revProvider.selectSubject(null);
-          return;
+          // 3.2. If in Revision and on Topics, pop back to Subjects first
+          if (revProvider.selectedSubjectId != null) {
+            ZetaHaptics.light();
+            revProvider.selectSubject(null);
+            return;
+          }
         }
 
         // Destination routes and modal routes are popped by their Navigator.
@@ -596,10 +598,15 @@ class _AppScaffoldState extends State<AppScaffold>
                   if (navProvider.activePage != PageId.settings &&
                       navProvider.activePage != PageId.bin &&
                       !isRevisionSubpage)
-                    PullToRefreshContainer(
-                      refreshHeight: _refreshHeight,
-                      targetHeight: _refreshTargetHeight,
-                      isRefreshing: _isRefreshing,
+                    ValueListenableBuilder<double>(
+                      valueListenable: _refreshHeightNotifier,
+                      builder: (context, height, _) {
+                        return PullToRefreshContainer(
+                          refreshHeight: height,
+                          targetHeight: _refreshTargetHeight,
+                          isRefreshing: _isRefreshing,
+                        );
+                      },
                     ),
                   // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
                   Expanded(

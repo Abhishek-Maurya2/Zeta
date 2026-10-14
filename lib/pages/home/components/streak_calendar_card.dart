@@ -52,14 +52,6 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     }
   }
 
-  bool _isTaskOnDate(Task task, DateTime date) {
-    final parsed = task.parsedDueDate;
-    if (parsed != null) {
-      return DateTimeUtils.isSameDay(parsed, date);
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -70,11 +62,11 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
 
-    final allTasks = [...taskProvider.allTasks, ...taskProvider.binTasks];
+    final tasksByDateKey = taskProvider.tasksByDateKey;
 
     // Collect dates that have completed tasks
     final completedDateStrings = <String>{};
-    for (final t in allTasks) {
+    for (final t in taskProvider.allTasks) {
       if (t.completed && t.dueDate != null) {
         final parsed = t.parsedDueDate;
         if (parsed != null) {
@@ -206,7 +198,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
             rangeEnd: rangeEnd,
             hasActiveStreak: hasActiveStreak,
             today: today,
-            allTasks: allTasks,
+            tasksByDateKey: tasksByDateKey,
           ),
         ],
       ),
@@ -229,7 +221,7 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
     required DateTime? rangeEnd,
     required bool hasActiveStreak,
     required DateTime today,
-    required List<Task> allTasks,
+    required Map<String, List<Task>> tasksByDateKey,
   }) {
     final firstDayOfMonth = DateTime(
       _displayedMonth.year,
@@ -295,9 +287,8 @@ class _StreakCalendarCardState extends State<StreakCalendarCard> {
                 );
               }
 
-              final dayTasks = allTasks
-                  .where((t) => _isTaskOnDate(t, cellDate))
-                  .toList();
+              final dateKey = '${cellDate.year}-${cellDate.month}-${cellDate.day}';
+              final dayTasks = tasksByDateKey[dateKey] ?? const [];
               final hasPending = dayTasks.any((t) => !t.completed);
               final hasOverdue = cellDate.isBefore(today) && hasPending;
 

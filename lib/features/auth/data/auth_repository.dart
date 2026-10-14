@@ -46,7 +46,6 @@ class AuthRepository {
         avatarBytes: avatarBytes,
         avatarExtension: avatarExtension,
       );
-      await _profiles.claimLegacyWorkspace();
     }
     return response;
   }

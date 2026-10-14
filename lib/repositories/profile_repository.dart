@@ -336,10 +336,6 @@ class ProfileRepository {
     }
   }
 
-  Future<void> claimLegacyWorkspace() async {
-    await _supabase.client.rpc('claim_legacy_workspace');
-  }
-
   bool _isPending(ProfilesTableData profile) =>
       profile.lastSyncedAtMs == null ||
       (profile.updatedAtMs ?? 0) > profile.lastSyncedAtMs!;

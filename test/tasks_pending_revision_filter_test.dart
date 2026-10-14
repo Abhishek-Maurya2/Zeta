@@ -94,6 +94,7 @@ void main() {
       // Revision task is visible, regular task is not visible
       expect(find.text('Revise: Physics Notes'), findsOneWidget);
       expect(find.text('Regular Task 1'), findsNothing);
+      taskProvider.dispose();
     });
 
     test('TaskProvider remembers last selected filter via PreferencesService', () async {
@@ -166,6 +167,7 @@ void main() {
         PreferencesService.instance.getString(PreferencesService.keyTaskFilter),
         equals(TaskFilter.pending.name),
       );
+      taskProvider.dispose();
     });
   });
 }

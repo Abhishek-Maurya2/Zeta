@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/auth_repository.dart';
 import '../../../services/supabase_service.dart';
 import '../../../database/database_provider.dart';
-import '../../../services/preferences_service.dart';
 import '../../../services/account_sync_session_service.dart';
 
 enum AuthStatus { loading, signedOut, signedIn, unavailable }
@@ -27,10 +26,9 @@ class AuthProvider extends ChangeNotifier {
   AuthProvider({
     AuthRepository? repository,
     SupabaseService? supabase,
-    Future<void>? databaseReady,
+    this._databaseReady,
   }) : _repository = repository ?? AuthRepository(),
-       _supabase = supabase ?? SupabaseService(),
-       _databaseReady = databaseReady {
+       _supabase = supabase ?? SupabaseService() {
     unawaited(_initialize());
   }
 
@@ -93,18 +91,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _activateAccount(String userId) async {
-    try {
-      await PreferencesService.instance.claimLegacySyncQueues(userId);
-    } catch (e) {
-      debugPrint(
-        'AuthProvider._activateAccount: claimLegacySyncQueues error: $e',
-      );
-    }
-    try {
-      await DatabaseProvider.instance.claimLegacyRows(userId);
-    } catch (e) {
-      debugPrint('AuthProvider._activateAccount: claimLegacyRows error: $e');
-    }
+    DatabaseProvider.instance.setAccountScope(userId);
   }
 
   Future<bool> signIn({required String email, required String password}) async {

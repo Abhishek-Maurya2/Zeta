@@ -35,6 +35,13 @@ class BodyPane extends StatelessWidget {
     final pageStack = context.watch<NavigationProvider>().pageStack;
     final pageSurfaceColor = Theme.of(context).scaffoldBackgroundColor;
 
+    // For predictive back, Android only reveals the immediate previous route underneath the top route.
+    // Mounting only the top 2 routes in the Navigator keeps predictive back working smoothly
+    // while preventing the entire multi-page navigation history from living in RAM and continuously rebuilding.
+    final visiblePages = pageStack.length > 2
+        ? pageStack.sublist(pageStack.length - 2)
+        : pageStack;
+
     return NavigatorPopHandler<void>(
       enabled: !backHandledByScaffold,
       onPopWithResult: (_) {
@@ -44,7 +51,7 @@ class BodyPane extends StatelessWidget {
       child: Navigator(
         key: navigatorKey,
         pages: [
-          for (final page in pageStack)
+          for (final page in visiblePages)
             MaterialPage<void>(
               key: ValueKey<PageId>(page),
               // Keep the outgoing page opaque while predictive back reveals
