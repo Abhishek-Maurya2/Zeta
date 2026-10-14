@@ -27,45 +27,55 @@ class NavigationRailWidget extends StatelessWidget {
     );
     final themeProvider = context.watch<ThemeProvider>();
     final railBgColor = themeProvider.navRailColor(context);
+    final m3eTheme = M3ETheme.of(context);
 
-    return M3ENavigationRail(
-      background: railBgColor,
-      type: isExpanded
-          ? M3ENavigationRailType.alwaysExpand
-          : M3ENavigationRailType.alwaysCollapse,
-      selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
-      onDestinationSelected: (index) {
-        ZetaHaptics.selection();
-        context.read<TaskProvider>().clearSelection();
-        final target = kNavDestinations[index].id;
-        if (navProvider.activePage == PageId.revision &&
-            target != PageId.revision) {
-          context.read<RevisionProvider>().selectSubject(null);
-        }
-        navProvider.setActivePage(target);
-      },
-      fab: M3ENavigationRailFabSlot(
-        icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
-        label: 'New Task',
-        color: M3EFabColor.primary,
-        onPressed: () {
-          ZetaHaptics.medium();
-          TaskEditPane.show(context);
-        },
-      ),
-      sections: [
-        M3ENavigationRailSection(
-          destinations: kNavDestinations
-              .map(
-                (d) => M3ENavigationRailDestination(
-                  icon: Icon(d.icon, weight: 700),
-                  selectedIcon: Icon(d.selectedIcon, fill: 1, weight: 700),
-                  label: d.label,
-                ),
-              )
-              .toList(),
+    return M3ETheme(
+      data: m3eTheme.copyWith(
+        navigationRailTheme: m3eTheme.navigationRailTheme.copyWith(
+          labelFontSize: m3eTheme.navigationRailTheme.labelFontSize + 1,
+          activeLabelWeight: FontWeight.bold,
+          inactiveLabelWeight: FontWeight.bold,
         ),
-      ],
+      ),
+      child: M3ENavigationRail(
+        background: railBgColor,
+        type: isExpanded
+            ? M3ENavigationRailType.alwaysExpand
+            : M3ENavigationRailType.alwaysCollapse,
+        selectedIndex: selectedIndex >= 0 ? selectedIndex : 0,
+        onDestinationSelected: (index) {
+          ZetaHaptics.selection();
+          context.read<TaskProvider>().clearSelection();
+          final target = kNavDestinations[index].id;
+          if (navProvider.activePage == PageId.revision &&
+              target != PageId.revision) {
+            context.read<RevisionProvider>().selectSubject(null);
+          }
+          navProvider.setActivePage(target);
+        },
+        fab: M3ENavigationRailFabSlot(
+          icon: const Icon(Icons.add_rounded, fontWeight: FontWeight.bold),
+          label: 'New Task',
+          color: M3EFabColor.primary,
+          onPressed: () {
+            ZetaHaptics.medium();
+            TaskEditPane.show(context);
+          },
+        ),
+        sections: [
+          M3ENavigationRailSection(
+            destinations: kNavDestinations
+                .map(
+                  (d) => M3ENavigationRailDestination(
+                    icon: Icon(d.icon, weight: 700),
+                    selectedIcon: Icon(d.selectedIcon, fill: 1, weight: 700),
+                    label: d.label,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
     );
   }
 }
