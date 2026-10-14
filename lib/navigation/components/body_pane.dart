@@ -33,6 +33,7 @@ class BodyPane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pageStack = context.watch<NavigationProvider>().pageStack;
+    final pageSurfaceColor = Theme.of(context).scaffoldBackgroundColor;
 
     return NavigatorPopHandler<void>(
       enabled: !backHandledByScaffold,
@@ -46,7 +47,14 @@ class BodyPane extends StatelessWidget {
           for (final page in pageStack)
             MaterialPage<void>(
               key: ValueKey<PageId>(page),
-              child: _buildPage(page),
+              // Keep the outgoing page opaque while predictive back reveals
+              // the route underneath; page content can contain transparent gaps.
+              child: SizedBox.expand(
+                child: ColoredBox(
+                  color: pageSurfaceColor,
+                  child: _buildPage(page),
+                ),
+              ),
             ),
         ],
         onDidRemovePage: (page) => _handlePageRemoved(context, page),
