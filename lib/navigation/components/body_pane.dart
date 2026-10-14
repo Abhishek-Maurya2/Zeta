@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import '../../components/m3e_page_transition.dart';
+
 import '../../providers/navigation_provider.dart';
 import '../../pages/home_page.dart';
 import '../../pages/tasks_page.dart';
@@ -9,80 +9,65 @@ import '../../pages/pomodoro_page.dart';
 import '../../pages/bin_page.dart';
 import '../../pages/settings_page.dart';
 
-/// Body router pane that manages animated page transitions between main destinations.
-class BodyPane extends StatefulWidget {
-  final PageId activePage;
+/// Hosts destination pages as real routes so Android can preview route pops.
+class BodyPane extends StatelessWidget {
+  final GlobalKey<NavigatorState> navigatorKey;
+  final bool backHandledByScaffold;
+
   const BodyPane({
     super.key,
-    required this.activePage,
+    required this.navigatorKey,
+    this.backHandledByScaffold = false,
   });
 
-  @override
-  State<BodyPane> createState() => _BodyPaneState();
-}
+  void _handlePageRemoved(BuildContext context, Page<Object?> page) {
+    final key = page.key;
+    if (key is! ValueKey<PageId>) return;
 
-class _BodyPaneState extends State<BodyPane> {
-  int _currentIndex = 0;
-  int _previousIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = _getPageIndex(widget.activePage);
-    _previousIndex = _currentIndex;
-  }
-
-  @override
-  void didUpdateWidget(covariant BodyPane oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.activePage != widget.activePage) {
-      final nav = context.read<NavigationProvider>();
-      final oldIdx = _getPageIndex(oldWidget.activePage);
-      final newIdx = _getPageIndex(widget.activePage);
-
-      setState(() {
-        if (nav.isNavigatingBack) {
-          // Force backward transition direction
-          _previousIndex = 1;
-          _currentIndex = 0;
-        } else {
-          _previousIndex = oldIdx;
-          _currentIndex = newIdx;
-        }
-      });
+    final navigation = context.read<NavigationProvider>();
+    if (navigation.activePage == key.value && navigation.canPop) {
+      navigation.pop();
     }
-  }
-
-  int _getPageIndex(PageId page) {
-    final idx = kNavDestinations.indexWhere((d) => d.id == page);
-    return idx >= 0 ? idx : 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    return M3EPageTransition(
-      currentIndex: _currentIndex,
-      previousIndex: _previousIndex,
-      transitionType: M3EPageTransitionType.sharedAxisX,
-      duration: const Duration(milliseconds: 380),
-      child: _buildPage(widget.activePage),
+    final pageStack = context.watch<NavigationProvider>().pageStack;
+
+    return NavigatorPopHandler<void>(
+      enabled: !backHandledByScaffold,
+      onPopWithResult: (_) {
+        if (backHandledByScaffold) return;
+        navigatorKey.currentState?.pop();
+      },
+      child: Navigator(
+        key: navigatorKey,
+        pages: [
+          for (final page in pageStack)
+            MaterialPage<void>(
+              key: ValueKey<PageId>(page),
+              child: _buildPage(page),
+            ),
+        ],
+        onDidRemovePage: (page) => _handlePageRemoved(context, page),
+      ),
     );
   }
 
   Widget _buildPage(PageId page) {
     switch (page) {
       case PageId.home:
-        return const HomePage(key: ValueKey('home'));
+        return const HomePage();
       case PageId.tasks:
-        return const TasksPage(key: ValueKey('tasks'));
+        return const TasksPage();
       case PageId.revision:
-        return const RevisionPage(key: ValueKey('revision'));
+        return const RevisionPage();
       case PageId.pomodoro:
-        return const PomodoroPage(key: ValueKey('pomodoro'));
+        return const PomodoroPage();
       case PageId.bin:
-        return const BinPage(key: ValueKey('bin'));
+        return const BinPage();
       case PageId.settings:
-        return const SettingsPage(key: ValueKey('settings'));
+        return const SettingsPage();
     }
   }
 }

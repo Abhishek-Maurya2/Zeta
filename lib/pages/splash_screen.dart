@@ -1,102 +1,17 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 
-import '../services/supabase_service.dart';
-
-/// Standardized Splash Screen for all platforms.
-///
-/// Features:
-/// - Consistent logo size (120x120) and background color across all platforms
-/// - Only app logo centered on screen (no animations, labels, or progress bars)
-/// - Concurrently warms up core services and precaches logo
+/// The in-app visual bridge from Android's launch screen to the first app view.
+/// Startup work is owned by the application bootstrap, not by this widget.
 @immutable
-class SplashScreen extends StatefulWidget {
-  /// Callback fired when initialization is complete.
-  final VoidCallback? onInitializationComplete;
-
-  /// Minimum display time before completing.
-  final Duration minDuration;
-
-  /// If true, runs in preview mode (e.g. from Settings) with a close button.
+class SplashScreen extends StatelessWidget {
+  /// If true, shows a close button for the Settings preview.
   final bool isPreview;
 
-  const SplashScreen({
-    super.key,
-    this.onInitializationComplete,
-    this.minDuration = const Duration(milliseconds: 350),
-    this.isPreview = false,
-  });
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  Timer? _warmupTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _startWarmup();
-  }
-
-  Future<void> _startWarmup() async {
-    final stopwatch = Stopwatch()..start();
-
-    final bool isTest = WidgetsBinding.instance.runtimeType.toString().contains(
-      'Test',
-    );
-
-    try {
-      await Future.wait([
-        if (!isTest) SupabaseService().init(),
-      ]);
-    } catch (e) {
-      debugPrint('SplashScreen warmup notice: $e');
-    }
-
-    final elapsed = stopwatch.elapsedMilliseconds;
-    final remaining = widget.minDuration.inMilliseconds - elapsed;
-
-    if (remaining > 0) {
-      _warmupTimer = Timer(Duration(milliseconds: remaining), () {
-        if (!mounted) return;
-        if (!widget.isPreview) {
-          widget.onInitializationComplete?.call();
-        }
-      });
-    } else {
-      if (!mounted) return;
-      if (!widget.isPreview) {
-        widget.onInitializationComplete?.call();
-      }
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _precacheAssets();
-  }
-
-  Future<void> _precacheAssets() async {
-    try {
-      await precacheImage(const AssetImage('assets/logo/logo.png'), context);
-    } catch (_) {}
-  }
-
-  @override
-  void dispose() {
-    _warmupTimer?.cancel();
-    super.dispose();
-  }
+  const SplashScreen({super.key, this.isPreview = false});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Standardized background color across all platforms
     final backgroundColor = isDark ? Colors.black : Colors.white;
 
     return Material(
@@ -104,7 +19,6 @@ class _SplashScreenState extends State<SplashScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Centered App Logo Only
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
@@ -130,9 +44,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
           ),
-
-          // Preview Dismiss Button (only when previewed from Settings)
-          if (widget.isPreview)
+          if (isPreview)
             Positioned(
               top: MediaQuery.paddingOf(context).top + 16,
               right: 16,

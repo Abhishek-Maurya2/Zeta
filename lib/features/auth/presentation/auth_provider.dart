@@ -16,15 +16,21 @@ enum AuthStatus { loading, signedOut, signedIn, unavailable }
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository;
   final SupabaseService _supabase;
+  final Future<void>? _databaseReady;
   StreamSubscription<AuthState>? _subscription;
 
   AuthStatus _status = AuthStatus.loading;
   String? _error;
   bool _authActionInProgress = false;
+  bool _isRestoringSession = true;
 
-  AuthProvider({AuthRepository? repository, SupabaseService? supabase})
-    : _repository = repository ?? AuthRepository(),
-      _supabase = supabase ?? SupabaseService() {
+  AuthProvider({
+    AuthRepository? repository,
+    SupabaseService? supabase,
+    Future<void>? databaseReady,
+  }) : _repository = repository ?? AuthRepository(),
+       _supabase = supabase ?? SupabaseService(),
+       _databaseReady = databaseReady {
     unawaited(_initialize());
   }
 
@@ -32,9 +38,11 @@ class AuthProvider extends ChangeNotifier {
   User? get user => _repository.currentUser;
   String? get error => _error;
   bool get isBusy => _status == AuthStatus.loading;
+  bool get isRestoringSession => _isRestoringSession;
 
   Future<void> _initialize() async {
     try {
+      await _databaseReady;
       if (!_supabase.isInitialized) await _supabase.init();
       if (!_supabase.isInitialized) {
         _status = AuthStatus.unavailable;
@@ -54,6 +62,7 @@ class AuthProvider extends ChangeNotifier {
       _error = _friendlyMessage(e);
       _status = AuthStatus.unavailable;
     }
+    _isRestoringSession = false;
     notifyListeners();
   }
 
@@ -87,7 +96,9 @@ class AuthProvider extends ChangeNotifier {
     try {
       await PreferencesService.instance.claimLegacySyncQueues(userId);
     } catch (e) {
-      debugPrint('AuthProvider._activateAccount: claimLegacySyncQueues error: $e');
+      debugPrint(
+        'AuthProvider._activateAccount: claimLegacySyncQueues error: $e',
+      );
     }
     try {
       await DatabaseProvider.instance.claimLegacyRows(userId);
@@ -172,6 +183,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> retry() async {
     _error = null;
+    _isRestoringSession = true;
     _status = AuthStatus.loading;
     notifyListeners();
     await _initialize();

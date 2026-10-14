@@ -48,7 +48,7 @@ class WindowsTrayService {
 
   /// Whether close → minimize-to-tray is currently active.
   bool get minimizeToTray => !kIsWeb && Platform.isWindows
-      ? (PreferencesService.instance.getBool('zeta_minimize_to_tray') ?? true)
+      ? (PreferencesService.instance.getBool('zeta_minimize_to_tray') ?? false)
       : false;
 
   Future<bool> setMinimizeToTray(bool value) async {

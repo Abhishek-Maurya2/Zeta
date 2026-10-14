@@ -180,91 +180,83 @@ class _SettingsPageState extends State<SettingsPage> {
       _wideLastCategory = activeCategory;
     }
     if (!isTwoPane) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          ZetaHaptics.light();
-          navProvider.pop();
-        },
-        child: M3EPageTransition(
-          currentIndex: currentCompactIdx,
-          previousIndex: prevCompactIdx,
-          transitionType: M3EPageTransitionType.sharedAxisX,
-          duration: M3MotionDuration.medium2,
-          child: selectedCategory == null
-              ? CustomScrollView(
-                  key: const ValueKey<String>('settings_compact_root'),
-                  slivers: [
-                    M3EAppBar.sliver(
-                      backgroundColor: colorScheme.surfaceContainerLow,
-                      titleText: 'Settings',
-                      centerTitle: true,
-                      variant: M3EAppBarVariant.large,
-                      hideMode: M3EAppBarHideMode.actions,
-                      leading: isCompact
-                          ? M3EIconButton(
-                              variant: M3EIconButtonVariant.standard,
-                              width: M3EIconButtonWidth.wide,
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              onPressed: () {
-                                ZetaHaptics.light();
-                                navProvider.pop();
-                              },
-                            )
-                          : null,
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: ZetaBreakpoints.marginCompact,
-                        vertical: 8,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: _buildCategoryList(
-                          context,
-                          activeCategory: null,
-                          isTwoPane: false,
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : CustomScrollView(
-                  key: ValueKey<String>(
-                    'settings_compact_${selectedCategory.name}',
+      return M3EPageTransition(
+        currentIndex: currentCompactIdx,
+        previousIndex: prevCompactIdx,
+        transitionType: M3EPageTransitionType.sharedAxisX,
+        duration: M3MotionDuration.medium2,
+        child: selectedCategory == null
+            ? CustomScrollView(
+                key: const ValueKey<String>('settings_compact_root'),
+                slivers: [
+                  M3EAppBar.sliver(
+                    backgroundColor: colorScheme.surfaceContainerLow,
+                    titleText: 'Settings',
+                    centerTitle: true,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
+                    leading: isCompact
+                        ? M3EIconButton(
+                            variant: M3EIconButtonVariant.standard,
+                            width: M3EIconButtonWidth.wide,
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            onPressed: () {
+                              ZetaHaptics.light();
+                              navProvider.pop();
+                            },
+                          )
+                        : null,
                   ),
-                  slivers: [
-                    M3EAppBar.sliver(
-                      titleText: activeCategoryMeta?.label ?? 'Settings',
-                      backgroundColor: colorScheme.surfaceContainerLow,
-                      centerTitle: true,
-                      variant: M3EAppBarVariant.large,
-                      hideMode: M3EAppBarHideMode.actions,
-                      leading: M3EIconButton(
-                        variant: M3EIconButtonVariant.standard,
-                        width: M3EIconButtonWidth.wide,
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        onPressed: () {
-                          ZetaHaptics.light();
-                          navProvider.pop();
-                        },
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: ZetaBreakpoints.marginCompact,
+                      vertical: 8,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildCategoryList(
+                        context,
+                        activeCategory: null,
+                        isTwoPane: false,
                       ),
                     ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                      sliver: SliverToBoxAdapter(
-                        child: SettingsDetailPane(
-                          activeCategory: selectedCategory,
-                          activeCategoryMeta: activeCategoryMeta,
-                          isTwoPane: false,
-                          isCompact: isCompact,
-                          onToast: _showToast,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              )
+            : CustomScrollView(
+                key: ValueKey<String>(
+                  'settings_compact_${selectedCategory.name}',
                 ),
-        ),
+                slivers: [
+                  M3EAppBar.sliver(
+                    titleText: activeCategoryMeta?.label ?? 'Settings',
+                    backgroundColor: colorScheme.surfaceContainerLow,
+                    centerTitle: true,
+                    variant: M3EAppBarVariant.large,
+                    hideMode: M3EAppBarHideMode.actions,
+                    leading: M3EIconButton(
+                      variant: M3EIconButtonVariant.standard,
+                      width: M3EIconButtonWidth.wide,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        navProvider.pop();
+                      },
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                    sliver: SliverToBoxAdapter(
+                      child: SettingsDetailPane(
+                        activeCategory: selectedCategory,
+                        activeCategoryMeta: activeCategoryMeta,
+                        isTwoPane: false,
+                        isCompact: isCompact,
+                        onToast: _showToast,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       );
     }
 

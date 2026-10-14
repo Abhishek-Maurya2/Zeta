@@ -25,10 +25,10 @@ import 'services/notification_service.dart';
 import 'services/network_service.dart';
 import 'services/preferences_service.dart';
 import 'database/database_provider.dart';
-import 'database/migration_service.dart';
 import 'services/quick_actions_service.dart';
 import 'services/windows_tray_service.dart';
 import 'services/app_exit_service.dart';
+import 'utils/performance_trace.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'features/auth/presentation/auth_gate.dart';
 
@@ -51,25 +51,52 @@ void main([List<String> args = const <String>[]]) async {
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
-  // Initialize preferences & local SQLite database
-  await PreferencesService.instance.init();
+  // Preferences are needed to build the theme. Open SQLite behind the first
+  // frame so database setup cannot leave the native launch window blank.
+  await traceAsync(
+    'startup.preferences',
+    () => PreferencesService.instance.init(),
+  );
   DatabaseProvider.instance.init();
+  final databaseReady = Completer<void>();
+  runApp(ZetaApp(databaseReady: databaseReady.future));
 
-  // Await the one-time SharedPreferences → SQLite migration.
-  // This ensures data is in SQLite BEFORE any provider reads from the DB.
-  // On subsequent launches this is a near-instant no-op (flag already set).
-  await MigrationService(DatabaseProvider.instance.db).runIfNeeded();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_finishStartup(databaseReady));
+  });
+}
 
-  // Asynchronously initialize services without blocking the initial frame
-  unawaited(NetworkService().checkConnectivity());
-  unawaited(NotificationService.instance.init());
-  runApp(const ZetaApp());
+Future<void> _finishStartup(Completer<void> databaseReady) async {
+  unawaited(
+    traceAsync(
+      'startup.connectivity_check',
+      () => NetworkService().checkConnectivity(),
+    ),
+  );
+  unawaited(
+    traceAsync(
+      'startup.notifications_init',
+      () => NotificationService.instance.init(),
+    ),
+  );
+
+  try {
+    await traceAsync(
+      'startup.database_open',
+      () => DatabaseProvider.instance.db.customSelect('SELECT 1').get(),
+    );
+  } catch (error, stackTrace) {
+    debugPrint('Startup database open error: $error\n$stackTrace');
+  } finally {
+    if (!databaseReady.isCompleted) databaseReady.complete();
+  }
 }
 
 class ZetaApp extends StatelessWidget {
   final bool? showSplash;
+  final Future<void>? databaseReady;
 
-  const ZetaApp({super.key, this.showSplash});
+  const ZetaApp({super.key, this.showSplash, this.databaseReady});
 
   @override
   Widget build(BuildContext context) {
@@ -77,22 +104,28 @@ class ZetaApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(databaseReady: databaseReady),
+        ),
         ChangeNotifierProvider(create: (_) => WeatherProvider()),
         ChangeNotifierProvider(
           create: (ctx) =>
               ThemeProvider(weatherProvider: ctx.read<WeatherProvider>()),
         ),
       ],
-      child: _ZetaAppShell(showSplash: effectiveShowSplash),
+      child: _ZetaAppShell(
+        showSplash: effectiveShowSplash,
+        databaseReady: databaseReady,
+      ),
     );
   }
 }
 
 class _ZetaAppShell extends StatelessWidget {
   final bool showSplash;
+  final Future<void>? databaseReady;
 
-  const _ZetaAppShell({required this.showSplash});
+  const _ZetaAppShell({required this.showSplash, required this.databaseReady});
 
   @override
   Widget build(BuildContext context) {
@@ -157,9 +190,7 @@ class _ZetaAppShell extends StatelessWidget {
             flutter_localizations.GlobalWidgetsLocalizations.delegate,
             flutter_localizations.GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('en', ''),
-          ],
+          supportedLocales: const [Locale('en', '')],
           builder: (context, child) {
             final mediaQuery = MediaQuery(
               data: MediaQuery.of(context)
@@ -192,19 +223,23 @@ class _ZetaAppShell extends StatelessWidget {
             body,
             labels,
           ),
-          home: ZetaAppRoot(showSplash: showSplash),
+          home: ZetaAppRoot(
+            showSplash: showSplash,
+            startupReady: databaseReady,
+          ),
         );
       },
     );
   }
 }
 
-/// Root widget hosting the underlying [AuthGate] / [AppScaffold] and the animated [SplashScreen] overlay.
-/// When the splash finishes its exit animation, it dissolves cleanly with zero frame drop.
+/// Hosts the app and bridges the native launch screen through essential local
+/// startup work. Auth restoration continues in the visible app loading state.
 class ZetaAppRoot extends StatefulWidget {
   final bool showSplash;
+  final Future<void>? startupReady;
 
-  const ZetaAppRoot({super.key, this.showSplash = true});
+  const ZetaAppRoot({super.key, this.showSplash = true, this.startupReady});
 
   @override
   State<ZetaAppRoot> createState() => _ZetaAppRootState();
@@ -213,19 +248,36 @@ class ZetaAppRoot extends StatefulWidget {
 class _ZetaAppRootState extends State<ZetaAppRoot> {
   static bool _hasCompletedInitialSplash = false;
   late bool _displaySplash;
-  bool _splashWarmupCompleted = false;
+  bool _startupReady = false;
   bool _isFadingOut = false;
 
   @override
   void initState() {
     super.initState();
     _displaySplash = widget.showSplash && !_hasCompletedInitialSplash;
+    _startupReady = widget.startupReady == null;
+    widget.startupReady?.then(
+      (_) {
+        if (!mounted) return;
+        setState(() => _startupReady = true);
+        _checkAndTriggerDismissal();
+      },
+      onError: (Object _) {
+        if (!mounted) return;
+        setState(() => _startupReady = true);
+        _checkAndTriggerDismissal();
+      },
+    );
+    if (_startupReady) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkAndTriggerDismissal();
+      });
+    }
   }
 
-  void _checkAndTriggerDismissal(AuthStatus authStatus) {
+  void _checkAndTriggerDismissal() {
     if (!_displaySplash || _isFadingOut) return;
-    final isAuthReady = _isTestMode || authStatus != AuthStatus.loading;
-    if (_splashWarmupCompleted && isAuthReady) {
+    if (_startupReady) {
       setState(() {
         _isFadingOut = true;
       });
@@ -234,18 +286,6 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    final authStatus = context.select<AuthProvider, AuthStatus>(
-      (p) => p.status,
-    );
-
-    if (_splashWarmupCompleted && !_isFadingOut) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _checkAndTriggerDismissal(authStatus);
-        }
-      });
-    }
-
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -268,16 +308,7 @@ class _ZetaAppRootState extends State<ZetaAppRoot> {
             },
             child: IgnorePointer(
               ignoring: _isFadingOut,
-              child: SplashScreen(
-                onInitializationComplete: () {
-                  if (mounted) {
-                    setState(() {
-                      _splashWarmupCompleted = true;
-                    });
-                    _checkAndTriggerDismissal(authStatus);
-                  }
-                },
-              ),
+              child: const SplashScreen(),
             ),
           ),
       ],

@@ -88,115 +88,107 @@ class _BinPageState extends State<BinPage> {
         : binTasks.take(_initialCount).toList();
 
     if (isCompact) {
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          ZetaHaptics.light();
-          navProvider.pop();
-        },
-        child: CustomScrollView(
-          key: const ValueKey<String>('bin_compact_root'),
-          slivers: [
-            M3EAppBar.sliver(
-              backgroundColor: colorScheme.surfaceContainerLow,
-              titleText: 'Bin',
-              centerTitle: true,
-              variant: M3EAppBarVariant.large,
-              hideMode: M3EAppBarHideMode.actions,
-              leading: M3EIconButton(
-                variant: M3EIconButtonVariant.standard,
-                width: M3EIconButtonWidth.wide,
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: () {
-                  ZetaHaptics.light();
-                  navProvider.pop();
-                },
-              ),
+      return CustomScrollView(
+        key: const ValueKey<String>('bin_compact_root'),
+        slivers: [
+          M3EAppBar.sliver(
+            backgroundColor: colorScheme.surfaceContainerLow,
+            titleText: 'Bin',
+            centerTitle: true,
+            variant: M3EAppBarVariant.large,
+            hideMode: M3EAppBarHideMode.actions,
+            leading: M3EIconButton(
+              variant: M3EIconButtonVariant.standard,
+              width: M3EIconButtonWidth.wide,
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () {
+                ZetaHaptics.light();
+                navProvider.pop();
+              },
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: ZetaBreakpoints.marginCompact,
-                vertical: 8,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Bin Header (actions and subtitle, title is in app bar)
-                    BinHeader(
-                      totalCount: totalCount,
-                      showTitle: false,
-                      onRestoreAll: () {
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: ZetaBreakpoints.marginCompact,
+              vertical: 8,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Bin Header (actions and subtitle, title is in app bar)
+                  BinHeader(
+                    totalCount: totalCount,
+                    showTitle: false,
+                    onRestoreAll: () {
+                      setState(() => _loadedAll = false);
+                      taskProvider.restoreAllFromBin();
+                    },
+                    onRequestEmptyBin: () async {
+                      final confirmed = await EmptyBinDialog.show(
+                        context,
+                        totalCount,
+                      );
+                      if (confirmed == true) {
                         setState(() => _loadedAll = false);
-                        taskProvider.restoreAllFromBin();
-                      },
-                      onRequestEmptyBin: () async {
-                        final confirmed = await EmptyBinDialog.show(
-                          context,
-                          totalCount,
+                        await taskProvider.emptyBin();
+                      }
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // 2. Task List or Empty State
+                  if (totalCount > 0) ...[
+                    M3EList(
+                      color: colorScheme.surfaceContainerLowest,
+                      itemCount: visibleTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = visibleTasks[index];
+                        return TaskCardItem(
+                          key: ValueKey(task.id),
+                          task: task,
+                          isDeleted: true,
+                          isExpanded: taskProvider.isTaskExpanded(task.id),
+                          onToggleExpand: () =>
+                              taskProvider.toggleTaskExpanded(task.id),
+                          onRestore: () => taskProvider.restoreTask(task.id),
+                          onPermanentDelete: () =>
+                              taskProvider.permanentlyDeleteTask(task.id),
+                          onContextMenu: (pos) => _showContextMenu(
+                            context,
+                            pos,
+                            task,
+                            taskProvider,
+                          ),
                         );
-                        if (confirmed == true) {
-                          setState(() => _loadedAll = false);
-                          await taskProvider.emptyBin();
-                        }
                       },
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // 2. Task List or Empty State
-                    if (totalCount > 0) ...[
-                      M3EList(
-                        color: colorScheme.surfaceContainerLowest,
-                        itemCount: visibleTasks.length,
-                        itemBuilder: (context, index) {
-                          final task = visibleTasks[index];
-                          return TaskCardItem(
-                            key: ValueKey(task.id),
-                            task: task,
-                            isDeleted: true,
-                            isExpanded: taskProvider.isTaskExpanded(task.id),
-                            onToggleExpand: () =>
-                                taskProvider.toggleTaskExpanded(task.id),
-                            onRestore: () => taskProvider.restoreTask(task.id),
-                            onPermanentDelete: () =>
-                                taskProvider.permanentlyDeleteTask(task.id),
-                            onContextMenu: (pos) => _showContextMenu(
-                              context,
-                              pos,
-                              task,
-                              taskProvider,
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Automatic Loading Indicator
-                      if (hasMore && !_loadedAll) ...[
-                        const SizedBox(height: 16),
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: M3ELoadingIndicator(
-                              variant: M3ELoadingIndicatorVariant.contained,
-                            ),
+                    // Automatic Loading Indicator
+                    if (hasMore && !_loadedAll) ...[
+                      const SizedBox(height: 16),
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: M3ELoadingIndicator(
+                            variant: M3ELoadingIndicatorVariant.contained,
                           ),
                         ),
-                      ],
-                    ] else
-                      BinEmptyState(
-                        onNavigateToTasks: () =>
-                            navProvider.setActivePage(PageId.tasks),
                       ),
+                    ],
+                  ] else
+                    BinEmptyState(
+                      onNavigateToTasks: () =>
+                          navProvider.setActivePage(PageId.tasks),
+                    ),
 
-                    const SizedBox(height: 60),
-                  ],
-                ),
+                  const SizedBox(height: 60),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 

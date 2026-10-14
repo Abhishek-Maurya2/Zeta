@@ -102,7 +102,7 @@ class TaskDao {
     });
   }
 
-  /// Batch-upserts multiple tasks (e.g. during cloud sync or migration).
+  /// Batch-upserts multiple tasks, such as when applying a cloud sync result.
   Future<void> upsertAll(List<Task> tasks) async {
     await _db.batch((batch) {
       for (final t in tasks) {

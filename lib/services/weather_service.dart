@@ -88,7 +88,7 @@ class WeatherData {
       humidity: (json['humidity'] as num?)?.toInt() ?? 50,
       windSpeed: (json['windSpeed'] as num?)?.toDouble() ?? 10.0,
       weatherCode: (json['weatherCode'] as num?)?.toInt() ?? 0,
-      cityName: json['cityName'] as String? ?? 'San Francisco, US',
+      cityName: json['cityName'] as String? ?? 'Bokaro',
       isDay: json['isDay'] as bool? ?? true,
       fetchedAt: json['fetchedAt'] != null
           ? DateTime.tryParse(json['fetchedAt'] as String) ?? DateTime.now()

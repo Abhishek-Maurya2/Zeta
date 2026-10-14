@@ -111,7 +111,7 @@ class SessionDao {
     });
   }
 
-  /// Batch-upserts multiple sessions (initial migration or cloud pull).
+  /// Batch-upserts multiple sessions, such as when applying a cloud sync result.
   Future<void> upsertAll(List<PomodoroSessionLog> sessions) async {
     await _db.batch((batch) {
       for (final s in sessions) {

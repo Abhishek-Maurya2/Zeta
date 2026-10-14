@@ -90,23 +90,40 @@ class PomodoroRepository {
     _syncService.subscribeToRealtime(onSessionChange: onSessionChange);
   }
 
-  Future<void> syncWithCloud({bool force = false}) async {
+  Future<List<PomodoroSessionLog>?> syncWithCloud({
+    bool force = false,
+    int recentLimit = 1000,
+  }) async {
     try {
       await processPendingSync();
       // Completion timestamps are not a safe change cursor: another device can
       // add a backdated session. Pull a complete paginated snapshot instead.
       final remote = await _syncService.pullSessions(limit: 0);
-      if (_syncService.lastError != null) return;
+      if (_syncService.lastError != null) return null;
       final remoteIds = remote.map((session) => session.id).toSet();
       final local = await _sessionDao.getAllSessions();
+      final merged = <String, PomodoroSessionLog>{};
       for (final session in local) {
         if (session.lastSyncedAt != null && !remoteIds.contains(session.id)) {
           await _sessionDao.deleteSession(session.id);
+        } else {
+          // Keep unsynced local records, and preserve synced records which are
+          // still present remotely until the remote version is overlaid below.
+          merged[session.id] = session;
         }
       }
       if (remote.isNotEmpty) {
         await _sessionDao.upsertAll(remote);
+        for (final session in remote) {
+          merged[session.id] = session;
+        }
       }
+      final recent = merged.values.toList()
+        ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+      if (recent.length > recentLimit) {
+        recent.removeRange(recentLimit, recent.length);
+      }
+      return recent;
     } catch (e, st) {
       AppLogger.error(
         'PomodoroRepository sync failed',

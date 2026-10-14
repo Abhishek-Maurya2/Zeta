@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
@@ -26,6 +28,8 @@ class UpdateProvider extends ChangeNotifier {
   String? _errorMessage;
   CancelToken? _cancelToken;
   DateTime? _lastCheckedAt;
+  Timer? _autoCheckTimer;
+  bool _isDisposed = false;
 
   String _currentVersion = '1.0.5+5';
   String get currentVersion => _updateInfo?.currentVersion ?? _currentVersion;
@@ -55,11 +59,12 @@ class UpdateProvider extends ChangeNotifier {
   Future<void> _init() async {
     await _service.init();
     _currentVersion = await _service.getCurrentVersion();
+    if (_isDisposed) return;
     notifyListeners();
     if (_service.autoCheck) {
       // Delay slightly to allow the app to initialize before checking
-      Future.delayed(const Duration(seconds: 2), () {
-        checkForUpdates(silent: true);
+      _autoCheckTimer = Timer(const Duration(seconds: 15), () {
+        if (!_isDisposed) unawaited(checkForUpdates(silent: true));
       });
     }
   }
@@ -198,5 +203,20 @@ class UpdateProvider extends ChangeNotifier {
           : UpdateStatus.idle;
     }
     notifyListeners();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _autoCheckTimer?.cancel();
+    if (_cancelToken != null && !_cancelToken!.isCancelled) {
+      _cancelToken!.cancel('Update provider disposed');
+    }
+    super.dispose();
   }
 }

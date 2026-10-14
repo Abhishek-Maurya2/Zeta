@@ -3,10 +3,10 @@ import 'package:material_symbols_icons/symbols.dart';
 
 import '../pages/settings/components/settings_category.dart';
 
-/// Page identifiers mirroring Sharva's PageId type.
+/// Top-level destinations available in the app shell.
 enum PageId { home, tasks, revision, pomodoro, bin, settings }
 
-/// Mirrors Sharva's useNavigationStore — manages active page, rail state, drawer state, and settings navigation.
+/// Owns the destination route list and the small amount of shell navigation state.
 class NavigationProvider extends ChangeNotifier {
   final List<PageId> _pageStack = [PageId.home];
   List<PageId> get pageStack => List.unmodifiable(_pageStack);
@@ -20,22 +20,13 @@ class NavigationProvider extends ChangeNotifier {
   bool _isRailExpanded = true;
   bool get isRailExpanded => _isRailExpanded;
 
-  bool _isNavigatingBack = false;
-  bool get isNavigatingBack => _isNavigatingBack;
-
-  PageId? _previousPage;
-  PageId? get previousPage => _previousPage;
-
-  /// Whether there is navigation history or sub-category state that can be popped.
+  /// Whether a destination route or Settings category can be popped.
   bool get canPop =>
       (activePage == PageId.settings && _selectedSettingsCategory != null) ||
       _pageStack.length > 1;
 
   void setActivePage(PageId page) {
     if (activePage == page) return;
-
-    _previousPage = activePage;
-    _isNavigatingBack = false;
 
     if (page == PageId.home) {
       _pageStack.clear();
@@ -46,28 +37,6 @@ class NavigationProvider extends ChangeNotifier {
     }
 
     if (page != PageId.settings) {
-      _selectedSettingsCategory = null;
-    }
-    notifyListeners();
-  }
-
-  void pushPage(PageId page, {SettingsCategory? category}) {
-    if (activePage == page) {
-      if (category != null && category != _selectedSettingsCategory) {
-        _selectedSettingsCategory = category;
-        notifyListeners();
-      }
-      return;
-    }
-
-    _previousPage = activePage;
-    _isNavigatingBack = false;
-    _pageStack.remove(page);
-    _pageStack.add(page);
-
-    if (category != null) {
-      _selectedSettingsCategory = category;
-    } else if (page != PageId.settings) {
       _selectedSettingsCategory = null;
     }
     notifyListeners();
@@ -88,8 +57,6 @@ class NavigationProvider extends ChangeNotifier {
 
     // 2. Pop page stack
     if (_pageStack.length > 1) {
-      _previousPage = activePage;
-      _isNavigatingBack = true;
       _pageStack.removeLast();
       if (activePage != PageId.settings) {
         _selectedSettingsCategory = null;
@@ -135,8 +102,6 @@ class NavigationProvider extends ChangeNotifier {
     String? itemId,
     SettingsCategory? category,
   }) {
-    _previousPage = activePage;
-    _isNavigatingBack = false;
     if (page == PageId.home) {
       _pageStack.clear();
       _pageStack.add(PageId.home);

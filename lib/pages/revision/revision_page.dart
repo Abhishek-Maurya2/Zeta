@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../../providers/revision_provider.dart';
-import '../../providers/navigation_provider.dart';
 import '../../services/preferences_service.dart';
 import 'components/topic_edit_dialog.dart';
 import 'components/revision_notes_pane.dart';
@@ -183,9 +182,6 @@ class _RevisionPageState extends State<RevisionPage> {
     final selectedSubject = revProvider.selectedSubject;
     final isMobileNotesOpen = revProvider.isNotesOpen;
     final activeTopicForNotes = revProvider.activeTopicForNotes;
-    final isActivePage = context.select<NavigationProvider, bool>(
-      (navigation) => navigation.activePage == PageId.revision,
-    );
 
     int currentSubjectIndex = 0;
     if (isMobileNotesOpen && selectedSubject != null) {
@@ -200,118 +196,104 @@ class _RevisionPageState extends State<RevisionPage> {
       _lastSubjectId = '${selectedSubject?.id}_$isMobileNotesOpen';
     }
 
-    return PopScope(
-      canPop: !isActivePage || (selectedSubject == null && !isMobileNotesOpen),
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop || !isActivePage) return;
-        if (isMobileNotesOpen) {
-          _closeNotes();
-          return;
-        }
-        if (selectedSubject != null) {
-          ZetaHaptics.light();
-          revProvider.selectSubject(null);
-        }
-      },
-      child: M3EPageTransition(
-        currentIndex: currentSubjectIndex,
-        previousIndex: prevIdx,
-        transitionType: M3EPageTransitionType.sharedAxisX,
-        duration: M3MotionDuration.medium2,
-        child: currentSubjectIndex == 2 && selectedSubject != null
-            ? RevisionNotesPane(
-                key: ValueKey<String>(
-                  'revision_mobile_notes_${selectedSubject.id}_${activeTopicForNotes?.id}',
-                ),
-                subject: selectedSubject,
-                initialTopic: activeTopicForNotes,
-                onBack: _closeNotes,
-              )
-            : currentSubjectIndex == 1 && selectedSubject != null
-            ? CustomScrollView(
-                key: ValueKey<String>(
-                  'revision_compact_topics_${selectedSubject.id}',
-                ),
-                slivers: [
-                  M3EAppBar.sliver(
-                    backgroundColor: colorScheme.surfaceContainerLow,
-                    titleText: selectedSubject.name,
-                    centerTitle: true,
-                    variant: M3EAppBarVariant.large,
-                    hideMode: M3EAppBarHideMode.actions,
-                    leading: M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      width: M3EIconButtonWidth.wide,
-                      icon: const Icon(Icons.arrow_back_rounded),
+    return M3EPageTransition(
+      currentIndex: currentSubjectIndex,
+      previousIndex: prevIdx,
+      transitionType: M3EPageTransitionType.sharedAxisX,
+      duration: M3MotionDuration.medium2,
+      child: currentSubjectIndex == 2 && selectedSubject != null
+          ? RevisionNotesPane(
+              key: ValueKey<String>(
+                'revision_mobile_notes_${selectedSubject.id}_${activeTopicForNotes?.id}',
+              ),
+              subject: selectedSubject,
+              initialTopic: activeTopicForNotes,
+              onBack: _closeNotes,
+            )
+          : currentSubjectIndex == 1 && selectedSubject != null
+          ? CustomScrollView(
+              key: ValueKey<String>(
+                'revision_compact_topics_${selectedSubject.id}',
+              ),
+              slivers: [
+                M3EAppBar.sliver(
+                  backgroundColor: colorScheme.surfaceContainerLow,
+                  titleText: selectedSubject.name,
+                  centerTitle: true,
+                  variant: M3EAppBarVariant.large,
+                  hideMode: M3EAppBarHideMode.actions,
+                  leading: M3EIconButton(
+                    variant: M3EIconButtonVariant.standard,
+                    width: M3EIconButtonWidth.wide,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    onPressed: () {
+                      ZetaHaptics.light();
+                      revProvider.selectSubject(null);
+                    },
+                    tooltip: 'Back',
+                  ),
+                  actions: [
+                    M3EIconButton(
+                      variant: M3EIconButtonVariant.tonal,
+                      icon: const Icon(Icons.description_outlined),
+                      tooltip: 'Notes',
+                      onPressed: () => _openNotes(),
+                    ),
+                    M3EIconButton(
                       onPressed: () {
                         ZetaHaptics.light();
-                        revProvider.selectSubject(null);
+                        AddTopicDialog.show(
+                          context,
+                          subjectId: selectedSubject.id,
+                        );
                       },
-                      tooltip: 'Back',
+                      variant: M3EIconButtonVariant.filled,
+                      icon: const Icon(Icons.add_rounded),
+                      tooltip: 'Add Topic',
                     ),
-                    actions: [
-                      M3EIconButton(
-                        variant: M3EIconButtonVariant.tonal,
-                        icon: const Icon(Icons.description_outlined),
-                        tooltip: 'Notes',
-                        onPressed: () => _openNotes(),
-                      ),
-                      M3EIconButton(
-                        onPressed: () {
-                          ZetaHaptics.light();
-                          AddTopicDialog.show(
-                            context,
-                            subjectId: selectedSubject.id,
-                          );
-                        },
-                        variant: M3EIconButtonVariant.filled,
-                        icon: const Icon(Icons.add_rounded),
-                        tooltip: 'Add Topic',
-                      ),
-                    ],
+                  ],
+                ),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    isCompact ? 16 : 24,
+                    16,
+                    isCompact ? 16 : 24,
+                    isCompact ? 24 : 80,
                   ),
-                  SliverPadding(
-                    padding: EdgeInsets.fromLTRB(
-                      isCompact ? 16 : 24,
-                      16,
-                      isCompact ? 16 : 24,
-                      isCompact ? 24 : 80,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: RevisionPane2(
-                        isSplitPane: false,
-                        onOpenNotes: (topic) => _openNotes(topic: topic),
-                      ),
+                  sliver: SliverToBoxAdapter(
+                    child: RevisionPane2(
+                      isSplitPane: false,
+                      onOpenNotes: (topic) => _openNotes(topic: topic),
                     ),
                   ),
-                ],
-              )
-            : SingleChildScrollView(
-                key: const ValueKey<String>('revision_compact_subjects'),
-                padding: EdgeInsets.fromLTRB(
-                  isCompact
-                      ? ZetaBreakpoints.marginCompact
-                      : ZetaBreakpoints.marginExpanded,
-                  16,
-                  isCompact
-                      ? ZetaBreakpoints.marginCompact
-                      : ZetaBreakpoints.marginExpanded,
-                  80,
                 ),
-                child: RevisionPane1(
-                  isSplitPane: false,
-                  onSubjectSelected: (sub) {
-                    ZetaHaptics.light();
-                    revProvider.selectSubject(sub.id);
-                  },
-                  onOpenNotes: (sub) {
-                    ZetaHaptics.light();
-                    revProvider.selectSubject(sub.id);
-                    _openNotes();
-                  },
-                ),
+              ],
+            )
+          : SingleChildScrollView(
+              key: const ValueKey<String>('revision_compact_subjects'),
+              padding: EdgeInsets.fromLTRB(
+                isCompact
+                    ? ZetaBreakpoints.marginCompact
+                    : ZetaBreakpoints.marginExpanded,
+                16,
+                isCompact
+                    ? ZetaBreakpoints.marginCompact
+                    : ZetaBreakpoints.marginExpanded,
+                80,
               ),
-      ),
+              child: RevisionPane1(
+                isSplitPane: false,
+                onSubjectSelected: (sub) {
+                  ZetaHaptics.light();
+                  revProvider.selectSubject(sub.id);
+                },
+                onOpenNotes: (sub) {
+                  ZetaHaptics.light();
+                  revProvider.selectSubject(sub.id);
+                  _openNotes();
+                },
+              ),
+            ),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../repositories/profile_repository.dart';
 import '../services/network_service.dart';
 import '../utils/app_logger.dart';
+import '../utils/performance_trace.dart';
 
 /// UI state for an account profile; writes are local-first and sync is retriable.
 class ProfileProvider extends ChangeNotifier {
@@ -15,6 +16,8 @@ class ProfileProvider extends ChangeNotifier {
   String _userEmail = '';
   String? _avatarPhoto;
   bool _isSyncing = false;
+  bool _isDisposed = false;
+  Timer? _startupSyncTimer;
   String? _syncError;
   DateTime? _lastSyncedAt;
   bool _syncRequestedDuringRun = false;
@@ -78,7 +81,12 @@ class ProfileProvider extends ChangeNotifier {
     await _persistAndSync();
   }
 
-  Future<void> syncProfileWithDb() async {
+  Future<void> syncProfileWithDb() =>
+      traceAsync('profile.sync_cloud', _syncProfileWithDb);
+
+  Future<void> _syncProfileWithDb() async {
+    if (_isDisposed) return;
+    _startupSyncTimer?.cancel();
     if (_isSyncing) {
       _syncRequestedDuringRun = true;
       return;
@@ -88,6 +96,7 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final data = await _repository.syncProfileFromCloud();
+      if (_isDisposed) return;
       if (data != null) _apply(data);
       _lastSyncedAt = DateTime.now();
     } catch (error, stackTrace) {
@@ -99,17 +108,21 @@ class ProfileProvider extends ChangeNotifier {
       );
     } finally {
       _isSyncing = false;
-      notifyListeners();
-      if (_syncRequestedDuringRun) {
+      if (!_isDisposed) notifyListeners();
+      if (_syncRequestedDuringRun && !_isDisposed) {
         _syncRequestedDuringRun = false;
         unawaited(syncProfileWithDb());
       }
     }
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadProfile() =>
+      traceAsync('profile.load_local', _loadProfileImpl);
+
+  Future<void> _loadProfileImpl() async {
     try {
       final local = await _repository.getLocalProfile();
+      if (_isDisposed) return;
       if (local != null) _apply(local);
     } catch (error, stackTrace) {
       AppLogger.warning(
@@ -118,8 +131,13 @@ class ProfileProvider extends ChangeNotifier {
         stackTrace: stackTrace,
       );
     }
+    if (_isDisposed) return;
     notifyListeners();
-    await syncProfileWithDb();
+    if (!_isDisposed) {
+      _startupSyncTimer = Timer(const Duration(seconds: 12), () {
+        if (!_isDisposed) unawaited(syncProfileWithDb());
+      });
+    }
   }
 
   Future<void> _persistAndSync() async {
@@ -153,6 +171,8 @@ class ProfileProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _startupSyncTimer?.cancel();
     _networkSubscription?.cancel();
     super.dispose();
   }

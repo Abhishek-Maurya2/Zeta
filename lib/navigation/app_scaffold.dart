@@ -53,6 +53,8 @@ class _AppScaffoldState extends State<AppScaffold>
   /// GlobalKey used to call openSearch() / closeSearch() on the TopAppBar.
   final GlobalKey<TopAppBarWidgetState> _topBarKey =
       GlobalKey<TopAppBarWidgetState>();
+  final GlobalKey<NavigatorState> _bodyNavigatorKey =
+      GlobalKey<NavigatorState>();
 
   /// Root FocusNode — we return focus here after dismissing search so that
   /// subsequent shortcuts (N, R, /) work immediately without a click.
@@ -450,8 +452,17 @@ class _AppScaffoldState extends State<AppScaffold>
     final isCompact = sizeClass.isCompact;
 
     final revProvider = context.watch<RevisionProvider>();
-    final isRevisionSubpage = navProvider.activePage == PageId.revision &&
+    final isRevisionSubpage =
+        navProvider.activePage == PageId.revision &&
         revProvider.isSubpageActive;
+    final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
+    final backHandledByScaffold =
+        isEditPaneOpen ||
+        isSelectionMode ||
+        isSearchOpen ||
+        (navProvider.activePage == PageId.settings &&
+            navProvider.selectedSettingsCategory != null) ||
+        isRevisionSubpage;
 
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
@@ -492,18 +503,16 @@ class _AppScaffoldState extends State<AppScaffold>
         navProvider.activePage == PageId.pomodoro && isPomodoroTimerTab;
 
     final canPop =
-        !isPomodoroRunning &&
-        !isSelectionMode &&
-        !isEditPaneOpen &&
-        !navProvider.canPop &&
-        !isRevisionSubpage &&
-        (_topBarKey.currentState == null ||
-            !_topBarKey.currentState!.isSearchOpen);
+        !backHandledByScaffold &&
+        (!isPomodoroRunning || navProvider.pageStack.length > 1);
 
     return PopScope(
       canPop: canPop,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
+        // Let root dialogs and sheets consume back before page state changes.
+        if (Navigator.of(context, rootNavigator: true).canPop()) return;
 
         // 0. If task edit split side pane is open, close it first
         if (isEditPaneOpen) {
@@ -535,25 +544,23 @@ class _AppScaffoldState extends State<AppScaffold>
         }
 
         // 3.1. If in Revision and on Notes, pop back to Topics first
-        if (navProvider.activePage == PageId.revision && revProvider.isNotesOpen) {
+        if (navProvider.activePage == PageId.revision &&
+            revProvider.isNotesOpen) {
           ZetaHaptics.light();
           revProvider.closeNotes();
           return;
         }
 
         // 3.2. If in Revision and on Topics, pop back to Subjects first
-        if (navProvider.activePage == PageId.revision && revProvider.selectedSubjectId != null) {
+        if (navProvider.activePage == PageId.revision &&
+            revProvider.selectedSubjectId != null) {
           ZetaHaptics.light();
           revProvider.selectSubject(null);
           return;
         }
 
-        // 4. Pop through navigation history stack
-        if (navProvider.canPop) {
-          ZetaHaptics.light();
-          navProvider.pop();
-          return;
-        }
+        // Destination routes and modal routes are popped by their Navigator.
+        if (_bodyNavigatorKey.currentState?.canPop() == true) return;
 
         // 5. If on Pomodoro page and Pomodoro is actively running, ask before closing app / ending session
         if (navProvider.activePage == PageId.pomodoro && isPomodoroRunning) {
@@ -618,7 +625,9 @@ class _AppScaffoldState extends State<AppScaffold>
                                   children: [
                                     Positioned.fill(
                                       child: BodyPane(
-                                        activePage: navProvider.activePage,
+                                        navigatorKey: _bodyNavigatorKey,
+                                        backHandledByScaffold:
+                                            backHandledByScaffold,
                                       ),
                                     ),
                                     FloatingBottomNav(
@@ -647,8 +656,10 @@ class _AppScaffoldState extends State<AppScaffold>
                                         Positioned.fill(
                                           child: !isEditPaneOpen
                                               ? BodyPane(
-                                                  activePage:
-                                                      navProvider.activePage,
+                                                  navigatorKey:
+                                                      _bodyNavigatorKey,
+                                                  backHandledByScaffold:
+                                                      backHandledByScaffold,
                                                 )
                                               : LayoutBuilder(
                                                   builder: (context, constraints) {
@@ -725,8 +736,10 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         ZetaHaptics.medium();
                                                       },
                                                       start: BodyPane(
-                                                        activePage: navProvider
-                                                            .activePage,
+                                                        navigatorKey:
+                                                            _bodyNavigatorKey,
+                                                        backHandledByScaffold:
+                                                            backHandledByScaffold,
                                                       ),
                                                       end: Container(
                                                         margin:

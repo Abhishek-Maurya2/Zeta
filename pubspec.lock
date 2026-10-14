@@ -769,10 +769,10 @@ packages:
     dependency: "direct main"
     description:
       name: material_3_expressive
-      sha256: b61ffed1c8614320921a685499b6f91fedfff550d29988a02daf68824954f798
+      sha256: "34dc1f23ab47d6cd3f1b3627b8e8533652564fddb229e6c908d9790076781c5e"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.5"
+    version: "1.1.6"
   material_color_utilities:
     dependency: "direct main"
     description:
@@ -801,10 +801,10 @@ packages:
     dependency: "direct main"
     description:
       name: material_ui
-      sha256: "32d98f11cf5942a095a8c3e01b03e4de3b17941437713dcf36b1088fb62e23d2"
+      sha256: "98ab9eda579ecae623e4b376c603035c5def78ce706f735f30bd632af5814695"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.0"
+    version: "1.6.0"
   meta:
     dependency: transitive
     description:

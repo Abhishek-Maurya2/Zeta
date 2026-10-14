@@ -9,6 +9,7 @@ import '../providers/task_provider.dart';
 import '../utils/task_date_formatter.dart';
 import '../services/preferences_service.dart';
 import '../repositories/revision_repository.dart';
+import '../utils/performance_trace.dart';
 
 /// Persisted configuration for the Revision spaced-repetition system.
 class RevisionSettings {
@@ -81,6 +82,8 @@ class RevisionProvider with ChangeNotifier {
   ChapterTopic? _activeTopicForNotes;
   bool _isLoading = true;
   bool _isCloudSyncing = false;
+  bool _isDisposed = false;
+  Timer? _startupSyncTimer;
   RevisionSettings _settings = const RevisionSettings();
 
   RevisionProvider({RevisionRepository? repository})
@@ -161,7 +164,9 @@ class RevisionProvider with ChangeNotifier {
 
   // ─── Data Loading & Persistence ──────────────────────────────────────────────
 
-  Future<void> _loadData() async {
+  Future<void> _loadData() => traceAsync('revision.load_local', _loadDataImpl);
+
+  Future<void> _loadDataImpl() async {
     _isLoading = true;
     notifyListeners();
 
@@ -178,20 +183,21 @@ class RevisionProvider with ChangeNotifier {
       // ── Load from local SQLite first (instant) ──────────────────────────
       final localSubjects = await _repository.getSubjects();
       final localTopics = await _repository.getAllTopics();
+      if (_isDisposed) return;
 
-      if (localSubjects.isNotEmpty) {
-        _subjects = localSubjects;
-        _topics = localTopics;
-        _isLoading = false;
-        notifyListeners();
-      }
+      _subjects = localSubjects;
+      _topics = localTopics;
+      _isLoading = false;
+      notifyListeners();
 
-      // ── Fetch dynamic data from Supabase if master sync is enabled ──────
+      // ── Refresh from Supabase after the first interaction window ─────────
       final masterSync =
           PreferencesService.instance.getBool('zeta_master_sync_enabled') ??
           true;
       if (masterSync) {
-        await syncWithCloud();
+        _startupSyncTimer = Timer(const Duration(seconds: 9), () {
+          if (!_isDisposed) unawaited(syncWithCloud());
+        });
       }
     } catch (e) {
       debugPrint('Error loading Revision data: $e');
@@ -206,15 +212,20 @@ class RevisionProvider with ChangeNotifier {
     await syncWithCloud(force: true);
   }
 
-  Future<void> syncWithCloud({bool force = false}) async {
-    if (_isCloudSyncing) return;
+  Future<void> syncWithCloud({bool force = false}) =>
+      traceAsync('revision.sync_cloud', () => _syncWithCloud(force: force));
+
+  Future<void> _syncWithCloud({bool force = false}) async {
+    if (_isDisposed || _isCloudSyncing) return;
     final masterSync =
         PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
     if (!masterSync && !force) return;
 
+    _startupSyncTimer?.cancel();
     _isCloudSyncing = true;
     try {
       await _repository.syncWithCloud(force: force);
+      if (_isDisposed) return;
       _subjects = await _repository.getSubjects();
       _topics = await _repository.getAllTopics();
       notifyListeners();
@@ -223,6 +234,19 @@ class RevisionProvider with ChangeNotifier {
     } finally {
       _isCloudSyncing = false;
     }
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _startupSyncTimer?.cancel();
+    _repository.dispose();
+    super.dispose();
   }
 
   Future<void> _saveSettings() async {

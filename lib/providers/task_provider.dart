@@ -1,7 +1,9 @@
 import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:uuid/uuid.dart';
+
 import '../models/task.dart';
 import '../models/attachment.dart';
 import '../utils/haptics.dart';
@@ -11,6 +13,7 @@ import '../database/daos/task_dao.dart';
 import '../services/supabase_sync_service.dart';
 import '../repositories/task_repository.dart';
 import '../utils/app_snackbar.dart';
+import '../utils/performance_trace.dart';
 
 enum TaskFilter { all, completed, pending, revision }
 
@@ -29,6 +32,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _isSyncing = false;
   bool _isDisposed = false;
+  Timer? _startupSyncTimer;
 
   bool get isSyncing => _isSyncing || _repository.isSyncing;
   DateTime? get lastSyncedAt => _repository.lastSyncedAt;
@@ -37,6 +41,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void notifyListeners() {
     if (!_isDisposed) {
+      _allTasksSnapshot = null;
+      _binTasksSnapshot = null;
       super.notifyListeners();
     }
   }
@@ -45,11 +51,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     TaskRepository? repository,
     TaskDao? taskDao,
     SupabaseSyncService? syncService,
-  }) : _repository = repository ??
-            TaskRepository(
-              taskDao: taskDao,
-              syncService: syncService,
-            ) {
+  }) : _repository =
+           repository ??
+           TaskRepository(taskDao: taskDao, syncService: syncService) {
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -61,6 +65,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   final List<Task> _tasks = [];
   final List<Task> _binTasks = [];
+  List<Task>? _allTasksSnapshot;
+  List<Task>? _binTasksSnapshot;
 
   static TaskFilter _loadInitialFilter() {
     try {
@@ -184,8 +190,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  List<Task> get allTasks => List.unmodifiable(_tasks);
-  List<Task> get binTasks => List.unmodifiable(_binTasks);
+  List<Task> get allTasks => _allTasksSnapshot ??= List.unmodifiable(_tasks);
+  List<Task> get binTasks => _binTasksSnapshot ??= List.unmodifiable(_binTasks);
   TaskFilter get filter => _filter;
   TaskSortOption get sortBy => _sortBy;
   String get searchQuery => _searchQuery;
@@ -217,6 +223,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   Map<String, List<Task>>? _cachedTasksByDateKey;
 
   void _invalidateCache() {
+    _allTasksSnapshot = null;
+    _binTasksSnapshot = null;
     _cachedFilteredAndSortedTasks = null;
     _cachedPendingTasks = null;
     _cachedCompletedTasks = null;
@@ -528,7 +536,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _cachedRevisionTasks!;
   }
 
-  Future<void> _loadFromStorage() async {
+  Future<void> _loadFromStorage() =>
+      traceAsync('tasks.load_local', _loadFromStorageImpl);
+
+  Future<void> _loadFromStorageImpl() async {
     try {
       final prefs = PreferencesService.instance;
 
@@ -558,8 +569,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       // ── Load tasks from SQLite (drift) ──────────────────────────────────────
-      final activeTasks = await _repository.getActiveTasks();
-      final binTaskList = await _repository.getBinTasks();
+      final taskLists = await Future.wait<List<Task>>([
+        _repository.getActiveTasks(),
+        _repository.getBinTasks(),
+      ]);
+      final activeTasks = taskLists[0];
+      final binTaskList = taskLists[1];
 
       _tasks.clear();
       _tasks.addAll(activeTasks.where((t) => t.title.trim().isNotEmpty));
@@ -572,12 +587,16 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Completed tasks are intentionally kept so analytics remain accurate.
       final evicted = await _repository.evictOldBinTasks(retentionDays: 90);
       if (evicted > 0) {
-        _binTasks.removeWhere((t) =>
-            t.deletedAt != null &&
-            t.deletedAt!.isBefore(
-              DateTime.now().subtract(const Duration(days: 90)),
-            ));
-        debugPrint('TaskProvider: Evicted $evicted bin tasks older than 90 days.');
+        _binTasks.removeWhere(
+          (t) =>
+              t.deletedAt != null &&
+              t.deletedAt!.isBefore(
+                DateTime.now().subtract(const Duration(days: 90)),
+              ),
+        );
+        debugPrint(
+          'TaskProvider: Evicted $evicted bin tasks older than 90 days.',
+        );
       }
 
       _invalidateCache();
@@ -589,11 +608,15 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     // Subscribe to real-time changes from other clients
     _repository.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
-    // Initial background cloud sync (full, paginated reconciliation)
-    await syncWithCloud();
+    // Local tasks are ready; do not hold the app's initial task view on a full
+    // paginated cloud reconciliation. Keep the sync, but start it after the
+    // first interaction window.
     if (!_loadCompleter.isCompleted) {
       _loadCompleter.complete();
     }
+    _startupSyncTimer = Timer(const Duration(seconds: 4), () {
+      if (!_isDisposed) unawaited(syncWithCloud());
+    });
   }
 
   void _handleRemoteTaskChange(Task remoteTask, String eventType) {
@@ -630,13 +653,18 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// Synchronize all tasks with Supabase backend.
   ///
   /// Reconciles a complete paginated remote snapshot with local SQLite state.
-  Future<void> syncWithCloud({bool force = false}) async {
-    final masterSync = PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
+  Future<void> syncWithCloud({bool force = false}) =>
+      traceAsync('tasks.sync_cloud', () => _syncWithCloud(force: force));
+
+  Future<void> _syncWithCloud({bool force = false}) async {
+    if (_isDisposed || _isSyncing) return;
+    final masterSync =
+        PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
     if (!masterSync && !force) return;
 
+    _startupSyncTimer?.cancel();
     _repository.subscribeToRealtime(onChange: _handleRemoteTaskChange);
 
-    if (_isSyncing) return;
     _isSyncing = true;
     notifyListeners();
 
@@ -666,7 +694,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       final remoteIds = remoteTasks.map((t) => t.id).toSet();
       bool isLocallyDirty(Task task) =>
-          task.lastSyncedAt == null || task.updatedAt.isAfter(task.lastSyncedAt!);
+          task.lastSyncedAt == null ||
+          task.updatedAt.isAfter(task.lastSyncedAt!);
       final localDirtyIds = <String>{
         ..._tasks.where(isLocallyDirty).map((task) => task.id),
         ..._binTasks.where(isLocallyDirty).map((task) => task.id),
@@ -676,8 +705,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // 1. Reconcile Bin tasks. Keep local rows that have never synced.
       final binTasksToPrune = _binTasks
-          .where((t) =>
-              !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id))
+          .where(
+            (t) => !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id),
+          )
           .toList();
       if (binTasksToPrune.isNotEmpty) {
         final pruneIds = binTasksToPrune.map((t) => t.id).toSet();
@@ -691,8 +721,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       // 2. Reconcile active tasks. A synced local row absent remotely was
       // permanently deleted on another device.
       final activeTasksToPrune = _tasks
-          .where((t) =>
-              !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id))
+          .where(
+            (t) => !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id),
+          )
           .toList();
       if (activeTasksToPrune.isNotEmpty) {
         final pruneIds = activeTasksToPrune.map((t) => t.id).toSet();
@@ -748,7 +779,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> saveTasks() async {
     try {
-      await _repository.saveTasksBatch([..._tasks, ..._binTasks], pushToCloud: false);
+      await _repository.saveTasksBatch([
+        ..._tasks,
+        ..._binTasks,
+      ], pushToCloud: false);
     } catch (e) {
       debugPrint('TaskProvider: saveTasks error - $e');
     }
@@ -756,7 +790,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _playSoundIfEnabled() async {
     try {
-      final soundEnabled = PreferencesService.instance.getBool(_soundEffectsKey) ?? true;
+      final soundEnabled =
+          PreferencesService.instance.getBool(_soundEffectsKey) ?? true;
       if (soundEnabled) {
         await SystemSound.play(SystemSoundType.click);
         ZetaHaptics.light();
@@ -790,8 +825,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   void toggleSubtask(String taskId, String subtaskId, {BuildContext? context}) {
     final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
     if (taskIndex != -1) {
-      final subtaskIndex =
-          _tasks[taskIndex].subtasks.indexWhere((s) => s.id == subtaskId);
+      final subtaskIndex = _tasks[taskIndex].subtasks.indexWhere(
+        (s) => s.id == subtaskId,
+      );
       if (subtaskIndex != -1) {
         final isNowComplete =
             !_tasks[taskIndex].subtasks[subtaskIndex].completed;
@@ -807,40 +843,40 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         // Auto-complete parent task logic
         final currentTask = _tasks[taskIndex];
         _subtaskCompletionTimers[taskId]?.cancel();
-        
-        if (currentTask.subtasks.isNotEmpty && 
-            currentTask.subtasks.every((s) => s.completed) && 
-            !currentTask.completed) {
-          
-          _subtaskCompletionTimers[taskId] = Timer(const Duration(seconds: 3), () {
-            final recheckIndex = _tasks.indexWhere((t) => t.id == taskId);
-            if (recheckIndex != -1) {
-              final taskToComplete = _tasks[recheckIndex];
-              if (taskToComplete.subtasks.isNotEmpty && 
-                  taskToComplete.subtasks.every((s) => s.completed) && 
-                  !taskToComplete.completed) {
-                
-                // Mark the parent task as complete
-                toggleTask(taskId);
 
-                // Show toast with Undo button
-                AppSnackbar.show(
-                  context,
-                  message: 'Task marked as done.',
-                  actionLabel: 'Undo',
-                  duration: const Duration(seconds: 4),
-                  onAction: () {
-                    toggleTask(taskId);
-                  },
-                );
+        if (currentTask.subtasks.isNotEmpty &&
+            currentTask.subtasks.every((s) => s.completed) &&
+            !currentTask.completed) {
+          _subtaskCompletionTimers[taskId] = Timer(
+            const Duration(seconds: 3),
+            () {
+              final recheckIndex = _tasks.indexWhere((t) => t.id == taskId);
+              if (recheckIndex != -1) {
+                final taskToComplete = _tasks[recheckIndex];
+                if (taskToComplete.subtasks.isNotEmpty &&
+                    taskToComplete.subtasks.every((s) => s.completed) &&
+                    !taskToComplete.completed) {
+                  // Mark the parent task as complete
+                  toggleTask(taskId);
+
+                  // Show toast with Undo button
+                  AppSnackbar.show(
+                    context,
+                    message: 'Task marked as done.',
+                    actionLabel: 'Undo',
+                    duration: const Duration(seconds: 4),
+                    onAction: () {
+                      toggleTask(taskId);
+                    },
+                  );
+                }
               }
-            }
-          });
+            },
+          );
         }
       }
     }
   }
-
 
   Future<String> addTask({
     required String title,
@@ -951,8 +987,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   void completeSelectedTasks({bool? markAs}) {
     if (_selectedTaskIds.isEmpty) return;
     final idsToToggle = _selectedTaskIds.toList();
-    final selectedTasks =
-        _tasks.where((t) => idsToToggle.contains(t.id)).toList();
+    final selectedTasks = _tasks
+        .where((t) => idsToToggle.contains(t.id))
+        .toList();
 
     // If markAs is null, determine target: if any are incomplete, mark all complete; else incomplete
     final targetState = markAs ?? selectedTasks.any((t) => !t.completed);
@@ -1036,6 +1073,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _isDisposed = true;
+    _startupSyncTimer?.cancel();
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}

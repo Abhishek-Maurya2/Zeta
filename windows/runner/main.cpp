@@ -32,12 +32,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
     }
   }
 
+  // Keep one instance per interactive Windows session, regardless of whether
+  // it was started from a Release shortcut or a Debug launcher.
+  const wchar_t* kMutexName = L"Local\\ZetaApp_SingleInstance_Mutex";
 #ifdef NDEBUG
-  const wchar_t* kMutexName = L"ZetaApp_SingleInstance_Mutex";
   const wchar_t* kWindowTitle = L"Zeta";
+  const wchar_t* kAlternateWindowTitle = L"Zeta (Dev)";
 #else
-  const wchar_t* kMutexName = L"ZetaApp_SingleInstance_Mutex_Dev";
   const wchar_t* kWindowTitle = L"Zeta (Dev)";
+  const wchar_t* kAlternateWindowTitle = L"Zeta";
 #endif
 
   // Single-instance management: forward command line arguments to running instance
@@ -45,11 +48,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
       ::CreateMutexW(nullptr, TRUE, kMutexName);
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
     HWND existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW", kWindowTitle);
+    if (!existing_hwnd) {
+      // A Debug and a Release build use different captions, but still belong
+      // to the same single-instance app.
+      existing_hwnd = ::FindWindowW(L"FLUTTER_RUNNER_WIN32_WINDOW",
+                                    kAlternateWindowTitle);
+    }
     if (existing_hwnd) {
       if (::IsIconic(existing_hwnd)) {
         ::ShowWindow(existing_hwnd, SW_RESTORE);
       }
-      ::SetForegroundWindow(existing_hwnd);
 
       COPYDATASTRUCT cds;
       cds.dwData = 0x5A455441;  // 'ZETA'
@@ -61,7 +69,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
         cds.cbData = sizeof(empty_cmd);
         cds.lpData = static_cast<void*>(empty_cmd);
       }
-      ::SendMessageW(existing_hwnd, WM_COPYDATA, 0, reinterpret_cast<LPARAM>(&cds));
+      DWORD_PTR message_result = 0;
+      ::SendMessageTimeoutW(existing_hwnd, WM_COPYDATA, 0,
+                            reinterpret_cast<LPARAM>(&cds),
+                            SMTO_ABORTIFHUNG | SMTO_BLOCK, 2000,
+                            &message_result);
+      // WM_COPYDATA normally restores hidden-to-tray windows through the
+      // runner's ShowFromTray handler. If the target is an older build, make
+      // a best-effort native restore as well.
+      if (!::IsWindowVisible(existing_hwnd)) {
+        ::ShowWindow(existing_hwnd, SW_RESTORE);
+        ::SetForegroundWindow(existing_hwnd);
+      }
     }
     if (single_instance_mutex) {
       ::CloseHandle(single_instance_mutex);

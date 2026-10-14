@@ -34,7 +34,6 @@ class _HomePageState extends State<HomePage> {
     _selectedDate = DateTime(now.year, now.month, now.day);
   }
 
-
   void _handleSelectDate(DateTime date) {
     setState(() {
       _selectedDate = DateTime(date.year, date.month, date.day);
@@ -80,12 +79,13 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final activeTasks = taskProvider.allTasks
-        .where((t) => !t.completed)
-        .toList();
-    final allTasks = [...taskProvider.allTasks, ...taskProvider.binTasks];
-    final totalCount = allTasks.length;
-    final completedCount = allTasks.where((t) => t.completed).length;
+    final tasks = taskProvider.allTasks;
+    final binTasks = taskProvider.binTasks;
+    final activeTasks = tasks.where((t) => !t.completed).toList();
+    final totalCount = tasks.length + binTasks.length;
+    final completedCount =
+        tasks.where((t) => t.completed).length +
+        binTasks.where((t) => t.completed).length;
     final activeCount = activeTasks.length;
     final completionRate = totalCount > 0
         ? ((completedCount / totalCount) * 100).round()

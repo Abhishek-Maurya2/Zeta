@@ -559,7 +559,7 @@ class ThemeProvider extends ChangeNotifier {
     _titlesTypography = RoleTypographyConfig.defaultTitles;
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
-    _weather.setCityName('San Francisco, US');
+    _weather.setCityName('Bokaro');
     _notifications = true;
     _soundEffects = true;
     _autoSave = true;

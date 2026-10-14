@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+
 import '../services/weather_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/app_logger.dart';
+import '../utils/performance_trace.dart';
 
 /// Provider responsible strictly for Live Weather state, location, and weather preferences.
 class WeatherProvider extends ChangeNotifier {
@@ -19,10 +22,12 @@ class WeatherProvider extends ChangeNotifier {
   bool _weatherEnabled = true;
   bool _showWeatherInHeader = true;
   bool _autoLocation = false;
-  String _cityName = 'San Francisco, US';
+  String _cityName = 'Bokaro';
   WeatherData? _weatherData;
   bool _isWeatherLoading = false;
   DateTime? _lastGpsCheckTime;
+  Timer? _startupRefreshTimer;
+  bool _isDisposed = false;
 
   WeatherProvider() {
     _loadSettings();
@@ -44,6 +49,7 @@ class WeatherProvider extends ChangeNotifier {
     notifyListeners();
     unawaited(_saveSetting(_prefKeyWeatherEnabled, val));
     if (val) {
+      _startupRefreshTimer?.cancel();
       unawaited(refreshWeather());
     }
   }
@@ -68,6 +74,7 @@ class WeatherProvider extends ChangeNotifier {
   void setCityName(String city) {
     final trimmed = city.trim();
     if (trimmed.isEmpty) return;
+    _startupRefreshTimer?.cancel();
     _cityName = trimmed;
     notifyListeners();
     unawaited(_saveSetting(_prefKeyCityName, trimmed));
@@ -134,15 +141,21 @@ class WeatherProvider extends ChangeNotifier {
   /// When [isStartup] is true:
   /// - Only checks GPS if permission is already granted and throttled (>3 hours).
   /// - If GPS is unavailable/disabled on startup, silently falls back to the saved city without popups.
-  Future<void> refreshWeather({bool isStartup = false}) async {
+  Future<void> refreshWeather({bool isStartup = false}) => traceAsync(
+    'weather.refresh',
+    () => _refreshWeather(isStartup: isStartup),
+  );
+
+  Future<void> _refreshWeather({required bool isStartup}) async {
     if (!_weatherEnabled) return;
     _isWeatherLoading = true;
     notifyListeners();
 
     try {
       // 1. Check if background GPS auto-detect should run on startup or default city
-      final shouldCheckGps = _autoLocation || _cityName == 'San Francisco, US';
-      final isGpsThrottled = _lastGpsCheckTime != null &&
+      final shouldCheckGps = _autoLocation || _cityName == 'Bokaro';
+      final isGpsThrottled =
+          _lastGpsCheckTime != null &&
           DateTime.now().difference(_lastGpsCheckTime!) <
               const Duration(hours: 3);
 
@@ -152,7 +165,8 @@ class WeatherProvider extends ChangeNotifier {
           final permission = await Geolocator.checkPermission();
 
           // On startup: only query GPS if permission is ALREADY granted and service is enabled
-          final hasPermission = permission == LocationPermission.whileInUse ||
+          final hasPermission =
+              permission == LocationPermission.whileInUse ||
               permission == LocationPermission.always;
 
           if (serviceEnabled && hasPermission) {
@@ -202,7 +216,7 @@ class WeatherProvider extends ChangeNotifier {
       _weatherEnabled = prefs.getBool(_prefKeyWeatherEnabled) ?? true;
       _showWeatherInHeader = prefs.getBool(_prefKeyShowWeatherInHeader) ?? true;
       _autoLocation = prefs.getBool(_prefKeyAutoLocation) ?? false;
-      _cityName = prefs.getString(_prefKeyCityName) ?? 'San Francisco, US';
+      _cityName = prefs.getString(_prefKeyCityName) ?? 'Bokaro';
 
       final cache = prefs.getString(_prefKeyWeatherCache);
       if (cache != null && cache.isNotEmpty) {
@@ -215,7 +229,19 @@ class WeatherProvider extends ChangeNotifier {
       notifyListeners();
 
       if (_weatherEnabled) {
-        unawaited(refreshWeather(isStartup: true));
+        final fetchedAt = _weatherData?.fetchedAt;
+        const freshnessWindow = Duration(minutes: 30);
+        final cacheAge = fetchedAt == null
+            ? freshnessWindow
+            : DateTime.now().difference(fetchedAt);
+        final refreshDelay = cacheAge >= freshnessWindow
+            ? const Duration(seconds: 2)
+            : freshnessWindow - cacheAge;
+        _startupRefreshTimer = Timer(refreshDelay, () {
+          if (!_isWeatherLoading) {
+            unawaited(refreshWeather(isStartup: true));
+          }
+        });
       }
     } catch (e, st) {
       AppLogger.warning(
@@ -224,6 +250,18 @@ class WeatherProvider extends ChangeNotifier {
         stackTrace: st,
       );
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _startupRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) super.notifyListeners();
   }
 
   Future<void> _saveSetting(String key, dynamic value) async {

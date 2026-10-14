@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -7,6 +8,7 @@ import '../models/pomodoro.dart';
 import '../services/notification_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/haptics.dart';
+import '../utils/performance_trace.dart';
 import '../repositories/pomodoro_repository.dart';
 
 class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
@@ -26,13 +28,13 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime? _targetEndTime;
 
   Timer? _timer;
+  Timer? _startupSyncTimer;
   bool _isDisposed = false;
   bool _isCloudSyncing = false;
   DateTime _lastSaveTime = DateTime(2000);
 
-  PomodoroProvider({
-    PomodoroRepository? repository,
-  }) : _repository = repository ?? PomodoroRepository() {
+  PomodoroProvider({PomodoroRepository? repository})
+    : _repository = repository ?? PomodoroRepository() {
     try {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
@@ -80,11 +82,10 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   PomodoroSessionItem? get currentSession =>
       _queue.isNotEmpty && _activeQueueIndex < _queue.length
-          ? _queue[_activeQueueIndex]
-          : null;
+      ? _queue[_activeQueueIndex]
+      : null;
 
-  PomodoroMode get mode =>
-      currentSession?.mode ?? PomodoroMode.focus;
+  PomodoroMode get mode => currentSession?.mode ?? PomodoroMode.focus;
 
   double get progress {
     if (_totalDuration <= 0) return 0.0;
@@ -111,8 +112,11 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _queue = generateQueue(_settings);
     _syncWithCurrentQueueItem();
     await _loadFromStorage();
+    if (_isDisposed) return;
     _subscribeToRealtime();
-    unawaited(syncWithCloud());
+    _startupSyncTimer = Timer(const Duration(seconds: 6), () {
+      if (!_isDisposed) unawaited(syncWithCloud());
+    });
   }
 
   void _subscribeToRealtime() {
@@ -129,7 +133,9 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
             _sessionLog.add(session);
             _sessionLog.sort((a, b) => a.completedAt.compareTo(b.completedAt));
             if (_sessionLog.length > _maxLogEntries) {
-              _sessionLog = _sessionLog.sublist(_sessionLog.length - _maxLogEntries);
+              _sessionLog = _sessionLog.sublist(
+                _sessionLog.length - _maxLogEntries,
+              );
             }
           }
         }
@@ -140,18 +146,24 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Synchronizes local sessions with Supabase database.
-  Future<void> syncWithCloud({bool force = false}) async {
-    if (_isCloudSyncing) return;
+  Future<void> syncWithCloud({bool force = false}) =>
+      traceAsync('pomodoro.sync_cloud', () => _syncWithCloud(force: force));
+
+  Future<void> _syncWithCloud({bool force = false}) async {
+    if (_isDisposed || _isCloudSyncing) return;
+    _startupSyncTimer?.cancel();
     _isCloudSyncing = true;
     try {
-      final masterSync = PreferencesService.instance.getBool('zeta_master_sync_enabled') ?? true;
+      final masterSync =
+          PreferencesService.instance.getBool('zeta_master_sync_enabled') ??
+          true;
       if (!masterSync && !force) return;
-      await _repository.syncWithCloud(force: force);
-      if (_repository.syncError != null) return;
-      final sessions = await _repository.getRecentSessions(limit: _maxLogEntries);
-      _sessionLog = sessions
-          .where((s) => !s.id.startsWith('sample-'))
-          .toList()
+      final sessions = await _repository.syncWithCloud(
+        force: force,
+        recentLimit: _maxLogEntries,
+      );
+      if (sessions == null || _repository.syncError != null) return;
+      _sessionLog = sessions.where((s) => !s.id.startsWith('sample-')).toList()
         ..sort((a, b) => a.completedAt.compareTo(b.completedAt));
       if (!_isDisposed) notifyListeners();
     } catch (e) {
@@ -162,7 +174,10 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _loadFromStorage() async {
+  Future<void> _loadFromStorage() =>
+      traceAsync('pomodoro.load_local', _loadFromStorageImpl);
+
+  Future<void> _loadFromStorageImpl() async {
     try {
       final prefs = PreferencesService.instance;
 
@@ -175,9 +190,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
       // Load sessions from SQLite (drift)
       final sessions = await _repository.getRecentSessions(limit: 1000);
-      _sessionLog = sessions
-          .where((s) => !s.id.startsWith('sample-'))
-          .toList()
+      _sessionLog = sessions.where((s) => !s.id.startsWith('sample-')).toList()
         ..sort((a, b) => a.completedAt.compareTo(b.completedAt));
 
       // Re-generate queue with restored settings
@@ -503,6 +516,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _isDisposed = true;
+    _startupSyncTimer?.cancel();
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
@@ -515,4 +529,3 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     super.dispose();
   }
 }
-

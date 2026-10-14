@@ -1,25 +1,37 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 
 import 'supabase_service.dart';
 
 /// Central network connectivity service that provides fast-fail checks,
 /// tracks online/offline transitions, and eliminates long network hangs.
-class NetworkService {
+class NetworkService with WidgetsBindingObserver {
   static final NetworkService _instance = NetworkService._internal();
   factory NetworkService() => _instance;
   NetworkService._internal() {
-    final isRunningTests = !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
+    final isRunningTests =
+        !kIsWeb && Platform.environment.containsKey('FLUTTER_TEST');
     if (!isRunningTests) {
-      _startPeriodicCheck();
+      WidgetsBinding.instance.addObserver(this);
+      final state = WidgetsBinding.instance.lifecycleState;
+      _backgroundMode = _isBackgroundState(state);
+      _schedulePeriodicCheck(background: _backgroundMode);
     }
   }
 
   bool _isOnline = true;
   DateTime? _lastCheckedAt;
   Timer? _checkTimer;
+  bool _backgroundMode = false;
+
+  static bool _isBackgroundState(AppLifecycleState? state) =>
+      state == AppLifecycleState.hidden ||
+      state == AppLifecycleState.paused ||
+      state == AppLifecycleState.detached;
 
   final _connectivityController = StreamController<bool>.broadcast();
 
@@ -35,6 +47,9 @@ class NetworkService {
       _isOnline = true;
       _connectivityController.add(true);
       debugPrint('NetworkService: Connectivity restored (Online).');
+      if (_checkTimer != null) {
+        _schedulePeriodicCheck(background: _backgroundMode);
+      }
     }
   }
 
@@ -45,6 +60,9 @@ class NetworkService {
       _isOnline = false;
       _connectivityController.add(false);
       debugPrint('NetworkService: Network unreachable (Offline).');
+      if (_checkTimer != null) {
+        _schedulePeriodicCheck(background: _backgroundMode);
+      }
     }
   }
 
@@ -73,8 +91,9 @@ class NetworkService {
         reachable = res.statusCode > 0;
       } else {
         // Fast DNS lookup on native platforms
-        final result = await InternetAddress.lookup('uewczwnrchvmvmccrdqf.supabase.co')
-            .timeout(const Duration(milliseconds: 1500));
+        final result = await InternetAddress.lookup(
+          'uewczwnrchvmvmccrdqf.supabase.co',
+        ).timeout(const Duration(milliseconds: 1500));
         reachable = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       }
     } catch (_) {
@@ -85,20 +104,39 @@ class NetworkService {
       _isOnline = reachable;
       _connectivityController.add(_isOnline);
       debugPrint('NetworkService: Connectivity state changed -> $_isOnline');
+      _schedulePeriodicCheck(background: _backgroundMode);
     }
     return _isOnline;
   }
 
-  void _startPeriodicCheck() {
+  void _schedulePeriodicCheck({required bool background}) {
     _checkTimer?.cancel();
-    // Check every 25 seconds; if offline, check more frequently (every 8s) to auto-recover quickly
-    _checkTimer = Timer.periodic(const Duration(seconds: 12), (_) async {
+    _backgroundMode = background;
+    final interval = background
+        ? (_isOnline ? const Duration(minutes: 3) : const Duration(seconds: 45))
+        : (_isOnline
+              ? const Duration(seconds: 60)
+              : const Duration(seconds: 15));
+    _checkTimer = Timer.periodic(interval, (_) async {
       await checkConnectivity(force: true);
     });
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _schedulePeriodicCheck(background: false);
+      unawaited(checkConnectivity(force: true));
+    } else if (_isBackgroundState(state)) {
+      _schedulePeriodicCheck(background: true);
+    }
+  }
+
   void dispose() {
     _checkTimer?.cancel();
+    try {
+      WidgetsBinding.instance.removeObserver(this);
+    } catch (_) {}
     _connectivityController.close();
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/task.dart';
@@ -43,7 +44,6 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
     _loadPreferences();
-    _startPolling();
   }
 
   void _loadPreferences() {
@@ -58,6 +58,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
       _syncService();
       if (!_isDisposed) notifyListeners();
     } catch (_) {}
+    _updatePolling();
   }
 
   void _syncService() {
@@ -79,6 +80,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_notificationsEnabled == value) return;
     _notificationsEnabled = value;
     _syncService();
+    _updatePolling();
     if (!_isDisposed) notifyListeners();
     if (!value) {
       await NotificationService.instance.cancelAll();
@@ -95,6 +97,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_taskRemindersEnabled == value) return;
     _taskRemindersEnabled = value;
     _syncService();
+    _updatePolling();
     if (!_isDisposed) notifyListeners();
     if (!value) {
       for (final task in _tasks) {
@@ -172,12 +175,19 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // --- Polling ---------------------------------------------------------------
 
-  void _startPolling() {
-    _pollingTimer?.cancel();
+  void _updatePolling() {
+    final shouldPoll =
+        _notificationsEnabled &&
+        _taskRemindersEnabled &&
+        (kIsWeb || defaultTargetPlatform == TargetPlatform.windows);
+    if (!shouldPoll) {
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+      return;
+    }
+    if (_pollingTimer != null) return;
     _pollingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-      if (_notificationsEnabled && _taskRemindersEnabled) {
-        NotificationService.instance.tickWebWindowsReminders(_tasks);
-      }
+      NotificationService.instance.tickWebWindowsReminders(_tasks);
     });
   }
 
