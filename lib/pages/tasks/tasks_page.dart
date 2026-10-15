@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -116,9 +116,7 @@ class _TasksPageState extends State<TasksPage> {
     final isCompact = sizeClass.isCompact;
 
     final pending = taskProvider.pendingTasks;
-    final pendingNonRevision = pending
-        .where((t) => !TaskProvider.isRevisionTask(t))
-        .toList();
+    final pendingNonRevision = taskProvider.pendingNonRevisionTasks;
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
     final isSearching = taskProvider.searchQuery.isNotEmpty;

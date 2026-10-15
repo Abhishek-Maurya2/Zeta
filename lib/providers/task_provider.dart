@@ -239,6 +239,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _binTasksSnapshot = null;
     _cachedFilteredAndSortedTasks = null;
     _cachedPendingTasks = null;
+    _cachedPendingNonRevisionTasks = null;
     _cachedCompletedTasks = null;
     _cachedRevisionTasks = null;
     _cachedTasksByDateKey = null;
@@ -519,6 +520,15 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _sortTaskList(list);
     _cachedPendingTasks = List.unmodifiable(list);
     return _cachedPendingTasks!;
+  }
+
+  List<Task>? _cachedPendingNonRevisionTasks;
+
+  List<Task> get pendingNonRevisionTasks {
+    if (_cachedPendingNonRevisionTasks != null) return _cachedPendingNonRevisionTasks!;
+    final list = pendingTasks.where((t) => !isRevisionTask(t)).toList();
+    _cachedPendingNonRevisionTasks = List.unmodifiable(list);
+    return _cachedPendingNonRevisionTasks!;
   }
 
   List<Task> get completedTasks {

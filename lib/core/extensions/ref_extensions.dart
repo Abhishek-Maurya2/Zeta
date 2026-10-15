@@ -8,6 +8,8 @@ import '../../features/revision/data/revision_repository.dart';
 import '../../features/revision/data/revision_preferences.dart';
 import '../../features/theme/data/theme_preferences.dart';
 import '../../features/weather/data/weather_preferences.dart';
+import '../../features/tasks/presentation/state/task_providers.dart';
+import '../../models/task.dart';
 import '../sync/sync_coordinator.dart';
 
 /// Ergonomic hooks for WidgetRef to directly access repositories, preferences, and services.
@@ -27,6 +29,16 @@ extension ZetaWidgetRefX on WidgetRef {
   // ─── Sync ──────────────────────────────────────────────────────────────────
   SyncCoordinator get syncCoordinator => read(syncCoordinatorProvider.notifier);
   SyncState get syncState => watch(syncCoordinatorProvider);
+
+  // ─── Task Reactive Hooks ──────────────────────────────────────────────────
+  List<Task> get pendingTasks => watch(pendingTasksProvider);
+  List<Task> get pendingNonRevisionTasks => watch(pendingNonRevisionTasksProvider);
+  List<Task> get completedTasks => watch(completedTasksProvider);
+  List<Task> get revisionTasks => watch(revisionTasksProvider);
+  ({int total, int pending, int completed, int revision}) get taskCounts =>
+      watch(taskCountsProvider);
+  List<Subtask> subtasksFor(String taskId) => watch(subtasksProvider(taskId));
+  Task? taskById(String taskId) => watch(taskByIdProvider(taskId));
 }
 
 /// Ergonomic hooks for Ref inside providers.

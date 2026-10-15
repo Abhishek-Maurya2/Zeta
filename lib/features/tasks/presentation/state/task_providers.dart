@@ -4,6 +4,13 @@ import '../../../../models/task.dart';
 import '../../domain/task_filter.dart';
 import '../../data/task_repository.dart';
 
+/// Single source of truth helper to check if a task is a revision task.
+bool isRevisionTask(Task t) {
+  final title = t.title.toLowerCase();
+  final desc = t.description?.toLowerCase() ?? '';
+  return title.contains('revise:') || desc.contains('#revision');
+}
+
 /// Stream of all active tasks from local SQLite.
 /// Managed off-thread by Drift, zero memory leaks with autoDispose.
 final activeTasksStreamProvider = StreamProvider.autoDispose<List<Task>>((ref) {
@@ -27,6 +34,72 @@ final taskSortProvider =
 /// Search query string.
 final taskSearchQueryProvider = StateProvider<String>((ref) => '');
 
+/// Memoized pending tasks (completed == false, deletedAt == null).
+final pendingTasksProvider = Provider.autoDispose<List<Task>>((ref) {
+  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
+  return tasks.where((t) => !t.completed && t.deletedAt == null).toList();
+});
+
+/// Memoized pending non-revision tasks for clean main list display.
+final pendingNonRevisionTasksProvider = Provider.autoDispose<List<Task>>((ref) {
+  final pending = ref.watch(pendingTasksProvider);
+  return pending.where((t) => !isRevisionTask(t)).toList();
+});
+
+/// Memoized completed tasks (completed == true, deletedAt == null).
+final completedTasksProvider = Provider.autoDispose<List<Task>>((ref) {
+  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
+  return tasks.where((t) => t.completed && t.deletedAt == null).toList();
+});
+
+/// Memoized revision tasks.
+final revisionTasksProvider = Provider.autoDispose<List<Task>>((ref) {
+  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
+  return tasks.where((t) => t.deletedAt == null && isRevisionTask(t)).toList();
+});
+
+/// Memoized task counts: (total, pending, completed, revision).
+/// Lightweight record preventing UI badges from subscribing to entire task collections.
+final taskCountsProvider = Provider.autoDispose<
+    ({int total, int pending, int completed, int revision})>((ref) {
+  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
+  int pending = 0;
+  int completed = 0;
+  int revision = 0;
+  for (final t in tasks) {
+    if (t.deletedAt != null) continue;
+    if (t.completed) {
+      completed++;
+    } else {
+      pending++;
+      if (isRevisionTask(t)) revision++;
+    }
+  }
+  return (
+    total: tasks.length,
+    pending: pending,
+    completed: completed,
+    revision: revision,
+  );
+});
+
+/// Family provider for specific task lookup.
+final taskByIdProvider =
+    Provider.autoDispose.family<Task?, String>((ref, taskId) {
+  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
+  for (final t in tasks) {
+    if (t.id == taskId) return t;
+  }
+  return null;
+});
+
+/// Family provider for subtasks of a specific task.
+final subtasksProvider =
+    Provider.autoDispose.family<List<Subtask>, String>((ref, taskId) {
+  final task = ref.watch(taskByIdProvider(taskId));
+  return task?.subtasks ?? const [];
+});
+
 /// Memoized filtered and sorted tasks.
 /// Only recalculates when the underlying stream, filter, or query changes.
 /// Prevents redundant widget rebuilds across the app.
@@ -48,9 +121,7 @@ final filteredTasksProvider = Provider.autoDispose<List<Task>>((ref) {
       case TaskFilter.pending:
         return !t.completed;
       case TaskFilter.revision:
-        final title = t.title.toLowerCase();
-        final desc = t.description?.toLowerCase() ?? '';
-        return title.contains('revise:') || desc.contains('#revision');
+        return isRevisionTask(t);
     }
   }).toList();
 
@@ -120,10 +191,5 @@ final activeEditingTaskIdProvider = StateProvider<String?>((ref) => null);
 final activeEditingTaskProvider = Provider.autoDispose<Task?>((ref) {
   final taskId = ref.watch(activeEditingTaskIdProvider);
   if (taskId == null) return null;
-  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
-  try {
-    return tasks.firstWhere((t) => t.id == taskId);
-  } catch (_) {
-    return null;
-  }
+  return ref.watch(taskByIdProvider(taskId));
 });
