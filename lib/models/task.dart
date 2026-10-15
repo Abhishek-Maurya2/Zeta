@@ -319,6 +319,7 @@ class Task {
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? deletedAt,
+    bool clearDeletedAt = false,
     DateTime? lastSyncedAt,
   }) {
     return Task(
@@ -334,7 +335,7 @@ class Task {
       attachments: attachments ?? this.attachments,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      deletedAt: deletedAt ?? this.deletedAt,
+      deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );
   }
