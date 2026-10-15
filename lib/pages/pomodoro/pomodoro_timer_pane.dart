@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -18,8 +19,8 @@ class PomodoroTimerPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final modeTitle = context.select<PomodoroProvider, String>((p) => p.mode.label);
     final provider = context.read<PomodoroProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
     final bottomPadding = isCompact ? 96.0 : 24.0;

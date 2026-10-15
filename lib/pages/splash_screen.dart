@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The in-app visual bridge from Android's launch screen to the first app view.
@@ -32,7 +33,7 @@ class SplashScreen extends StatelessWidget {
                 errorBuilder: (_, _, _) => Container(
                   width: 120,
                   height: 120,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.colorScheme.primary,
                   child: const Center(
                     child: Icon(
                       Icons.auto_awesome,

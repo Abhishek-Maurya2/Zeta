@@ -1,3 +1,4 @@
+import 'package:zeta/core/core.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -110,14 +111,12 @@ class _TasksPageState extends State<TasksPage> {
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
     final pending = taskProvider.pendingTasks;
-    final pendingNonRevision = pending
-        .where((t) => !TaskProvider.isRevisionTask(t))
-        .toList();
+    final pendingNonRevision = taskProvider.pendingNonRevisionTasks;
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
     final isSearching = taskProvider.searchQuery.isNotEmpty;
@@ -151,7 +150,7 @@ class _TasksPageState extends State<TasksPage> {
                   if (!isCompact)
                     Text(
                       'Tasks',
-                      style: Theme.of(context).textTheme.displayMedium
+                      style: context.textTheme.displayMedium
                           ?.copyWith(
                             fontWeight: FontWeight.w400,
                             letterSpacing: -0.5,

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -73,8 +74,8 @@ class _SeedColorPickerSheetState extends State<SeedColorPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -155,7 +156,7 @@ class _SeedColorPickerSheetState extends State<SeedColorPickerSheet> {
   }
 
   Widget _buildPresetGrid(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -298,7 +299,7 @@ class _SeedColorPickerSheetState extends State<SeedColorPickerSheet> {
   }
 
   Widget _buildMixer(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
     final color = _mixedColor;
     final foreground = color.computeLuminance() > 0.45
         ? Colors.black
@@ -412,8 +413,8 @@ class _SeedColorPickerSheetState extends State<SeedColorPickerSheet> {
     required ValueChanged<double> onChanged,
   }) {
     final color = _mixedColor;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return Column(
       children: [

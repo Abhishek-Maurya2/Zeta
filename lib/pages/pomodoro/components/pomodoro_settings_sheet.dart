@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -22,8 +23,8 @@ class PomodoroSettingsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
     final settings = provider.settings;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

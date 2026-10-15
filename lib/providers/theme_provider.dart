@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -154,7 +155,7 @@ class ThemeProvider extends ChangeNotifier {
   /// Navigation rail background color matching the rest of the application.
   /// In dark mode, matches the surface canvas instead of an elevated container.
   Color navRailColor(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     return colorScheme.surfaceContainerLow;
   }
 

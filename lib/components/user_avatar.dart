@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -69,7 +70,7 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profileProvider = context.watch<ProfileProvider>();
-    final accentColor = Theme.of(context).colorScheme.primary;
+    final accentColor = context.colorScheme.primary;
     final effectiveRingColor = ringColor ?? accentColor;
     final diameter = radius * 2;
     final initial = profileProvider.avatarInitial;

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -168,7 +169,7 @@ class RichDocEditingController extends TextEditingController {
     TextStyle? style,
     required bool withComposing,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final baseStyle =
         style ?? TextStyle(color: colorScheme.onSurface, fontSize: 15.0);
 
@@ -482,7 +483,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final revProvider = context.watch<RevisionProvider>();
 
     final subject = revProvider.subjects.firstWhere(
@@ -562,7 +563,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     Subject subject,
     List<ChapterTopic> topics,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final List<M3EDropdownItem<String>> dropdownItems = [
       const M3EDropdownItem(label: 'Subject Overview', value: '__overview__'),
@@ -861,7 +862,7 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
         children: [
           TextField(
             controller: _titleController,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            style: context.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
               color: colorScheme.onSurface,
             ),
@@ -985,8 +986,8 @@ class _RevisionNotesPaneState extends State<RevisionNotesPane> {
     BuildContext context,
     List<ChapterTopic> topics,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     if (topics.isEmpty) {
       return Center(

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -299,7 +300,7 @@ class ZetaEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final isCompact = size == ZetaEmptyStateSize.compact;
     final double coreShapeSize = isCompact ? 65.0 : 95.0;

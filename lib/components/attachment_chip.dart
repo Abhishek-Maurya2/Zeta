@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -41,7 +42,7 @@ class AttachmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -204,7 +205,7 @@ class _TaskAttachmentsChipGroupState extends State<TaskAttachmentsChipGroup>
     const double iconSize = 16.0;
     const double overlapOffset = 11.0;
     final totalWidth = iconSize + (displayedItems.length - 1) * overlapOffset;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return SizedBox(
       width: totalWidth,
@@ -240,7 +241,7 @@ class _TaskAttachmentsChipGroupState extends State<TaskAttachmentsChipGroup>
   Widget build(BuildContext context) {
     if (widget.attachments.isEmpty) return const SizedBox.shrink();
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isMultiple = widget.attachments.length > 1;
     final firstAttachment = widget.attachments.first;
 
@@ -519,7 +520,7 @@ class AttachmentFavicon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     if (type == AttachmentType.youtube) {
       return Container(

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../repositories/profile_repository.dart';
+import '../../profile/data/profile_repository.dart';
 import 'auth_service.dart';
 
 /// Application boundary for authentication and account session state.

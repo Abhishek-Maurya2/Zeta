@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -92,7 +93,7 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final revisionProvider = context.watch<RevisionProvider>();
     final profileProvider = context.watch<ProfileProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final syncError =
         taskProvider.syncError ??
@@ -254,9 +255,9 @@ class _ProfileCardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final themeProvider = context.watch<ThemeProvider>();
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final revisionProvider = context.watch<RevisionProvider>();

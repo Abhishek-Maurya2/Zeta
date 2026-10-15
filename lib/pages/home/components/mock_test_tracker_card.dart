@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -154,7 +155,7 @@ class _MockTestRadarCardState extends State<MockTestRadarCard> {
 
   Future<void> _openAddTestDialog() async {
     ZetaHaptics.medium();
-    final cs = Theme.of(context).colorScheme;
+    final cs = context.colorScheme;
 
     MockTestStage dialogStage = _selectedStage;
     DateTime dialogDate = DateTime.now();

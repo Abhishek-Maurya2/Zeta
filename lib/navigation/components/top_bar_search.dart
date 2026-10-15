@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -22,8 +23,8 @@ class TopBarSearch extends StatelessWidget {
     final taskProvider = context.watch<TaskProvider>();
     final themeProvider = context.watch<ThemeProvider>();
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

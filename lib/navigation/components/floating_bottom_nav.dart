@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +28,7 @@ class FloatingBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTasksPage = navProvider.activePage == PageId.tasks;
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final revProvider = context.watch<RevisionProvider>();
     final isRevisionSubpage = navProvider.activePage == PageId.revision &&
         revProvider.isSubpageActive;
@@ -148,7 +149,7 @@ class ToolbarNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final content = Row(
       mainAxisSize: MainAxisSize.min,

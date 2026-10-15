@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -243,8 +244,8 @@ class _SyncDataSectionState extends State<SyncDataSection> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final themeProvider = context.watch<ThemeProvider>();

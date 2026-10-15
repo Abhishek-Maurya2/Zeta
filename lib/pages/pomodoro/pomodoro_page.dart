@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -145,8 +146,8 @@ class _PomodoroPageState extends State<PomodoroPage> {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isTwoPane = sizeClass.isMultiPane;
     final provider = context.watch<PomodoroProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     // Sync tab with provider.activeTab (e.g. from cross-device resume)
     if (provider.activeTab == 'queue' && _activeTab != PomodoroTab.queue) {

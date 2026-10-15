@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -101,8 +102,8 @@ class _LoginPageState extends State<LoginPage> {
       builder: (bottomSheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            final colorScheme = Theme.of(context).colorScheme;
-            final textTheme = Theme.of(context).textTheme;
+            final colorScheme = context.colorScheme;
+            final textTheme = context.textTheme;
 
             return Padding(
               padding: EdgeInsets.only(

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'
     as flutter_localizations;
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
 import 'package:provider/provider.dart';
 
 import 'providers/theme_provider.dart';
@@ -59,7 +60,7 @@ void main([List<String> args = const <String>[]]) async {
   );
   DatabaseProvider.instance.init();
   final databaseReady = Completer<void>();
-  runApp(ZetaApp(databaseReady: databaseReady.future));
+  runApp(ProviderScope(child: ZetaApp(databaseReady: databaseReady.future)));
 
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_finishStartup(databaseReady));

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../models/attachment.dart';
@@ -76,7 +77,7 @@ class AttachmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
     final domain = _getDomain(attachment.url);
     final displayTitle = _getDisplayTitle();

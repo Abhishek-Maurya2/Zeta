@@ -1,3 +1,4 @@
+import 'package:zeta/core/core.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -7,7 +8,6 @@ import '../../../components/task_edit_pane.dart';
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
 import '../../../utils/haptics.dart';
-import '../../../theme/success_colors.dart';
 
 /// Dismissible swipe-to-complete and swipe-to-delete task list.
 class TasksDismissibleList extends StatelessWidget {
@@ -35,7 +35,7 @@ class TasksDismissibleList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final int totalCount = tasks.length + (trailingChild != null ? 1 : 0);

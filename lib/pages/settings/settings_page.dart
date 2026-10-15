@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -151,7 +152,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isTwoPane = sizeClass.isMultiPane;
     final isCompact = sizeClass.isCompact;
@@ -277,7 +278,7 @@ class _SettingsPageState extends State<SettingsPage> {
           maxAllowedWidth,
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final textTheme = Theme.of(context).textTheme;
+        final textTheme = context.textTheme;
 
         if (_isPaneCollapsed) {
           return Row(
@@ -452,8 +453,8 @@ class _SettingsPageState extends State<SettingsPage> {
     required SettingsCategory? activeCategory,
     required bool isTwoPane,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     bool isUpdateAvailable = false;
     try {

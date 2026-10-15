@@ -49,6 +49,26 @@ class TaskDao {
     return row == null ? null : AppDatabase.rowToTask(row);
   }
 
+  Future<Task?> getTaskById(String taskId) => getTask(taskId);
+
+  /// Reactive stream of active tasks (emits whenever SQLite tasks table changes).
+  Stream<List<Task>> watchActiveTasks() {
+    return (_db.select(_db.tasksTable)
+          ..where((t) => t.deletedAtMs.isNull() & _owner(t.userId))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAtMs)]))
+        .watch()
+        .map((rows) => rows.map(AppDatabase.rowToTask).toList());
+  }
+
+  /// Reactive stream of bin tasks.
+  Stream<List<Task>> watchBinTasks() {
+    return (_db.select(_db.tasksTable)
+          ..where((t) => t.deletedAtMs.isNotNull() & _owner(t.userId))
+          ..orderBy([(t) => OrderingTerm.desc(t.deletedAtMs)]))
+        .watch()
+        .map((rows) => rows.map(AppDatabase.rowToTask).toList());
+  }
+
   /// Returns all tasks modified offline that have not yet been synced to Supabase
   /// (i.e. lastSyncedAtMs is null or updatedAtMs > lastSyncedAtMs).
   Future<List<Task>> getUnsyncedTasks() async {

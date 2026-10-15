@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/task.dart';
@@ -23,7 +24,7 @@ class TaskSubtasksList extends StatelessWidget {
   Widget build(BuildContext context) {
     if (subtasks.isEmpty) return const SizedBox.shrink();
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final effectiveBgColor = backgroundColor ?? colorScheme.tertiaryContainer;
 
     return M3EList(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'package:drift/drift.dart';
 
@@ -63,6 +64,16 @@ class AppDatabase extends _$AppDatabase {
       );
     },
     onUpgrade: (m, from, to) async {},
+    beforeOpen: (details) async {
+      if (!kIsWeb) {
+        try {
+          await customStatement('PRAGMA journal_mode = WAL;');
+          await customStatement('PRAGMA synchronous = NORMAL;');
+          await customStatement('PRAGMA cache_size = -2000;');
+          await customStatement('PRAGMA temp_store = MEMORY;');
+        } catch (_) {}
+      }
+    },
   );
 
   // ─── Task helpers ───────────────────────────────────────────────────────────

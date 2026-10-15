@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 
 import '../services/quick_actions_service.dart';
 import '../services/cross_device_service.dart';
@@ -29,7 +30,7 @@ import 'components/navigation_rail_widget.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../components/m3e_split_pane.dart';
+import '../core/core.dart';
 
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
@@ -64,7 +65,7 @@ class _AppScaffoldState extends State<AppScaffold>
   late final M3EToolbarScrollBehavior _toolbarBehavior;
 
   /// Width of the co-planar task editor on tablet and desktop layouts.
-  double _taskEditPaneWidth = 380.0;
+  final double _taskEditPaneWidth = 380.0;
 
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
@@ -457,8 +458,11 @@ class _AppScaffoldState extends State<AppScaffold>
         navProvider.activePage == PageId.revision &&
         context.select<RevisionProvider, bool>((p) => p.isSubpageActive);
     final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
+    final hasActivePane =
+        riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider) != null;
     final backHandledByScaffold =
         isEditPaneOpen ||
+        hasActivePane ||
         isSelectionMode ||
         isSearchOpen ||
         (navProvider.activePage == PageId.settings &&
@@ -474,8 +478,8 @@ class _AppScaffoldState extends State<AppScaffold>
             navProvider.activePage != PageId.bin &&
             !isRevisionSubpage);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = context.theme.brightness == Brightness.dark;
+    final colorScheme = context.colorScheme;
 
     // Sync native Windows window title bar with theme colors safely via MethodChannel
     WindowsTitleBar.update(
@@ -519,6 +523,14 @@ class _AppScaffoldState extends State<AppScaffold>
         if (isEditPaneOpen) {
           ZetaHaptics.light();
           context.read<TaskProvider>().closeEditPane();
+          return;
+        }
+
+        // 0.1. If an active contextual supporting pane is open, close it
+        final activeCoord = riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider.notifier);
+        if (activeCoord.isOpen) {
+          ZetaHaptics.light();
+          activeCoord.closePane();
           return;
         }
 
@@ -661,146 +673,65 @@ class _AppScaffoldState extends State<AppScaffold>
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: !isEditPaneOpen
-                                              ? BodyPane(
-                                                  navigatorKey:
-                                                      _bodyNavigatorKey,
-                                                  backHandledByScaffold:
-                                                      backHandledByScaffold,
-                                                )
-                                              : LayoutBuilder(
-                                                  builder: (context, constraints) {
-                                                    final totalWidth =
-                                                        constraints.maxWidth;
-                                                    const minEditorWidth =
-                                                        300.0;
-                                                    const maxEditorWidth =
-                                                        600.0;
-                                                    final editorWidth =
-                                                        _taskEditPaneWidth
-                                                            .clamp(
-                                                              minEditorWidth,
-                                                              maxEditorWidth,
-                                                            );
-                                                    final maxStartWidth =
-                                                        totalWidth -
-                                                        minEditorWidth -
-                                                        24.0;
-                                                    final minStartWidth =
-                                                        totalWidth -
-                                                        maxEditorWidth -
-                                                        24.0;
-                                                    final startWidth =
-                                                        (totalWidth -
-                                                                editorWidth -
-                                                                24.0)
-                                                            .clamp(
-                                                              minStartWidth,
-                                                              maxStartWidth,
-                                                            );
+                                          child: Consumer<TaskProvider>(
+                                            builder: (context, taskProvider, _) {
+                                              return riverpod.Consumer(
+                                                builder: (context, ref, _) {
+                                                  final activePane = ref.watch(activePaneProvider);
+                                                  final hasTaskEdit = isEditPaneOpen;
+                                                  final hasActivePane = activePane != null;
+                                                  final showSupporting = hasTaskEdit || hasActivePane;
 
-                                                    return M3ESplitPane(
-                                                      value:
-                                                          (startWidth /
-                                                                  totalWidth *
-                                                                  100)
-                                                              .clamp(
-                                                                minStartWidth /
-                                                                    totalWidth *
-                                                                    100,
-                                                                maxStartWidth /
-                                                                    totalWidth *
-                                                                    100,
-                                                              ),
-                                                      min:
-                                                          minStartWidth /
-                                                          totalWidth *
-                                                          100,
-                                                      max:
-                                                          maxStartWidth /
-                                                          totalWidth *
-                                                          100,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          _taskEditPaneWidth =
-                                                              (totalWidth -
-                                                                      totalWidth *
-                                                                          value /
-                                                                          100 -
-                                                                      24)
-                                                                  .clamp(
-                                                                    minEditorWidth,
-                                                                    maxEditorWidth,
-                                                                  );
-                                                        });
-                                                      },
-                                                      onDoubleTap: () {
-                                                        setState(
-                                                          () =>
-                                                              _taskEditPaneWidth =
-                                                                  380.0,
-                                                        );
-                                                        ZetaHaptics.medium();
-                                                      },
-                                                      start: BodyPane(
-                                                        navigatorKey:
-                                                            _bodyNavigatorKey,
-                                                        backHandledByScaffold:
-                                                            backHandledByScaffold,
+                                                  Widget? supportingContent;
+                                                  if (hasTaskEdit) {
+                                                    supportingContent = TaskEditFormContent(
+                                                      key: ValueKey(
+                                                        '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
                                                       ),
-                                                      end: Container(
-                                                        margin:
-                                                            const EdgeInsets.fromLTRB(
+                                                      task: taskProvider.editingTask,
+                                                      initialTitle: taskProvider.editingInitialTitle,
+                                                      initialDescription: taskProvider.editingInitialDescription,
+                                                      initialDueDate: taskProvider.editingInitialDueDate,
+                                                      initialDueTime: taskProvider.editingInitialDueTime,
+                                                      initialHasTime: taskProvider.editingInitialHasTime,
+                                                      initialSubtasks: taskProvider.editingInitialSubtasks,
+                                                      onClose: taskProvider.closeEditPane,
+                                                    );
+                                                  } else if (hasActivePane) {
+                                                    supportingContent = activePane.child;
+                                                  }
+
+                                                  return SupportingPaneScaffold(
+                                                    defaultPaneWidth: activePane?.width ?? _taskEditPaneWidth,
+                                                    primaryPane: BodyPane(
+                                                      navigatorKey: _bodyNavigatorKey,
+                                                      backHandledByScaffold: backHandledByScaffold,
+                                                    ),
+                                                    supportingPane: !showSupporting || supportingContent == null
+                                                        ? null
+                                                        : Container(
+                                                            margin: const EdgeInsets.fromLTRB(
                                                               0,
                                                               10,
                                                               10,
                                                               6,
                                                             ),
-                                                        decoration: BoxDecoration(
-                                                          color: colorScheme
-                                                              .surfaceContainerHigh,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
+                                                            decoration: BoxDecoration(
+                                                              color: colorScheme.surfaceContainerHigh,
+                                                              borderRadius: BorderRadius.circular(
                                                                 20,
                                                               ),
-                                                        ),
-                                                        clipBehavior:
-                                                            Clip.antiAlias,
-                                                        child: SafeArea(
-                                                          child: Consumer<TaskProvider>(
-                                                            builder: (context, taskProvider, _) => TaskEditFormContent(
-                                                              key: ValueKey(
-                                                                '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
-                                                              ),
-                                                              task: taskProvider
-                                                                  .editingTask,
-                                                              initialTitle:
-                                                                  taskProvider
-                                                                      .editingInitialTitle,
-                                                              initialDescription:
-                                                                  taskProvider
-                                                                      .editingInitialDescription,
-                                                              initialDueDate:
-                                                                  taskProvider
-                                                                      .editingInitialDueDate,
-                                                              initialDueTime:
-                                                                  taskProvider
-                                                                      .editingInitialDueTime,
-                                                              initialHasTime:
-                                                                  taskProvider
-                                                                      .editingInitialHasTime,
-                                                              initialSubtasks:
-                                                                  taskProvider
-                                                                      .editingInitialSubtasks,
-                                                              onClose: taskProvider
-                                                                  .closeEditPane,
+                                                            ),
+                                                            clipBehavior: Clip.antiAlias,
+                                                            child: SafeArea(
+                                                              child: supportingContent,
                                                             ),
                                                           ),
-                                                        ),
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
                                         ),
                                         TaskSelectionToolbar(
                                           taskProvider: context

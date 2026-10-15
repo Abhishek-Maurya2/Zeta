@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -57,8 +58,8 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     final isRunning = provider.isRunning;
 

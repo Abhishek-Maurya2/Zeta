@@ -1,10 +1,11 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../components/glass_alert_dialog.dart';
 
 class EmptyBinDialog {
   static Future<bool?> show(BuildContext context, int totalCount) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return showGlassDialog<bool>(
       context: context,

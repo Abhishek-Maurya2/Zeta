@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -73,7 +74,7 @@ class _BinPageState extends State<BinPage> {
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
