@@ -115,11 +115,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
 
-    // Derive progress (0.0 to 1.0) directly or compute via provider values
-    final double progress = provider.progress.clamp(0.0, 1.0);
-    final int minutes = (provider.displaySeconds / 60).ceil();
-    final int completedDots = (progress * _totalDots).floor();
-
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
@@ -152,122 +147,137 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
               child: Scaffold(
                 backgroundColor: Colors.black,
                 body: SafeArea(
-                  child: Stack(
-                    children: [
-                      // ─── Center: Dot Matrix Progress Indicator ───────
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
-                          child: AnimatedOpacity(
-                            opacity: _controlsVisible ? 1.0 : 0.25,
-                            duration: const Duration(milliseconds: 300),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                maxWidth: 320,
-                                maxHeight: 320,
-                              ),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _totalDots,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: _gridCrossAxisCount,
-                                      crossAxisSpacing: 14,
-                                      mainAxisSpacing: 14,
-                                    ),
-                                itemBuilder: (context, index) {
-                                  final bool isFilled =
-                                      _dotFillOrder.indexOf(index) <
-                                      completedDots;
+                  child: ListenableBuilder(
+                    listenable: provider.tickNotifier,
+                    builder: (context, _) {
+                      // Derive progress (0.0 to 1.0) directly or compute via provider values on each tick
+                      final double progress = provider.progress.clamp(0.0, 1.0);
+                      final int minutes = (provider.displaySeconds / 60).ceil();
+                      final int completedDots = (progress * _totalDots).floor();
 
-                                  return AnimatedContainer(
-                                    duration: const Duration(milliseconds: 250),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isFilled
-                                          ? Colors.white
-                                          : Colors.transparent,
-                                      border: Border.all(
-                                        color: isFilled
-                                            ? Colors.white
-                                            : Colors.white.withValues(
-                                                alpha: 0.4,
-                                              ),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // ─── Top-Right: Exit Fullscreen Button ───────────
-                      Positioned(
-                        top: 16,
-                        right: 24,
-                        child: AnimatedOpacity(
-                          opacity: _controlsVisible ? 1.0 : 0.25,
-                          duration: const Duration(milliseconds: 300),
-                          child: IconButton.filledTonal(
-                            icon: const Icon(
-                              Icons.fullscreen_exit_rounded,
-                              color: Colors.white,
-                              size: 26,
-                            ),
-                            tooltip: 'Exit full screen (Esc)',
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.15,
-                              ),
-                              hoverColor: Colors.white.withValues(alpha: 0.25),
-                            ),
-                            onPressed: _exitFullscreen,
-                          ),
-                        ),
-                      ),
-
-                      // ─── Bottom-Left: Percentage Display ─────────────
-                      Positioned(
-                        bottom: 24,
-                        left: 24,
-                        child: AnimatedOpacity(
-                          opacity: _controlsVisible ? 1.0 : 0.25,
-                          duration: const Duration(milliseconds: 300),
-                          child: IgnorePointer(
-                            child: Text.rich(
-                              TextSpan(
-                                children: [
-                                  TextSpan(text: '$minutes'),
-                                  TextSpan(
-                                    text: ' min',
-                                    style: TextStyle(
-                                      fontSize: !isCompact ? 40 : 14,
-                                      letterSpacing: 0,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                      return Stack(
+                        children: [
+                          // ─── Center: Dot Matrix Progress Indicator ───────
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: AnimatedOpacity(
+                                opacity: _controlsVisible ? 1.0 : 0.25,
+                                duration: const Duration(milliseconds: 300),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 320,
+                                    maxHeight: 320,
                                   ),
-                                ],
-                              ),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: !isCompact ? 100 : 28,
-                                height: 1.0,
-                                fontFamily: 'headline',
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: !isCompact ? -4.0 : -0.9,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
+                                  child: GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: _totalDots,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: _gridCrossAxisCount,
+                                          crossAxisSpacing: 14,
+                                          mainAxisSpacing: 14,
+                                        ),
+                                    itemBuilder: (context, index) {
+                                      final bool isFilled =
+                                          _dotFillOrder.indexOf(index) <
+                                          completedDots;
+
+                                      return AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isFilled
+                                              ? Colors.white
+                                              : Colors.transparent,
+                                          border: Border.all(
+                                            color: isFilled
+                                                ? Colors.white
+                                                : Colors.white.withValues(
+                                                    alpha: 0.4,
+                                                  ),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
+
+                          // ─── Top-Right: Exit Fullscreen Button ───────────
+                          Positioned(
+                            top: 16,
+                            right: 24,
+                            child: AnimatedOpacity(
+                              opacity: _controlsVisible ? 1.0 : 0.25,
+                              duration: const Duration(milliseconds: 300),
+                              child: IconButton.filledTonal(
+                                icon: const Icon(
+                                  Icons.fullscreen_exit_rounded,
+                                  color: Colors.white,
+                                  size: 26,
+                                ),
+                                tooltip: 'Exit full screen (Esc)',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  hoverColor: Colors.white.withValues(
+                                    alpha: 0.25,
+                                  ),
+                                ),
+                                onPressed: _exitFullscreen,
+                              ),
+                            ),
+                          ),
+
+                          // ─── Bottom-Left: Minutes Display ────────────────
+                          Positioned(
+                            bottom: 24,
+                            left: 24,
+                            child: AnimatedOpacity(
+                              opacity: _controlsVisible ? 1.0 : 0.25,
+                              duration: const Duration(milliseconds: 300),
+                              child: IgnorePointer(
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: [
+                                      TextSpan(text: '$minutes'),
+                                      TextSpan(
+                                        text: ' min',
+                                        style: TextStyle(
+                                          fontSize: !isCompact ? 40 : 14,
+                                          letterSpacing: 0,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: !isCompact ? 100 : 28,
+                                    height: 1.0,
+                                    fontFamily: 'headline',
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: !isCompact ? -4.0 : -0.9,
+                                    fontFeatures: const [
+                                      FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),

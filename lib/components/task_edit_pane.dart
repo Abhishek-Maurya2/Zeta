@@ -1099,8 +1099,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                   Icons.close_rounded,
                                   color: colorScheme.onSurface,
                                 ),
-                                size: M3EIconButtonSize.sm,
-                                width: M3EIconButtonWidth.wide,
+                                width: M3EIconButtonWidth.narrow,
                                 decoration: M3EIconButtonDecoration(
                                   backgroundColor: WidgetStateProperty.all(
                                     colorScheme.surfaceContainerLowest

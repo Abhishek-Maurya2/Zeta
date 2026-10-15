@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -191,8 +191,9 @@ class _ProfileSectionState extends State<ProfileSection> {
                       children: [
                         UserAvatar(
                           radius: 36,
-                          showRing: true,
-                          ringWidth: 3.0,
+                          shape: UserAvatarShape.cookie9Sided,
+                          showGlow: true,
+                          showRing: false,
                           ringColor: profileSyncColor,
                           tooltip: profileProvider.syncError != null
                               ? 'Sync Error: ${profileProvider.syncError}'

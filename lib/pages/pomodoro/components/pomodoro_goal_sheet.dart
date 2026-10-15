@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -47,7 +47,9 @@ class PomodoroGoalSheet extends StatelessWidget {
 
         void updateGoal(int newVal) {
           ZetaHaptics.selection();
-          provider.updateSettings(settings.copyWith(dailyGoalMinutes: newVal));
+          provider.updateSettings(
+            provider.settings.copyWith(dailyGoalMinutes: newVal),
+          );
           setModalState(() {});
         }
 

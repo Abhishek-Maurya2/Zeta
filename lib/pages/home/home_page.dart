@@ -10,6 +10,7 @@ import '../../models/task.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../../utils/date_time_utils.dart';
 
 /// Production-ready HomePage mirroring Sharva's architecture:
 /// - 1. Interactive Material 3 Expressive Weekly Calendar Strip with date navigation & weather.
@@ -100,26 +101,66 @@ class _HomePageState extends State<HomePage> {
     final todayTasks = dateMap[todayKey] ?? const <Task>[];
     final todayActiveCount = todayTasks.where((t) => !t.completed).length;
 
-    // Focus Task: pick first active task on selected date; else first completed; else null
+    final isSelectedDateToday = DateTimeUtils.isSameDay(_selectedDate, today);
+
+    // Active tasks that have a parsed due date, sorted by due date ascending
+    final dueActiveTasks = activeTasks
+        .where((t) => t.parsedDueDate != null)
+        .toList()
+      ..sort((a, b) => a.parsedDueDate!.compareTo(b.parsedDueDate!));
+
+    // Tasks due on or before today (overdue + due today)
+    final dueNowTasks = dueActiveTasks.where((t) {
+      final due = t.parsedDueDate!;
+      return due.isBefore(today) || DateTimeUtils.isSameDay(due, today);
+    }).toList();
+
+    // Focus Task determination:
+    // When viewing today:
+    //   1. Earliest overdue or due today active task
+    //   2. Active task scheduled for today
+    //   3. Any active task with a due date (nearest upcoming)
+    //   4. First completed task for today
+    // When viewing another date:
+    //   1. First active task on selected date
+    //   2. First completed task on selected date
     Task? focusTask;
-    for (final t in selectedDateTasks) {
-      if (!t.completed) {
-        focusTask = t;
-        break;
+    if (isSelectedDateToday) {
+      if (dueNowTasks.isNotEmpty) {
+        focusTask = dueNowTasks.first;
+      } else {
+        for (final t in selectedDateTasks) {
+          if (!t.completed) {
+            focusTask = t;
+            break;
+          }
+        }
+        focusTask ??= dueActiveTasks.firstOrNull;
+        focusTask ??= selectedDateTasks.firstOrNull;
       }
+    } else {
+      for (final t in selectedDateTasks) {
+        if (!t.completed) {
+          focusTask = t;
+          break;
+        }
+      }
+      focusTask ??= selectedDateTasks.firstOrNull;
     }
-    focusTask ??= selectedDateTasks.isNotEmpty ? selectedDateTasks.first : null;
 
     // Up Next active tasks: exclude task visible in focus component and show the rest
     final upNextTasks = activeTasks
         .where((t) => focusTask == null || t.id != focusTask.id)
         .toList();
 
-    // Left Column: Focus (if scheduled) + Up Next Tasks
+    // Show focus card when there is a task, or when viewing today (to show empty state)
+    final showFocusCard = focusTask != null || isSelectedDateToday;
+
+    // Left Column: Focus (if scheduled/due or today) + Up Next Tasks
     final leftColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (focusTask != null) ...[
+        if (showFocusCard) ...[
           TodaysFocusCard(
             task: focusTask,
             selectedDate: _selectedDate,

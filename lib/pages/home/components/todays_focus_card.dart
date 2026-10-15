@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -40,6 +40,14 @@ class TodaysFocusCard extends StatelessWidget {
     final isToday = DateTimeUtils.isSameDay(selectedDate, today);
     final formattedDate = DateTimeUtils.formatFocusDate(selectedDate);
 
+    final parsedDue = task?.parsedDueDate;
+    final isOverdue = parsedDue != null &&
+        parsedDue.isBefore(today) &&
+        !(task?.completed ?? false);
+    final isDueToday = parsedDue != null &&
+        DateTimeUtils.isSameDay(parsedDue, today) &&
+        !(task?.completed ?? false);
+
     final dueFormatted = task?.dueDate != null
         ? TaskDateFormatter.formatTaskListDate(
             dueDate: task!.dueDate!,
@@ -80,16 +88,22 @@ class TodaysFocusCard extends StatelessWidget {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
+                  color: isOverdue
+                      ? colorScheme.errorContainer
+                      : colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  'SCHEDULED',
+                  isOverdue
+                      ? 'OVERDUE'
+                      : (isDueToday ? 'DUE TODAY' : 'SCHEDULED'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.8,
-                    color: colorScheme.onPrimaryContainer,
+                    color: isOverdue
+                        ? colorScheme.onErrorContainer
+                        : colorScheme.onPrimaryContainer,
                   ),
                 ),
               ),
@@ -237,6 +251,7 @@ class TodaysFocusCard extends StatelessWidget {
                   FocusTaskDueDateChip(
                     dueFormatted: dueFormatted,
                     hasTime: task!.hasTime,
+                    isOverdue: isOverdue,
                   ),
                 ],
               ],
@@ -263,7 +278,7 @@ class TodaysFocusCard extends StatelessWidget {
                   size: 27,
                 ),
                 label: const Text(
-                  'Add New Task',
+                  'Add Task',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 style: M3EButtonStyle.filled,

@@ -292,6 +292,45 @@ class _TypographySectionState extends State<TypographySection> {
                     case 0:
                       return _buildAxisSliderRow(
                         context: context,
+                        icon: Icons.rounded_corner_rounded,
+                        title: 'Roundness (ROND)',
+                        subtitle: currentConfig.roundness == 0
+                            ? 'Geometric / Crisp'
+                            : currentConfig.roundness >= 70
+                            ? 'Fully Rounded Soft'
+                            : 'Subtle Corner Softness',
+                        value: currentConfig.roundness,
+                        min: 0,
+                        max: 100,
+                        divisions: 100,
+                        badgeText: currentConfig.roundness.round().toString(),
+                        isSupported: currentConfig.supportedFont.supportsAxis(
+                          'ROND',
+                        ),
+                        unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
+                        helperLabel: 'Switch to Google Sans Flex',
+                        onEnableHelper: () {
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            currentConfig.copyWith(fontId: 'google-sans-flex'),
+                          );
+                          widget.onToast?.call(
+                            'Switched to Google Sans Flex with roundness',
+                          );
+                        },
+                        onChanged: (val) {
+                          final updated = currentConfig.copyWith(
+                            roundness: val,
+                          );
+                          themeProvider.updateRoleTypography(
+                            _selectedRole,
+                            updated,
+                          );
+                        },
+                      );
+                    case 1:
+                      return _buildAxisSliderRow(
+                        context: context,
                         icon: Icons.format_bold_rounded,
                         title: 'Weight (wght)',
                         subtitle: _weightLabel(currentConfig.weight),
@@ -311,7 +350,7 @@ class _TypographySectionState extends State<TypographySection> {
                           );
                         },
                       );
-                    case 1:
+                    case 2:
                       return _buildAxisSliderRow(
                         context: context,
                         icon: Icons.unfold_more_rounded,
@@ -348,7 +387,7 @@ class _TypographySectionState extends State<TypographySection> {
                           );
                         },
                       );
-                    case 2:
+                    case 3:
                       return _buildAxisSliderRow(
                         context: context,
                         icon: Icons.format_italic_rounded,
@@ -376,45 +415,6 @@ class _TypographySectionState extends State<TypographySection> {
                         },
                         onChanged: (val) {
                           final updated = currentConfig.copyWith(slant: val);
-                          themeProvider.updateRoleTypography(
-                            _selectedRole,
-                            updated,
-                          );
-                        },
-                      );
-                    case 3:
-                      return _buildAxisSliderRow(
-                        context: context,
-                        icon: Icons.rounded_corner_rounded,
-                        title: 'Roundness (ROND)',
-                        subtitle: currentConfig.roundness == 0
-                            ? 'Geometric / Crisp'
-                            : currentConfig.roundness >= 70
-                            ? 'Fully Rounded Soft'
-                            : 'Subtle Corner Softness',
-                        value: currentConfig.roundness,
-                        min: 0,
-                        max: 100,
-                        divisions: 100,
-                        badgeText: currentConfig.roundness.round().toString(),
-                        isSupported: currentConfig.supportedFont.supportsAxis(
-                          'ROND',
-                        ),
-                        unsupportedReason: 'Roundness (ROND) is exclusively available in Google Sans Flex',
-                        helperLabel: 'Switch to Google Sans Flex',
-                        onEnableHelper: () {
-                          themeProvider.updateRoleTypography(
-                            _selectedRole,
-                            currentConfig.copyWith(fontId: 'google-sans-flex'),
-                          );
-                          widget.onToast?.call(
-                            'Switched to Google Sans Flex with roundness',
-                          );
-                        },
-                        onChanged: (val) {
-                          final updated = currentConfig.copyWith(
-                            roundness: val,
-                          );
                           themeProvider.updateRoleTypography(
                             _selectedRole,
                             updated,

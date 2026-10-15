@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../components/zeta_empty_state.dart';
+
 import 'settings_category.dart';
 import 'profile_section.dart';
 import 'appearance_section.dart';
@@ -61,20 +63,33 @@ class SettingsDetailPane extends StatelessWidget {
         detailContent = UpdatesSection(onToast: onToast);
         break;
       case null:
-        detailContent = const SizedBox.shrink();
+        detailContent = isTwoPane
+            ? const ZetaEmptyState(
+                icon: Icons.settings_outlined,
+                title: 'Select a settings section',
+                subtitle:
+                    'Choose a section from the left pane to view its settings.',
+              )
+            : const SizedBox.shrink();
         break;
     }
 
     if (isTwoPane) {
-      return ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 820),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [const SizedBox(height: 20), detailContent],
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [const SizedBox(height: 20), detailContent],
+          ),
         ),
       );
     }
 
-    return detailContent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: detailContent,
+    );
   }
 }

@@ -158,9 +158,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final isCompact = sizeClass.isCompact;
 
     final selectedCategory = navProvider.selectedSettingsCategory;
-    final activeCategory = isTwoPane
-        ? (selectedCategory ?? SettingsCategory.profile)
-        : selectedCategory;
+    final activeCategory = selectedCategory;
 
     final activeCategoryMeta = activeCategory != null
         ? kSettingsCategories.firstWhere((c) => c.id == activeCategory)
@@ -244,16 +242,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                    sliver: SliverToBoxAdapter(
-                      child: SettingsDetailPane(
-                        activeCategory: selectedCategory,
-                        activeCategoryMeta: activeCategoryMeta,
-                        isTwoPane: false,
-                        isCompact: isCompact,
-                        onToast: _showToast,
-                      ),
+                  SliverToBoxAdapter(
+                    child: SettingsDetailPane(
+                      activeCategory: selectedCategory,
+                      activeCategoryMeta: activeCategoryMeta,
+                      isTwoPane: false,
+                      isCompact: isCompact,
+                      onToast: _showToast,
                     ),
                   ),
                 ],
@@ -316,15 +311,12 @@ class _SettingsPageState extends State<SettingsPage> {
                             style: textTheme.displaySmall,
                           ),
                         ),
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
-                          sliver: SliverToBoxAdapter(
-                            child: SettingsDetailPane(
-                              activeCategory: activeCategory,
-                              activeCategoryMeta: activeCategoryMeta,
-                              isTwoPane: true,
-                              onToast: _showToast,
-                            ),
+                        SliverToBoxAdapter(
+                          child: SettingsDetailPane(
+                            activeCategory: activeCategory,
+                            activeCategoryMeta: activeCategoryMeta,
+                            isTwoPane: true,
+                            onToast: _showToast,
                           ),
                         ),
                       ],
@@ -428,15 +420,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       style: textTheme.displaySmall,
                     ),
                   ),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(28, 12, 28, 36),
-                    sliver: SliverToBoxAdapter(
-                      child: SettingsDetailPane(
-                        activeCategory: activeCategory,
-                        activeCategoryMeta: activeCategoryMeta,
-                        isTwoPane: true,
-                        onToast: _showToast,
-                      ),
+                  SliverToBoxAdapter(
+                    child: SettingsDetailPane(
+                      activeCategory: activeCategory,
+                      activeCategoryMeta: activeCategoryMeta,
+                      isTwoPane: true,
+                      onToast: _showToast,
                     ),
                   ),
                 ],

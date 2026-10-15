@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../components/m3e_pane_divider.dart';
@@ -13,8 +14,8 @@ class SupportingPaneController extends ChangeNotifier {
   SupportingPaneController({
     bool initialOpen = false,
     double initialWidth = 400.0,
-  })  : _isOpen = initialOpen,
-        _paneWidth = initialWidth;
+  }) : _isOpen = initialOpen,
+       _paneWidth = initialWidth;
 
   bool get isOpen => _isOpen;
   double get paneWidth => _paneWidth;
@@ -176,11 +177,10 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxAllowed = math.min(
-          widget.maxPaneWidth,
-          constraints.maxWidth * 0.55,
-        );
-        final minAllowed = widget.minPaneWidth;
+        final maxAllowed = math
+            .min(widget.maxPaneWidth, constraints.maxWidth * 0.55)
+            .clamp(0.0, widget.maxPaneWidth);
+        final minAllowed = math.min(widget.minPaneWidth, maxAllowed);
         final clampedWidth = _currentWidth.clamp(minAllowed, maxAllowed);
 
         return Stack(
@@ -188,11 +188,7 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
             Row(
               children: [
                 // Primary Content Area
-                Expanded(
-                  child: RepaintBoundary(
-                    child: widget.primaryPane,
-                  ),
-                ),
+                Expanded(child: RepaintBoundary(child: widget.primaryPane)),
 
                 // Animated Supporting Pane with spring-driven M3 Expressive physics
                 if (widget.supportingPane != null)
@@ -211,10 +207,12 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
                             // Accessible Tactile Drag Divider
                             M3EPaneDivider(
                               orientation: Axis.horizontal,
-                              showLine: true,
+                              showLine: false,
                               onDragUpdate: (delta) {
-                                final newW = (_currentWidth - delta)
-                                    .clamp(minAllowed, maxAllowed);
+                                final newW = (_currentWidth - delta).clamp(
+                                  minAllowed,
+                                  maxAllowed,
+                                );
                                 setState(() {
                                   _currentWidth = newW;
                                 });
@@ -235,23 +233,7 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
                                   minWidth: clampedWidth,
                                   maxWidth: clampedWidth,
                                   alignment: Alignment.topLeft,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .surfaceContainerLow,
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .outlineVariant
-                                              .withValues(alpha: 0.5),
-                                          width: 1,
-                                        ),
-                                      ),
-                                    ),
-                                    child: widget.supportingPane,
-                                  ),
+                                  child: widget.supportingPane,
                                 ),
                               ),
                             ),

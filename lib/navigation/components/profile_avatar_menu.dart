@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -171,6 +171,11 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
             padding: const EdgeInsets.all(4),
             visualDensity: VisualDensity.compact,
             tooltip: widget.tooltipMessage,
+            style: IconButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             onPressed: () {
               if (controller.isOpen) {
                 controller.close();
@@ -180,9 +185,11 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
             },
             icon: UserAvatar(
               radius: 20,
-              ringWidth: 2,
               ringColor: syncRingColor,
               hasError: syncError != null,
+              shape: UserAvatarShape.gem,
+              showGlow: true,
+              showRing: false,
             ),
           ),
         );
@@ -369,12 +376,13 @@ class _ProfileCardContent extends StatelessWidget {
                   children: [
                     UserAvatar(
                       radius: 28,
-                      showRing: true,
-                      ringWidth: 2,
+                      showGlow: true,
+                      showRing: false,
                       ringColor: hasSyncError
                           ? colorScheme.error
                           : syncRingColor,
                       hasError: hasSyncError,
+                      shape: UserAvatarShape.bun,
                     ),
                     const SizedBox(width: 14),
                     Expanded(

@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -16,8 +16,9 @@ class TopBarBrand extends StatelessWidget {
     final navProvider = context.watch<NavigationProvider>();
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
-    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
-    final showBrandText = !isCompact;
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
+    final showBrandText = !isCompact && !sizeClass.isMedium;
 
     return Row(
       mainAxisSize: MainAxisSize.min,

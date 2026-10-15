@@ -1,7 +1,7 @@
 name: zeta
 description: "Zeta - Task Managment App with Material 3 Expressive"
 publish_to: "none"
-version: 1.5.5
+version: 1.5.6
 
 environment:
   sdk: ^3.13.3
@@ -78,6 +78,11 @@ flutter:
       fonts:
         - asset: assets/fonts/nothing-dot.otf
     - family: NothingHeadline
+      fonts:
+        - asset: assets/fonts/nothing-headline.otf
+    # Keep the short family name used by dashboard display text in sync with
+    # the bundled Nothing Headline face.
+    - family: headline
       fonts:
         - asset: assets/fonts/nothing-headline.otf
 

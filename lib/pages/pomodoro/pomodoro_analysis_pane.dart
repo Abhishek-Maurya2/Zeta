@@ -1,9 +1,8 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
-import '../../models/pomodoro.dart';
 import '../../providers/pomodoro_provider.dart';
 import 'components/pomodoro_chart_canvas.dart';
 import 'components/pomodoro_analysis_header.dart';
@@ -183,8 +182,8 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionLog = context.select<PomodoroProvider, List<PomodoroSessionLog>>((p) => p.sessionLog);
-    final provider = context.read<PomodoroProvider>();
+    final provider = context.watch<PomodoroProvider>();
+    final sessionLog = provider.sessionLog;
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
 

@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/task.dart';
@@ -302,21 +302,28 @@ class StreakPeriodChip extends StatelessWidget {
 class FocusTaskDueDateChip extends StatelessWidget {
   final String dueFormatted;
   final bool hasTime;
+  final bool isOverdue;
 
   const FocusTaskDueDateChip({
     super.key,
     required this.dueFormatted,
     this.hasTime = false,
+    this.isOverdue = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final fgColor =
+        isOverdue ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final borderColor = isOverdue
+        ? colorScheme.error.withValues(alpha: 0.5)
+        : colorScheme.outlineVariant;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: colorScheme.outlineVariant),
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -325,7 +332,7 @@ class FocusTaskDueDateChip extends StatelessWidget {
           Icon(
             hasTime ? Icons.schedule_rounded : Icons.event_rounded,
             size: 16,
-            color: colorScheme.onSurfaceVariant,
+            color: fgColor,
           ),
           const SizedBox(width: 8),
           Text(
@@ -333,7 +340,7 @@ class FocusTaskDueDateChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: colorScheme.onSurfaceVariant,
+              color: fgColor,
             ),
           ),
         ],
