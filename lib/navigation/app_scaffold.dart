@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 
 import '../services/quick_actions_service.dart';
 import '../services/cross_device_service.dart';
@@ -457,8 +458,11 @@ class _AppScaffoldState extends State<AppScaffold>
         navProvider.activePage == PageId.revision &&
         context.select<RevisionProvider, bool>((p) => p.isSubpageActive);
     final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
+    final hasActivePane =
+        riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider) != null;
     final backHandledByScaffold =
         isEditPaneOpen ||
+        hasActivePane ||
         isSelectionMode ||
         isSearchOpen ||
         (navProvider.activePage == PageId.settings &&
@@ -519,6 +523,14 @@ class _AppScaffoldState extends State<AppScaffold>
         if (isEditPaneOpen) {
           ZetaHaptics.light();
           context.read<TaskProvider>().closeEditPane();
+          return;
+        }
+
+        // 0.1. If an active contextual supporting pane is open, close it
+        final activeCoord = riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider.notifier);
+        if (activeCoord.isOpen) {
+          ZetaHaptics.light();
+          activeCoord.closePane();
           return;
         }
 
@@ -661,65 +673,65 @@ class _AppScaffoldState extends State<AppScaffold>
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: SupportingPaneScaffold(
-                                            defaultPaneWidth: _taskEditPaneWidth,
-                                            primaryPane: BodyPane(
-                                              navigatorKey: _bodyNavigatorKey,
-                                              backHandledByScaffold: backHandledByScaffold,
-                                            ),
-                                            supportingPane: !isEditPaneOpen
-                                                ? null
-                                                : Container(
-                                                        margin:
-                                                            const EdgeInsets.fromLTRB(
+                                          child: Consumer<TaskProvider>(
+                                            builder: (context, taskProvider, _) {
+                                              return riverpod.Consumer(
+                                                builder: (context, ref, _) {
+                                                  final activePane = ref.watch(activePaneProvider);
+                                                  final hasTaskEdit = isEditPaneOpen;
+                                                  final hasActivePane = activePane != null;
+                                                  final showSupporting = hasTaskEdit || hasActivePane;
+
+                                                  Widget? supportingContent;
+                                                  if (hasTaskEdit) {
+                                                    supportingContent = TaskEditFormContent(
+                                                      key: ValueKey(
+                                                        '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                      ),
+                                                      task: taskProvider.editingTask,
+                                                      initialTitle: taskProvider.editingInitialTitle,
+                                                      initialDescription: taskProvider.editingInitialDescription,
+                                                      initialDueDate: taskProvider.editingInitialDueDate,
+                                                      initialDueTime: taskProvider.editingInitialDueTime,
+                                                      initialHasTime: taskProvider.editingInitialHasTime,
+                                                      initialSubtasks: taskProvider.editingInitialSubtasks,
+                                                      onClose: taskProvider.closeEditPane,
+                                                    );
+                                                  } else if (hasActivePane) {
+                                                    supportingContent = activePane.child;
+                                                  }
+
+                                                  return SupportingPaneScaffold(
+                                                    defaultPaneWidth: activePane?.width ?? _taskEditPaneWidth,
+                                                    primaryPane: BodyPane(
+                                                      navigatorKey: _bodyNavigatorKey,
+                                                      backHandledByScaffold: backHandledByScaffold,
+                                                    ),
+                                                    supportingPane: !showSupporting || supportingContent == null
+                                                        ? null
+                                                        : Container(
+                                                            margin: const EdgeInsets.fromLTRB(
                                                               0,
                                                               10,
                                                               10,
                                                               6,
                                                             ),
-                                                        decoration: BoxDecoration(
-                                                          color: colorScheme
-                                                              .surfaceContainerHigh,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
+                                                            decoration: BoxDecoration(
+                                                              color: colorScheme.surfaceContainerHigh,
+                                                              borderRadius: BorderRadius.circular(
                                                                 20,
                                                               ),
-                                                        ),
-                                                        clipBehavior:
-                                                            Clip.antiAlias,
-                                                        child: SafeArea(
-                                                          child: Consumer<TaskProvider>(
-                                                            builder: (context, taskProvider, _) => TaskEditFormContent(
-                                                              key: ValueKey(
-                                                                '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
-                                                              ),
-                                                              task: taskProvider
-                                                                  .editingTask,
-                                                              initialTitle:
-                                                                  taskProvider
-                                                                      .editingInitialTitle,
-                                                              initialDescription:
-                                                                  taskProvider
-                                                                      .editingInitialDescription,
-                                                              initialDueDate:
-                                                                  taskProvider
-                                                                      .editingInitialDueDate,
-                                                              initialDueTime:
-                                                                  taskProvider
-                                                                      .editingInitialDueTime,
-                                                              initialHasTime:
-                                                                  taskProvider
-                                                                      .editingInitialHasTime,
-                                                              initialSubtasks:
-                                                                  taskProvider
-                                                                      .editingInitialSubtasks,
-                                                              onClose: taskProvider
-                                                                  .closeEditPane,
+                                                            ),
+                                                            clipBehavior: Clip.antiAlias,
+                                                            child: SafeArea(
+                                                              child: supportingContent,
                                                             ),
                                                           ),
-                                                        ),
-                                                      ),
-                                            ),
+                                                  );
+                                                },
+                                              );
+                                            },
+                                          ),
                                         ),
                                         TaskSelectionToolbar(
                                           taskProvider: context

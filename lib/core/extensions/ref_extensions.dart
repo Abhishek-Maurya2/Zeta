@@ -11,6 +11,7 @@ import '../../features/weather/data/weather_preferences.dart';
 import '../../features/tasks/presentation/state/task_providers.dart';
 import '../../models/task.dart';
 import '../../features/profile/data/profile_repository.dart';
+import '../pane/active_pane_coordinator.dart';
 import '../sync/sync_coordinator.dart';
 
 /// Ergonomic hooks for WidgetRef to directly access repositories, preferences, and services.
@@ -31,6 +32,11 @@ extension ZetaWidgetRefX on WidgetRef {
   // ─── Sync ──────────────────────────────────────────────────────────────────
   SyncCoordinator get syncCoordinator => read(syncCoordinatorProvider.notifier);
   SyncState get syncState => watch(syncCoordinatorProvider);
+
+  // ─── Active Pane Coordinator ──────────────────────────────────────────────
+  ActivePaneCoordinator get activePaneCoordinator =>
+      read(activePaneProvider.notifier);
+  ActivePaneConfig? get activePane => watch(activePaneProvider);
 
   // ─── Task Reactive Hooks ──────────────────────────────────────────────────
   List<Task> get pendingTasks => watch(pendingTasksProvider);
