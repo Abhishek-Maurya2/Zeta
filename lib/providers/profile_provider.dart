@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../repositories/profile_repository.dart';
+import '../features/profile/data/profile_repository.dart';
 import '../services/network_service.dart';
 import '../utils/app_logger.dart';
 import '../utils/performance_trace.dart';

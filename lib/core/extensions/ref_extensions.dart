@@ -10,6 +10,7 @@ import '../../features/theme/data/theme_preferences.dart';
 import '../../features/weather/data/weather_preferences.dart';
 import '../../features/tasks/presentation/state/task_providers.dart';
 import '../../models/task.dart';
+import '../../features/profile/data/profile_repository.dart';
 import '../sync/sync_coordinator.dart';
 
 /// Ergonomic hooks for WidgetRef to directly access repositories, preferences, and services.
@@ -18,6 +19,7 @@ extension ZetaWidgetRefX on WidgetRef {
   TaskRepository get taskRepo => read(taskRepositoryProvider);
   PomodoroRepository get pomodoroRepo => read(pomodoroRepositoryProvider);
   RevisionRepository get revisionRepo => read(revisionRepositoryProvider);
+  ProfileRepository get profileRepo => read(profileRepositoryProvider);
 
   // ─── Scoped Preferences ────────────────────────────────────────────────────
   TaskPreferences get taskPrefs => read(taskPreferencesProvider);

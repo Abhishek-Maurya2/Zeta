@@ -2,13 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../database/app_database.dart';
-import '../database/daos/profile_dao.dart';
-import '../database/database_provider.dart';
-import '../services/profile_cache_service.dart';
-import '../services/profile_service.dart';
-import '../services/supabase_service.dart';
+import '../../../database/app_database.dart';
+import '../../../database/daos/profile_dao.dart';
+import '../../../database/database_provider.dart';
+import '../../../services/profile_cache_service.dart';
+import '../../../services/profile_service.dart';
+import '../../../services/supabase_service.dart';
+
+final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
+  return ProfileRepository();
+});
 
 /// Local-first repository coordinating SQLite profile state with Supabase.
 class ProfileRepository {
