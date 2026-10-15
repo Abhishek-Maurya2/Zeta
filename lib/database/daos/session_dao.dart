@@ -39,6 +39,17 @@ class SessionDao {
     return rows.map(AppDatabase.rowToSession).toList();
   }
 
+  /// Reactive stream of recent Pomodoro sessions from Drift SQLite.
+  Stream<List<PomodoroSessionLog>> watchRecentSessions({int limit = 200}) {
+    final query = _db.select(_db.pomodoroSessionsTable)
+      ..where((t) => _owner(t.userId))
+      ..orderBy([(t) => OrderingTerm.desc(t.completedAtMs)])
+      ..limit(limit);
+    return query
+        .watch()
+        .map((rows) => rows.map(AppDatabase.rowToSession).toList());
+  }
+
   /// Returns all sessions ever stored (for full sync reconciliation).
   Future<List<PomodoroSessionLog>> getAllSessions() async {
     final rows =

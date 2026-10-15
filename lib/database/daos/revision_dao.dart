@@ -27,6 +27,24 @@ class RevisionDao {
     return rows.map(AppDatabase.rowToSubject).toList();
   }
 
+  /// Reactive stream of revision subjects.
+  Stream<List<Subject>> watchSubjects() {
+    return (_db.select(_db.revisionSubjectsTable)
+          ..where((t) => _owner(t.userId))
+          ..orderBy([(t) => OrderingTerm.asc(t.createdAtMs)]))
+        .watch()
+        .map((rows) => rows.map(AppDatabase.rowToSubject).toList());
+  }
+
+  /// Reactive stream of topics for a subject.
+  Stream<List<ChapterTopic>> watchTopicsForSubject(String subjectId) {
+    return (_db.select(_db.revisionTopicsTable)
+          ..where((t) => t.subjectId.equals(subjectId) & _owner(t.userId))
+          ..orderBy([(t) => OrderingTerm.asc(t.sortOrder)]))
+        .watch()
+        .map((rows) => rows.map(AppDatabase.rowToTopic).toList());
+  }
+
   Future<void> upsertSubject(Subject subject) async {
     await _db
         .into(_db.revisionSubjectsTable)
