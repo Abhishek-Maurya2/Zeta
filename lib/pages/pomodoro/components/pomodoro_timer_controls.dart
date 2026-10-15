@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,7 @@ class PomodoroTimerControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
     final isRunning = provider.isRunning;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return SizedBox(
       height: 96,

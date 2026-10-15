@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -236,8 +237,8 @@ class _WeatherSectionState extends State<WeatherSection> {
   @override
   Widget build(BuildContext context) {
     final weatherProvider = context.watch<WeatherProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     final isMasterOn = weatherProvider.weatherEnabled;
     final weather = weatherProvider.weatherData;
@@ -938,7 +939,7 @@ class _WeatherSectionState extends State<WeatherSection> {
     required String label,
     required bool enabled,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

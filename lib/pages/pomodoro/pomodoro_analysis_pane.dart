@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -184,8 +185,8 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
   Widget build(BuildContext context) {
     final sessionLog = context.select<PomodoroProvider, List<PomodoroSessionLog>>((p) => p.sessionLog);
     final provider = context.read<PomodoroProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(

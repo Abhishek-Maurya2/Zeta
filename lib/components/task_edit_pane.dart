@@ -1,3 +1,4 @@
+import 'package:zeta/core/core.dart';
 import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
@@ -12,7 +13,6 @@ import '../services/cross_device_service.dart';
 import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
-import '../theme/success_colors.dart';
 import 'glass_sheet.dart';
 import 'glass_surface.dart';
 import 'zeta_timepicker.dart';
@@ -1031,7 +1031,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
 
     return Padding(
@@ -1062,7 +1062,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 autofocus: true,
                                 maxLines: 4,
                                 minLines: 1,
-                                style: Theme.of(context).textTheme.displaySmall
+                                style: context.textTheme.displaySmall
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       color: colorScheme.onSurface,
@@ -1487,7 +1487,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               const SizedBox(width: 12),
                               Text(
                                 'Due Date & Time',
-                                style: Theme.of(context).textTheme.displayMedium
+                                style: context.textTheme.displayMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
@@ -1556,7 +1556,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                             children: [
                               Text(
                                 'Subtasks',
-                                style: Theme.of(context).textTheme.displayMedium
+                                style: context.textTheme.displayMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
@@ -1779,7 +1779,7 @@ class AttachmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
     final domain = _getDomain(attachment.url);
     final displayTitle = _getDisplayTitle();

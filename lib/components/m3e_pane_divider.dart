@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/material.dart';
 import '../utils/haptics.dart';
 
@@ -59,7 +60,7 @@ class _M3EPaneDividerState extends State<M3EPaneDivider> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isActive = _isHovered || _isDragging;
     final isHorizontal = widget.orientation == Axis.horizontal;
 

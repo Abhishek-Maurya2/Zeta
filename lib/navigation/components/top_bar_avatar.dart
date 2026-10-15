@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -39,7 +40,7 @@ class TopBarAvatar extends StatelessWidget {
     final String tooltipMessage;
 
     if (syncError != null) {
-      syncRingColor = Theme.of(context).colorScheme.error;
+      syncRingColor = context.colorScheme.error;
       tooltipMessage = '${profileProvider.userName} • Sync Error: $syncError';
     } else if (isSyncing) {
       syncRingColor = const Color(0xFFF59E0B); // amber — syncing

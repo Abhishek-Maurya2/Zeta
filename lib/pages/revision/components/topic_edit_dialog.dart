@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -144,7 +145,7 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.subject != null;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return GlassAlertDialog(
       title: Text(isEditing ? 'Edit Subject' : 'New Subject'),
@@ -186,7 +187,7 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
 
             Text(
               'Select Icon',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              style: context.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -238,7 +239,7 @@ class _SubjectEditDialogState extends State<SubjectEditDialog> {
 
             Text(
               'Accent Color',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              style: context.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -364,7 +365,7 @@ class _TopicEditDialogState extends State<TopicEditDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.topic != null;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return GlassAlertDialog(
       title: Text(isEditing ? 'Edit Topic' : 'Add Topic'),

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -23,7 +24,7 @@ class RevisionPane2 extends StatelessWidget {
   Widget build(BuildContext context) {
     final revProvider = context.watch<RevisionProvider>();
     final taskProvider = context.read<TaskProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final selectedSubject = revProvider.selectedSubject;
     final topics = revProvider.topicsForSelectedSubject;

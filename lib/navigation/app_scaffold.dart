@@ -29,7 +29,7 @@ import 'components/navigation_rail_widget.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../core/layout/supporting_pane_scaffold.dart';
+import '../core/core.dart';
 
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
@@ -474,8 +474,8 @@ class _AppScaffoldState extends State<AppScaffold>
             navProvider.activePage != PageId.bin &&
             !isRevisionSubpage);
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = context.theme.brightness == Brightness.dark;
+    final colorScheme = context.colorScheme;
 
     // Sync native Windows window title bar with theme colors safely via MethodChannel
     WindowsTitleBar.update(

@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -169,8 +170,8 @@ class _CrossDeviceSectionState extends State<CrossDeviceSection> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final authProvider = context.watch<AuthProvider>();
     final isSignedIn = authProvider.status == AuthStatus.signedIn;
     final isWindows = !kIsWeb && Platform.isWindows;

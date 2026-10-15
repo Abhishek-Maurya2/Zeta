@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -92,8 +93,8 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     final themeProvider = context.watch<ThemeProvider>();
     final notifProvider = context.watch<NotificationProvider>();
 
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     final isMasterOn = notifProvider.notificationsEnabled;
 
@@ -407,7 +408,7 @@ class _NotificationsSyncSectionState extends State<NotificationsSyncSection> {
     String title,
     List<Widget> items,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

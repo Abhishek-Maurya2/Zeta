@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -152,7 +153,7 @@ class _RevisionPageState extends State<RevisionPage> {
   Widget build(BuildContext context) {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isTwoPane = sizeClass.isMultiPane;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final revProvider = context.watch<RevisionProvider>();
 
     if (revProvider.isLoading) {

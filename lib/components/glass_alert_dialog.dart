@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'glass_surface.dart';
@@ -80,8 +81,8 @@ class GlassAlertDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final radius = borderRadius ?? BorderRadius.circular(28);
     final bg =
         backgroundColor ??

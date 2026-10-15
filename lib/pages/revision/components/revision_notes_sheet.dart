@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as m;
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -260,8 +261,8 @@ class _RevisionNotesSheetState extends State<RevisionNotesSheet> {
   }
 
   Widget _buildHeader(BuildContext context, Subject subject) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
@@ -400,8 +401,8 @@ class _RevisionNotesSheetState extends State<RevisionNotesSheet> {
     Subject subject,
     List<ChapterTopic> topics,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     final title = _titleController.text;
     final content = _contentController.text.trim();
@@ -514,8 +515,8 @@ class _RevisionNotesSheetState extends State<RevisionNotesSheet> {
 
   /// Aggregated view showing all topic notes under the subject sequentially!
   Widget _buildAllTopicsView(BuildContext context, List<ChapterTopic> topics) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     if (topics.isEmpty) {
       return Center(
@@ -602,8 +603,8 @@ class _RevisionNotesSheetState extends State<RevisionNotesSheet> {
   }
 
   Widget _buildEditView(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -799,7 +800,7 @@ class _RevisionNotesSheetState extends State<RevisionNotesSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
+                color: context.colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
               borderRadius: BorderRadius.circular(8),
             ),

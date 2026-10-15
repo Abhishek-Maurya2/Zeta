@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -24,7 +25,7 @@ class ZetaDayPeriodControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool landscape = !forInput && orientation == Orientation.landscape;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return M3EButtonGroup(
       type: M3EButtonGroupType.standard,
@@ -518,7 +519,7 @@ class _ZetaTimePickerDialogState extends State<ZetaTimePickerDialog> {
           padding: const EdgeInsets.symmetric(horizontal: 6),
           child: Text(
             ':',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            style: context.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w500,
               color: colorScheme.onSurface,
             ),
@@ -590,7 +591,7 @@ class _ZetaTimePickerDialogState extends State<ZetaTimePickerDialog> {
                     expands: true,
                     maxLines: null,
                     textAlignVertical: TextAlignVertical.center,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    style: context.textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: focused
                           ? colorScheme.onPrimaryContainer
@@ -654,7 +655,7 @@ class _ZetaTimePickerDialogState extends State<ZetaTimePickerDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Text(
               ':',
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              style: context.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: colorScheme.onSurface,
               ),
@@ -677,7 +678,7 @@ class _ZetaTimePickerDialogState extends State<ZetaTimePickerDialog> {
                     expands: true,
                     maxLines: null,
                     textAlignVertical: TextAlignVertical.center,
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    style: context.textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       color: focused
                           ? colorScheme.onPrimaryContainer
@@ -792,7 +793,7 @@ class _ZetaTimePickerDialogState extends State<ZetaTimePickerDialog> {
             onAccentColor: colorScheme.onPrimary,
             labelColor: colorScheme.onSurface,
             labelStyle:
-                Theme.of(context).textTheme.bodyLarge ?? const TextStyle(),
+                context.textTheme.bodyLarge ?? const TextStyle(),
             textDirection: Directionality.of(context),
           ),
         ),
@@ -890,7 +891,7 @@ class _TimeNumberBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Material(
       color: Colors.transparent,
@@ -915,7 +916,7 @@ class _TimeNumberBox extends StatelessWidget {
           ),
           child: Text(
             text,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            style: context.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w500,
               color: isActive
                   ? colorScheme.onPrimaryContainer

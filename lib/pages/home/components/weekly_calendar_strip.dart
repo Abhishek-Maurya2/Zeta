@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -336,7 +337,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final taskProvider = context.watch<TaskProvider>();
 
     final isSelectedToday = DateTimeUtils.isSameDay(

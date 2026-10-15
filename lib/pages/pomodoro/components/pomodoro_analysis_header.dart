@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -96,8 +97,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final now = DateTime.now();
 
     return Column(

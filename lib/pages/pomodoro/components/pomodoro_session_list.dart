@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -103,8 +104,8 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
     final sessionLog = provider.sessionLog;
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
 
     // Group ALL sessions by calendar day first (newest to oldest)
     final reversedLogs = sessionLog.reversed.toList();

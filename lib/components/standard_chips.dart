@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/task.dart';
@@ -19,7 +20,7 @@ class TaskDueDateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (task.dueDate == null) return const SizedBox.shrink();
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     // Show clock icon only when displaying time-only (due today with a scheduled time)
     final showTimeOnly =
         DateTimeUtils.isToday(task.dueDate) &&
@@ -76,7 +77,7 @@ class TaskDeletedDateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -127,7 +128,7 @@ class TaskSubtasksBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (subtasks.isEmpty) return const SizedBox.shrink();
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final completedCount = subtasks.where((s) => s.completed).length;
 
     return InkWell(
@@ -194,7 +195,7 @@ class StreakStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -239,7 +240,7 @@ class StreakBestBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Text(
       'Best: ${bestStreak}d',
@@ -260,7 +261,7 @@ class StreakPeriodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -310,7 +311,7 @@ class FocusTaskDueDateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -445,7 +446,7 @@ class TaskRevisionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final content = Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

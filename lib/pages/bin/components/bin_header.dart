@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -20,7 +21,7 @@ class BinHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
@@ -39,7 +40,7 @@ class BinHeader extends StatelessWidget {
                 children: [
                   Text(
                     'Bin',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    style: context.textTheme.displayMedium?.copyWith(
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.5,
                       color: colorScheme.onSurface,
@@ -89,7 +90,7 @@ class BinHeader extends StatelessWidget {
   }
 
   Widget _buildButtonGroup(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     return M3EButtonGroup(
       type: M3EButtonGroupType.standard,

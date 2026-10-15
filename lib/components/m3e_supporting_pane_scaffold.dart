@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:zeta/core/core.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/breakpoints.dart';
 import '../utils/haptics.dart';
 import 'm3e_pane_divider.dart';
@@ -73,7 +74,7 @@ class M3ESupportingPaneScaffold extends StatelessWidget {
       return mainPane;
     }
 
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     // Multi-pane mode on Expanded & Large (>= 840dp)
     return LayoutBuilder(

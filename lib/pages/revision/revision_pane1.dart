@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -28,8 +29,8 @@ class RevisionPane1 extends StatelessWidget {
   Widget build(BuildContext context) {
     final revProvider = context.watch<RevisionProvider>();
     final taskProvider = context.read<TaskProvider>();
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final subjects = revProvider.subjects;
     final selectedSubject = revProvider.selectedSubject;
 
@@ -224,8 +225,8 @@ class RevisionPane1 extends StatelessWidget {
     required IconData icon,
     required Color color,
   }) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = context.textTheme;
+    final colorScheme = context.colorScheme;
     return Column(
       children: [
         Icon(icon, color: color, size: 20),

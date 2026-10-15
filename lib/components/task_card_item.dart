@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -51,7 +52,7 @@ class TaskCardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
     final isCompletedOrDeleted = isDeleted || task.completed;
@@ -220,7 +221,7 @@ class TaskCardItem extends StatelessWidget {
   }
 
   Widget _buildLeading(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     if (isDeleted) {
       return Padding(
@@ -281,7 +282,7 @@ class TaskCardItem extends StatelessWidget {
   }
 
   Widget _buildBinTrailing(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
 
     final actions = <M3EButtonGroupAction>[];
     final callbacks = <VoidCallback>[];

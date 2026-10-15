@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -216,7 +217,7 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
     }
 
     final weather = weatherProvider.weatherData;
-    final colorScheme = Theme.of(context).colorScheme;
+    final colorScheme = context.colorScheme;
     final isWindows = defaultTargetPlatform == TargetPlatform.windows;
 
     final tempStr = weather != null
@@ -677,7 +678,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

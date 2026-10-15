@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../theme/breakpoints.dart';
+import '../../theme/success_colors.dart';
 
 /// Ergonomic BuildContext extensions for UI styling and responsive layouts.
 /// Eliminates boilerplate definitions of colorScheme, textTheme, and isCompact.
@@ -14,6 +15,9 @@ extension ZetaContextX on BuildContext {
   /// Active TextTheme.
   TextTheme get textTheme => theme.textTheme;
 
+  /// Active Success Colors semantic family.
+  SuccessColors get successColors => theme.successColors;
+
   /// Logical screen size (uses MediaQuery.sizeOf for zero wasteful rebuilds).
   Size get screenSize => MediaQuery.sizeOf(this);
 
@@ -24,7 +28,8 @@ extension ZetaContextX on BuildContext {
   double get screenHeight => screenSize.height;
 
   /// Window size class based on official Material 3 breakpoints.
-  ZetaWindowSizeClass get windowSizeClass => ZetaWindowSizeClass.fromWidth(screenWidth);
+  ZetaWindowSizeClass get windowSizeClass =>
+      ZetaWindowSizeClass.fromWidth(screenWidth);
 
   /// Phone portrait / compact layout (< 600dp).
   bool get isCompact => screenWidth < ZetaBreakpoints.mediumMin;

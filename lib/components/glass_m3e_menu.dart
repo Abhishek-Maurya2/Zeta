@@ -1,3 +1,4 @@
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -18,7 +19,7 @@ Future<T?> showGlassM3EMenu<T>({
   M3EMenuTheme? themeOverride,
   double? menuHeightOverride,
 }) async {
-  final colorScheme = Theme.of(context).colorScheme;
+  final colorScheme = context.colorScheme;
   final count = M3EMenuPlacer.approximateItemCount(children);
 
   final menuTheme =

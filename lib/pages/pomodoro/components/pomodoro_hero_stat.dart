@@ -1,5 +1,6 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../models/pomodoro.dart';
@@ -55,8 +56,8 @@ class PomodoroHeroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final now = DateTime.now();
     final todayStr = toLocalDateStr(now);
 
@@ -343,7 +344,7 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final textTheme = context.textTheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
