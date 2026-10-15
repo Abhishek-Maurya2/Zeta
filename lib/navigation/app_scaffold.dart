@@ -29,7 +29,7 @@ import 'components/navigation_rail_widget.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
-import '../components/m3e_split_pane.dart';
+import '../core/layout/supporting_pane_scaffold.dart';
 
 import '../theme/breakpoints.dart';
 import '../theme/motion_tokens.dart';
@@ -64,7 +64,7 @@ class _AppScaffoldState extends State<AppScaffold>
   late final M3EToolbarScrollBehavior _toolbarBehavior;
 
   /// Width of the co-planar task editor on tablet and desktop layouts.
-  double _taskEditPaneWidth = 380.0;
+  final double _taskEditPaneWidth = 380.0;
 
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
@@ -661,94 +661,15 @@ class _AppScaffoldState extends State<AppScaffold>
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
-                                          child: !isEditPaneOpen
-                                              ? BodyPane(
-                                                  navigatorKey:
-                                                      _bodyNavigatorKey,
-                                                  backHandledByScaffold:
-                                                      backHandledByScaffold,
-                                                )
-                                              : LayoutBuilder(
-                                                  builder: (context, constraints) {
-                                                    final totalWidth =
-                                                        constraints.maxWidth;
-                                                    const minEditorWidth =
-                                                        300.0;
-                                                    const maxEditorWidth =
-                                                        600.0;
-                                                    final editorWidth =
-                                                        _taskEditPaneWidth
-                                                            .clamp(
-                                                              minEditorWidth,
-                                                              maxEditorWidth,
-                                                            );
-                                                    final maxStartWidth =
-                                                        totalWidth -
-                                                        minEditorWidth -
-                                                        24.0;
-                                                    final minStartWidth =
-                                                        totalWidth -
-                                                        maxEditorWidth -
-                                                        24.0;
-                                                    final startWidth =
-                                                        (totalWidth -
-                                                                editorWidth -
-                                                                24.0)
-                                                            .clamp(
-                                                              minStartWidth,
-                                                              maxStartWidth,
-                                                            );
-
-                                                    return M3ESplitPane(
-                                                      value:
-                                                          (startWidth /
-                                                                  totalWidth *
-                                                                  100)
-                                                              .clamp(
-                                                                minStartWidth /
-                                                                    totalWidth *
-                                                                    100,
-                                                                maxStartWidth /
-                                                                    totalWidth *
-                                                                    100,
-                                                              ),
-                                                      min:
-                                                          minStartWidth /
-                                                          totalWidth *
-                                                          100,
-                                                      max:
-                                                          maxStartWidth /
-                                                          totalWidth *
-                                                          100,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          _taskEditPaneWidth =
-                                                              (totalWidth -
-                                                                      totalWidth *
-                                                                          value /
-                                                                          100 -
-                                                                      24)
-                                                                  .clamp(
-                                                                    minEditorWidth,
-                                                                    maxEditorWidth,
-                                                                  );
-                                                        });
-                                                      },
-                                                      onDoubleTap: () {
-                                                        setState(
-                                                          () =>
-                                                              _taskEditPaneWidth =
-                                                                  380.0,
-                                                        );
-                                                        ZetaHaptics.medium();
-                                                      },
-                                                      start: BodyPane(
-                                                        navigatorKey:
-                                                            _bodyNavigatorKey,
-                                                        backHandledByScaffold:
-                                                            backHandledByScaffold,
-                                                      ),
-                                                      end: Container(
+                                          child: SupportingPaneScaffold(
+                                            defaultPaneWidth: _taskEditPaneWidth,
+                                            primaryPane: BodyPane(
+                                              navigatorKey: _bodyNavigatorKey,
+                                              backHandledByScaffold: backHandledByScaffold,
+                                            ),
+                                            supportingPane: !isEditPaneOpen
+                                                ? null
+                                                : Container(
                                                         margin:
                                                             const EdgeInsets.fromLTRB(
                                                               0,
@@ -798,9 +719,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                           ),
                                                         ),
                                                       ),
-                                                    );
-                                                  },
-                                                ),
+                                            ),
                                         ),
                                         TaskSelectionToolbar(
                                           taskProvider: context
