@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
@@ -204,7 +204,7 @@ class PomodoroHeroStat extends StatelessWidget {
         );
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 28).round();
-        subtitle = 'per day';
+        subtitle = '/day';
         periodBadgeLabel = '4 weeks';
       } else {
         final target = DateTime(now.year, now.month + offset, 1);
@@ -217,7 +217,7 @@ class PomodoroHeroStat extends StatelessWidget {
         });
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / lastDay).round();
-        subtitle = 'per day';
+        subtitle = '/day';
         periodBadgeLabel = '${monthName(target.month)} ${target.year}';
       }
     } else if (range == ChartRange.year) {
@@ -244,7 +244,7 @@ class PomodoroHeroStat extends StatelessWidget {
         });
         totalPeriodMinutes = entries.fold<int>(0, (sum, e) => sum + e.minutes);
         minutesToDisplay = (totalPeriodMinutes / 365).round();
-        subtitle = 'per day';
+        subtitle = '/day';
         periodBadgeLabel = '12 months';
       } else {
         final targetYear = now.year + offset;
@@ -261,7 +261,7 @@ class PomodoroHeroStat extends StatelessWidget {
             ).difference(DateTime(targetYear, 1, 1)).inDays +
             1);
         minutesToDisplay = (totalPeriodMinutes / daysCount).round();
-        subtitle = 'per day';
+        subtitle = '/day';
         periodBadgeLabel = '$targetYear';
       }
     }
@@ -269,10 +269,9 @@ class PomodoroHeroStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 10,
-          runSpacing: 4,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
               formatDuration(minutesToDisplay),
@@ -282,6 +281,7 @@ class PomodoroHeroStat extends StatelessWidget {
                 color: colorScheme.onSurface,
               ),
             ),
+            const SizedBox(width: 8),
             Text(
               subtitle,
               style: textTheme.titleMedium?.copyWith(

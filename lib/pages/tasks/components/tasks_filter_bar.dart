@@ -1,8 +1,7 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../components/glass_m3e_menu.dart';
 import '../../../providers/task_provider.dart';
 import '../../../utils/haptics.dart';
 
@@ -151,12 +150,9 @@ class _TasksSortSplitButtonState extends State<_TasksSortSplitButton> {
             ZetaHaptics.light();
             widget.onCycleSort();
           },
-          decoration: M3ESplitButtonDecoration(
+          decoration: const M3ESplitButtonDecoration(
             popupDecoration: M3ESplitButtonPopupDecoration(
-              backgroundColor: widget.colorScheme.tertiaryContainer.withValues(
-                alpha: 0.50,
-              ),
-              elevation: 0,
+              elevation: 3,
             ),
           ),
           menuBuilder: (_) {
@@ -166,14 +162,13 @@ class _TasksSortSplitButtonState extends State<_TasksSortSplitButton> {
               final anchor = renderBox != null
                   ? (renderBox.localToGlobal(Offset.zero) & renderBox.size)
                   : Rect.zero;
-              await showGlassM3EMenu<TaskSortOption>(
+              await showM3EMenu<TaskSortOption>(
                 context: buttonContext,
                 anchor: anchor,
                 position: M3EMenuAnchorPosition.bottomEnd,
                 colorStyle: M3EMenuColorStyle.vibrant,
                 selectedValue: widget.sortBy,
                 preferredWidth: 200,
-                menuHeightOverride: 52.0 * TaskSortOption.values.length,
                 children: TaskSortOption.values.map((option) {
                   return M3EMenuSelectable(
                     value: option,

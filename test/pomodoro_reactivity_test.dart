@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zeta/database/database_provider.dart';
-import 'package:zeta/models/pomodoro.dart';
 import 'package:zeta/pages/pomodoro/pomodoro_ambient_page.dart';
 import 'package:zeta/pages/pomodoro/pomodoro_analysis_pane.dart';
 import 'package:zeta/providers/pomodoro_provider.dart';

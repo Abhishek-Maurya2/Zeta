@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
@@ -179,7 +179,16 @@ class _SettingsPageState extends State<SettingsPage> {
       _wideLastCategory = activeCategory;
     }
     if (!isTwoPane) {
-      return M3EPageTransition(
+      return PopScope(
+        canPop: selectedCategory == null,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          if (selectedCategory != null) {
+            ZetaHaptics.light();
+            navProvider.clearSettingsCategory();
+          }
+        },
+        child: M3EPageTransition(
         currentIndex: currentCompactIdx,
         previousIndex: prevCompactIdx,
         transitionType: M3EPageTransitionType.sharedAxisX,
@@ -253,6 +262,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ],
               ),
+        ),
       );
     }
 

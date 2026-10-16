@@ -259,6 +259,12 @@ class _AppScaffoldState extends State<AppScaffold>
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
+    // When at the top of the screen in compact mode, always show the floating nav bar
+    if (notification.metrics.axis == Axis.vertical &&
+        notification.metrics.pixels <= 10) {
+      _toolbarController.show();
+    }
+
     if (_isRefreshing ||
         context.read<NavigationProvider>().activePage == PageId.settings ||
         context.read<NavigationProvider>().activePage == PageId.bin ||
@@ -465,8 +471,6 @@ class _AppScaffoldState extends State<AppScaffold>
         hasActivePane ||
         isSelectionMode ||
         isSearchOpen ||
-        (navProvider.activePage == PageId.settings &&
-            navProvider.selectedSettingsCategory != null) ||
         isRevisionSubpage;
 
     // Top app bar visibility
@@ -548,13 +552,6 @@ class _AppScaffoldState extends State<AppScaffold>
           return;
         }
 
-        // 3. If in Settings and inside a specific section, pop back to Settings main page first
-        if (navProvider.activePage == PageId.settings &&
-            navProvider.selectedSettingsCategory != null) {
-          ZetaHaptics.light();
-          navProvider.clearSettingsCategory();
-          return;
-        }
 
         // 3.1. If in Revision and on Notes, pop back to Topics first
         if (navProvider.activePage == PageId.revision) {

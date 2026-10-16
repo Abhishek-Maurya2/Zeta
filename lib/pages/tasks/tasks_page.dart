@@ -8,6 +8,7 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../settings/components/settings_section_heading.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
 import 'components/tasks_filter_bar.dart';
@@ -254,7 +255,7 @@ class _TasksPageState extends State<TasksPage> {
                         onContextMenu: _showContextMenu,
                       ),
                   ] else ...[
-                    // All tasks view
+                    // All tasks view: 2 separate M3ELists (1 for Tasks, 1 for Revision)
                     if (pending.isEmpty && completed.isEmpty)
                       TasksEmptyView(
                         filter: filter,
@@ -263,13 +264,44 @@ class _TasksPageState extends State<TasksPage> {
                         onClearSearch: () => taskProvider.clearSearchQuery(),
                       )
                     else ...[
-                      if (pending.isNotEmpty)
+                      // 1. Regular Tasks Section
+                      if (pendingNonRevision.isNotEmpty) ...[
+                        if (taskProvider.revisionTasks.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4, bottom: 8),
+                            child: SettingsSectionHeading(
+                              'Tasks (${pendingNonRevision.length})',
+                            ),
+                          ),
+                        ],
                         TasksDismissibleList(
-                          tasks: pending,
+                          key: const ValueKey('all_regular_tasks_list'),
+                          tasks: pendingNonRevision,
                           provider: taskProvider,
                           onContextMenu: _showContextMenu,
-                        )
-                      else
+                        ),
+                      ],
+
+                      // 2. Revision Tasks Section (separate M3EList)
+                      if (taskProvider.revisionTasks.isNotEmpty) ...[
+                        if (pendingNonRevision.isNotEmpty)
+                          const SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          child: SettingsSectionHeading(
+                            'Revision (${taskProvider.revisionTasks.length})',
+                          ),
+                        ),
+                        TasksDismissibleList(
+                          key: const ValueKey('all_revision_tasks_list'),
+                          tasks: taskProvider.revisionTasks,
+                          provider: taskProvider,
+                          onContextMenu: _showContextMenu,
+                        ),
+                      ],
+
+                      if (pendingNonRevision.isEmpty &&
+                          taskProvider.revisionTasks.isEmpty)
                         TasksEmptyView(
                           filter: filter,
                           isSearching: isSearching,
