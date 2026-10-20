@@ -129,6 +129,10 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
     _pomodoroAlertsEnabled = value;
     _syncService();
     if (!_isDisposed) notifyListeners();
+    if (!value) {
+      // When focus timer alerts are turned off, also cancel live progress
+      await NotificationService.instance.cancelPomodoroProgress();
+    }
     try {
       final prefs = PreferencesService.instance;
       await prefs.setBool(_prefKeyPomodoro, value);

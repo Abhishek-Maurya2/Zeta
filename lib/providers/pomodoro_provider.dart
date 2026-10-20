@@ -400,16 +400,21 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
   void _onSessionComplete() {
     pauseTimer();
 
-    // Haptic & Sound notification
-    if (_settings.soundNotification) {
+    final ns = NotificationService.instance;
+    final alertsEnabled = ns.masterEnabled && ns.pomodoroAlertsEnabled;
+
+    // Haptic & Sound notification (only if alerts are enabled in settings)
+    if (alertsEnabled && _settings.soundNotification) {
       SystemSound.play(SystemSoundType.alert);
     }
-    ZetaHaptics.heavy();
+    if (alertsEnabled) {
+      ZetaHaptics.heavy();
+    }
 
     // Fire system notification.
     final completedMode = currentSession?.mode ?? PomodoroMode.focus;
-    NotificationService.instance.cancelPomodoroProgress();
-    NotificationService.instance.showPomodoroComplete(completedMode);
+    ns.cancelPomodoroProgress();
+    ns.showPomodoroComplete(completedMode);
 
     // Log the completed session
     final currentItem = currentSession;

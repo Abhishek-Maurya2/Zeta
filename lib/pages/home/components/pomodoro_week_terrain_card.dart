@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-
 import '../../../providers/theme_provider.dart'; // Adjust path as needed
 
 import '../../../models/pomodoro.dart';
@@ -26,8 +25,13 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
   @override
   Widget build(BuildContext context) {
-    final sessionLog = context.select<PomodoroProvider, List<PomodoroSessionLog>>((p) => p.sessionLog);
-    final weekDailyGoalMinutes = context.select<PomodoroProvider, int>((p) => p.settings.weekDailyGoalMinutes);
+    final sessionLog = context
+        .select<PomodoroProvider, List<PomodoroSessionLog>>(
+          (p) => p.sessionLog,
+        );
+    final weekDailyGoalMinutes = context.select<PomodoroProvider, int>(
+      (p) => p.settings.weekDailyGoalMinutes,
+    );
     final now = DateTime.now();
     final todayStr = PomodoroChartCanvas.toLocalDateStr(now);
 
@@ -80,7 +84,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(maxHeight: 320, maxWidth: 220),
+      constraints: const BoxConstraints(maxHeight: 320),
       decoration: BoxDecoration(
         color: cardBg,
         borderRadius: BorderRadius.circular(28),

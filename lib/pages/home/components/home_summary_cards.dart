@@ -52,26 +52,19 @@ class HomeSummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      // crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ─── 5. Completion Rate & Completed Tasks Row ────────────
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: CompletionRateCard(
-                completionRate: completionRate,
-                completedCount: completedCount,
-                onMoreTap: onMoreTap,
-                onOptionsTap: onOptionsTap,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
-            ),
-          ],
+        // ─── 1. Task Completion & Multi-Telemetry Metrics Card ───
+        CompletionRateCard(
+          completionRate: completionRate,
+          completedCount: completedCount,
+          onMoreTap: onMoreTap,
+          onOptionsTap: onOptionsTap,
         ),
+        const SizedBox(height: 14),
+
+        // ─── 2. Pomodoro Terrain Card ────────────────────────────
+        PomodoroWeekTerrainCard(onOpenAnalysis: onOpenPomodoroAnalysis),
         const SizedBox(height: 14),
         // ─── 1. Streak Calendar + Mock Radar (responsive) ────────
         LayoutBuilder(

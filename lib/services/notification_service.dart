@@ -406,9 +406,15 @@ class NotificationService {
     );
   }
 
+  /// Tracks Android live notification update throttling
+  DateTime? _lastAndroidLiveUpdate;
+  bool? _lastAndroidRunningState;
+  PomodoroMode? _lastAndroidMode;
+
   /// Updates live ongoing progress notification for the active Pomodoro session.
   ///
   /// - Android: uses native ongoing notification with real progress bar and live countdown.
+  ///   Throttled to every 5 seconds to prevent repeated heads-up alerts.
   /// - Windows: updates Action Center toast with clean ASCII progress bar, throttled to prevent spam.
   Future<void> updatePomodoroProgress({
     required PomodoroMode mode,
@@ -442,8 +448,32 @@ class NotificationService {
                 : 'Long Break'));
 
     // --- 1. Android: Native ongoing notification with system progress bar & action buttons ---
+    // Throttled to prevent repeated heads-up alerts. Only update on state changes or every 5s.
     if (!kIsWeb && Platform.isAndroid) {
+      final now = DateTime.now();
+      final runningStateChanged = _lastAndroidRunningState != isRunning;
+      final modeChanged = _lastAndroidMode != mode;
+      _lastAndroidRunningState = isRunning;
+      _lastAndroidMode = mode;
+
+      final shouldUpdate = forceWindowsUpdate ||
+          runningStateChanged ||
+          modeChanged ||
+          _lastAndroidLiveUpdate == null ||
+          now.difference(_lastAndroidLiveUpdate!).inSeconds >= 5;
+
+      if (!shouldUpdate) return;
+      _lastAndroidLiveUpdate = now;
+
       try {
+        // Use chronometer so Android natively counts up/down without per-second updates
+        final chronometerCountDown = !countUp;
+        final whenMs = isRunning
+            ? DateTime.now()
+                .add(Duration(seconds: timeLeft))
+                .millisecondsSinceEpoch
+            : null;
+
         final details = NotificationDetails(
           android: AndroidNotificationDetails(
             _NotifIds.pomodoroLiveChannelId,
@@ -461,9 +491,13 @@ class NotificationService {
             onlyAlertOnce: true,
             playSound: false,
             enableVibration: false,
+            silent: true,
             icon: '@mipmap/ic_launcher',
             subText: formattedTime,
-            category: AndroidNotificationCategory.progress,
+            usesChronometer: isRunning,
+            chronometerCountDown: chronometerCountDown,
+            when: whenMs,
+            category: AndroidNotificationCategory.service,
             actions: <AndroidNotificationAction>[
               AndroidNotificationAction(
                 'action_toggle',
@@ -592,6 +626,9 @@ class NotificationService {
     _lastWindowsLiveUpdate = null;
     _lastWindowsRunningState = null;
     _lastWindowsMode = null;
+    _lastAndroidLiveUpdate = null;
+    _lastAndroidRunningState = null;
+    _lastAndroidMode = null;
 
     if (!kIsWeb) {
       if (Platform.isAndroid) {

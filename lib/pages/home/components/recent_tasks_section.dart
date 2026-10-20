@@ -1,10 +1,11 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/task_provider.dart';
+import '../../../components/m3e_custom_list_item.dart';
 import '../../../components/task_card_item.dart';
 import '../../../components/task_context_menu.dart';
 import '../../../components/task_edit_pane.dart';
@@ -12,9 +13,10 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 
 /// Up Next Section:
 /// - Header with checklist icon, active tasks count pill, and "View All →" link to Tasks page.
-/// - Segmented column of active tasks with full subtask collapse, edit, and context menu support.
+/// - Shows maximum of 3 tasks initially.
+/// - Footer listitem styled like Focus card bottom bar to load 3 more tasks after showing loading indicator.
 /// - Expressive empty state when no active tasks exist.
-class UpNextSection extends StatelessWidget {
+class UpNextSection extends StatefulWidget {
   final List<Task> tasks;
   final int totalCount;
   final VoidCallback? onViewAll;
@@ -25,6 +27,29 @@ class UpNextSection extends StatelessWidget {
     required this.totalCount,
     this.onViewAll,
   });
+
+  @override
+  State<UpNextSection> createState() => _UpNextSectionState();
+}
+
+class _UpNextSectionState extends State<UpNextSection> {
+  int _maxDisplayed = 3;
+  bool _isLoading = false;
+
+  void _loadMore() {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+    });
+    Future.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) {
+        setState(() {
+          _maxDisplayed += 3;
+          _isLoading = false;
+        });
+      }
+    });
+  }
 
   void _showContextMenu(
     BuildContext context,
@@ -48,6 +73,11 @@ class UpNextSection extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final navProvider = context.read<NavigationProvider>();
+
+    final visibleTasks = widget.tasks.take(_maxDisplayed).toList();
+    final hasMore = widget.tasks.length > visibleTasks.length;
+    final remainingCount = widget.tasks.length - visibleTasks.length;
+    final nextBatchCount = remainingCount < 3 ? remainingCount : 3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,7 +118,7 @@ class UpNextSection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Text(
-                      '$totalCount',
+                      '${widget.totalCount}',
                       style: TextStyle(
                         fontSize: 14,
                         fontFamily: 'RobotoMono',
@@ -106,7 +136,7 @@ class UpNextSection extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap:
-                    onViewAll ??
+                    widget.onViewAll ??
                     () {
                       navProvider.setActivePage(PageId.tasks);
                     },
@@ -144,12 +174,50 @@ class UpNextSection extends StatelessWidget {
         const SizedBox(height: 12),
 
         // ─── List of Tasks or Empty State ────────────────────────────────────
-        if (tasks.isNotEmpty) ...[
+        if (widget.tasks.isNotEmpty) ...[
           M3EList(
             color: colorScheme.surfaceContainerLowest,
-            itemCount: tasks.length,
+            outerRadius: 28,
+            innerRadius: 8,
+            gap: 4,
+            itemCount: visibleTasks.length + (hasMore ? 1 : 0),
             itemBuilder: (context, index) {
-              final task = tasks[index];
+              if (hasMore && index == visibleTasks.length) {
+                return M3ECustomListItem(
+                  key: const ValueKey('up_next_load_more_footer'),
+                  customChild: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Center(
+                      child: _isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4),
+                              child: M3ELoadingIndicator(
+                                variant: M3ELoadingIndicatorVariant.defaultStyle,
+                              ),
+                            )
+                          : M3EButton.icon(
+                              icon: const Icon(
+                                Icons.expand_more_rounded,
+                                fontWeight: FontWeight.bold,
+                                size: 27,
+                              ),
+                              label: Text(
+                                 'More Tasks',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              style: M3EButtonStyle.filled,
+                              size: M3EButtonSize.md,
+                              onPressed: _loadMore,
+                            ),
+                    ),
+                  ),
+                );
+              }
+
+              final task = visibleTasks[index];
               return Selector<TaskProvider, bool>(
                 selector: (_, p) => p.isTaskExpanded(task.id),
                 builder: (context, isExpanded, _) {
