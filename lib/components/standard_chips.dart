@@ -1,5 +1,6 @@
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../models/task.dart';
 import '../utils/date_time_utils.dart';
@@ -38,11 +39,10 @@ class TaskDueDateChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            showTimeOnly
-                ? Icons.schedule_rounded
-                : Icons.calendar_today_outlined,
+            showTimeOnly ? Symbols.schedule_rounded : Symbols.today_rounded,
             size: 16,
             color: colorScheme.onSecondaryContainer,
+            fill: 1,
             fontWeight: FontWeight.w600,
           ),
           const SizedBox(width: 8),
@@ -92,9 +92,10 @@ class TaskDeletedDateChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.schedule_rounded,
+            Symbols.schedule_rounded,
             size: 15,
             color: colorScheme.onSurfaceVariant,
+            fill: 1,
           ),
           const SizedBox(width: 5),
           Text(
@@ -148,11 +149,12 @@ class TaskSubtasksBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.checklist_rounded,
+              Symbols.checklist_rounded,
               size: 16,
               color: isExpanded
                   ? colorScheme.onPrimaryContainer
                   : colorScheme.onSurfaceVariant,
+              fill: 1,
               fontWeight: FontWeight.w600,
             ),
             const SizedBox(width: 5),
@@ -170,11 +172,11 @@ class TaskSubtasksBadge extends StatelessWidget {
               const SizedBox(width: 3),
               Icon(
                 isExpanded
-                    ? Icons.expand_less_rounded
-                    : Icons.expand_more_rounded,
+                    ? Symbols.expand_less_rounded
+                    : Symbols.expand_more_rounded,
                 size: 16,
                 fontWeight: FontWeight.w600,
-
+                fill: 1,
                 color: isExpanded
                     ? colorScheme.onSecondaryContainer
                     : colorScheme.onSurfaceVariant,
@@ -209,11 +211,12 @@ class StreakStatusChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.bolt_rounded,
+            Symbols.bolt_rounded,
             size: 13,
             color: hasActiveStreak
                 ? Colors.amber.shade700
                 : colorScheme.onSurfaceVariant,
+            fill: 1,
           ),
           const SizedBox(width: 3),
           Text(
@@ -271,7 +274,12 @@ class StreakPeriodChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.date_range_rounded, size: 14, color: colorScheme.primary),
+          Icon(
+            Symbols.date_range_rounded,
+            size: 14,
+            color: colorScheme.primary,
+            fill: 1,
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -314,8 +322,9 @@ class FocusTaskDueDateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-    final fgColor =
-        isOverdue ? colorScheme.error : colorScheme.onSurfaceVariant;
+    final fgColor = isOverdue
+        ? colorScheme.error
+        : colorScheme.onSurfaceVariant;
     final borderColor = isOverdue
         ? colorScheme.error.withValues(alpha: 0.5)
         : colorScheme.outlineVariant;
@@ -330,9 +339,10 @@ class FocusTaskDueDateChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            hasTime ? Icons.schedule_rounded : Icons.event_rounded,
+            hasTime ? Symbols.schedule_rounded : Symbols.event_rounded,
             size: 16,
             color: fgColor,
+            fill: 1,
           ),
           const SizedBox(width: 8),
           Text(
@@ -418,12 +428,13 @@ class RevisionTagInfo {
         final stageMatch = _stageRegex.firstMatch(rawDescription);
         if (stageMatch != null) {
           final stageNum = stageMatch.group(1);
-          label = 'Revision • Stage $stageNum';
+          label = 'Round $stageNum';
         }
 
         // Strip the revision tag and stage repetition marker from the description
-        String cleaned =
-            rawDescription.replaceAll(_stripRevisionRegex, '').trim();
+        String cleaned = rawDescription
+            .replaceAll(_stripRevisionRegex, '')
+            .trim();
 
         // Clean up any dangling leading/trailing bullets, dashes, or separators
         cleaned = cleaned.replaceAll(_cleanSeparatorsRegex, '').trim();
@@ -456,7 +467,7 @@ class TaskRevisionChip extends StatelessWidget {
     final colorScheme = context.colorScheme;
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: colorScheme.tertiaryContainer.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(8),
@@ -465,9 +476,10 @@ class TaskRevisionChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.auto_stories_rounded,
+            Symbols.book_5_rounded,
             size: 15,
             color: colorScheme.onTertiaryContainer,
+            fill: 1,
           ),
           const SizedBox(width: 6),
           Text(
