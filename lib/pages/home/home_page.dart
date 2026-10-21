@@ -104,10 +104,9 @@ class _HomePageState extends State<HomePage> {
     final isSelectedDateToday = DateTimeUtils.isSameDay(_selectedDate, today);
 
     // Active tasks that have a parsed due date, sorted by due date ascending
-    final dueActiveTasks = activeTasks
-        .where((t) => t.parsedDueDate != null)
-        .toList()
-      ..sort((a, b) => a.parsedDueDate!.compareTo(b.parsedDueDate!));
+    final dueActiveTasks =
+        activeTasks.where((t) => t.parsedDueDate != null).toList()
+          ..sort((a, b) => a.parsedDueDate!.compareTo(b.parsedDueDate!));
 
     // Tasks due on or before today (overdue + due today)
     final dueNowTasks = dueActiveTasks.where((t) {
@@ -181,8 +180,6 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         HomeSummaryCards(
-          selectedDate: _selectedDate,
-          onSelectDate: _handleSelectDate,
           activeCount: activeCount,
           todayActiveCount: todayActiveCount,
           completionRate: completionRate,

@@ -1,10 +1,10 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
-import 'package:zeta/core/core.dart';
+import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../../models/task.dart';
 import '../../../providers/task_provider.dart';
@@ -52,11 +52,8 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     _today = DateTime(now.year, now.month, now.day);
     _scrollController = ScrollController();
 
-    // Center "today" after the initial layout pass
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _centerOnToday(animate: false);
-      }
+      if (mounted) _centerOnToday(animate: false);
     });
   }
 
@@ -116,12 +113,407 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
     );
   }
 
-  Widget _buildChevronButton({
-    required BuildContext context,
-    required bool isNext,
-    required ColorScheme colorScheme,
-    required VoidCallback onPressed,
+  Widget _buildDaySliver({
+    Key? key,
+    required bool isPast,
+    required Map<String, List<Task>> tasksByDateKey,
+    required double itemExtent,
+    required bool isCompact,
   }) {
+    return SliverFixedExtentList(
+      key: key,
+      itemExtent: itemExtent,
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final offset = isPast ? -(index + 1) : index;
+        final dayDate = _today.add(Duration(days: offset));
+        final dateKey = '${dayDate.year}-${dayDate.month}-${dayDate.day}';
+
+        return _StripDayPill(
+          dayDate: dayDate,
+          dayOffset: offset,
+          today: _today,
+          isSelected: DateTimeUtils.isSameDay(dayDate, widget.selectedDate),
+          tasks: tasksByDateKey[dateKey] ?? const [],
+          itemExtent: itemExtent,
+          isCompact: isCompact,
+          onTap: () {
+            ZetaHaptics.selection();
+            widget.onSelectDate(dayDate);
+            _centerOnDayOffset(offset);
+          },
+        );
+      }),
+    );
+  }
+
+  Widget _buildScrollableStrip({
+    required double itemExtent,
+    required bool isCompact,
+    required Map<String, List<Task>> tasksByDateKey,
+  }) {
+    return CustomScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      center: _centerKey,
+      slivers: [
+        _buildDaySliver(
+          isPast: true,
+          tasksByDateKey: tasksByDateKey,
+          itemExtent: itemExtent,
+          isCompact: isCompact,
+        ),
+        _buildDaySliver(
+          key: _centerKey,
+          isPast: false,
+          tasksByDateKey: tasksByDateKey,
+          itemExtent: itemExtent,
+          isCompact: isCompact,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavigationRow({required Widget child}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _StripChevronButton(
+          isNext: false,
+
+          onPressed: () {
+            ZetaHaptics.light();
+            _shiftDays(-_effectiveVisibleDays);
+          },
+        ),
+        const SizedBox(width: 4),
+        Expanded(child: child),
+        const SizedBox(width: 4),
+        _StripChevronButton(
+          isNext: true,
+
+          onPressed: () {
+            ZetaHaptics.light();
+            _shiftDays(_effectiveVisibleDays);
+          },
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final tasksByDateKey = context.watch<TaskProvider>().tasksByDateKey;
+    final isSelectedToday = DateTimeUtils.isSameDay(
+      widget.selectedDate,
+      _today,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 800;
+
+            final header = _StripHeader(
+              selectedDate: widget.selectedDate,
+              isSelectedToday: isSelectedToday,
+
+              onResetToToday: () {
+                ZetaHaptics.heavy();
+                _centerOnToday();
+                widget.onResetToToday();
+              },
+            );
+
+            if (isCompact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 5),
+                  header,
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 85,
+                    child: _buildNavigationRow(
+                      child: LayoutBuilder(
+                        builder: (context, stripConstraints) {
+                          final stripWidth = stripConstraints.maxWidth;
+                          final visibleDays = (stripWidth / _baseItemExtent)
+                              .floor()
+                              .clamp(5, _maxVisibleDays);
+                          final itemExtent = stripWidth / visibleDays;
+
+                          _effectiveItemExtent = itemExtent;
+                          _effectiveVisibleDays = visibleDays;
+
+                          return _buildScrollableStrip(
+                            itemExtent: itemExtent,
+                            isCompact: true,
+                            tasksByDateKey: tasksByDateKey,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            _effectiveItemExtent = _baseItemExtent;
+            _effectiveVisibleDays = _maxVisibleDays;
+
+            return Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(child: header),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width:
+                        (_baseItemExtent * _maxVisibleDays) +
+                        104, // strip + buttons + spacing
+                    height: 80,
+                    child: _buildNavigationRow(
+                      child: _buildScrollableStrip(
+                        itemExtent: _baseItemExtent,
+                        isCompact: false,
+                        tasksByDateKey: tasksByDateKey,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        _StripLegend(),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Extracted Subcomponents
+// ---------------------------------------------------------------------------
+
+class _StripHeader extends StatelessWidget {
+  final DateTime selectedDate;
+  final bool isSelectedToday;
+  final VoidCallback onResetToToday;
+
+  const _StripHeader({
+    required this.selectedDate,
+    required this.isSelectedToday,
+    required this.onResetToToday,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                DateTimeUtils.formatHeadline(selectedDate),
+                style: TextStyle(
+                  fontFamily: 'GoogleSansFlex',
+                  fontSize: 40,
+                  color: colorScheme.onSurface.withValues(alpha: 0.9),
+                  fontVariations: const [
+                    FontVariation('wght', 600),
+                    FontVariation('wdth', 70),
+                    FontVariation('GRAD', 20),
+                    FontVariation('opsz', 15),
+                    FontVariation('ROND', 100),
+                  ],
+                ),
+              ),
+              if (!isSelectedToday) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: 'Reset to Today',
+                  child: M3EIconButton(
+                    size: M3EIconButtonSize.xs,
+                    variant: M3EIconButtonVariant.tonal,
+                    shape: M3EIconButtonShapeVariant.square,
+                    icon: const Icon(
+                      Symbols.event_upcoming_rounded,
+                      weight: 700,
+                      fill: 1,
+                    ),
+                    onPressed: onResetToToday,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const WeatherHeaderTelemetry(),
+      ],
+    );
+  }
+}
+
+class _StripDayPill extends StatelessWidget {
+  final DateTime dayDate;
+  final int dayOffset;
+  final DateTime today;
+  final bool isSelected;
+  final List<Task> tasks;
+  final double itemExtent;
+  final bool isCompact;
+  final VoidCallback onTap;
+
+  const _StripDayPill({
+    required this.dayDate,
+    required this.dayOffset,
+    required this.today,
+    required this.isSelected,
+    required this.tasks,
+    required this.itemExtent,
+    required this.isCompact,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final isDayToday = dayOffset == 0;
+    final isPast = dayDate.isBefore(today);
+
+    final pendingCount = tasks.where((t) => !t.completed).length;
+    final overdueCount = isPast ? pendingCount : 0;
+
+    Color? dotColor;
+    String? dotLabel;
+    if (overdueCount > 0) {
+      dotColor = const Color(0xFFEF4444);
+      dotLabel = '$overdueCount overdue';
+    } else if (pendingCount > 0) {
+      dotColor = const Color(0xFF3B82F6);
+      dotLabel = '$pendingCount pending';
+    }
+
+    final activeDotColor =
+        dotColor ??
+        (isDayToday && !isSelected
+            ? colorScheme.primary.withValues(alpha: 0.5)
+            : null);
+
+    final dayName = DateTimeUtils.weekdaysShortUpper[dayDate.weekday - 1];
+    final dayNum = dayDate.day.toString();
+    final effectiveWidth = math.min(50.0, math.max(38.0, itemExtent - 6.0));
+
+    return Center(
+      child: Tooltip(
+        message: '$dayName $dayNum${dotLabel != null ? " • $dotLabel" : ""}',
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(44),
+            onTap: onTap,
+            child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: effectiveWidth,
+            height: isCompact ? 85 : 80,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? colorScheme.primaryContainer
+                  : (isDayToday
+                        ? colorScheme.surfaceContainerHighest
+                        : Colors.transparent),
+              borderRadius: BorderRadius.circular(
+                isDayToday && !isSelected ? 10 : 54,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  dayName,
+                  style: TextStyle(
+                    fontSize: isSelected ? 16 : 13,
+                    fontFamily: (!isSelected && !isDayToday)
+                        ? 'GoogleSansFlex'
+                        : 'RobotoMono',
+                    fontVariations: const [
+                      FontVariation('wdth', 100),
+                      FontVariation('ROND', 100),
+                    ],
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    letterSpacing: isSelected ? 0.5 : null,
+                    color: isSelected
+                        ? colorScheme.onPrimaryContainer
+                        : (isDayToday
+                              ? colorScheme.primary
+                              : colorScheme.onSurface),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  dayNum,
+                  style: TextStyle(
+                    fontSize: isSelected ? 16 : 14,
+                    fontFamily: (!isSelected && !isDayToday)
+                        ? 'GoogleSansFlex'
+                        : 'RobotoMono',
+                    fontVariations: const [
+                      FontVariation('wdth', 100),
+                      FontVariation('ROND', 100),
+                    ],
+                    fontWeight: isSelected || isDayToday
+                        ? FontWeight.w900
+                        : FontWeight.w600,
+                    color: isSelected
+                        ? colorScheme.onPrimaryContainer
+                        : colorScheme.onSurface,
+                  ),
+                ),
+                SizedBox(
+                  height: 4,
+                  child: activeDotColor != null
+                      ? Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: activeDotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  }
+}
+
+class _StripChevronButton extends StatelessWidget {
+  final bool isNext;
+  final VoidCallback onPressed;
+
+  const _StripChevronButton({required this.isNext, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     return Tooltip(
       message: isNext ? 'Next days' : 'Previous days',
       child: M3EIconButton(
@@ -143,193 +535,28 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
       ),
     );
   }
+}
 
-  Widget _buildDayItem({
-    required BuildContext context,
-    required DateTime dayDate,
-    required int dayOffset,
-    required Map<String, List<Task>> tasksByDateKey,
-    required ColorScheme colorScheme,
-    required bool isCompact,
-    required double itemExtent,
-  }) {
-    final isSelected = DateTimeUtils.isSameDay(dayDate, widget.selectedDate);
-    final isDayToday = dayOffset == 0;
-    final isPast = dayDate.isBefore(_today);
+class _StripLegend extends StatelessWidget {
+  const _StripLegend();
 
-    final dateKey = '${dayDate.year}-${dayDate.month}-${dayDate.day}';
-    final matchingTasks = tasksByDateKey[dateKey] ?? const [];
-    final pendingCount = matchingTasks.where((t) => !t.completed).length;
-    final overdueCount = isPast ? pendingCount : 0;
-
-    Color? dotColor;
-    String? dotLabel;
-    if (overdueCount > 0) {
-      dotColor = const Color(0xFFEF4444);
-      dotLabel = '$overdueCount overdue';
-    } else if (pendingCount > 0) {
-      dotColor = const Color(0xFF3B82F6);
-      dotLabel = '$pendingCount pending';
-    }
-
-    final dayNameShort = DateTimeUtils.weekdaysShortUpper[dayDate.weekday - 1];
-    final dayNumStr = dayDate.day.toString();
-    final effectivePillWidth = math.min(
-      _itemWidth,
-      math.max(38.0, itemExtent - 6.0),
-    );
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 0),
-        child: Tooltip(
-          message:
-              '$dayNameShort $dayNumStr${dotLabel != null ? " • $dotLabel" : ""}',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(44),
-            onTap: () {
-              ZetaHaptics.selection();
-              widget.onSelectDate(dayDate);
-              _centerOnDayOffset(dayOffset);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: effectivePillWidth,
-              height: isCompact ? 85 : 80,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.primaryContainer
-                    : (isDayToday
-                          ? colorScheme.surfaceContainerHighest
-                          : Colors.transparent),
-                borderRadius: (isDayToday && !isSelected)
-                    ? BorderRadius.circular(10)
-                    : BorderRadius.circular(54),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    dayNameShort,
-                    style: TextStyle(
-                      fontSize: isSelected ? 16 : 13,
-                      fontFamily: (!isSelected && !isDayToday)
-                          ? 'GoogleSansFlex'
-                          : 'RobotoMono',
-                      fontVariations: const [
-                        FontVariation('wdth', 100),
-                        FontVariation('ROND', 100),
-                      ],
-                      fontWeight: isSelected
-                          ? FontWeight.w800
-                          : FontWeight.w600,
-                      letterSpacing: isSelected ? 0.5 : null,
-                      color: isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : (isDayToday
-                                ? colorScheme.primary
-                                : colorScheme.onSurface),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    dayNumStr,
-                    style: TextStyle(
-                      fontSize: isSelected ? 16 : 14,
-                      fontFamily: (!isSelected && !isDayToday)
-                          ? 'GoogleSansFlex'
-                          : 'RobotoMono',
-                      fontVariations: const [
-                        FontVariation('wdth', 100),
-                        FontVariation('ROND', 100),
-                      ],
-                      fontWeight: isSelected || isDayToday
-                          ? FontWeight.w900
-                          : FontWeight.w600,
-                      color: isSelected
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurface,
-                    ),
-                  ),
-                  SizedBox(
-                    height: 4,
-                    child: dotColor != null
-                        ? Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: dotColor,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                        : (isDayToday && !isSelected
-                              ? Container(
-                                  width: 4,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primary.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                    shape: BoxShape.circle,
-                                  ),
-                                )
-                              : null),
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildItem(Color color, String label, BuildContext context) {
+    final colorScheme = context.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScrollView({
-    required double itemExtent,
-    required bool isCompact,
-    required Map<String, List<Task>> tasksByDateKey,
-    required ColorScheme colorScheme,
-  }) {
-    return CustomScrollView(
-      controller: _scrollController,
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      center: _centerKey,
-      slivers: [
-        // Past days
-        SliverFixedExtentList(
-          itemExtent: itemExtent,
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final pastIndex = -(index + 1);
-            final dayDate = _today.add(Duration(days: pastIndex));
-            return _buildDayItem(
-              context: context,
-              dayDate: dayDate,
-              dayOffset: pastIndex,
-              tasksByDateKey: tasksByDateKey,
-              colorScheme: colorScheme,
-              isCompact: isCompact,
-              itemExtent: itemExtent,
-            );
-          }),
-        ),
-
-        // Today and future days
-        SliverFixedExtentList(
-          key: _centerKey,
-          itemExtent: itemExtent,
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final dayDate = _today.add(Duration(days: index));
-            return _buildDayItem(
-              context: context,
-              dayDate: dayDate,
-              dayOffset: index,
-              tasksByDateKey: tasksByDateKey,
-              colorScheme: colorScheme,
-              isCompact: isCompact,
-              itemExtent: itemExtent,
-            );
-          }),
         ),
       ],
     );
@@ -337,252 +564,13 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
-    final taskProvider = context.watch<TaskProvider>();
-
-    final isSelectedToday = DateTimeUtils.isSameDay(
-      widget.selectedDate,
-      _today,
-    );
-    final headlineLabel = DateTimeUtils.formatHeadline(widget.selectedDate);
-
-    // Use pre-indexed task counts by date string
-    final tasksByDateKey = taskProvider.tasksByDateKey;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 800;
-
-            final leftHeader = Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        headlineLabel,
-                        style: TextStyle(
-                          fontFamily: 'GoogleSansFlex',
-                          fontSize: 40,
-                          color: colorScheme.onSurface.withValues(alpha: 0.9),
-                          fontVariations: const [
-                            FontVariation('wght', 600),
-                            FontVariation('wdth', 70),
-                            FontVariation('GRAD', 20),
-                            FontVariation('opsz', 15),
-                            FontVariation('slnt', 0),
-                            FontVariation('ROND', 100),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (!isSelectedToday)
-                        Tooltip(
-                          message: 'Reset to Today',
-                          child: M3EIconButton(
-                            size: M3EIconButtonSize.xs,
-                            variant: M3EIconButtonVariant.tonal,
-                            icon: const Icon(
-                              Symbols.event_upcoming_rounded,
-                              weight: 700,
-                              fill: 1,
-                            ),
-                            shape: M3EIconButtonShapeVariant.square,
-                            onPressed: () {
-                              ZetaHaptics.heavy();
-                              _centerOnToday();
-                              widget.onResetToToday();
-                            },
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const WeatherHeaderTelemetry(),
-              ],
-            );
-
-            if (isCompact) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 5),
-                  leftHeader,
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 85,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        _buildChevronButton(
-                          context: context,
-                          isNext: false,
-                          colorScheme: colorScheme,
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            _shiftDays(-_effectiveVisibleDays);
-                          },
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (context, stripConstraints) {
-                              final double stripWidth =
-                                  stripConstraints.maxWidth;
-                              // Keep at least 5 dates visible, up to 9 when space allows.
-                              final int visibleDays =
-                                  (stripWidth / _baseItemExtent).floor().clamp(
-                                    5,
-                                    _maxVisibleDays,
-                                  );
-                              final double itemExtent =
-                                  stripWidth / visibleDays;
-                              _effectiveItemExtent = itemExtent;
-                              _effectiveVisibleDays = visibleDays;
-
-                              return _buildScrollView(
-                                itemExtent: itemExtent,
-                                isCompact: true,
-                                tasksByDateKey: tasksByDateKey,
-                                colorScheme: colorScheme,
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        _buildChevronButton(
-                          context: context,
-                          isNext: true,
-                          colorScheme: colorScheme,
-                          onPressed: () {
-                            ZetaHaptics.light();
-                            _shiftDays(_effectiveVisibleDays);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            _effectiveItemExtent = _baseItemExtent;
-            _effectiveVisibleDays = _maxVisibleDays;
-            const double desktopStripWidth = _baseItemExtent * _maxVisibleDays;
-
-            final desktopWeekStrip = Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildChevronButton(
-                  context: context,
-                  isNext: false,
-                  colorScheme: colorScheme,
-                  onPressed: () {
-                    ZetaHaptics.light();
-                    _shiftDays(-_effectiveVisibleDays);
-                  },
-                ),
-                const SizedBox(width: 4),
-                SizedBox(
-                  width: desktopStripWidth,
-                  height: 80,
-                  child: _buildScrollView(
-                    itemExtent: _baseItemExtent,
-                    isCompact: false,
-                    tasksByDateKey: tasksByDateKey,
-                    colorScheme: colorScheme,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                _buildChevronButton(
-                  context: context,
-                  isNext: true,
-                  colorScheme: colorScheme,
-                  onPressed: () {
-                    ZetaHaptics.light();
-                    _shiftDays(_effectiveVisibleDays);
-                  },
-                ),
-              ],
-            );
-
-            return Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Flexible(child: leftHeader),
-                  const SizedBox(width: 16),
-                  desktopWeekStrip,
-                ],
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 8),
-
-        // Mini Color Legend
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEF4444),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Overdue',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF3B82F6),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  'Pending',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
+        _buildItem(const Color(0xFFEF4444), 'Overdue', context),
+        const SizedBox(width: 14),
+        _buildItem(const Color(0xFF3B82F6), 'Pending', context),
+        const SizedBox(width: 8),
       ],
     );
   }

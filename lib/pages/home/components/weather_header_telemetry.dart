@@ -1,4 +1,5 @@
 import 'package:zeta/core/core.dart';
+
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -55,7 +56,8 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
     _animController?.dispose();
     final controller = AnimationController(
       vsync: this,
-      duration: M3MotionDuration.medium3, // 350ms expressive container transform
+      duration:
+          M3MotionDuration.medium3, // 350ms expressive container transform
       reverseDuration: M3MotionDuration.short4, // 200ms clean exit
     );
     _animController = controller;
@@ -68,13 +70,22 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
     );
 
     // Scale from pill dimensions into full card
-    _scaleAnimation = Tween<double>(begin: 0.82, end: 1.0).animate(curvedAnimation);
+    _scaleAnimation = Tween<double>(
+      begin: 0.82,
+      end: 1.0,
+    ).animate(curvedAnimation);
 
     // Container transform vertical slide down into place
-    _slideAnimation = Tween<double>(begin: -14.0, end: 0.0).animate(curvedAnimation);
+    _slideAnimation = Tween<double>(
+      begin: -14.0,
+      end: 0.0,
+    ).animate(curvedAnimation);
 
     // Shape morph: transforms from a compact pill (radius 40) into the card (radius 24)
-    _radiusAnimation = Tween<double>(begin: 40.0, end: 24.0).animate(curvedAnimation);
+    _radiusAnimation = Tween<double>(
+      begin: 40.0,
+      end: 24.0,
+    ).animate(curvedAnimation);
 
     // Fade-in with expressive ease
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -85,7 +96,6 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
       ),
     );
   }
-
 
   @override
   void dispose() {
@@ -236,10 +246,7 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
                 );
               },
               child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: 340,
-                  maxWidth: 370,
-                ),
+                constraints: const BoxConstraints(minWidth: 340, maxWidth: 370),
                 child: _WeatherFlyoutCard(
                   onDismiss: _closeFlyout,
                   onOpenSettings: _navigateToWeatherSettings,
@@ -406,148 +413,101 @@ class _WeatherFlyoutCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       blurSigma: 12,
       child: Card(
-          color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          elevation: 0,
-          margin: EdgeInsets.zero,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ─── Header: [Temp] ──── [Location, H/L, Wind, Humidity] ──── [Icon + Status] ──
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // 1. Pointed & Stretched Large Temperature
-                    Transform.scale(
-                      scaleY: 1.25,
-                      alignment: Alignment.bottomLeft,
-                      child: Text(
-                        '$temp°',
-                        style: TextStyle(
-                          fontFamily: 'GoogleSansFlex',
-                          fontSize: 94,
-                          height: 1.0,
-                          color: colorScheme.onSurfaceVariant,
-                          fontVariations: const [
-                            FontVariation('wght', 600),
-                            FontVariation('wdth', 80),
-                            FontVariation('ROND', 10),
-                            FontVariation('opsz', 144),
-                            FontVariation('slnt', 0),
-                          ],
-                        ),
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ─── Header: [Temp] ──── [Location, H/L, Wind, Humidity] ──── [Icon + Status] ──
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 1. Pointed & Stretched Large Temperature
+                  Transform.scale(
+                    scaleY: 1.25,
+                    alignment: Alignment.bottomLeft,
+                    child: Text(
+                      '$temp°',
+                      style: TextStyle(
+                        fontFamily: 'GoogleSansFlex',
+                        fontSize: 94,
+                        height: 1.0,
+                        color: colorScheme.onSurfaceVariant,
+                        fontVariations: const [
+                          FontVariation('wght', 600),
+                          FontVariation('wdth', 80),
+                          FontVariation('ROND', 10),
+                          FontVariation('opsz', 144),
+                          FontVariation('slnt', 0),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 14),
+                  ),
+                  const SizedBox(width: 14),
 
-                    // 2. Middle Column: Location at top, H/L, Humidity, Wind Speed
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Location at top
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 16,
-                                color: colorScheme.primary,
+                  // 2. Middle Column: Location at top, H/L, Humidity, Wind Speed
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Location at top
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 16,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                city,
+                                style: textTheme.labelMedium?.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  city,
-                                  style: textTheme.labelMedium?.copyWith(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (minTemp != null && maxTemp != null) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.arrow_upward_rounded,
-                                  size: 15,
-                                  color: Color(0xFFFF7043), // warm coral/orange
-                                ),
-                                Text(
-                                  '$maxTemp°',
-                                  style: textTheme.labelMedium?.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.arrow_downward_rounded,
-                                  size: 15,
-                                  color: Color(0xFF42A5F5), // cool sky blue
-                                ),
-                                Text(
-                                  '$minTemp°',
-                                  style: textTheme.labelMedium?.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
-                          const SizedBox(height: 6),
-
-                          // Humidity
+                        ),
+                        if (minTemp != null && maxTemp != null) ...[
+                          const SizedBox(height: 4),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.water_drop_rounded,
-                                size: 16,
-                                color: Colors.blue.shade400,
+                              const Icon(
+                                Icons.arrow_upward_rounded,
+                                size: 15,
+                                color: Color(0xFFFF7043), // warm coral/orange
                               ),
-                              const SizedBox(width: 5),
                               Text(
-                                '$humidity%',
+                                '$maxTemp°',
                                 style: textTheme.labelMedium?.copyWith(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: colorScheme.onSurface,
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-
-                          // Wind Speed
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.air_rounded,
-                                size: 16,
-                                color: Colors.teal.shade300,
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_downward_rounded,
+                                size: 15,
+                                color: Color(0xFF42A5F5), // cool sky blue
                               ),
-                              const SizedBox(width: 5),
                               Text(
-                                '$wind km/h',
+                                '$minTemp°',
                                 style: textTheme.labelMedium?.copyWith(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: colorScheme.onSurface,
                                 ),
@@ -555,174 +515,201 @@ class _WeatherFlyoutCard extends StatelessWidget {
                             ],
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-
-                    // 3. Right Side: Weather Icon + Status below icon
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        WeatherIcon(
-                          name: weather?.iconName ?? 'clear_day',
-                          size: 56,
-                          isDay: weather?.isEffectivelyDay,
-                        ),
                         const SizedBox(height: 6),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 105),
-                          child: Text(
-                            condition,
-                            textAlign: TextAlign.center,
-                            style: textTheme.labelSmall?.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurfaceVariant,
+
+                        // Humidity
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.water_drop_rounded,
+                              size: 16,
+                              color: Colors.blue.shade400,
                             ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '$humidity%',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+
+                        // Wind Speed
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.air_rounded,
+                              size: 16,
+                              color: Colors.teal.shade300,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              '$wind km/h',
+                              style: textTheme.labelMedium?.copyWith(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 10),
 
-                // ─── 24-Hour Forecast Horizontal Strip ───────────────────────
-                if (hourly.isNotEmpty) ...[
-                  const SizedBox(height: 15),
-                  Row(
+                  // 3. Right Side: Weather Icon + Status below icon
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.access_time_rounded,
-                        size: 13,
-                        color: colorScheme.onSurfaceVariant,
+                      WeatherIcon(
+                        name: weather?.iconName ?? 'clear_day',
+                        size: 56,
+                        isDay: weather?.isEffectivelyDay,
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '24-Hour Forecast',
-                        style: textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
-                          letterSpacing: 0.2,
+                      const SizedBox(height: 6),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 105),
+                        child: Text(
+                          condition,
+                          textAlign: TextAlign.center,
+                          style: textTheme.labelSmall?.copyWith(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 100,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: hourly.length,
-                      separatorBuilder: (_, _) => const SizedBox(width: 6),
-                      itemBuilder: (context, index) {
-                        final item = hourly[index];
-                        final isNow = index == 0;
-                        return Container(
-                          width: 50,
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isNow
-                                ? colorScheme.primaryContainer
-                                : isDark
-                                ? colorScheme.tertiary.withValues(alpha: 0.1)
-                                : colorScheme.tertiaryFixedDim.withValues(
-                                    alpha: 0.3,
-                                  ),
-                            borderRadius: isNow
-                                ? BorderRadius.circular(30)
-                                : BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatTime(item.time),
-                                style: textTheme.labelSmall?.copyWith(
-                                  fontSize: 12,
-                                  fontWeight: isNow
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                                  color: isNow
-                                      ? colorScheme.primary
-                                      : colorScheme.tertiary,
-                                ),
-                              ),
-                              WeatherIcon(
-                                name: item.iconName,
-                                size: 25,
-                                isDay: item.isDay,
-                              ),
-                              Text(
-                                '${item.temperature.round()}',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: isNow
-                                      ? colorScheme.primary
-                                      : colorScheme.tertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
                 ],
+              ),
 
-                const SizedBox(height: 15),
-
-                // ─── Actions: Refresh & Settings ─────────────────────────────
-                M3EList(
-                  color: isDark
-                      ? colorScheme.tertiary.withValues(alpha: 0.1)
-                      : colorScheme.tertiaryFixedDim.withValues(alpha: 0.3),
-                  itemCount: 2,
-                  onTap: (index) async {
-                    if (index == 0) {
-                      if (!weatherProvider.isWeatherLoading) {
-                        ZetaHaptics.light();
-                        await weatherProvider.refreshWeather();
-                      }
-                    } else if (index == 1) {
-                      onOpenSettings();
-                    }
-                  },
-                  itemBuilder: (context, index) => index == 0
-                      ? M3EListItem(
-                          leading: weatherProvider.isWeatherLoading
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: colorScheme.primary,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.refresh_rounded,
-                                  color: colorScheme.onSurfaceVariant,
+              // ─── 24-Hour Forecast Horizontal Strip ───────────────────────
+              if (hourly.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 110,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: hourly.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 4),
+                    itemBuilder: (context, index) {
+                      final item = hourly[index];
+                      final isNow = index == 0;
+                      return Container(
+                        width: 50,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isNow
+                              ? colorScheme.primaryContainer
+                              : isDark
+                              ? colorScheme.tertiary.withValues(alpha: 0.1)
+                              : colorScheme.tertiaryFixedDim.withValues(
+                                  alpha: 0.3,
                                 ),
-                          headline: weatherProvider.isWeatherLoading
-                              ? 'Refreshing…'
-                              : 'Refresh Weather',
-                        )
-                      : M3EListItem(
-                          leading: Icon(
-                            Icons.settings_outlined,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                          headline: 'Weather Settings',
+                          borderRadius: isNow
+                              ? BorderRadius.circular(30)
+                              : BorderRadius.circular(12),
                         ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatTime(item.time),
+                              style: textTheme.labelSmall?.copyWith(
+                                fontSize: 12,
+                                fontWeight: isNow
+                                    ? FontWeight.w900
+                                    : FontWeight.w700,
+                                color: isNow
+                                    ? colorScheme.primary
+                                    : colorScheme.tertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            WeatherIcon(
+                              name: item.iconName,
+                              size: 28,
+                              isDay: item.isDay,
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              '${item.temperature.round()}°',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: isNow
+                                    ? colorScheme.primary
+                                    : colorScheme.tertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
-            ),
+
+              const SizedBox(height: 15),
+
+              // ─── Actions: Refresh & Settings ─────────────────────────────
+              M3EList(
+                color: isDark
+                    ? colorScheme.tertiary.withValues(alpha: 0.1)
+                    : colorScheme.tertiaryFixedDim.withValues(alpha: 0.3),
+                itemCount: 2,
+                onTap: (index) async {
+                  if (index == 0) {
+                    if (!weatherProvider.isWeatherLoading) {
+                      ZetaHaptics.light();
+                      await weatherProvider.refreshWeather();
+                    }
+                  } else if (index == 1) {
+                    onOpenSettings();
+                  }
+                },
+                itemBuilder: (context, index) => index == 0
+                    ? M3EListItem(
+                        leading: weatherProvider.isWeatherLoading
+                            ? SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: colorScheme.primary,
+                                ),
+                              )
+                            : Icon(
+                                Icons.refresh_rounded,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                        headline: weatherProvider.isWeatherLoading
+                            ? 'Refreshing…'
+                            : 'Refresh Weather',
+                      )
+                    : M3EListItem(
+                        leading: Icon(
+                          Icons.settings_outlined,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        headline: 'Weather Settings',
+                      ),
+              ),
+            ],
           ),
+        ),
       ),
     );
   }
 }
-

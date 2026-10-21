@@ -1,15 +1,23 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
-
+import '../../models/pomodoro.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../services/ambient_mode_service.dart';
 import '../../theme/breakpoints.dart';
 import '../../utils/haptics.dart';
 
-/// Fullscreen Ambient Display (AOD) page with a matrix/grid progress indicator.
+/// Fullscreen Ambient Display (AOD) matching Pixel Stand / StandBy charging mode:
+/// - Pitch AMOLED black canvas
+/// - Hero bold percentage (or countdown) on the left
+/// - Segmented horizontal milestone progress bar (80% and 100% checkpoints)
+/// - Wall clock and session status centered beneath the progress bar
+/// - Fading ambient navigation controls
 class PomodoroAmbientPage extends StatefulWidget {
   const PomodoroAmbientPage({super.key});
 
@@ -32,19 +40,17 @@ class PomodoroAmbientPage extends StatefulWidget {
 
 class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   Timer? _inactivityTimer;
+  Timer? _idleTimer;
+  Timer? _active1fpsTimer;
+  DateTime _lastMouseMoveTime = DateTime(0);
   bool _controlsVisible = true;
   bool _isExiting = false;
-
-  // Grid configuration: 5x5 layout (25 total units)
-  static const int _gridCrossAxisCount = 5;
-  static const int _totalDots = 25;
-
-  late final List<int> _dotFillOrder;
+  bool _showCountdown = false;
+  PomodoroMode? _lastMode;
 
   @override
   void initState() {
     super.initState();
-    _dotFillOrder = List.generate(_totalDots, (i) => i)..shuffle();
     AmbientModeService.enter();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,6 +76,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
       }
     });
 
+    _startIdleTimer();
     _resetInactivityTimer();
   }
 
@@ -77,9 +84,47 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   void dispose() {
     _isExiting = true;
     _inactivityTimer?.cancel();
+    _idleTimer?.cancel();
+    _active1fpsTimer?.cancel();
     AmbientModeService.setPlatformFullscreenListener(null);
     AmbientModeService.exit();
     super.dispose();
+  }
+
+  void _startIdleTimer() {
+    _idleTimer?.cancel();
+    _idleTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  void _startActive1fpsTimer() {
+    _active1fpsTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  void _stopActive1fpsTimer() {
+    if (!_showCountdown) {
+      _active1fpsTimer?.cancel();
+      _active1fpsTimer = null;
+    }
+  }
+
+  void _onMouseMove() {
+    final now = DateTime.now();
+    // Throttle interrupt redraw to at most 1 fps
+    if (now.difference(_lastMouseMoveTime) >= const Duration(seconds: 1)) {
+      _lastMouseMoveTime = now;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+    _resetInactivityTimer();
   }
 
   void _resetInactivityTimer() {
@@ -87,11 +132,13 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
     if (!_controlsVisible) {
       setState(() => _controlsVisible = true);
     }
-    _inactivityTimer = Timer(const Duration(seconds: 3), () {
+    _startActive1fpsTimer();
+    _inactivityTimer = Timer(const Duration(seconds: 4), () {
       if (mounted) {
         final isRunning = context.read<PomodoroProvider>().isRunning;
         if (isRunning) {
           setState(() => _controlsVisible = false);
+          _stopActive1fpsTimer();
         }
       }
     });
@@ -111,18 +158,63 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
     AmbientModeService.exit();
   }
 
+  String _formatCurrentTime() {
+    final now = DateTime.now();
+    final hour = now.hour.toString().padLeft(2, '0');
+    final minute = now.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  String _getStatusText(PomodoroProvider provider) {
+    if (!provider.isRunning) return 'Paused';
+    switch (provider.mode) {
+      case PomodoroMode.focus:
+        final total = provider.queue.length;
+        final current = provider.activeQueueIndex + 1;
+        return total > 1 ? 'Focusing • $current of $total' : 'Focusing';
+      case PomodoroMode.shortBreak:
+        return 'Short break';
+      case PomodoroMode.longBreak:
+        return 'Long break';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
-
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
+    // Detect mode change (e.g. Focus -> Break) to immediately reset 30s cadence
+    if (_lastMode != null && _lastMode != provider.mode) {
+      _startIdleTimer();
+    }
+    _lastMode = provider.mode;
+
+    final double progress = provider.progress.clamp(0.0, 1.0);
+    final int percent = (progress * 100).round();
+
+    final totalSec = provider.totalDuration <= 0
+        ? 25 * 60
+        : provider.totalDuration;
+    final elapsedSec = provider.elapsedSeconds;
+    final leftSec = provider.timeLeft;
+
+    // Milestone calculations
+    final target80Sec = totalSec * 0.80;
+    final secTo80 = math.max(0.0, target80Sec - elapsedSec);
+    final minutesUntil80 = (secTo80 / 60).ceil();
+    final remainingMinsTo100 = (leftSec / 60).ceil();
+
     return CallbackShortcuts(
-      // Only keep exit shortcuts; Space/S keys are completely removed
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.escape): _exitFullscreen,
         const SingleActivator(LogicalKeyboardKey.keyF): _exitFullscreen,
+        const SingleActivator(LogicalKeyboardKey.space): () {
+          ZetaHaptics.medium();
+          provider.toggleTimer();
+          _onMouseMove();
+        },
       },
       child: Focus(
         autofocus: true,
@@ -139,146 +231,163 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
             cursor: _controlsVisible
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.none,
-            onHover: (_) => _resetInactivityTimer(),
+            onHover: (_) => _onMouseMove(),
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onTap: _resetInactivityTimer,
-              onPanUpdate: (_) => _resetInactivityTimer(),
+              onTap: _onMouseMove,
+              onDoubleTap: _exitFullscreen,
               child: Scaffold(
                 backgroundColor: Colors.black,
                 body: SafeArea(
-                  child: ListenableBuilder(
-                    listenable: provider.tickNotifier,
-                    builder: (context, _) {
-                      // Derive progress (0.0 to 1.0) directly or compute via provider values on each tick
-                      final double progress = provider.progress.clamp(0.0, 1.0);
-                      final int minutes = (provider.displaySeconds / 60).ceil();
-                      final int completedDots = (progress * _totalDots).floor();
+                  child: OrientationBuilder(
+                        builder: (context, orientation) {
+                          final isLandscape =
+                              orientation == Orientation.landscape;
 
-                      return Stack(
-                        children: [
-                          // ─── Center: Dot Matrix Progress Indicator ───────
-                          Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: AnimatedOpacity(
-                                opacity: _controlsVisible ? 1.0 : 0.25,
-                                duration: const Duration(milliseconds: 300),
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 320,
-                                    maxHeight: 320,
+                          return Stack(
+                            children: [
+                              // ─── Main Content ───────────────────────
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isLandscape ? 48.0 : 28.0,
+                                    vertical: 20.0,
                                   ),
-                                  child: GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: _totalDots,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: _gridCrossAxisCount,
-                                          crossAxisSpacing: 14,
-                                          mainAxisSpacing: 14,
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      final bool isFilled =
-                                          _dotFillOrder.indexOf(index) <
-                                          completedDots;
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 48),
 
-                                      return AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: isFilled
-                                              ? Colors.white
-                                              : Colors.transparent,
-                                          border: Border.all(
-                                            color: isFilled
-                                                ? Colors.white
-                                                : Colors.white.withValues(
-                                                    alpha: 0.4,
-                                                  ),
-                                            width: 1.5,
+                                      // Hero Number (% or Countdown)
+                                      Expanded(
+                                        child: Align(
+                                          alignment: isLandscape
+                                              ? Alignment.bottomLeft
+                                              : Alignment.centerLeft,
+                                          child: GestureDetector(
+                                            behavior: HitTestBehavior.opaque,
+                                            onTap: () {
+                                              ZetaHaptics.selection();
+                                              setState(() {
+                                                _showCountdown =
+                                                    !_showCountdown;
+                                                if (_showCountdown) {
+                                                  _startActive1fpsTimer();
+                                                } else if (!_controlsVisible) {
+                                                  _stopActive1fpsTimer();
+                                                }
+                                              });
+                                              _resetInactivityTimer();
+                                            },
+                                            child: _buildHeroDisplay(
+                                              percent: percent,
+                                              formattedTime:
+                                                  provider.formattedTime,
+                                              showCountdown: _showCountdown,
+                                              isLandscape: isLandscape,
+                                            ),
                                           ),
                                         ),
-                                      );
-                                    },
+                                      ),
+
+                                      SizedBox(height: isLandscape ? 20 : 36),
+
+                                      // Milestone Progress Bar & Clock
+                                      _AmbientProgressBar(
+                                        progress: progress,
+                                        minutesUntil80: minutesUntil80,
+                                        remainingMinsTo100: remainingMinsTo100,
+                                        clockTime: _formatCurrentTime(),
+                                        statusText: _getStatusText(provider),
+                                      ),
+
+                                      SizedBox(height: isLandscape ? 20 : 28),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
 
-                          // ─── Top-Right: Exit Fullscreen Button ───────────
-                          Positioned(
-                            top: 16,
-                            right: 24,
-                            child: AnimatedOpacity(
-                              opacity: _controlsVisible ? 1.0 : 0.25,
-                              duration: const Duration(milliseconds: 300),
-                              child: IconButton.filledTonal(
-                                icon: const Icon(
-                                  Icons.fullscreen_exit_rounded,
-                                  color: Colors.white,
-                                  size: 26,
-                                ),
-                                tooltip: 'Exit full screen (Esc)',
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  hoverColor: Colors.white.withValues(
-                                    alpha: 0.25,
-                                  ),
-                                ),
-                                onPressed: _exitFullscreen,
-                              ),
-                            ),
-                          ),
-
-                          // ─── Bottom-Left: Minutes Display ────────────────
-                          Positioned(
-                            bottom: 24,
-                            left: 24,
-                            child: AnimatedOpacity(
-                              opacity: _controlsVisible ? 1.0 : 0.25,
-                              duration: const Duration(milliseconds: 300),
-                              child: IgnorePointer(
-                                child: Text.rich(
-                                  TextSpan(
+                              // ─── Top Floating Controls ──────────────
+                              Positioned(
+                                top: 16,
+                                left: 24,
+                                right: 24,
+                                child: AnimatedOpacity(
+                                  opacity: _controlsVisible ? 1.0 : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      TextSpan(text: '$minutes'),
-                                      TextSpan(
-                                        text: ' min',
-                                        style: TextStyle(
-                                          fontSize: !isCompact ? 40 : 14,
-                                          letterSpacing: 0,
-                                          fontWeight: FontWeight.w500,
+                                      IconButton.filledTonal(
+                                        icon: const Icon(
+                                          Symbols.arrow_back_rounded,
+                                          color: Colors.white,
+                                          size: 22,
                                         ),
+                                        tooltip: 'Exit ambient mode',
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: Colors.white
+                                              .withValues(alpha: 0.15),
+                                          hoverColor: Colors.white.withValues(
+                                            alpha: 0.25,
+                                          ),
+                                        ),
+                                        onPressed: _exitFullscreen,
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton.filledTonal(
+                                            icon: Icon(
+                                              provider.isRunning
+                                                  ? Symbols.pause_rounded
+                                                  : Symbols.play_arrow_rounded,
+                                              color: Colors.white,
+                                              size: 22,
+                                            ),
+                                            tooltip: provider.isRunning
+                                                ? 'Pause'
+                                                : 'Resume',
+                                            style: IconButton.styleFrom(
+                                              backgroundColor: Colors.white
+                                                  .withValues(alpha: 0.15),
+                                              hoverColor: Colors.white
+                                                  .withValues(alpha: 0.25),
+                                            ),
+                                            onPressed: () {
+                                              ZetaHaptics.medium();
+                                              provider.toggleTimer();
+                                              _onMouseMove();
+                                            },
+                                          ),
+                                          const SizedBox(width: 10),
+                                          IconButton.filledTonal(
+                                            icon: const Icon(
+                                              Symbols.fullscreen_exit_rounded,
+                                              color: Colors.white,
+                                              size: 22,
+                                            ),
+                                            tooltip: 'Exit full screen (Esc)',
+                                            style: IconButton.styleFrom(
+                                              backgroundColor: Colors.white
+                                              .withValues(alpha: 0.15),
+                                              hoverColor: Colors.white
+                                                  .withValues(alpha: 0.25),
+                                            ),
+                                            onPressed: _exitFullscreen,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: !isCompact ? 100 : 28,
-                                    height: 1.0,
-                                    fontFamily: 'headline',
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: !isCompact ? -4.0 : -0.9,
-                                    fontFeatures: const [
-                                      FontFeature.tabularFigures(),
-                                    ],
-                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                            ],
+                          );
+                        },
+                      ),
                 ),
               ),
             ),
@@ -287,4 +396,271 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
       ),
     );
   }
+
+  Widget _buildHeroDisplay({
+    required int percent,
+    required String formattedTime,
+    required bool showCountdown,
+    required bool isLandscape,
+  }) {
+    if (showCountdown) {
+      return Text(
+        formattedTime,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: isLandscape ? 104 : 72,
+          height: 0.95,
+          fontFamily: 'headline',
+          fontWeight: FontWeight.w900,
+          letterSpacing: -2.0,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          '$percent',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isLandscape ? 116 : 88,
+            height: 0.95,
+            fontFamily: 'headline',
+            fontWeight: FontWeight.w900,
+            letterSpacing: -3.0,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '%',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isLandscape ? 32 : 26,
+            fontFamily: 'headline',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// StandBy / Ambient horizontal progress bar with 80% & 100% milestone tick marks
+class _AmbientProgressBar extends StatelessWidget {
+  final double progress;
+  final int minutesUntil80;
+  final int remainingMinsTo100;
+  final String clockTime;
+  final String statusText;
+
+  const _AmbientProgressBar({
+    required this.progress,
+    required this.minutesUntil80,
+    required this.remainingMinsTo100,
+    required this.clockTime,
+    required this.statusText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        const barHeight = 3.5;
+        final x80 = totalWidth * 0.80;
+        final isPast80 = progress >= 0.80;
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Top milestone times: "7m" above 80%, "35m" above 100%
+            SizedBox(
+              height: 22,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: (x80 - 24).clamp(0.0, totalWidth - 48),
+                    width: 48,
+                    child: Text(
+                      isPast80 ? '✓' : '${minutesUntil80}m',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'headline',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isPast80
+                            ? Colors.white.withValues(alpha: 0.45)
+                            : Colors.white,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    width: 48,
+                    child: Text(
+                      '${remainingMinsTo100}m',
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontFamily: 'headline',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5),
+
+            // Segmented Progress Bar Line
+            CustomPaint(
+              size: Size(totalWidth, barHeight),
+              painter: _BarTrackPainter(
+                progress: progress,
+                trackColor: Colors.white.withValues(alpha: 0.22),
+                fillColor: Colors.white,
+                notchX: x80,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Bottom row: Centered time & status, 80% and 100% labels
+            SizedBox(
+              height: 44,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Centered Time and Status
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          clockTime,
+                          style: const TextStyle(
+                            fontFamily: 'headline',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.3,
+                            color: Colors.white.withValues(alpha: 0.65),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 80% badge below
+                  Positioned(
+                    left: (x80 - 24).clamp(0.0, totalWidth - 48),
+                    top: 0,
+                    width: 48,
+                    child: Text(
+                      '80%',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'headline',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isPast80
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+
+                  // 100% badge below
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    width: 48,
+                    child: Text(
+                      '100%',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        fontFamily: 'headline',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: progress >= 1.0
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Draws track with smooth rounded caps and a crisp physical notch at 80%
+class _BarTrackPainter extends CustomPainter {
+  final double progress;
+  final Color trackColor;
+  final Color fillColor;
+  final double notchX;
+
+  _BarTrackPainter({
+    required this.progress,
+    required this.trackColor,
+    required this.fillColor,
+    required this.notchX,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const radius = Radius.circular(2.0);
+
+    // 1. Inactive track background
+    final bgRRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      radius,
+    );
+    canvas.drawRRect(bgRRect, Paint()..color = trackColor);
+
+    // 2. Active progress fill
+    final fillWidth = (progress * size.width).clamp(0.0, size.width);
+    if (fillWidth > 0) {
+      final fillRRect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, fillWidth, size.height),
+        radius,
+      );
+      canvas.drawRRect(fillRRect, Paint()..color = fillColor);
+    }
+
+    // 3. Crisp vertical notch gap at 80%
+    final notchPaint = Paint()
+      ..color = Colors.black
+      ..strokeWidth = 2.0;
+    canvas.drawLine(
+      Offset(notchX, -1),
+      Offset(notchX, size.height + 1),
+      notchPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BarTrackPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.notchX != notchX;
 }
