@@ -59,8 +59,6 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
     final colorScheme = context.colorScheme;
-    final textTheme = context.textTheme;
-
     final isRunning = provider.isRunning;
 
     if (isRunning) {
@@ -87,84 +85,64 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
             width: widget.size,
             height: widget.size,
             child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Circular Wavy Progress Indicator (smooth 60fps interpolation)
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final currentM3ETheme = M3ETheme.of(context);
-                return M3ETheme(
-                  data: currentM3ETheme.copyWith(
-                    progressIndicatorTheme: currentM3ETheme.progressIndicatorTheme.copyWith(
-                      circular: currentM3ETheme.progressIndicatorTheme.circular.copyWith(
-                        waveAmplitude: 3.0, // Increase this value for higher physical amplitude
+              alignment: Alignment.center,
+              children: [
+                // Circular Wavy Progress Indicator (smooth 60fps interpolation)
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final currentM3ETheme = M3ETheme.of(context);
+                    return M3ETheme(
+                      data: currentM3ETheme.copyWith(
+                        progressIndicatorTheme: currentM3ETheme
+                            .progressIndicatorTheme
+                            .copyWith(
+                              circular: currentM3ETheme
+                                  .progressIndicatorTheme
+                                  .circular
+                                  .copyWith(
+                                    waveAmplitude: 5, // Increase this value for higher physical amplitude
+                                  ),
+                            ),
+                      ),
+                      child: M3EProgressIndicator.circularWavy(
+                        value: _currentProgress.clamp(0.0, 1.0),
+                        size: widget.size,
+                        strokeWidth: 15,
+                        wavelength: 50,
+                        trackStrokeWidth: 12,
+                        color: colorScheme.primary,
+                        trackColor: colorScheme.tertiaryContainer,
+                      ),
+                    );
+                  },
+                ),
+
+                // Inner Countdown Display
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formattedTime,
+                      style: TextStyle(
+                        fontFamily: isRunning ? 'GoogleSansFlex' : 'RobotoFlex',
+                        fontSize: 70,
+                        letterSpacing: isRunning ? 1 : 5,
+                        color: colorScheme.tertiary,
+                        fontVariations: [
+                          FontVariation('wght', isRunning ? 900 : 600),
+                          FontVariation('wdth', isRunning ? 80 : 180),
+                          const FontVariation('ROND', 100),
+                        ],
                       ),
                     ),
-                  ),
-                  child: M3EProgressIndicator.circularWavy(
-                    value: _currentProgress.clamp(0.0, 1.0),
-                    size: widget.size,
-                    strokeWidth: 12,
-                    wavelength: 40,
-                    amplitude: 1.0, // This is clamped to 1.0 by the package (100% of waveAmplitude)
-                    trackStrokeWidth: 12,
-                    color: colorScheme.primary,
-                    trackColor: colorScheme.surfaceContainerHighest,
-                  ),
-                );
-              },
-            ),
-
-            // Inner Countdown Display
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  formattedTime,
-                  style: TextStyle(
-                    fontFamily: isRunning ? 'GoogleSansFlex' : 'RobotoFlex',
-                    fontSize: 70,
-                    letterSpacing: isRunning ? 1 : 5,
-                    color: colorScheme.onSurface,
-                    fontVariations: [
-                      FontVariation('wght', isRunning ? 900 : 600),
-                      FontVariation('wdth', isRunning ? 80 : 180),
-                      const FontVariation('ROND', 100),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isRunning
-                        ? colorScheme.primaryContainer
-                        : colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    isRunning ? 'RUNNING' : 'PAUSED',
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: isRunning
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
-  },
-);
   }
 }
-

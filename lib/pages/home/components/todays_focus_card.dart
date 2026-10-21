@@ -8,6 +8,7 @@ import '../../../components/task_edit_pane.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import '../../../components/standard_chips.dart';
 import '../../../components/zeta_empty_state.dart';
 
@@ -70,9 +71,10 @@ class TodaysFocusCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  Icons.track_changes_rounded,
+                  Symbols.track_changes_rounded,
                   size: 23,
                   color: colorScheme.primary,
+                  fill: 1.0,
                 ),
                 const SizedBox(width: 8),
                 Text(

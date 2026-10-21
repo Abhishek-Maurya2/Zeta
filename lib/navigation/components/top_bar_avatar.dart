@@ -46,7 +46,7 @@ class TopBarAvatar extends StatelessWidget {
       syncRingColor = const Color(0xFFF59E0B); // amber — syncing
       tooltipMessage = '${profileProvider.userName} • Syncing…';
     } else if (allSynced) {
-      syncRingColor = const Color(0xFF10B981); // green — synced
+      syncRingColor = const Color.fromARGB(255, 8, 227, 74); // green — synced
       tooltipMessage = '${profileProvider.userName} • Synced';
     } else {
       syncRingColor = const Color(0xFFF59E0B); // amber — pending sync

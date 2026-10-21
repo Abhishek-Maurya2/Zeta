@@ -152,21 +152,16 @@ class _HomePageState extends State<HomePage> {
         .where((t) => focusTask == null || t.id != focusTask.id)
         .toList();
 
-    // Show focus card when there is a task, or when viewing today (to show empty state)
-    final showFocusCard = focusTask != null || isSelectedDateToday;
-
-    // Left Column: Focus (if scheduled/due or today) + Up Next Tasks
+    // Left Column: Focus Card (with task or empty state) + Up Next Tasks
     final leftColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showFocusCard) ...[
-          TodaysFocusCard(
-            task: focusTask,
-            selectedDate: _selectedDate,
-            onOpenCreate: () => TaskEditPane.show(context),
-          ),
-          const SizedBox(height: 24),
-        ],
+        TodaysFocusCard(
+          task: focusTask,
+          selectedDate: _selectedDate,
+          onOpenCreate: () => TaskEditPane.show(context),
+        ),
+        const SizedBox(height: 24),
         UpNextSection(
           tasks: upNextTasks,
           totalCount: upNextTasks.length,

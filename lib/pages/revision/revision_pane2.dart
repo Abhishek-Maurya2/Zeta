@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +10,7 @@ import 'components/topic_edit_dialog.dart';
 import '../../utils/haptics.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import '../../components/zeta_empty_state.dart';
 
@@ -31,7 +32,7 @@ class RevisionPane2 extends StatelessWidget {
 
     if (selectedSubject == null) {
       return ZetaEmptyState(
-        icon: Icons.explore_rounded,
+        icon: Symbols.explore_rounded,
         shapeKind: M3EShapeKind.ghostish,
         title: 'Select a subject to explore',
         subtitle: isSplitPane

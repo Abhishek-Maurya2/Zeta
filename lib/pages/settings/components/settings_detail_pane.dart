@@ -64,12 +64,7 @@ class SettingsDetailPane extends StatelessWidget {
         break;
       case null:
         detailContent = isTwoPane
-            ? const ZetaEmptyState(
-                icon: Icons.settings_outlined,
-                title: 'Select a settings section',
-                subtitle:
-                    'Choose a section from the left pane to view its settings.',
-              )
+            ? ZetaEmptyState.settings()
             : const SizedBox.shrink();
         break;
     }

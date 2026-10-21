@@ -1,6 +1,7 @@
-﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:zeta/core/core.dart';
 
 import '../utils/haptics.dart';
 
@@ -82,7 +83,7 @@ class ZetaEmptyState extends StatelessWidget {
   /// Preset for task-related empty states (all, pending, completed).
   factory ZetaEmptyState.tasks({
     Key? key,
-    IconData icon = Icons.task_alt_rounded,
+    IconData icon = Symbols.task_alt_rounded,
     M3EShapeKind shapeKind = M3EShapeKind.cookie4Sided,
     String title = 'No tasks yet',
     String? subtitle = 'Click "+ Add Task" to create your first task.',
@@ -97,7 +98,7 @@ class ZetaEmptyState extends StatelessWidget {
     Widget? action = customAction;
     if (action == null && actionLabel != null && onAction != null) {
       action = M3EButton.icon(
-        icon: Icon(actionIcon ?? Icons.add_rounded, size: 18),
+        icon: Icon(actionIcon ?? Symbols.add_rounded, size: 18, fill: 1.0),
         label: Text(actionLabel),
         style: M3EButtonStyle.filled,
         size: size == ZetaEmptyStateSize.compact
@@ -135,23 +136,11 @@ class ZetaEmptyState extends StatelessWidget {
   }) {
     return ZetaEmptyState(
       key: key,
-      icon: Icons.search_off_rounded,
+      icon: Symbols.screen_search_desktop_rounded,
       shapeKind: shapeKind,
       title: 'No results for "$query"',
       subtitle: subtitle ?? 'No matching items found. Check your spelling or try different keywords.',
       size: size,
-      primaryAction: onClearSearch != null
-          ? M3EButton.icon(
-              icon: const Icon(Icons.clear_all_rounded, size: 16),
-              label: Text(clearButtonLabel),
-              style: M3EButtonStyle.outlined,
-              size: M3EButtonSize.sm,
-              onPressed: () {
-                ZetaHaptics.light();
-                onClearSearch();
-              },
-            )
-          : null,
     );
   }
 
@@ -165,14 +154,14 @@ class ZetaEmptyState extends StatelessWidget {
   }) {
     return ZetaEmptyState(
       key: key,
-      icon: Icons.delete_outline_rounded,
+      icon: Symbols.delete_rounded,
       shapeKind: M3EShapeKind.flower,
       title: title,
       subtitle: subtitle,
       size: size,
       primaryAction: onNavigateToTasks != null
           ? M3EButton.icon(
-              icon: const Icon(Icons.assignment_outlined, size: 18),
+              icon: const Icon(Symbols.assignment_rounded, size: 18, fill: 1.0),
               label: const Text('Go to Tasks'),
               style: M3EButtonStyle.filled,
               size: size == ZetaEmptyStateSize.compact
@@ -197,7 +186,7 @@ class ZetaEmptyState extends StatelessWidget {
   }) {
     return ZetaEmptyState(
       key: key,
-      icon: Icons.wb_sunny_rounded,
+      icon: Symbols.sunny_rounded,
       shapeKind: M3EShapeKind.sunny,
       title: isToday ? 'Clear Focus for Today' : 'No Tasks Scheduled',
       subtitle: isToday
@@ -206,7 +195,7 @@ class ZetaEmptyState extends StatelessWidget {
       size: size,
       primaryAction: onCreateTask != null
           ? M3EButton.icon(
-              icon: const Icon(Icons.add_rounded, size: 18),
+              icon: const Icon(Symbols.add_rounded, size: 18, fill: 1.0),
               label: const Text(
                 'Add new task',
                 style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.w600),
@@ -234,14 +223,18 @@ class ZetaEmptyState extends StatelessWidget {
   }) {
     return ZetaEmptyState(
       key: key,
-      icon: Icons.timer_outlined,
+      icon: Symbols.timer_rounded,
       shapeKind: M3EShapeKind.softBurst,
       title: title,
       subtitle: subtitle,
       size: size,
       primaryAction: (actionLabel != null && onAction != null)
           ? M3EButton.icon(
-              icon: Icon(actionIcon ?? Icons.auto_awesome_rounded, size: 16),
+              icon: Icon(
+                actionIcon ?? Symbols.auto_awesome_rounded,
+                size: 16,
+                fill: 1.0,
+              ),
               label: Text(actionLabel),
               style: M3EButtonStyle.tonal,
               size: M3EButtonSize.sm,
@@ -257,7 +250,7 @@ class ZetaEmptyState extends StatelessWidget {
   /// Preset for Revision / Study tracker empty states.
   factory ZetaEmptyState.revision({
     Key? key,
-    IconData icon = Icons.auto_stories_rounded,
+    IconData icon = Symbols.auto_stories_rounded,
     M3EShapeKind shapeKind = M3EShapeKind.cookie4Sided,
     required String title,
     String? subtitle,
@@ -272,7 +265,7 @@ class ZetaEmptyState extends StatelessWidget {
     Widget? action = customAction;
     if (action == null && actionLabel != null && onAction != null) {
       action = M3EButton.icon(
-        icon: Icon(actionIcon ?? Icons.add_rounded, size: 18),
+        icon: Icon(actionIcon ?? Symbols.add_rounded, size: 18, fill: 1.0),
         label: Text(actionLabel),
         style: M3EButtonStyle.filled,
         size: size == ZetaEmptyStateSize.compact
@@ -298,6 +291,34 @@ class ZetaEmptyState extends StatelessWidget {
     );
   }
 
+  /// Preset for settings empty states (e.g. no section selected in split-view).
+  factory ZetaEmptyState.settings({
+    Key? key,
+    IconData icon = Symbols.settings_rounded,
+    M3EShapeKind shapeKind = M3EShapeKind.cookie4Sided,
+    String title = 'Select a settings section',
+    String? subtitle =
+        'Choose a section from the left pane to view its settings.',
+    ZetaEmptyStateSize size = ZetaEmptyStateSize.standard,
+    Widget? primaryAction,
+    Widget? secondaryAction,
+    Color? shapeColor,
+    Color? iconColor,
+  }) {
+    return ZetaEmptyState(
+      key: key,
+      icon: icon,
+      shapeKind: shapeKind,
+      title: title,
+      subtitle: subtitle,
+      size: size,
+      primaryAction: primaryAction,
+      secondaryAction: secondaryAction,
+      shapeColor: shapeColor,
+      iconColor: iconColor,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
@@ -305,10 +326,10 @@ class ZetaEmptyState extends StatelessWidget {
     final isCompact = size == ZetaEmptyStateSize.compact;
     final double coreShapeSize = isCompact ? 65.0 : 95.0;
     final double haloSize = isCompact ? 80.0 : 120.0;
-    final double iconSize = isCompact ? 26.0 : 38.0;
+    final double iconSize = isCompact ? 26.0 : 40.0;
 
-    final effectiveShapeColor = shapeColor ?? colorScheme.primaryContainer;
-    final effectiveIconColor = iconColor ?? colorScheme.onPrimaryContainer;
+    final effectiveShapeColor = shapeColor ?? colorScheme.tertiaryContainer;
+    final effectiveIconColor = iconColor ?? colorScheme.onTertiaryContainer;
 
     final Widget illustration = Stack(
       alignment: Alignment.center,
@@ -318,7 +339,7 @@ class ZetaEmptyState extends StatelessWidget {
           kind: shapeKind,
           width: haloSize,
           height: haloSize,
-          color: effectiveShapeColor.withValues(alpha: 0.22),
+          color: effectiveShapeColor.withValues(alpha: 0.3),
         ),
         // Core expressive shape container
         M3EShapeContainer(
@@ -328,7 +349,12 @@ class ZetaEmptyState extends StatelessWidget {
           color: effectiveShapeColor,
           gradient: shapeGradient,
           child: Center(
-            child: Icon(icon, size: iconSize, color: effectiveIconColor),
+            child: Icon(
+              icon,
+              size: iconSize,
+              color: effectiveIconColor,
+              fill: 1.0,
+            ),
           ),
         ),
       ],

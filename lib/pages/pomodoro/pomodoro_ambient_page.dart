@@ -40,13 +40,14 @@ class PomodoroAmbientPage extends StatefulWidget {
 
 class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   Timer? _inactivityTimer;
-  Timer? _idleTimer;
   Timer? _active1fpsTimer;
   DateTime _lastMouseMoveTime = DateTime(0);
   bool _controlsVisible = true;
   bool _isExiting = false;
   bool _showCountdown = false;
   PomodoroMode? _lastMode;
+  int? _lastPercent;
+  PomodoroProvider? _pomodoroProvider;
 
   @override
   void initState() {
@@ -76,28 +77,41 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
       }
     });
 
-    _startIdleTimer();
     _resetInactivityTimer();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = Provider.of<PomodoroProvider>(context, listen: false);
+    if (_pomodoroProvider != provider) {
+      _pomodoroProvider?.tickNotifier.removeListener(_onTickCheckPercent);
+      _pomodoroProvider = provider;
+      _pomodoroProvider?.tickNotifier.addListener(_onTickCheckPercent);
+    }
   }
 
   @override
   void dispose() {
     _isExiting = true;
+    _pomodoroProvider?.tickNotifier.removeListener(_onTickCheckPercent);
     _inactivityTimer?.cancel();
-    _idleTimer?.cancel();
     _active1fpsTimer?.cancel();
     AmbientModeService.setPlatformFullscreenListener(null);
     AmbientModeService.exit();
     super.dispose();
   }
 
-  void _startIdleTimer() {
-    _idleTimer?.cancel();
-    _idleTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
+  void _onTickCheckPercent() {
+    if (!mounted || _pomodoroProvider == null) return;
+    final progress = _pomodoroProvider!.progress.clamp(0.0, 1.0);
+    final currentPercent = (progress * 100).round();
+    if (_lastPercent != null && currentPercent != _lastPercent) {
+      _lastPercent = currentPercent;
+      setState(() {});
+    } else {
+      _lastPercent = currentPercent;
+    }
   }
 
   void _startActive1fpsTimer() {
@@ -160,9 +174,10 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
 
   String _formatCurrentTime() {
     final now = DateTime.now();
-    final hour = now.hour.toString().padLeft(2, '0');
+    final hour = now.hour == 0 ? 12 : (now.hour > 12 ? now.hour - 12 : now.hour);
     final minute = now.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final period = now.hour >= 12 ? 'PM' : 'AM';
+    return '$hour:$minute $period';
   }
 
   String _getStatusText(PomodoroProvider provider) {
@@ -185,14 +200,11 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
-    // Detect mode change (e.g. Focus -> Break) to immediately reset 30s cadence
-    if (_lastMode != null && _lastMode != provider.mode) {
-      _startIdleTimer();
-    }
     _lastMode = provider.mode;
 
     final double progress = provider.progress.clamp(0.0, 1.0);
     final int percent = (progress * 100).round();
+    _lastPercent = percent;
 
     final totalSec = provider.totalDuration <= 0
         ? 25 * 60
@@ -293,13 +305,17 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
 
                                       SizedBox(height: isLandscape ? 20 : 36),
 
-                                      // Milestone Progress Bar & Clock
-                                      _AmbientProgressBar(
-                                        progress: progress,
-                                        minutesUntil80: minutesUntil80,
-                                        remainingMinsTo100: remainingMinsTo100,
-                                        clockTime: _formatCurrentTime(),
-                                        statusText: _getStatusText(provider),
+                                      // Milestone Progress Bar & Clock (dims when controls are hidden)
+                                      AnimatedOpacity(
+                                        opacity: _controlsVisible ? 1.0 : 0.45,
+                                        duration: const Duration(milliseconds: 300),
+                                        child: _AmbientProgressBar(
+                                          progress: progress,
+                                          minutesUntil80: minutesUntil80,
+                                          remainingMinsTo100: remainingMinsTo100,
+                                          clockTime: _formatCurrentTime(),
+                                          statusText: _getStatusText(provider),
+                                        ),
                                       ),
 
                                       SizedBox(height: isLandscape ? 20 : 28),

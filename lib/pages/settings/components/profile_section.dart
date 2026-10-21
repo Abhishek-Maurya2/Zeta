@@ -1,4 +1,5 @@
 import 'package:zeta/core/core.dart';
+
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
@@ -154,7 +155,7 @@ class _ProfileSectionState extends State<ProfileSection> {
         : profileProvider.isSyncing
         ? const Color(0xFFF59E0B)
         : profileProvider.lastSyncedAt != null
-        ? const Color(0xFF10B981)
+        ? const ui.Color.fromARGB(255, 8, 227, 74)
         : const Color(0xFFF59E0B);
     final profileSyncLabel = profileProvider.syncError != null
         ? 'ERROR'

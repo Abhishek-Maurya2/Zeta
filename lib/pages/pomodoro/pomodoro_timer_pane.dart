@@ -17,7 +17,9 @@ class PomodoroTimerPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final modeTitle = context.select<PomodoroProvider, String>((p) => p.mode.label);
+    final modeTitle = context.select<PomodoroProvider, String>(
+      (p) => p.mode.label,
+    );
     final provider = context.read<PomodoroProvider>();
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
