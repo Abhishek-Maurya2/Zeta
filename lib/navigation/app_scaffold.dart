@@ -714,7 +714,9 @@ class _AppScaffoldState extends State<AppScaffold>
                                                               6,
                                                             ),
                                                             decoration: BoxDecoration(
-                                                              color: colorScheme.surfaceContainerHigh,
+                                                              color: hasTaskEdit
+                                                                  ? colorScheme.tertiaryContainer
+                                                                  : colorScheme.surfaceContainerHigh,
                                                               borderRadius: BorderRadius.circular(
                                                                 20,
                                                               ),

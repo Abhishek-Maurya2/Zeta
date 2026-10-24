@@ -1,5 +1,7 @@
 import 'package:zeta/core/core.dart';
+
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:http/http.dart' as http;
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -58,7 +60,7 @@ class TaskEditPane {
                 maxHeightFactor: 0.90,
                 avoidKeyboard: false,
                 showBorder: false,
-                surfaceColor: colorScheme.primaryContainer.withValues(
+                surfaceColor: colorScheme.tertiaryContainer.withValues(
                   alpha: 0.45,
                 ),
                 child: Column(
@@ -730,9 +732,11 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             icon: const Icon(Icons.add_rounded, size: 18),
             size: M3EIconButtonSize.xs,
             width: M3EIconButtonWidth.narrow,
-            variant: M3EIconButtonVariant.tonal,
-            tooltip: 'Add subtask',
             onPressed: _addSubtask,
+            decoration: M3EIconButtonDecoration(
+              backgroundColor: WidgetStatePropertyAll(colorScheme.tertiary),
+              foregroundColor: WidgetStatePropertyAll(colorScheme.onTertiary),
+            ),
           ),
         ],
       ),
@@ -898,24 +902,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Tooltip(
-                  message: 'Edit subtask',
-                  child: M3EIconButton(
-                    icon: Icon(
-                      Icons.edit_outlined,
-                      size: 16,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    size: M3EIconButtonSize.xs,
-                    variant: M3EIconButtonVariant.standard,
-                    tooltip: 'Edit subtask',
-                    onPressed: () {
-                      ZetaHaptics.light();
-                      _startEditingSubtask(st);
-                    },
-                  ),
-                ),
-                const SizedBox(width: 2),
                 M3EIconButton(
                   icon: Icon(
                     Icons.close_rounded,
@@ -962,7 +948,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
               return Material(
                 elevation: elevation,
                 borderRadius: BorderRadius.circular(14),
-                shadowColor: colorScheme.shadow.withValues(alpha: 0.25),
                 color: isCompact
                     ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.95)
                     : colorScheme.surfaceContainerLowest,
@@ -981,44 +966,21 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
             padding: EdgeInsets.only(
               bottom: index == _subtasks.length - 1 ? 0 : 2.5,
             ),
-            child: Dismissible(
-              key: ValueKey('dismiss-${st.id}'),
-              direction: DismissDirection.endToStart,
-              onDismissed: (_) {
-                ZetaHaptics.medium();
-                _removeSubtask(st.id);
-              },
-              background: Container(
-                alignment: Alignment.centerRight,
-                padding: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  color: colorScheme.errorContainer.withValues(alpha: 0.7),
+            child: ClipRRect(
+              borderRadius: borderRadius,
+              child: Material(
+                color: colorScheme.surfaceContainerLowest.withValues(
+                  alpha: 0.5,
                 ),
-                child: Icon(
-                  Icons.delete_outline_rounded,
-                  color: colorScheme.error,
-                  size: 20,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: borderRadius,
-                child: Material(
-                  color: isCompact
-                      ? colorScheme.surfaceContainerLowest.withValues(
-                          alpha: 0.4,
-                        )
-                      : colorScheme.surfaceContainerLowest,
-                  child: SubtaskReorderListener(
+                child: SubtaskReorderListener(
+                  index: index,
+                  enabled: _subtasks.length > 1 && _editingSubtaskId != st.id,
+                  child: _buildSubtaskTile(
+                    context: context,
+                    st: st,
                     index: index,
-                    enabled: _subtasks.length > 1 && _editingSubtaskId != st.id,
-                    child: _buildSubtaskTile(
-                      context: context,
-                      st: st,
-                      index: index,
-                      isCompact: isCompact,
-                      colorScheme: colorScheme,
-                    ),
+                    isCompact: isCompact,
+                    colorScheme: colorScheme,
                   ),
                 ),
               ),
@@ -1062,13 +1024,12 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 autofocus: true,
                                 maxLines: 4,
                                 minLines: 1,
-                                style: context.textTheme.displaySmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: colorScheme.onSurface,
-                                      fontSize: 26,
-                                      height: 1.25,
-                                    ),
+                                style: context.textTheme.displaySmall?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: colorScheme.onSurface,
+                                  fontSize: 26,
+                                  height: 1.25,
+                                ),
                                 decoration: InputDecoration(
                                   isDense: true,
                                   hintText: 'Task Title',
@@ -1126,7 +1087,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 child: Icon(
                                   Icons.notes_rounded,
                                   size: 20,
-                                  color: colorScheme.primary,
+                                  color: colorScheme.tertiary,
                                 ),
                               ),
                               const SizedBox(width: 10),
@@ -1216,87 +1177,47 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                 }
                               },
                               actions: [
-                                M3EButtonGroupAction(
-                                  minWidth: 67,
-                                  icon: const Icon(
-                                    Icons.notes_rounded,
-                                    size: 22,
+                                for (final action in [
+                                  (
+                                    icon: Icons.notes_rounded,
+                                    tooltip: 'Add notes',
+                                    isActive: _showDescription,
                                   ),
-                                  tooltip: 'Add notes',
-                                  decoration: M3EButtonDecoration.styleFrom(
-                                    backgroundColor: _showDescription
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerLowest
-                                              .withValues(alpha: 0.5),
-                                    foregroundColor: _showDescription
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
+                                  (
+                                    icon: Icons.checklist_rounded,
+                                    tooltip: null,
+                                    isActive: _showSubtasks,
                                   ),
-                                ),
-                                M3EButtonGroupAction(
-                                  minWidth: 67,
-                                  icon: const Icon(
-                                    Icons.checklist_rounded,
-                                    size: 22,
+                                  (
+                                    icon: Icons.calendar_month_rounded,
+                                    tooltip: null,
+                                    isActive: _dueDate != null,
                                   ),
-                                  decoration: M3EButtonDecoration.styleFrom(
-                                    backgroundColor: _showSubtasks
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerLowest
-                                              .withValues(alpha: 0.5),
-                                    foregroundColor: _showSubtasks
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
+                                  (
+                                    icon: Icons.schedule_rounded,
+                                    tooltip: null,
+                                    isActive: _hasTime,
                                   ),
-                                ),
-                                M3EButtonGroupAction(
-                                  minWidth: 67,
-                                  icon: const Icon(
-                                    Icons.calendar_month_rounded,
-                                    size: 22,
+                                  (
+                                    icon: Icons.attach_file_rounded,
+                                    tooltip: null,
+                                    isActive: _showAttachments,
                                   ),
-                                  decoration: M3EButtonDecoration.styleFrom(
-                                    backgroundColor: _dueDate != null
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerLowest
-                                              .withValues(alpha: 0.5),
-                                    foregroundColor: _dueDate != null
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
+                                ])
+                                  M3EButtonGroupAction(
+                                    minWidth: 65,
+                                    icon: Icon(action.icon, size: 22),
+                                    tooltip: action.tooltip,
+                                    decoration: M3EButtonDecoration.styleFrom(
+                                      backgroundColor: action.isActive
+                                          ? colorScheme.tertiary
+                                          : colorScheme.surfaceContainerLowest
+                                                .withValues(alpha: 0.5),
+                                      foregroundColor: action.isActive
+                                          ? colorScheme.tertiaryContainer
+                                          : colorScheme.onTertiaryContainer,
+                                    ),
                                   ),
-                                ),
-                                M3EButtonGroupAction(
-                                  minWidth: 67,
-                                  icon: const Icon(
-                                    Icons.schedule_rounded,
-                                    size: 22,
-                                  ),
-                                  decoration: M3EButtonDecoration.styleFrom(
-                                    backgroundColor: _hasTime
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerLowest
-                                              .withValues(alpha: 0.5),
-                                    foregroundColor: _hasTime
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                M3EButtonGroupAction(
-                                  minWidth: 67,
-                                  icon: const Icon(
-                                    Icons.attach_file_rounded,
-                                    size: 22,
-                                  ),
-                                  decoration: M3EButtonDecoration.styleFrom(
-                                    backgroundColor: _showAttachments
-                                        ? colorScheme.primaryContainer
-                                        : colorScheme.surfaceContainerLowest
-                                              .withValues(alpha: 0.5),
-                                    foregroundColor: _showAttachments
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -1481,7 +1402,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                               Icon(
                                 Icons.event_outlined,
                                 size: 20,
-                                color: colorScheme.primary,
+                                color: colorScheme.tertiary,
                               ),
                               const SizedBox(width: 12),
                               Text(
@@ -1490,7 +1411,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      color: colorScheme.primary,
+                                      color: colorScheme.tertiary,
                                     ),
                               ),
                             ],
@@ -1559,7 +1480,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                                     ?.copyWith(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      color: colorScheme.primary,
+                                      color: colorScheme.tertiary,
                                     ),
                               ),
                               if (_subtasks.isEmpty)

@@ -36,10 +36,7 @@ class UpdatesSection extends StatelessWidget {
     try {
       bool launched = false;
       try {
-        launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
+        launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
       } catch (_) {
         launched = false;
       }
@@ -134,7 +131,7 @@ class UpdatesSection extends StatelessWidget {
                                 ? updateProvider.downloadProgress!.progress
                                 : null,
                             color: colorScheme.primary,
-                            trackColor: colorScheme.surfaceContainerHigh,
+                            trackColor: colorScheme.tertiaryContainer,
                           ),
                         ),
                       ),
@@ -168,10 +165,8 @@ class UpdatesSection extends StatelessWidget {
               ] else if (isDownloaded) ...[
                 // Install button
                 M3EButton.icon(
-                  icon: const Icon(Icons.system_update_alt_rounded, ),
-                  label: const Text(
-                    'Install Update',
-                  ),
+                  icon: const Icon(Icons.system_update_alt_rounded),
+                  label: const Text('Install Update'),
                   style: M3EButtonStyle.filled,
                   size: M3EButtonSize.md,
                   onPressed: () {
@@ -216,7 +211,7 @@ class UpdatesSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     M3EIconButton(
-                      icon: const Icon(Icons.refresh_rounded, ),
+                      icon: const Icon(Icons.refresh_rounded),
                       tooltip: 'Retry',
                       variant: M3EIconButtonVariant.filled,
                       size: M3EIconButtonSize.md,
