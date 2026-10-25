@@ -210,6 +210,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _cachedCompletedCount = c;
     return c;
   }
+
   int get pendingCount => _tasks.length - completedCount;
   int get binCount => _binTasks.length;
 
@@ -525,7 +526,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task>? _cachedPendingNonRevisionTasks;
 
   List<Task> get pendingNonRevisionTasks {
-    if (_cachedPendingNonRevisionTasks != null) return _cachedPendingNonRevisionTasks!;
+    if (_cachedPendingNonRevisionTasks != null)
+      return _cachedPendingNonRevisionTasks!;
     final list = pendingTasks.where((t) => !isRevisionTask(t)).toList();
     _cachedPendingNonRevisionTasks = List.unmodifiable(list);
     return _cachedPendingNonRevisionTasks!;
@@ -561,6 +563,33 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _loadFromStorage() =>
       traceAsync('tasks.load_local', _loadFromStorageImpl);
+
+  Future<void> _deleteOldCompletedTasks() async {
+    final cutoff = DateTime.now().subtract(const Duration(days: 30));
+    final expiredIds = <String>{
+      ..._tasks
+          .where(
+            (task) =>
+                task.completed &&
+                (task.completedAt ?? task.updatedAt).isBefore(cutoff),
+          )
+          .map((task) => task.id),
+    };
+    if (expiredIds.isEmpty) return;
+
+    try {
+      await _repository.deleteMultipleTasks(expiredIds);
+      _tasks.removeWhere((task) => expiredIds.contains(task.id));
+      _binTasks.removeWhere((task) => expiredIds.contains(task.id));
+      _invalidateCache();
+      debugPrint(
+        'TaskProvider: Permanently deleted '
+        '${expiredIds.length} completed tasks older than 30 days.',
+      );
+    } catch (e) {
+      debugPrint('TaskProvider: Failed to delete old completed tasks: $e');
+    }
+  }
 
   Future<void> _loadFromStorageImpl() async {
     try {
@@ -605,9 +634,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _binTasks.clear();
       _binTasks.addAll(binTaskList.where((t) => t.title.trim().isNotEmpty));
 
+      await _deleteOldCompletedTasks();
+
       // ── 90-day bin eviction ─────────────────────────────────────────────────
       // Only bin tasks (already soft-deleted by the user) are evicted.
-      // Completed tasks are intentionally kept so analytics remain accurate.
       final evicted = await _repository.evictOldBinTasks(retentionDays: 90);
       if (evicted > 0) {
         _binTasks.removeWhere(
@@ -782,6 +812,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         await _repository.saveTasksBatch(remoteTasks, pushToCloud: false);
       }
 
+      // The startup cleanup runs before this cloud snapshot is merged, so run
+      // it again to catch old completed tasks restored from another device.
+      await _deleteOldCompletedTasks();
+
       // Clean up any empty tasks that may exist locally
       _tasks.removeWhere((t) => t.title.trim().isEmpty);
       _binTasks.removeWhere((t) => t.title.trim().isEmpty);
@@ -827,24 +861,66 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
       final task = _tasks[index];
-      task.completed = !task.completed;
-      task.updatedAt = DateTime.now();
-      if (task.completed) {
-        _playSoundIfEnabled();
-        // Cancel any pending reminder when task is completed.
-        NotificationService.instance.cancelTaskReminder(task.id);
-        onTaskCompletedCallback?.call(task.id);
-      } else {
-        // Re-schedule if un-completing a task that has a due time.
-        NotificationService.instance.scheduleTaskReminder(task);
+      if (!task.completed) {
+        markTaskCompleted(id);
+        return;
       }
+
+      task.completed = false;
+      final now = DateTime.now();
+      task.completedAt = null;
+      task.updatedAt = now;
+      // Re-schedule if un-completing a task that has a due time.
+      NotificationService.instance.scheduleTaskReminder(task);
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.saveTask(task));
     }
   }
 
+  /// Records an explicit task completion, independently from edits/subtasks.
+  /// Revision progression can disable the callback when it is already handling
+  /// that same completion.
+  void markTaskCompleted(String id, {bool syncRevision = true}) {
+    final index = _tasks.indexWhere((task) => task.id == id);
+    if (index == -1) return;
+
+    final task = _tasks[index];
+    final wasAlreadyCompleted = task.completed;
+    if (wasAlreadyCompleted && task.completedAt != null) return;
+
+    final now = DateTime.now();
+    task.completed = true;
+    task.completedAt ??= now;
+    task.updatedAt = now;
+    _playSoundIfEnabled();
+    NotificationService.instance.cancelTaskReminder(task.id);
+    if (syncRevision) onTaskCompletedCallback?.call(task.id);
+    _invalidateCache();
+    notifyListeners();
+    unawaited(_repository.saveTask(task));
+  }
+
   final Map<String, Timer> _subtaskCompletionTimers = {};
+
+  /// Marks a parent complete from its subtasks without recording an explicit
+  /// task-completion timestamp. Daily completion stats only count task actions.
+  void _completeTaskFromSubtasks(String taskId) {
+    final index = _tasks.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+
+    final task = _tasks[index];
+    if (task.completed) return;
+
+    task.completed = true;
+    task.completedAt = null;
+    task.updatedAt = DateTime.now();
+    _playSoundIfEnabled();
+    NotificationService.instance.cancelTaskReminder(task.id);
+    _invalidateCache();
+    notifyListeners();
+    unawaited(_repository.saveTask(task));
+  }
 
   void toggleSubtask(String taskId, String subtaskId, {BuildContext? context}) {
     final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
@@ -880,8 +956,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
                 if (taskToComplete.subtasks.isNotEmpty &&
                     taskToComplete.subtasks.every((s) => s.completed) &&
                     !taskToComplete.completed) {
-                  // Mark the parent task as complete
-                  toggleTask(taskId);
+                  // Mark the parent complete without recording this as an
+                  // explicit task completion for the daily stats.
+                  _completeTaskFromSubtasks(taskId);
 
                   // Show toast with Undo button
                   AppSnackbar.show(
@@ -941,7 +1018,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     String? dueTime,
     List<Subtask>? subtasks,
     List<AttachmentItem>? attachments,
-    bool? completed,
   }) {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
@@ -951,10 +1027,10 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.dueDate = dueDate;
       task.hasTime = hasTime;
       task.dueTime = dueTime;
-      task.updatedAt = DateTime.now();
+      final now = DateTime.now();
+      task.updatedAt = now;
       if (subtasks != null) task.subtasks = subtasks;
       if (attachments != null) task.attachments = attachments;
-      if (completed != null) task.completed = completed;
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.saveTask(task));
@@ -1019,11 +1095,19 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     final targetState = markAs ?? selectedTasks.any((t) => !t.completed);
 
     for (final task in selectedTasks) {
-      task.completed = targetState;
-      task.updatedAt = DateTime.now();
+      final now = DateTime.now();
+      final taskStateChanged = task.completed != targetState;
+      final explicitCompletion =
+          targetState && (!task.completed || task.completedAt == null);
+      if (taskStateChanged) {
+        task.completed = targetState;
+      }
+      if (explicitCompletion) task.completedAt = now;
+      if (!targetState && taskStateChanged) task.completedAt = null;
+      task.updatedAt = now;
       if (targetState) {
         NotificationService.instance.cancelTaskReminder(task.id);
-        onTaskCompletedCallback?.call(task.id);
+        if (explicitCompletion) onTaskCompletedCallback?.call(task.id);
       } else {
         NotificationService.instance.scheduleTaskReminder(task);
       }

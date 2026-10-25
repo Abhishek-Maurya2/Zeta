@@ -55,7 +55,7 @@ class PomodoroQueuePane extends StatelessWidget {
               const SizedBox(width: 8),
               M3EIconButton(
                 icon: const Icon(Icons.tune_rounded),
-                variant: M3EIconButtonVariant.tonal,
+                variant: M3EIconButtonVariant.filled,
                 width: M3EIconButtonWidth.wide,
                 onPressed: () => PomodoroSettingsSheet.show(context),
               ),
@@ -119,11 +119,11 @@ class PomodoroQueuePane extends StatelessWidget {
           else
             M3EList(
               itemCount: queue.length,
-              gap: 4,
+              gap: 3,
               colorBuilder: (idx) {
                 return idx == activeIndex
-                    ? colorScheme.secondaryContainer
-                    : colorScheme.surfaceContainerLowest;
+                    ? colorScheme.tertiary
+                    : colorScheme.surfaceContainerLowest.withValues(alpha: 0.7);
               },
               borderRadiusBuilder: (idx, position) {
                 if (idx == activeIndex) {
@@ -142,8 +142,8 @@ class PomodoroQueuePane extends StatelessWidget {
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+                    horizontal: 14,
+                    vertical: 8,
                   ),
                   child: PomodoroQueueItemTile(
                     item: item,

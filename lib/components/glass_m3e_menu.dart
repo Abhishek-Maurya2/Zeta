@@ -1,4 +1,5 @@
 ﻿import 'package:zeta/core/core.dart';
+import 'package:flutter/widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -178,12 +179,26 @@ class _GlassM3EMenuState extends State<GlassM3EMenu> {
   final GlobalKey _anchorKey = GlobalKey();
   bool _open = false;
 
+  Rect? _rootOverlayRect(BuildContext anchorContext) {
+    final object = anchorContext.findRenderObject();
+    if (object is! RenderBox || !object.hasSize || !object.attached) {
+      return null;
+    }
+
+    final rootOverlay = Overlay.of(context, rootOverlay: true);
+    final overlayObject = rootOverlay.context.findRenderObject();
+    return MatrixUtils.transformRect(
+      object.getTransformTo(overlayObject),
+      Offset.zero & object.size,
+    );
+  }
+
   Future<void> _openMenu() async {
     if (_open) return;
     final BuildContext? anchorContext = _anchorKey.currentContext;
     final Rect? anchor = anchorContext == null
         ? null
-        : m3eOverlayRectFor(anchorContext);
+        : _rootOverlayRect(anchorContext);
     if (anchor == null) return;
 
     setState(() => _open = true);

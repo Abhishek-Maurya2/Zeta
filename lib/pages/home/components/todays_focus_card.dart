@@ -7,8 +7,10 @@ import '../../../providers/task_provider.dart';
 import '../../../components/task_edit_pane.dart';
 import '../../../utils/task_date_formatter.dart';
 import '../../../utils/date_time_utils.dart';
+
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
+
 import '../../../components/standard_chips.dart';
 import '../../../components/zeta_empty_state.dart';
 
@@ -20,12 +22,14 @@ import '../../../components/zeta_empty_state.dart';
 /// - Expressive empty state when no tasks are scheduled for the day.
 class TodaysFocusCard extends StatelessWidget {
   final Task? task;
+  final List<Task> pendingTasks;
   final DateTime selectedDate;
   final VoidCallback? onOpenCreate;
 
   const TodaysFocusCard({
     super.key,
     required this.task,
+    this.pendingTasks = const [],
     required this.selectedDate,
     this.onOpenCreate,
   });
@@ -42,10 +46,12 @@ class TodaysFocusCard extends StatelessWidget {
     final formattedDate = DateTimeUtils.formatFocusDate(selectedDate);
 
     final parsedDue = task?.parsedDueDate;
-    final isOverdue = parsedDue != null &&
+    final isOverdue =
+        parsedDue != null &&
         parsedDue.isBefore(today) &&
         !(task?.completed ?? false);
-    final isDueToday = parsedDue != null &&
+    final isDueToday =
+        parsedDue != null &&
         DateTimeUtils.isSameDay(parsedDue, today) &&
         !(task?.completed ?? false);
 
@@ -177,11 +183,13 @@ class TodaysFocusCard extends StatelessWidget {
                               ),
                             ),
                             if ((revisionInfo.isRevision
-                                    ? revisionInfo.cleanedDescription
-                                    : task!.description) != null &&
+                                        ? revisionInfo.cleanedDescription
+                                        : task!.description) !=
+                                    null &&
                                 (revisionInfo.isRevision
-                                    ? revisionInfo.cleanedDescription
-                                    : task!.description)!.isNotEmpty) ...[
+                                        ? revisionInfo.cleanedDescription
+                                        : task!.description)!
+                                    .isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
                                 (revisionInfo.isRevision
@@ -212,8 +220,11 @@ class TodaysFocusCard extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final st = task!.subtasks[index];
                       return InkWell(
-                        onTap: () =>
-                            taskProvider.toggleSubtask(task!.id, st.id, context: context),
+                        onTap: () => taskProvider.toggleSubtask(
+                          task!.id,
+                          st.id,
+                          context: context,
+                        ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 15,
@@ -244,7 +255,7 @@ class TodaysFocusCard extends StatelessWidget {
                                         : null,
                                     color: st.completed
                                         ? colorScheme.onTertiaryContainer
-                                            .withValues(alpha: 0.7)
+                                              .withValues(alpha: 0.7)
                                         : colorScheme.onTertiaryContainer,
                                   ),
                                 ),
@@ -279,7 +290,12 @@ class TodaysFocusCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 4),
+          if (pendingTasks.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            _OtherDueTasksCard(tasks: pendingTasks, today: today),
+          ],
+
+          const SizedBox(height: 3),
 
           // Bottom Quick Add Container
           Container(
@@ -339,6 +355,68 @@ class TodaysFocusCard extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _OtherDueTasksCard extends StatelessWidget {
+  final List<Task> tasks;
+  final DateTime today;
+
+  const _OtherDueTasksCard({required this.tasks, required this.today});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+    final taskProvider = context.read<TaskProvider>();
+
+    return M3EList(
+      color: colorScheme.surfaceContainerLowest,
+      outerRadius: 8,
+      innerRadius: 8,
+      gap: 3,
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        final due = task.parsedDueDate;
+        final isOverdue = due != null && due.isBefore(today);
+
+        return M3EListItem(
+          leading: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => taskProvider.toggleTask(task.id),
+            child: Icon(
+              Icons.radio_button_unchecked_rounded,
+              size: 20,
+              color: colorScheme.primary,
+            ),
+          ),
+          headline: task.title,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (task.dueDate != null)
+                FocusTaskDueDateChip(
+                  dueFormatted: TaskDateFormatter.formatTaskListDate(
+                    dueDate: task.dueDate!,
+                    hasTime: task.hasTime,
+                    dueTime: task.dueTime,
+                  ),
+                  hasTime: task.hasTime,
+                  isOverdue: isOverdue,
+                ),
+              if (task.dueDate != null && task.subtasks.isNotEmpty)
+                const SizedBox(width: 6),
+              if (task.subtasks.isNotEmpty)
+                TaskSubtasksBadge(
+                  subtasks: task.subtasks,
+                  isExpanded: false,
+                ),
+            ],
+          ),
+          onTap: () => TaskEditPane.show(context, task: task),
+        );
+      },
     );
   }
 }

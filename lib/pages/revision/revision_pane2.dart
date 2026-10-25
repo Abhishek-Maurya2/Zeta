@@ -104,7 +104,15 @@ class RevisionPane2 extends StatelessWidget {
                 },
                 onComplete: () {
                   ZetaHaptics.medium();
-                  revProvider.completeTopic(topic.id, taskProvider);
+                  if (topic.revisionStage == 0 &&
+                      topic.nextRevisionDate == null) {
+                    revProvider.markTopicForRevision(
+                      topic.id,
+                      taskProvider,
+                    );
+                  } else {
+                    revProvider.completeTopic(topic.id, taskProvider);
+                  }
                 },
                 onEdit: () {
                   ZetaHaptics.light();

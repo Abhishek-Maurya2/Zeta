@@ -145,6 +145,17 @@ class $TasksTableTable extends TasksTable
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _completedAtMsMeta = const VerificationMeta(
+    'completedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> completedAtMs = GeneratedColumn<int>(
+    'completed_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedAtMsMeta = const VerificationMeta(
     'deletedAtMs',
   );
@@ -181,6 +192,7 @@ class $TasksTableTable extends TasksTable
     attachmentsJson,
     createdAtMs,
     updatedAtMs,
+    completedAtMs,
     deletedAtMs,
     lastSyncedAtMs,
   ];
@@ -288,6 +300,15 @@ class $TasksTableTable extends TasksTable
     } else if (isInserting) {
       context.missing(_updatedAtMsMeta);
     }
+    if (data.containsKey('completed_at_ms')) {
+      context.handle(
+        _completedAtMsMeta,
+        completedAtMs.isAcceptableOrUnknown(
+          data['completed_at_ms']!,
+          _completedAtMsMeta,
+        ),
+      );
+    }
     if (data.containsKey('deleted_at_ms')) {
       context.handle(
         _deletedAtMsMeta,
@@ -363,6 +384,10 @@ class $TasksTableTable extends TasksTable
         DriftSqlType.int,
         data['${effectivePrefix}updated_at_ms'],
       )!,
+      completedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}completed_at_ms'],
+      ),
       deletedAtMs: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}deleted_at_ms'],
@@ -393,6 +418,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
   final String attachmentsJson;
   final int createdAtMs;
   final int updatedAtMs;
+  final int? completedAtMs;
   final int? deletedAtMs;
   final int? lastSyncedAtMs;
   const TasksTableData({
@@ -408,6 +434,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     required this.attachmentsJson,
     required this.createdAtMs,
     required this.updatedAtMs,
+    this.completedAtMs,
     this.deletedAtMs,
     this.lastSyncedAtMs,
   });
@@ -434,6 +461,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     map['attachments_json'] = Variable<String>(attachmentsJson);
     map['created_at_ms'] = Variable<int>(createdAtMs);
     map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    if (!nullToAbsent || completedAtMs != null) {
+      map['completed_at_ms'] = Variable<int>(completedAtMs);
+    }
     if (!nullToAbsent || deletedAtMs != null) {
       map['deleted_at_ms'] = Variable<int>(deletedAtMs);
     }
@@ -465,6 +495,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       attachmentsJson: Value(attachmentsJson),
       createdAtMs: Value(createdAtMs),
       updatedAtMs: Value(updatedAtMs),
+      completedAtMs: completedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAtMs),
       deletedAtMs: deletedAtMs == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAtMs),
@@ -492,6 +525,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       attachmentsJson: serializer.fromJson<String>(json['attachmentsJson']),
       createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
       updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      completedAtMs: serializer.fromJson<int?>(json['completedAtMs']),
       deletedAtMs: serializer.fromJson<int?>(json['deletedAtMs']),
       lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
     );
@@ -512,6 +546,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       'attachmentsJson': serializer.toJson<String>(attachmentsJson),
       'createdAtMs': serializer.toJson<int>(createdAtMs),
       'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'completedAtMs': serializer.toJson<int?>(completedAtMs),
       'deletedAtMs': serializer.toJson<int?>(deletedAtMs),
       'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
     };
@@ -530,6 +565,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     String? attachmentsJson,
     int? createdAtMs,
     int? updatedAtMs,
+    Value<int?> completedAtMs = const Value.absent(),
     Value<int?> deletedAtMs = const Value.absent(),
     Value<int?> lastSyncedAtMs = const Value.absent(),
   }) => TasksTableData(
@@ -545,6 +581,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     attachmentsJson: attachmentsJson ?? this.attachmentsJson,
     createdAtMs: createdAtMs ?? this.createdAtMs,
     updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+    completedAtMs: completedAtMs.present
+        ? completedAtMs.value
+        : this.completedAtMs,
     deletedAtMs: deletedAtMs.present ? deletedAtMs.value : this.deletedAtMs,
     lastSyncedAtMs: lastSyncedAtMs.present
         ? lastSyncedAtMs.value
@@ -574,6 +613,9 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
       updatedAtMs: data.updatedAtMs.present
           ? data.updatedAtMs.value
           : this.updatedAtMs,
+      completedAtMs: data.completedAtMs.present
+          ? data.completedAtMs.value
+          : this.completedAtMs,
       deletedAtMs: data.deletedAtMs.present
           ? data.deletedAtMs.value
           : this.deletedAtMs,
@@ -598,6 +640,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('completedAtMs: $completedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
           ..write('lastSyncedAtMs: $lastSyncedAtMs')
           ..write(')'))
@@ -618,6 +661,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
     attachmentsJson,
     createdAtMs,
     updatedAtMs,
+    completedAtMs,
     deletedAtMs,
     lastSyncedAtMs,
   );
@@ -637,6 +681,7 @@ class TasksTableData extends DataClass implements Insertable<TasksTableData> {
           other.attachmentsJson == this.attachmentsJson &&
           other.createdAtMs == this.createdAtMs &&
           other.updatedAtMs == this.updatedAtMs &&
+          other.completedAtMs == this.completedAtMs &&
           other.deletedAtMs == this.deletedAtMs &&
           other.lastSyncedAtMs == this.lastSyncedAtMs);
 }
@@ -654,6 +699,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
   final Value<String> attachmentsJson;
   final Value<int> createdAtMs;
   final Value<int> updatedAtMs;
+  final Value<int?> completedAtMs;
   final Value<int?> deletedAtMs;
   final Value<int?> lastSyncedAtMs;
   final Value<int> rowid;
@@ -670,6 +716,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.attachmentsJson = const Value.absent(),
     this.createdAtMs = const Value.absent(),
     this.updatedAtMs = const Value.absent(),
+    this.completedAtMs = const Value.absent(),
     this.deletedAtMs = const Value.absent(),
     this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -687,6 +734,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     this.attachmentsJson = const Value.absent(),
     required int createdAtMs,
     required int updatedAtMs,
+    this.completedAtMs = const Value.absent(),
     this.deletedAtMs = const Value.absent(),
     this.lastSyncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -707,6 +755,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Expression<String>? attachmentsJson,
     Expression<int>? createdAtMs,
     Expression<int>? updatedAtMs,
+    Expression<int>? completedAtMs,
     Expression<int>? deletedAtMs,
     Expression<int>? lastSyncedAtMs,
     Expression<int>? rowid,
@@ -724,6 +773,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       if (attachmentsJson != null) 'attachments_json': attachmentsJson,
       if (createdAtMs != null) 'created_at_ms': createdAtMs,
       if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (completedAtMs != null) 'completed_at_ms': completedAtMs,
       if (deletedAtMs != null) 'deleted_at_ms': deletedAtMs,
       if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
       if (rowid != null) 'rowid': rowid,
@@ -743,6 +793,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     Value<String>? attachmentsJson,
     Value<int>? createdAtMs,
     Value<int>? updatedAtMs,
+    Value<int?>? completedAtMs,
     Value<int?>? deletedAtMs,
     Value<int?>? lastSyncedAtMs,
     Value<int>? rowid,
@@ -760,6 +811,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
       attachmentsJson: attachmentsJson ?? this.attachmentsJson,
       createdAtMs: createdAtMs ?? this.createdAtMs,
       updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      completedAtMs: completedAtMs ?? this.completedAtMs,
       deletedAtMs: deletedAtMs ?? this.deletedAtMs,
       lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
       rowid: rowid ?? this.rowid,
@@ -805,6 +857,9 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
     if (updatedAtMs.present) {
       map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
     }
+    if (completedAtMs.present) {
+      map['completed_at_ms'] = Variable<int>(completedAtMs.value);
+    }
     if (deletedAtMs.present) {
       map['deleted_at_ms'] = Variable<int>(deletedAtMs.value);
     }
@@ -832,6 +887,7 @@ class TasksTableCompanion extends UpdateCompanion<TasksTableData> {
           ..write('attachmentsJson: $attachmentsJson, ')
           ..write('createdAtMs: $createdAtMs, ')
           ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('completedAtMs: $completedAtMs, ')
           ..write('deletedAtMs: $deletedAtMs, ')
           ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
           ..write('rowid: $rowid')
@@ -3052,6 +3108,7 @@ typedef $$TasksTableTableCreateCompanionBuilder = TasksTableCompanion Function({
   Value<String> attachmentsJson,
   required int createdAtMs,
   required int updatedAtMs,
+  Value<int?> completedAtMs,
   Value<int?> deletedAtMs,
   Value<int?> lastSyncedAtMs,
   Value<int> rowid,
@@ -3069,6 +3126,7 @@ typedef $$TasksTableTableUpdateCompanionBuilder = TasksTableCompanion Function({
   Value<String> attachmentsJson,
   Value<int> createdAtMs,
   Value<int> updatedAtMs,
+  Value<int?> completedAtMs,
   Value<int?> deletedAtMs,
   Value<int?> lastSyncedAtMs,
   Value<int> rowid,
@@ -3140,6 +3198,11 @@ class $$TasksTableTableFilterComposer
 
   ColumnFilters<int> get updatedAtMs => $composableBuilder(
     column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get completedAtMs => $composableBuilder(
+    column: $table.completedAtMs,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3223,6 +3286,11 @@ class $$TasksTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get completedAtMs => $composableBuilder(
+    column: $table.completedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get deletedAtMs => $composableBuilder(
     column: $table.deletedAtMs,
     builder: (column) => ColumnOrderings(column),
@@ -3289,6 +3357,11 @@ class $$TasksTableTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get completedAtMs => $composableBuilder(
+    column: $table.completedAtMs,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get deletedAtMs => $composableBuilder(
     column: $table.deletedAtMs,
     builder: (column) => column,
@@ -3343,6 +3416,7 @@ class $$TasksTableTableTableManager
                 Value<String> attachmentsJson = const Value.absent(),
                 Value<int> createdAtMs = const Value.absent(),
                 Value<int> updatedAtMs = const Value.absent(),
+                Value<int?> completedAtMs = const Value.absent(),
                 Value<int?> deletedAtMs = const Value.absent(),
                 Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -3359,6 +3433,7 @@ class $$TasksTableTableTableManager
                 attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
+                completedAtMs: completedAtMs,
                 deletedAtMs: deletedAtMs,
                 lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,
@@ -3377,6 +3452,7 @@ class $$TasksTableTableTableManager
                 Value<String> attachmentsJson = const Value.absent(),
                 required int createdAtMs,
                 required int updatedAtMs,
+                Value<int?> completedAtMs = const Value.absent(),
                 Value<int?> deletedAtMs = const Value.absent(),
                 Value<int?> lastSyncedAtMs = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -3393,6 +3469,7 @@ class $$TasksTableTableTableManager
                 attachmentsJson: attachmentsJson,
                 createdAtMs: createdAtMs,
                 updatedAtMs: updatedAtMs,
+                completedAtMs: completedAtMs,
                 deletedAtMs: deletedAtMs,
                 lastSyncedAtMs: lastSyncedAtMs,
                 rowid: rowid,

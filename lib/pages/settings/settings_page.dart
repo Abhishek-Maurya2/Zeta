@@ -203,17 +203,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     centerTitle: true,
                     variant: M3EAppBarVariant.large,
                     hideMode: M3EAppBarHideMode.actions,
-                    leading: isCompact
-                        ? M3EIconButton(
-                            variant: M3EIconButtonVariant.standard,
-                            width: M3EIconButtonWidth.wide,
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            onPressed: () {
-                              ZetaHaptics.light();
-                              navProvider.pop();
-                            },
-                          )
-                        : null,
                   ),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(

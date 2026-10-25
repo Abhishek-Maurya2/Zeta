@@ -341,7 +341,7 @@ class PomodoroSummaryCards extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: colorScheme.tertiaryContainer,
+                    color: colorScheme.onTertiary.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color:

@@ -81,16 +81,9 @@ class _HomePageState extends State<HomePage> {
     final today = DateTime(now.year, now.month, now.day);
 
     final tasks = taskProvider.allTasks;
-    final binTasks = taskProvider.binTasks;
     final activeTasks = tasks.where((t) => !t.completed).toList();
-    final totalCount = tasks.length + binTasks.length;
-    final completedCount =
-        tasks.where((t) => t.completed).length +
-        binTasks.where((t) => t.completed).length;
     final activeCount = activeTasks.length;
-    final completionRate = totalCount > 0
-        ? ((completedCount / totalCount) * 100).round()
-        : 0;
+    // Completion stats are calculated in CompletionRateCard using due dates
 
     // Filter tasks for selected date and today using cached date index
     final dateMap = taskProvider.tasksByDateKey;
@@ -116,40 +109,53 @@ class _HomePageState extends State<HomePage> {
 
     // Focus Task determination:
     // When viewing today:
-    //   1. Earliest overdue or due today active task
-    //   2. Active task scheduled for today
-    //   3. Any active task with a due date (nearest upcoming)
-    //   4. First completed task for today
+    //   1. Overdue or due today active tasks + active tasks scheduled for today
+    //   2. Any active task with a due date (nearest upcoming)
+    //   3. Fallback to first completed task for today
     // When viewing another date:
-    //   1. First active task on selected date
-    //   2. First completed task on selected date
-    Task? focusTask;
+    //   1. Active tasks scheduled for selected date
+    //   2. Fallback to first completed task on selected date
+    final focusTasks = <Task>[];
+    final seenFocusIds = <String>{};
+
+    void addFocusTask(Task t) {
+      if (seenFocusIds.add(t.id)) {
+        focusTasks.add(t);
+      }
+    }
+
     if (isSelectedDateToday) {
-      if (dueNowTasks.isNotEmpty) {
-        focusTask = dueNowTasks.first;
-      } else {
-        for (final t in selectedDateTasks) {
-          if (!t.completed) {
-            focusTask = t;
-            break;
-          }
+      for (final t in dueNowTasks) {
+        if (!t.completed) addFocusTask(t);
+      }
+      for (final t in selectedDateTasks) {
+        if (!t.completed) addFocusTask(t);
+      }
+      if (focusTasks.isEmpty) {
+        final nearest = dueActiveTasks.firstOrNull;
+        if (nearest != null && !nearest.completed) {
+          addFocusTask(nearest);
         }
-        focusTask ??= dueActiveTasks.firstOrNull;
-        focusTask ??= selectedDateTasks.firstOrNull;
+      }
+      if (focusTasks.isEmpty && selectedDateTasks.isNotEmpty) {
+        addFocusTask(selectedDateTasks.first);
       }
     } else {
       for (final t in selectedDateTasks) {
-        if (!t.completed) {
-          focusTask = t;
-          break;
-        }
+        if (!t.completed) addFocusTask(t);
       }
-      focusTask ??= selectedDateTasks.firstOrNull;
+      if (focusTasks.isEmpty && selectedDateTasks.isNotEmpty) {
+        addFocusTask(selectedDateTasks.first);
+      }
     }
 
-    // Up Next active tasks: exclude task visible in focus component and show the rest
+    final focusTask = focusTasks.firstOrNull;
+    final otherPendingTasks =
+        focusTasks.length > 1 ? focusTasks.sublist(1) : const <Task>[];
+
+    // Up Next active tasks: exclude tasks visible in focus component and show the rest
     final upNextTasks = activeTasks
-        .where((t) => focusTask == null || t.id != focusTask.id)
+        .where((t) => !seenFocusIds.contains(t.id))
         .toList();
 
     // Left Column: Focus Card (with task or empty state) + Up Next Tasks
@@ -158,6 +164,7 @@ class _HomePageState extends State<HomePage> {
       children: [
         TodaysFocusCard(
           task: focusTask,
+          pendingTasks: otherPendingTasks,
           selectedDate: _selectedDate,
           onOpenCreate: () => TaskEditPane.show(context),
         ),
@@ -177,8 +184,6 @@ class _HomePageState extends State<HomePage> {
         HomeSummaryCards(
           activeCount: activeCount,
           todayActiveCount: todayActiveCount,
-          completionRate: completionRate,
-          completedCount: completedCount,
           onMoreTap: () => navProvider.setActivePage(PageId.tasks),
           onOpenPomodoroAnalysis: () {
             navProvider.setActivePage(PageId.pomodoro);

@@ -32,10 +32,10 @@ class PomodoroQueueItemTile extends StatelessWidget {
           width: 40,
           height: 40,
           color: isActive
-              ? colorScheme.primary
+              ? colorScheme.primaryContainer
               : (isPast
-                    ? colorScheme.surfaceContainerHigh
-                    : colorScheme.secondaryContainer),
+                    ? colorScheme.tertiary.withValues(alpha: 0.5)
+                    : colorScheme.tertiary),
           child: Center(
             child: Icon(
               isActive
@@ -52,10 +52,8 @@ class PomodoroQueueItemTile extends StatelessWidget {
               size: 23,
               fontWeight: FontWeight.w500,
               color: isActive
-                  ? colorScheme.onPrimary
-                  : (isPast
-                        ? colorScheme.onSurface
-                        : colorScheme.onSecondaryContainer),
+                  ? colorScheme.onPrimaryContainer
+                  : (isPast ? colorScheme.onSurface : colorScheme.onTertiary),
             ),
           ),
         ),
@@ -78,7 +76,7 @@ class PomodoroQueueItemTile extends StatelessWidget {
                             ? FontWeight.w800
                             : FontWeight.w500,
                         color: isActive
-                            ? colorScheme.onSecondaryContainer
+                            ? colorScheme.onTertiary
                             : (isPast
                                   ? colorScheme.onSurface.withValues(alpha: 0.6)
                                   : colorScheme.onSurface),
@@ -93,16 +91,16 @@ class PomodoroQueueItemTile extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: !isActive
                             ? isPast
-                                  ? colorScheme.secondary.withValues(alpha: 0.7)
-                                  : colorScheme.secondary
-                            : colorScheme.primary,
+                                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
+                                  : colorScheme.primaryContainer
+                            : colorScheme.onTertiary,
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: Text(
                         '${item.sessionNumber}',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: colorScheme.onPrimary,
+                          color: isActive ? colorScheme.tertiary : colorScheme.primary ,
                           fontSize: 12,
                           fontFamily: 'RobotoMono',
                         ),
@@ -117,7 +115,7 @@ class PomodoroQueueItemTile extends StatelessWidget {
                   fontFamily: 'RobotoMono',
                   fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                   color: isActive
-                      ? colorScheme.onSecondaryContainer
+                      ? colorScheme.onTertiary
                       : isPast
                       ? colorScheme.onSurfaceVariant.withValues(alpha: 0.7)
                       : colorScheme.onSurfaceVariant,
@@ -127,30 +125,13 @@ class PomodoroQueueItemTile extends StatelessWidget {
           ),
         ),
 
-        // Trailing Indicator
-        if (isActive)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: colorScheme.primary,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              'Current',
-              style: textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: colorScheme.onPrimary,
-              ),
-            ),
-          )
-        else
-          Icon(
-            Icons.play_arrow_rounded,
-            size: 25,
-            color: isPast
-                ? colorScheme.outlineVariant
-                : colorScheme.onSecondaryContainer,
-          ),
+        Icon(
+          isActive ? Icons.square_rounded : Icons.play_arrow_rounded,
+          size: 25,
+          color: isActive ? colorScheme.onTertiary : isPast
+              ? colorScheme.outlineVariant
+              : colorScheme.onTertiaryContainer,
+        ),
       ],
     );
   }

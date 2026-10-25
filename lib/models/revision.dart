@@ -161,7 +161,7 @@ class ChapterTopic {
   final List<AttachmentItem> attachments;
 
   /// Spaced Repetition stage:
-  /// 0 = Not started
+  /// 0 = Marked for revision (due today)
   /// 1 = Revised 1x (due +5 days)
   /// 2 = Revised 2x (due +10 days)
   /// 3 = Revised 3x (due +20 days)
@@ -358,6 +358,14 @@ class ChapterTopic {
       'next_revision_date': nextRevisionDate?.toUtc().toIso8601String(),
       'associated_task_id': associatedTaskId,
       'stages': [
+        {
+          'stage': 0,
+          'completed': revisionStage > 0,
+          if (revisionStage == 0 && nextRevisionDate != null)
+            'dueDate': nextRevisionDate!.toUtc().toIso8601String(),
+          if (revisionStage > 0 && lastRevisedAt != null)
+            'completedAt': lastRevisedAt!.toUtc().toIso8601String(),
+        },
         for (int i = 0; i < 4; i++)
           {
             'stage': i + 1,

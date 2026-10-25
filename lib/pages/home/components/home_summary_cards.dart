@@ -13,8 +13,6 @@ export 'pomodoro_week_terrain_card.dart';
 class HomeSummaryCards extends StatelessWidget {
   final int activeCount;
   final int todayActiveCount;
-  final int completionRate;
-  final int completedCount;
   final VoidCallback? onMoreTap;
   final VoidCallback? onOptionsTap;
 
@@ -25,8 +23,6 @@ class HomeSummaryCards extends StatelessWidget {
     super.key,
     required this.activeCount,
     required this.todayActiveCount,
-    required this.completionRate,
-    required this.completedCount,
     this.onMoreTap,
     this.onOptionsTap,
     this.onOpenPomodoroAnalysis,
@@ -39,8 +35,6 @@ class HomeSummaryCards extends StatelessWidget {
       children: [
         // ─── 1. Task Completion & Multi-Telemetry Metrics Card ───
         CompletionRateCard(
-          completionRate: completionRate,
-          completedCount: completedCount,
           onMoreTap: onMoreTap,
           onOptionsTap: onOptionsTap,
         ),

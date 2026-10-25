@@ -125,7 +125,9 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                     if (states.contains(WidgetState.selected)) {
                       return colorScheme.primary;
                     }
-                    return colorScheme.tertiaryContainer;
+                    return colorScheme.surfaceContainerLowest.withValues(
+                      alpha: 0.3,
+                    );
                   }),
                   foregroundColor: WidgetStateProperty.resolveWith((states) {
                     if (states.contains(WidgetState.selected)) {
@@ -179,7 +181,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               actions: [
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundColor: colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.4),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   minWidth: 43,
@@ -191,7 +194,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundColor: colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.4),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   minWidth: 43,
@@ -206,7 +210,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    backgroundColor: colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.4),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   icon: Icon(

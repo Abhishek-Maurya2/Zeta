@@ -81,9 +81,9 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(15, 5, 15, 15),
+      padding: const EdgeInsets.fromLTRB(0, 5, 10, 15),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
+        color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
@@ -92,6 +92,7 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
           // ── Header: Visual Legend & Set Goal Action ──
           Row(
             children: [
+              const SizedBox(width: 10),
               // Goal indicator
               Container(
                 width: 14,
@@ -157,9 +158,8 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
               M3EIconButton(
                 icon: const Icon(Icons.tune_rounded),
                 onPressed: () => PomodoroGoalSheet.show(context, provider),
-                tooltip: 'Set Goal',
                 width: M3EIconButtonWidth.wide,
-                variant: M3EIconButtonVariant.tonal,
+                variant: M3EIconButtonVariant.filled,
                 size: M3EIconButtonSize.xs
               )
             ],
@@ -189,9 +189,9 @@ class _PomodoroAnalysisPaneState extends State<PomodoroAnalysisPane> {
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
-        left: widget.isSplitPane ? 20 : 16,
-        right: widget.isSplitPane ? 20 : 16,
-        top: 16,
+        left: widget.isSplitPane ? 12 : 16,
+        right: widget.isSplitPane ? 12 : 16,
+        top: 12,
         bottom: 80,
       ),
       child: Column(

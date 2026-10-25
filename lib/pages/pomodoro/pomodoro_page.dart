@@ -199,8 +199,6 @@ class _PomodoroPageState extends State<PomodoroPage> {
           _minSupportingPaneWidth,
           maxAllowedWidth,
         );
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
         if (_isSupportingPaneCollapsed) {
           return Row(
             children: [
@@ -255,11 +253,9 @@ class _PomodoroPageState extends State<PomodoroPage> {
           onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
           start: PomodoroTimerPane(onToggleAod: _enterAodMode),
           end: Container(
-            margin: const EdgeInsets.fromLTRB(0, 16, 16, 16),
+            margin: const EdgeInsets.fromLTRB(0, 0, 10, 5),
             decoration: BoxDecoration(
-              color: isDark
-                  ? colorScheme.surfaceContainerHigh
-                  : colorScheme.surfaceContainer,
+              color: colorScheme.tertiaryContainer,
               borderRadius: BorderRadius.circular(20),
             ),
             clipBehavior: Clip.antiAlias,
@@ -269,8 +265,8 @@ class _PomodoroPageState extends State<PomodoroPage> {
                 // Top Secondary Toolbar
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                    horizontal: 5,
+                    vertical: 5,
                   ),
                   child: Row(
                     children: [
@@ -288,7 +284,8 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                 if (states.contains(WidgetState.selected)) {
                                   return colorScheme.primary;
                                 }
-                                return colorScheme.tertiaryContainer;
+                                return colorScheme.surfaceContainerLowest
+                                    .withValues(alpha: 0.3);
                               }),
                               foregroundColor: WidgetStateProperty.resolveWith((
                                 states,
@@ -311,40 +308,21 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                 });
                               }
                             },
-                            actions: [
+                            actions:const [
                               M3EButtonGroupAction(
-                                icon: const Icon(
-                                  Icons.checklist_rounded,
-                                  size: 16,
-                                ),
-                                label: Text(
-                                  'Up next (${provider.queue.length})',
-                                ),
+                                icon: Icon(Icons.checklist_rounded),
+                                label: Text('Queue'),
                               ),
-                              const M3EButtonGroupAction(
-                                icon: Icon(Icons.insights_rounded, size: 16),
-                                label: Text('Analysis'),
+                              M3EButtonGroupAction(
+                                icon: Icon(Icons.insights_rounded),
+                                label: Text('Stats'),
                               ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(width: 4),
-                      // Collapse Button
-                      IconButton(
-                        icon: const Icon(Icons.view_sidebar_outlined, size: 18),
-                        tooltip: 'Collapse supporting pane',
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
-                        ),
-                        onPressed: () {
-                          setState(() => _isSupportingPaneCollapsed = true);
-                          _persistPaneSettings();
-                        },
-                      ),
+                  
                     ],
                   ),
                 ),

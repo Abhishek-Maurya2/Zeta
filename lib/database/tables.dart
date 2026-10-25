@@ -17,6 +17,7 @@ class TasksTable extends Table {
   TextColumn get attachmentsJson => text().withDefault(const Constant('[]'))();
   IntColumn get createdAtMs => integer()();
   IntColumn get updatedAtMs => integer()();
+  IntColumn get completedAtMs => integer().nullable()();
   IntColumn get deletedAtMs => integer().nullable()();
   IntColumn get lastSyncedAtMs => integer().nullable()();
 

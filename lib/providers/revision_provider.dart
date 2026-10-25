@@ -410,8 +410,44 @@ class RevisionProvider with ChangeNotifier {
 
   // ─── Spaced Repetition Logic & Task Integration ─────────────────────────────
 
-  /// Marks a topic complete or advances its revision stage.
-  /// Schedules next revision date and creates a revision task in [TaskProvider].
+  /// Marks a topic's initial revision task for today.
+  ///
+  /// Stage 0 represents the initial revision assignment. Completing its task
+  /// advances the topic to stage 1.
+  Future<void> markTopicForRevision(
+    String topicId,
+    TaskProvider taskProvider,
+  ) async {
+    final index = _topics.indexWhere((t) => t.id == topicId);
+    if (index == -1) return;
+
+    final topic = _topics[index];
+    if (topic.nextRevisionDate != null || topic.associatedTaskId != null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    String? createdTaskId;
+    if (_settings.autoCreateTasks) {
+      createdTaskId = await taskProvider.addTask(
+        title: 'Revise: ${topic.title}',
+        description: '#Revision  •  Stage 0 Spaced Repetition',
+        dueDate: TaskDateFormatter.format(today),
+      );
+    }
+
+    _topics[index] = topic.copyWith(
+      isCompleted: true,
+      nextRevisionDate: today,
+      associatedTaskId: createdTaskId,
+    );
+    notifyListeners();
+    unawaited(_repository.saveTopic(_topics[index]));
+  }
+
+  /// Completes a revision and advances its revision stage.
+  /// Schedules the next revision date and creates a revision task in [TaskProvider].
   Future<void> completeTopic(String topicId, TaskProvider taskProvider) async {
     final index = _topics.indexWhere((t) => t.id == topicId);
     if (index == -1) return;
@@ -433,10 +469,12 @@ class RevisionProvider with ChangeNotifier {
       nextDate = null; // Mastered!
     }
 
-    // Remove the old associated task before creating a new one
+    // Preserve the completed assignment so today's task and revision stats
+    // retain its completion. Revision-page completion uses the same explicit
+    // task completion timestamp, without re-entering this callback.
     final oldTaskId = topic.associatedTaskId;
     if (oldTaskId != null) {
-      taskProvider.deleteTask(oldTaskId);
+      taskProvider.markTaskCompleted(oldTaskId, syncRevision: false);
     }
 
     String? createdTaskId;

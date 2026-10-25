@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
-import '../../../providers/revision_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../utils/date_time_utils.dart';
@@ -27,28 +26,18 @@ import '../../../utils/haptics.dart';
 ///
 /// Features:
 /// 1. Donut Ring Gauge:
-///    - Calculates: (Tasks & Revisions completed due today) / (Total tasks & revisions due today + pending/overdue)
+///    - Calculates: today's workload completed today / today's workload target
 ///    - Circular top-right delta badge (+N done today)
 ///    - Center percentage, title, and "X of Y" count
 /// 2. Bento Capsule Metric Pills:
 ///    - Focus: Total Pomodoro focus time today
-///    - Revision: Due revisions & mastered topics
-///    - Tasks: Active pending tasks count & completed count
+///    - Revision: completed today / today's revision workload
+///    - Tasks: completed today / today's regular task workload
 class CompletionRateCard extends StatelessWidget {
-  final int? completionRate;
-  final int? completedCount;
-  final int? remainingCount;
   final VoidCallback? onMoreTap;
   final VoidCallback? onOptionsTap;
 
-  const CompletionRateCard({
-    super.key,
-    this.completionRate,
-    this.completedCount,
-    this.remainingCount,
-    this.onMoreTap,
-    this.onOptionsTap,
-  });
+  const CompletionRateCard({super.key, this.onMoreTap, this.onOptionsTap});
 
   @override
   Widget build(BuildContext context) {
@@ -56,90 +45,62 @@ class CompletionRateCard extends StatelessWidget {
     final isDark = themeProvider.isDarkMode(context);
 
     final taskProvider = context.watch<TaskProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final navProvider = context.read<NavigationProvider>();
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    // ─── 1. Calculate Unified Tasks & Revisions Due Today ─────────
+    bool completedToday(DateTime? timestamp) =>
+        timestamp != null && DateTimeUtils.isSameDay(timestamp, today);
+
+    // Today's workload includes tasks assigned today and overdue tasks that
+    // remain pending or were completed today.
     final tasks = taskProvider.allTasks;
-    int tasksDueTodayCompleted = 0;
-    int tasksDueTodayPending = 0;
-    int tasksEarlierCompleted = 0;
-    int tasksEarlierPending = 0;
+    int regularWorkload = 0;
+    int regularCompletedToday = 0;
+    int revisionWorkload = 0;
+    int revisionCompletedToday = 0;
 
-    for (final t in tasks) {
-      final due = t.parsedDueDate;
+    for (final task in tasks) {
+      final due = task.parsedDueDate;
       if (due == null) continue;
-      final isDueToday = DateTimeUtils.isSameDay(due, today);
-      final isDueEarlier = due.isBefore(today);
 
-      if (isDueToday) {
-        if (t.completed) {
-          tasksDueTodayCompleted++;
-        } else {
-          tasksDueTodayPending++;
-        }
-      } else if (isDueEarlier) {
-        if (t.completed) {
-          tasksEarlierCompleted++;
-        } else {
-          tasksEarlierPending++;
-        }
+      final dueToday = DateTimeUtils.isSameDay(due, today);
+      final overdue = due.isBefore(today);
+      final wasCompletedToday =
+          task.completed && completedToday(task.completedAt);
+      final hasRecordedTaskCompletion = task.completedAt != null;
+      final belongsToTodaysWorkload =
+          dueToday ||
+          // A subtask can auto-complete its parent without setting completedAt;
+          // keep that item in the workload without counting it as completed.
+          (overdue &&
+              (!task.completed ||
+                  !hasRecordedTaskCompletion ||
+                  wasCompletedToday));
+      if (!belongsToTodaysWorkload) continue;
+
+      final isRevision = TaskProvider.isRevisionTask(task);
+      if (isRevision) {
+        revisionWorkload++;
+        if (wasCompletedToday) revisionCompletedToday++;
+      } else {
+        regularWorkload++;
+        if (wasCompletedToday) regularCompletedToday++;
       }
     }
 
-    // Revisions due today or overdue
-    final topics = revisionProvider.topics;
-    int revisionsDueCompleted = 0;
-    int revisionsDuePending = 0;
-    int revisionsTodayCompleted = 0;
-    int revisionsTodayPending = 0;
+    final totalAssignedToday = regularWorkload + revisionWorkload;
+    final totalCompletedToday = regularCompletedToday + revisionCompletedToday;
 
-    for (final topic in topics) {
-      if (topic.isMastered) continue;
-      final nextDue = topic.nextRevisionDate;
-      if (nextDue != null) {
-        final due = DateTime(nextDue.year, nextDue.month, nextDue.day);
-        final isDueToday = DateTimeUtils.isSameDay(due, today);
-        final isDueTodayOrOverdue = due.isBefore(today) || isDueToday;
+    final calculatedRate = totalAssignedToday > 0
+        ? ((totalCompletedToday / totalAssignedToday) * 100).round()
+        : 0;
 
-        if (isDueTodayOrOverdue) {
-          if (topic.isCompleted) {
-            revisionsDueCompleted++;
-          } else {
-            revisionsDuePending++;
-          }
-        }
-
-        if (isDueToday) {
-          if (topic.isCompleted) {
-            revisionsTodayCompleted++;
-          } else {
-            revisionsTodayPending++;
-          }
-        }
-      }
-    }
-
-    final totalCompletedDue =
-        tasksDueTodayCompleted + tasksEarlierCompleted + revisionsDueCompleted;
-    final totalPendingDue =
-        tasksDueTodayPending + tasksEarlierPending + revisionsDuePending;
-    final totalDueTarget = totalCompletedDue + totalPendingDue;
-
-    // Rate percentage
-    final calculatedRate = totalDueTarget > 0
-        ? ((totalCompletedDue / totalDueTarget) * 100).round()
-        : (tasks.isNotEmpty && tasks.every((t) => t.completed) ? 100 : 0);
-
-    final displayRate = completionRate ?? calculatedRate;
-    final displayCompleted = completedCount ?? totalCompletedDue;
-    final displayTotal = totalDueTarget > 0
-        ? totalDueTarget
-        : (displayCompleted + (remainingCount ?? 0));
+    final displayRate = calculatedRate;
+    final displayCompleted = totalCompletedToday;
+    final displayTotal = totalAssignedToday;
 
     // ─── 2. Calculate Telemetry for Metric Capsules ──────────────
     // A) Focus Time Today (Pomodoro) — Goal Reached
@@ -165,29 +126,23 @@ class CompletionRateCard extends StatelessWidget {
     final focusValue =
         '${todayFocusMinutes ~/ 60}h ${todayFocusMinutes % 60}min';
 
-    // B) Revisions Metric — Completed Assigned Today / Revisions Assigned For Today
-    final totalRevisionsAssignedToday =
-        revisionsTodayCompleted + revisionsTodayPending;
-    final revisionProgress = totalRevisionsAssignedToday > 0
-        ? (revisionsTodayCompleted / totalRevisionsAssignedToday).clamp(
-            0.0,
-            1.0,
-          )
+    // B) Revision Metric — Completed today / today's revision workload.
+    final revisionProgress = revisionWorkload > 0
+        ? (revisionCompletedToday / revisionWorkload).clamp(0.0, 1.0)
         : 0.0;
-    final revisionValue = totalRevisionsAssignedToday == 0
-        ? 'Caught up!'
-        : '$revisionsTodayCompleted / $totalRevisionsAssignedToday';
+    final revisionValue =
+        revisionWorkload > 0 && revisionCompletedToday == revisionWorkload
+        ? 'All done'
+        : '$revisionCompletedToday/$revisionWorkload';
 
-    // C) Tasks Metric — Completed (Due Today) / Target (Assigned Today)
-    final tasksCompleted = tasksDueTodayCompleted;
-    final totalTasksTarget = tasksDueTodayCompleted + tasksDueTodayPending;
-    final tasksProgress = totalTasksTarget > 0
-        ? (tasksCompleted / totalTasksTarget).clamp(0.0, 1.0)
+    // C) Regular Task Metric — Completed today / today's regular workload.
+    final tasksProgress = regularWorkload > 0
+        ? (regularCompletedToday / regularWorkload).clamp(0.0, 1.0)
         : 0.0;
     final tasksValue =
-        totalTasksTarget == 0 || tasksCompleted == totalTasksTarget
+        regularWorkload > 0 && regularCompletedToday == regularWorkload
         ? 'All done'
-        : '$tasksCompleted / $totalTasksTarget';
+        : '$regularCompletedToday/$regularWorkload';
 
     // ─── Google Health Color Palette ─────────────────────────────
     // Focus capsule — Teal (Google Health "Steps" teal)
@@ -228,7 +183,7 @@ class CompletionRateCard extends StatelessWidget {
           ? const Color.fromRGBO(1, 99, 26, 1)
           : const Color(0xFFBEF0BD),
       progressFillBg: isDark
-          ? const Color(0xFF562238)
+          ? const Color.fromRGBO(1, 99, 26, 1)
           : const Color(0xFFDEF7DA),
       iconShapeBg: isDark
           ? const Color.fromRGBO(1, 57, 26, 1)
@@ -236,7 +191,8 @@ class CompletionRateCard extends StatelessWidget {
       contentColor: revisionColor,
       onTap: () {
         ZetaHaptics.light();
-        navProvider.setActivePage(PageId.revision);
+        taskProvider.setFilter(TaskFilter.revision);
+        navProvider.setActivePage(PageId.tasks);
       },
     );
 
@@ -245,7 +201,7 @@ class CompletionRateCard extends StatelessWidget {
         ? const Color.fromRGBO(224, 212, 237, 1)
         : const Color(0xFF59318F);
     final pendingCapsule = _HealthMetricCapsule(
-      title: 'Pending',
+      title: 'Tasks',
       value: tasksValue,
       icon: Symbols.checklist_rounded,
       progress: tasksProgress,
@@ -259,6 +215,7 @@ class CompletionRateCard extends StatelessWidget {
       contentColor: pendingColor,
       onTap: () {
         ZetaHaptics.light();
+        taskProvider.setFilter(TaskFilter.pending);
         navProvider.setActivePage(PageId.tasks);
       },
     );
@@ -354,7 +311,7 @@ class CompletionRateCard extends StatelessWidget {
 
 /// Modular Circular Donut Gauge with floating delta badge
 /// Matches Google Health Premium ring style — thick stroke,
-/// rounded caps, centered labels with "Due today" title.
+/// rounded caps, centered labels with a "Due + overdue" title.
 class MetricDonutRingGauge extends StatelessWidget {
   final int rate;
   final int completedCount;
@@ -408,7 +365,7 @@ class MetricDonutRingGauge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Due today',
+                  'Due + overdue',
                   style: TextStyle(
                     fontFamily: 'GoogleSansFlex',
                     fontVariations: const [

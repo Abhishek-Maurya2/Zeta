@@ -42,6 +42,7 @@ class Task {
   List<AttachmentItem> attachments;
   DateTime createdAt;
   DateTime updatedAt;
+  DateTime? completedAt;
   DateTime? deletedAt;
   DateTime? lastSyncedAt;
 
@@ -75,6 +76,7 @@ class Task {
     List<AttachmentItem>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.completedAt,
     this.deletedAt,
     this.lastSyncedAt,
   }) : description = sanitizeDescription(description),
@@ -119,6 +121,7 @@ class Task {
     'attachments': attachments.map((a) => a.toJson()).toList(),
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
+    'completedAt': completedAt?.toIso8601String(),
     'deletedAt': deletedAt?.toIso8601String(),
     'lastSyncedAt': lastSyncedAt?.toIso8601String(),
   };
@@ -146,6 +149,9 @@ class Task {
         : (json['createdAt'] != null
               ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
               : DateTime.now()),
+    completedAt: json['completedAt'] != null
+        ? DateTime.tryParse(json['completedAt'] as String)
+        : null,
     deletedAt: json['deletedAt'] != null
         ? DateTime.tryParse(json['deletedAt'] as String)
         : null,
@@ -208,6 +214,7 @@ class Task {
       'title': title,
       'description': description ?? '',
       'completed': completed,
+      'completed_at': completedAt?.toUtc().toIso8601String(),
       'due_date': parsedDueDate?.toUtc().toIso8601String(),
       'has_time': effectiveHasTime,
       'subtasks': subtasks.map((s) => s.toJson()).toList(),
@@ -296,6 +303,9 @@ class Task {
           ? DateTime.tryParse(row['updated_at'].toString())?.toLocal() ??
                 DateTime.now()
           : DateTime.now(),
+      completedAt: row['completed_at'] != null
+          ? DateTime.tryParse(row['completed_at'].toString())?.toLocal()
+          : null,
       deletedAt: row['deleted_at'] != null
           ? DateTime.tryParse(row['deleted_at'].toString())?.toLocal()
           : null,
@@ -318,6 +328,8 @@ class Task {
     List<AttachmentItem>? attachments,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? completedAt,
+    bool clearCompletedAt = false,
     DateTime? deletedAt,
     bool clearDeletedAt = false,
     DateTime? lastSyncedAt,
@@ -335,6 +347,9 @@ class Task {
       attachments: attachments ?? this.attachments,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      // A generic copy/edit is not a completion event. Completion actions
+      // should set or clear the timestamp explicitly at the call site.
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       deletedAt: clearDeletedAt ? null : (deletedAt ?? this.deletedAt),
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
     );

@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import 'package:drift/drift.dart';
@@ -32,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -63,7 +64,19 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
       );
     },
-    onUpgrade: (m, from, to) async {},
+    onUpgrade: (m, from, to) async {
+      if (from < 10) {
+        await m.addColumn(tasksTable, tasksTable.completedAtMs);
+      }
+      if (from < 12) {
+        // Restore the one-time legacy completion-date backfill. Runtime task
+        // edits and subtask updates never copy updated_at into completed_at.
+        await customStatement(
+          'UPDATE tasks SET completed_at_ms = updated_at_ms '
+          'WHERE completed = 1 AND completed_at_ms IS NULL;',
+        );
+      }
+    },
     beforeOpen: (details) async {
       if (!kIsWeb) {
         try {
@@ -83,8 +96,8 @@ class AppDatabase extends _$AppDatabase {
     final subtasks = (row.subtasksJson.isEmpty || row.subtasksJson == '[]')
         ? <Subtask>[]
         : (jsonDecode(row.subtasksJson) as List<dynamic>)
-            .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
-            .toList();
+              .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
+              .toList();
 
     List<AttachmentItem> attachments = const [];
     if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
@@ -108,6 +121,9 @@ class AppDatabase extends _$AppDatabase {
       attachments: attachments,
       createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtMs),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(row.updatedAtMs),
+      completedAt: row.completedAtMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(row.completedAtMs!)
+          : null,
       deletedAt: row.deletedAtMs != null
           ? DateTime.fromMillisecondsSinceEpoch(row.deletedAtMs!)
           : null,
@@ -136,6 +152,7 @@ class AppDatabase extends _$AppDatabase {
       ),
       createdAtMs: Value(t.createdAt.millisecondsSinceEpoch),
       updatedAtMs: Value(t.updatedAt.millisecondsSinceEpoch),
+      completedAtMs: Value(t.completedAt?.millisecondsSinceEpoch),
       deletedAtMs: Value(t.deletedAt?.millisecondsSinceEpoch),
       lastSyncedAtMs: Value(t.lastSyncedAt?.millisecondsSinceEpoch),
     );
