@@ -53,6 +53,28 @@ class TaskRepository {
 
   Future<List<Task>> getBinTasks() => _taskDao.getBinTasks();
 
+  Future<Task?> getTask(String taskId) => _taskDao.getTask(taskId);
+
+  Future<List<Task>> getActiveTasksPage({
+    int limit = 50,
+    int offset = 0,
+    String? search,
+    bool? completed,
+  }) => _taskDao.getActiveTasksPage(
+    limit: limit,
+    offset: offset,
+    search: search,
+    completed: completed,
+  );
+
+  Future<List<Task>> getBinTasksPage({int limit = 50, int offset = 0}) =>
+      _taskDao.getBinTasksPage(limit: limit, offset: offset);
+
+  Future<int> countActiveTasks({bool? completed, String? search}) =>
+      _taskDao.countActiveTasks(completed: completed, search: search);
+
+  Future<int> countBinTasks() => _taskDao.countBinTasks();
+
   Future<void> processPendingSync() async {
     await _syncService.processPendingQueue();
     final unsynced = await _taskDao.getUnsyncedTasks();

@@ -92,20 +92,23 @@ class AppDatabase extends _$AppDatabase {
   // ─── Task helpers ───────────────────────────────────────────────────────────
 
   /// Converts a drift [TasksTableData] row into a domain [Task].
-  static Task rowToTask(TasksTableData row) {
-    final subtasks = (row.subtasksJson.isEmpty || row.subtasksJson == '[]')
-        ? <Subtask>[]
-        : (jsonDecode(row.subtasksJson) as List<dynamic>)
-              .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
-              .toList();
-
+  static Task rowToTask(TasksTableData row, {bool decodeDetails = true}) {
+    List<Subtask> subtasks = const [];
     List<AttachmentItem> attachments = const [];
-    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
-      try {
-        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
+    if (decodeDetails) {
+      subtasks = (row.subtasksJson.isEmpty || row.subtasksJson == '[]')
+          ? <Subtask>[]
+          : (jsonDecode(row.subtasksJson) as List<dynamic>)
+                .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
+                .toList();
+
+      if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
+        try {
+          attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
+              .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
+              .toList();
+        } catch (_) {}
+      }
     }
 
     return Task(

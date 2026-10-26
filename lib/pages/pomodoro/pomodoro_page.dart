@@ -285,7 +285,7 @@ class _PomodoroPageState extends State<PomodoroPage> {
                                   return colorScheme.primary;
                                 }
                                 return colorScheme.surfaceContainerLowest
-                                    .withValues(alpha: 0.3);
+                                    .withValues(alpha: 0.5);
                               }),
                               foregroundColor: WidgetStateProperty.resolveWith((
                                 states,
@@ -310,11 +310,11 @@ class _PomodoroPageState extends State<PomodoroPage> {
                             },
                             actions:const [
                               M3EButtonGroupAction(
-                                icon: Icon(Icons.checklist_rounded),
+                                icon: Icon(Icons.hourglass_bottom_rounded),
                                 label: Text('Queue'),
                               ),
                               M3EButtonGroupAction(
-                                icon: Icon(Icons.insights_rounded),
+                                icon: Icon(Icons.bar_chart_rounded),
                                 label: Text('Stats'),
                               ),
                             ],

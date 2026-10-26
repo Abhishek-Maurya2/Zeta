@@ -32,9 +32,18 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _isSyncing = false;
   bool _isDisposed = false;
+  bool _isLoading = true;
+  Object? _loadError;
   Timer? _startupSyncTimer;
+  final ChangeNotifier uiChanges = ChangeNotifier();
+  static const int _binPageSize = 50;
+  int _binTotalCount = 0;
+  bool _isLoadingMoreBin = false;
+  bool _binHasMore = false;
 
   bool get isSyncing => _isSyncing || _repository.isSyncing;
+  bool get isLoading => _isLoading;
+  Object? get loadError => _loadError;
   DateTime? get lastSyncedAt => _repository.lastSyncedAt;
   String? get syncError => _repository.syncError;
 
@@ -213,6 +222,32 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   int get pendingCount => _tasks.length - completedCount;
   int get binCount => _binTasks.length;
+  bool get isLoadingMoreBin => _isLoadingMoreBin;
+  bool get binHasMore => _binHasMore;
+
+  Future<void> loadMoreBinTasks() async {
+    if (_isLoadingMoreBin || !_binHasMore) return;
+    _isLoadingMoreBin = true;
+    notifyListeners();
+    try {
+      final nextPage = await _repository.getBinTasksPage(
+        limit: _binPageSize,
+        offset: _binTasks.length,
+      );
+      _binTasks.addAll(nextPage.where((task) => task.title.trim().isNotEmpty));
+      _binHasMore = _binTasks.length < _binTotalCount && nextPage.isNotEmpty;
+      _invalidateCache();
+    } finally {
+      _isLoadingMoreBin = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadAllBinTasks() async {
+    while (_binHasMore && !_isDisposed) {
+      await loadMoreBinTasks();
+    }
+  }
 
   int _completedDisplayedCount = 5;
   int get completedDisplayedCount => _completedDisplayedCount;
@@ -298,13 +333,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _selectedTaskIds.add(taskId);
     }
-    notifyListeners();
+    uiChanges.notifyListeners();
   }
 
   void selectTask(String taskId) {
     if (!_selectedTaskIds.contains(taskId)) {
       _selectedTaskIds.add(taskId);
-      notifyListeners();
+      uiChanges.notifyListeners();
     }
   }
 
@@ -317,7 +352,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   void clearSelection() {
     if (_selectedTaskIds.isNotEmpty) {
       _selectedTaskIds.clear();
-      notifyListeners();
+      uiChanges.notifyListeners();
     }
   }
 
@@ -327,7 +362,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _expandedTaskIds.add(taskId);
     }
-    notifyListeners();
+    uiChanges.notifyListeners();
   }
 
   void setFilter(TaskFilter filter) {
@@ -592,6 +627,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _loadFromStorageImpl() async {
+    _isLoading = true;
+    _loadError = null;
+    notifyListeners();
     try {
       final prefs = PreferencesService.instance;
 
@@ -623,16 +661,18 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       // ── Load tasks from SQLite (drift) ──────────────────────────────────────
       final taskLists = await Future.wait<List<Task>>([
         _repository.getActiveTasks(),
-        _repository.getBinTasks(),
+        _repository.getBinTasksPage(limit: _binPageSize),
       ]);
       final activeTasks = taskLists[0];
       final binTaskList = taskLists[1];
+      _binTotalCount = await _repository.countBinTasks();
 
       _tasks.clear();
       _tasks.addAll(activeTasks.where((t) => t.title.trim().isNotEmpty));
 
       _binTasks.clear();
       _binTasks.addAll(binTaskList.where((t) => t.title.trim().isNotEmpty));
+      _binHasMore = _binTasks.length < _binTotalCount;
 
       await _deleteOldCompletedTasks();
 
@@ -655,7 +695,11 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _invalidateCache();
       notifyListeners();
     } catch (e) {
+      _loadError = e;
       debugPrint('TaskProvider: _loadFromStorage error - $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
 
     // Subscribe to real-time changes from other clients
@@ -1127,10 +1171,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Restores task from bin back to active tasks
-  void restoreTask(String id) {
+  Future<void> restoreTask(String id) async {
     final index = _binTasks.indexWhere((t) => t.id == id);
     if (index != -1) {
-      final task = _binTasks.removeAt(index);
+      final task = await _repository.getTask(id) ?? _binTasks[index];
+      _binTasks.removeAt(index);
+      _binTotalCount = (_binTotalCount - 1).clamp(0, _binTotalCount);
+      _binHasMore = _binTasks.length < _binTotalCount;
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
@@ -1148,20 +1195,26 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (_binTasks.any((t) => t.id == id)) {
       _binTasks.removeWhere((t) => t.id == id);
     }
+    _binTotalCount = (_binTotalCount - 1).clamp(0, _binTotalCount);
+    _binHasMore = _binTasks.length < _binTotalCount;
     await _repository.deleteTask(id);
+    _invalidateCache();
     notifyListeners();
   }
 
   /// Permanently removes all tasks from bin
   Future<void> emptyBin() async {
     _binTasks.clear();
+    _binTotalCount = 0;
+    _binHasMore = false;
+    _invalidateCache();
     notifyListeners();
     await _repository.clearBin();
   }
 
   /// Restores all tasks from bin back to active tasks
-  void restoreAllFromBin() {
-    final restored = List<Task>.from(_binTasks);
+  Future<void> restoreAllFromBin() async {
+    final restored = await _repository.getBinTasks();
     for (final task in restored) {
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
@@ -1171,6 +1224,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     _binTasks.clear();
+    _binTotalCount = 0;
+    _binHasMore = false;
     _invalidateCache();
     notifyListeners();
     if (restored.isNotEmpty) {
@@ -1185,6 +1240,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     try {
       WidgetsBinding.instance.removeObserver(this);
     } catch (_) {}
+    uiChanges.dispose();
     super.dispose();
   }
 }

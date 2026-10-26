@@ -48,6 +48,7 @@ class NotificationService {
 
   /// User preference flags synced from NotificationProvider
   bool masterEnabled = true;
+  int _liveNotificationGeneration = 0;
   bool taskRemindersEnabled = true;
   bool overdueAlertsEnabled = true;
   bool pomodoroAlertsEnabled = true;
@@ -86,11 +87,15 @@ class NotificationService {
             aumid: 'com.abhishek.zeta',
             displayName: 'Zeta',
           );
-          _winNotifier = WindowsNotification(applicationId: 'com.abhishek.zeta');
+          _winNotifier = WindowsNotification(
+            applicationId: 'com.abhishek.zeta',
+          );
           await _winNotifier!.init();
           await _winNotifier!.setCallback(_onWindowsNotificationEvent);
         } catch (e) {
-          debugPrint('[NotificationService] WindowsNotification setup error: $e');
+          debugPrint(
+            '[NotificationService] WindowsNotification setup error: $e',
+          );
         }
 
         try {
@@ -99,7 +104,9 @@ class NotificationService {
             shortcutPolicy: ShortcutPolicy.ignore,
           );
         } catch (e2) {
-          debugPrint('[NotificationService] Windows local_notifier fallback error: $e2');
+          debugPrint(
+            '[NotificationService] Windows local_notifier fallback error: $e2',
+          );
         }
         _initialized = true;
         return;
@@ -134,7 +141,8 @@ class NotificationService {
 
   void _onNotificationTap(NotificationResponse response) {
     debugPrint(
-        '[NotificationService] tapped: payload=${response.payload}, actionId=${response.actionId}');
+      '[NotificationService] tapped: payload=${response.payload}, actionId=${response.actionId}',
+    );
     if (response.payload != null && response.payload!.startsWith('resume:')) {
       final payload = response.payload!.substring('resume:'.length);
       final parts = payload.split('|');
@@ -156,9 +164,11 @@ class NotificationService {
   }
 
   Future<void> _onWindowsNotificationEvent(
-      NotificationCallbackDetails details) async {
+    NotificationCallbackDetails details,
+  ) async {
     debugPrint(
-        '[NotificationService] Windows callback: event=${details.event}, args=${details.arguments}');
+      '[NotificationService] Windows callback: event=${details.event}, args=${details.arguments}',
+    );
     if (details.event == NotificationEvent.dismissedByUser) {
       if (details.message.id == 'zeta_pomodoro_live') {
         _windowsUserDismissedLive = true;
@@ -173,7 +183,9 @@ class NotificationService {
         final payload = arg.substring('action:resume:'.length);
         final parts = payload.split('|');
         final page = parts.isNotEmpty ? parts[0] : 'home';
-        final itemId = parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null;
+        final itemId = parts.length > 1 && parts[1].isNotEmpty
+            ? parts[1]
+            : null;
         onResumeAction?.call(page, itemId);
       } else if (arg == 'action:toggle' || arg == 'action_toggle') {
         onPomodoroAction?.call('toggle');
@@ -199,8 +211,10 @@ class NotificationService {
 
     try {
       if (Platform.isAndroid) {
-        final android = _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
         final granted = await android?.requestNotificationsPermission();
         return granted ?? false;
       }
@@ -221,8 +235,10 @@ class NotificationService {
 
     try {
       if (Platform.isAndroid) {
-        final android = _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+        final android = _plugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >();
         return await android?.areNotificationsEnabled() ?? false;
       }
       if (Platform.isWindows) {
@@ -241,6 +257,7 @@ class NotificationService {
     String? payload,
     bool isPomodoro = false,
   }) async {
+    if (!masterEnabled) return false;
     if (!_initialized) await init();
 
     if (kIsWeb) {
@@ -252,15 +269,13 @@ class NotificationService {
       if (_winNotifier != null) {
         try {
           await _winNotifier!.showNotificationPluginTemplate(
-            NotificationMessage.fromPluginTemplate(
-              id.toString(),
-              title,
-              body,
-            ),
+            NotificationMessage.fromPluginTemplate(id.toString(), title, body),
           );
           return true;
         } catch (e) {
-          debugPrint('[NotificationService] WindowsNotification showNow error: $e');
+          debugPrint(
+            '[NotificationService] WindowsNotification showNow error: $e',
+          );
         }
       }
       try {
@@ -278,8 +293,9 @@ class NotificationService {
     }
 
     try {
-      final channelId =
-          isPomodoro ? _NotifIds.pomodoroChannelId : _NotifIds.taskChannelId;
+      final channelId = isPomodoro
+          ? _NotifIds.pomodoroChannelId
+          : _NotifIds.taskChannelId;
       final channelName = isPomodoro
           ? _NotifIds.pomodoroChannelName
           : _NotifIds.taskChannelName;
@@ -315,7 +331,10 @@ class NotificationService {
   /// Schedules a reminder for [task] at its due date + time.
   /// No-op if the task has no dueDate, hasTime is false, or dueTime is null.
   Future<void> scheduleTaskReminder(Task task) async {
-    if (!masterEnabled || !taskRemindersEnabled) return;
+    if (!masterEnabled || !taskRemindersEnabled) {
+      await cancelTaskReminder(task.id);
+      return;
+    }
     if (!_initialized) await init();
 
     if (task.completed) {
@@ -383,7 +402,7 @@ class NotificationService {
 
   Future<void> cancelTaskReminder(String taskId) async {
     _pendingWebWindows.remove(taskId);
-    if (!_initialized) return;
+    if (!_initialized) await init();
     if (!kIsWeb && Platform.isAndroid) {
       try {
         await _plugin.cancel(id: _NotifIds.forTask(taskId));
@@ -425,8 +444,17 @@ class NotificationService {
     bool countUp = false,
     bool forceWindowsUpdate = false,
   }) async {
-    if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled) return;
+    if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled)
+      return;
+    final generation = _liveNotificationGeneration;
     if (!_initialized) await init();
+
+    if (generation != _liveNotificationGeneration ||
+        !masterEnabled ||
+        !pomodoroAlertsEnabled ||
+        !pomodoroLiveEnabled) {
+      return;
+    }
 
     final progress = totalDuration > 0
         ? ((totalDuration - timeLeft) / totalDuration).clamp(0.0, 1.0)
@@ -442,10 +470,10 @@ class NotificationService {
     final modeLabel = sessionLabel != null && sessionLabel.isNotEmpty
         ? sessionLabel
         : (mode == PomodoroMode.focus
-            ? 'Focus Session'
-            : (mode == PomodoroMode.shortBreak
-                ? 'Short Break'
-                : 'Long Break'));
+              ? 'Focus Session'
+              : (mode == PomodoroMode.shortBreak
+                    ? 'Short Break'
+                    : 'Long Break'));
 
     // --- 1. Android: Native ongoing notification with system progress bar & action buttons ---
     // Throttled to prevent repeated heads-up alerts. Only update on state changes or every 5s.
@@ -456,7 +484,8 @@ class NotificationService {
       _lastAndroidRunningState = isRunning;
       _lastAndroidMode = mode;
 
-      final shouldUpdate = forceWindowsUpdate ||
+      final shouldUpdate =
+          forceWindowsUpdate ||
           runningStateChanged ||
           modeChanged ||
           _lastAndroidLiveUpdate == null ||
@@ -470,8 +499,8 @@ class NotificationService {
         final chronometerCountDown = !countUp;
         final whenMs = isRunning
             ? DateTime.now()
-                .add(Duration(seconds: timeLeft))
-                .millisecondsSinceEpoch
+                  .add(Duration(seconds: timeLeft))
+                  .millisecondsSinceEpoch
             : null;
 
         final details = NotificationDetails(
@@ -486,7 +515,8 @@ class NotificationService {
             maxProgress: 100,
             progress: progressPercent,
             indeterminate: false,
-            ongoing: isRunning,
+            // Keep the notification pinned while the session is running or paused.
+            ongoing: true,
             autoCancel: false,
             onlyAlertOnce: true,
             playSound: false,
@@ -513,16 +543,25 @@ class NotificationService {
           ),
         );
 
+        if (generation != _liveNotificationGeneration ||
+            !masterEnabled ||
+            !pomodoroAlertsEnabled ||
+            !pomodoroLiveEnabled) {
+          return;
+        }
         await _plugin.show(
           id: _NotifIds.pomodoroLiveId,
           title: modeLabel,
           body: isRunning
               ? (countUp
-                  ? '$formattedTime elapsed ($progressPercent%)'
-                  : '$formattedTime remaining ($progressPercent%)')
+                    ? '$formattedTime elapsed ($progressPercent%)'
+                    : '$formattedTime remaining ($progressPercent%)')
               : 'Paused at $formattedTime ($progressPercent%)',
           notificationDetails: details,
         );
+        if (generation != _liveNotificationGeneration) {
+          await _plugin.cancel(id: _NotifIds.pomodoroLiveId);
+        }
       } catch (e) {
         debugPrint('[NotificationService] Android live pomodoro error: $e');
       }
@@ -548,7 +587,8 @@ class NotificationService {
         return;
       }
 
-      final shouldUpdateWindows = forceWindowsUpdate ||
+      final shouldUpdateWindows =
+          forceWindowsUpdate ||
           runningStateChanged ||
           modeChanged ||
           _lastWindowsLiveUpdate == null ||
@@ -557,6 +597,12 @@ class NotificationService {
           timeLeft == 60; // 1m milestone
 
       if (shouldUpdateWindows) {
+        if (generation != _liveNotificationGeneration ||
+            !masterEnabled ||
+            !pomodoroAlertsEnabled ||
+            !pomodoroLiveEnabled) {
+          return;
+        }
         _lastWindowsLiveUpdate = now;
         if (_winNotifier != null) {
           try {
@@ -566,7 +612,9 @@ class NotificationService {
                 '$modeLabel — $formattedTime',
                 sessionLabel != null && sessionLabel.trim().isNotEmpty
                     ? sessionLabel
-                    : (isRunning ? 'Pomodoro session active' : 'Session paused'),
+                    : (isRunning
+                          ? 'Pomodoro session active'
+                          : 'Session paused'),
                 group: 'pomodoro',
                 audio: const NotificationAudio.silent(),
                 progress: NotificationProgress(
@@ -591,8 +639,16 @@ class NotificationService {
                 ],
               ),
             );
+            if (generation != _liveNotificationGeneration) {
+              await _winNotifier!.removeNotificationId(
+                'zeta_pomodoro_live',
+                'pomodoro',
+              );
+            }
           } catch (e) {
-            debugPrint('[NotificationService] Windows native progress error: $e');
+            debugPrint(
+              '[NotificationService] Windows native progress error: $e',
+            );
           }
         } else {
           try {
@@ -602,8 +658,8 @@ class NotificationService {
                 : '$modeLabel (Paused)';
             final body = isRunning
                 ? (countUp
-                    ? '$bar $progressPercent%\n$formattedTime elapsed'
-                    : '$bar $progressPercent%\n$formattedTime remaining')
+                      ? '$bar $progressPercent%\n$formattedTime elapsed'
+                      : '$bar $progressPercent%\n$formattedTime remaining')
                 : '$bar $progressPercent%\nPaused at $formattedTime';
 
             _windowsLiveNotification = LocalNotification(
@@ -612,8 +668,14 @@ class NotificationService {
               body: body,
             );
             await _windowsLiveNotification?.show();
+            if (generation != _liveNotificationGeneration) {
+              await _windowsLiveNotification?.close();
+              _windowsLiveNotification = null;
+            }
           } catch (e) {
-            debugPrint('[NotificationService] Windows live pomodoro fallback error: $e');
+            debugPrint(
+              '[NotificationService] Windows live pomodoro fallback error: $e',
+            );
           }
         }
       }
@@ -622,6 +684,7 @@ class NotificationService {
 
   /// Cancels live Pomodoro progress notification on all platforms.
   Future<void> cancelPomodoroProgress() async {
+    _liveNotificationGeneration++;
     _windowsUserDismissedLive = false;
     _lastWindowsLiveUpdate = null;
     _lastWindowsRunningState = null;
@@ -638,13 +701,27 @@ class NotificationService {
       }
       if (Platform.isWindows) {
         try {
-          await _winNotifier?.removeNotificationId('zeta_pomodoro_live', 'pomodoro');
+          await _winNotifier?.removeNotificationId(
+            'zeta_pomodoro_live',
+            'pomodoro',
+          );
         } catch (_) {}
         try {
           await _windowsLiveNotification?.close();
           _windowsLiveNotification = null;
         } catch (_) {}
       }
+    }
+  }
+
+  Future<void> cancelPomodoroAlerts() async {
+    if (!_initialized) await init();
+    await cancelPomodoroProgress();
+    if (!kIsWeb && Platform.isAndroid) {
+      try {
+        await _plugin.cancel(id: _NotifIds.pomodoroFocusId);
+        await _plugin.cancel(id: _NotifIds.pomodoroBreakId);
+      } catch (_) {}
     }
   }
 
@@ -702,7 +779,8 @@ class NotificationService {
 
   Future<void> cancelAll() async {
     _pendingWebWindows.clear();
-    if (!_initialized) return;
+    if (!_initialized) await init();
+    await cancelPomodoroProgress();
     if (!kIsWeb) {
       if (Platform.isAndroid) {
         try {
@@ -731,8 +809,10 @@ class NotificationService {
 
         if (timeParts.contains('AM') || timeParts.contains('PM')) {
           final isPm = timeParts.contains('PM');
-          final cleaned =
-              timeParts.replaceAll('AM', '').replaceAll('PM', '').trim();
+          final cleaned = timeParts
+              .replaceAll('AM', '')
+              .replaceAll('PM', '')
+              .trim();
           final parts = cleaned.split(':');
           hour = int.tryParse(parts[0]) ?? 0;
           minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;

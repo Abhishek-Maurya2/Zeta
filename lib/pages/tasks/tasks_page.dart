@@ -112,6 +112,14 @@ class _TasksPageState extends State<TasksPage> {
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
+    return ListenableBuilder(
+      listenable: taskProvider.uiChanges,
+      builder: (context, child) => _buildPage(context),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final taskProvider = context.watch<TaskProvider>();
     final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
@@ -123,6 +131,24 @@ class _TasksPageState extends State<TasksPage> {
     final isSearching = taskProvider.searchQuery.isNotEmpty;
     final revisionTasksCount = taskProvider.revisionTasks.length;
     final totalCount = pendingNonRevision.length + revisionTasksCount;
+
+    if (taskProvider.isLoading && taskProvider.allTasks.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: M3ELoadingIndicator(
+            variant: M3ELoadingIndicatorVariant.contained,
+          ),
+        ),
+      );
+    }
+
+    if (taskProvider.loadError != null && taskProvider.allTasks.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('Unable to load tasks. Please try again.')),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -151,12 +177,11 @@ class _TasksPageState extends State<TasksPage> {
                   if (!isCompact)
                     Text(
                       'Tasks',
-                      style: context.textTheme.displayMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: -0.5,
-                            color: colorScheme.onSurface,
-                          ),
+                      style: context.textTheme.displayMedium?.copyWith(
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: -0.5,
+                        color: colorScheme.onSurface,
+                      ),
                     ),
 
                   if (!isCompact) const SizedBox(height: 18),
@@ -234,7 +259,7 @@ class _TasksPageState extends State<TasksPage> {
                                 completed,
                                 taskProvider,
                                 true,
-                              ).build(context) as M3EList,
+                              ),
                             ),
                           );
                         },
@@ -342,7 +367,7 @@ class _TasksPageState extends State<TasksPage> {
                                   completed,
                                   taskProvider,
                                   true,
-                                ).build(context) as M3EList,
+                                ),
                               ),
                             );
                           },

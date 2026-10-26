@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import 'components/weekly_calendar_strip.dart';
@@ -77,6 +78,24 @@ class _HomePageState extends State<HomePage> {
     final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
 
+    if (taskProvider.isLoading && taskProvider.allTasks.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: M3ELoadingIndicator(
+            variant: M3ELoadingIndicatorVariant.contained,
+          ),
+        ),
+      );
+    }
+
+    if (taskProvider.loadError != null && taskProvider.allTasks.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('Unable to load your tasks.')),
+      );
+    }
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -150,8 +169,9 @@ class _HomePageState extends State<HomePage> {
     }
 
     final focusTask = focusTasks.firstOrNull;
-    final otherPendingTasks =
-        focusTasks.length > 1 ? focusTasks.sublist(1) : const <Task>[];
+    final otherPendingTasks = focusTasks.length > 1
+        ? focusTasks.sublist(1)
+        : const <Task>[];
 
     // Up Next active tasks: exclude tasks visible in focus component and show the rest
     final upNextTasks = activeTasks

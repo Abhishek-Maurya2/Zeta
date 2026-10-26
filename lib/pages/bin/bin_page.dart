@@ -1,4 +1,5 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
+
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -34,16 +35,21 @@ class _BinPageState extends State<BinPage> {
   bool _isLoading = false;
   Timer? _timer;
 
-  void _checkAutoLoad(int totalCount) {
+  void _checkAutoLoad(int totalCount, TaskProvider taskProvider) {
     if (totalCount > _initialCount && !_loadedAll && !_isLoading) {
       _isLoading = true;
       _timer?.cancel();
       _timer = Timer(_minLoadingDuration, () {
         if (!mounted) return;
-        setState(() {
-          _loadedAll = true;
-          _isLoading = false;
-        });
+        unawaited(
+          taskProvider.loadAllBinTasks().whenComplete(() {
+            if (!mounted) return;
+            setState(() {
+              _loadedAll = true;
+              _isLoading = false;
+            });
+          }),
+        );
       });
     }
   }
@@ -73,6 +79,14 @@ class _BinPageState extends State<BinPage> {
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
+    return ListenableBuilder(
+      listenable: taskProvider.uiChanges,
+      builder: (context, child) => _buildPage(context),
+    );
+  }
+
+  Widget _buildPage(BuildContext context) {
+    final taskProvider = context.watch<TaskProvider>();
     final navProvider = context.read<NavigationProvider>();
     final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
@@ -82,8 +96,20 @@ class _BinPageState extends State<BinPage> {
     final totalCount = binTasks.length;
     final hasMore = totalCount > _initialCount;
 
+    if (taskProvider.isLoading && binTasks.isEmpty) {
+      return const Center(
+        child: M3ELoadingIndicator(
+          variant: M3ELoadingIndicatorVariant.contained,
+        ),
+      );
+    }
+
+    if (taskProvider.loadError != null && binTasks.isEmpty) {
+      return const Center(child: Text('Unable to load the bin.'));
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _checkAutoLoad(totalCount);
+      if (mounted) _checkAutoLoad(totalCount, taskProvider);
     });
 
     final visibleTasks = (_loadedAll || !hasMore)

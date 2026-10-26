@@ -107,16 +107,9 @@ class TasksDismissibleList extends StatelessWidget {
         if (isSelectionMode) return card;
 
         final completeAction = M3EListSwipeAction(
-          icon: Icon(
-            task.completed
-                ? Icons.radio_button_unchecked_rounded
-                : Icons.check_circle_rounded,
-            color: isDark
-                ? task.completed
-                      ? colorScheme.onPrimary
-                      : colorScheme.onSuccessContainer
-                : Colors.white,
-          ),
+          icon: task.completed
+              ? const Icon(Icons.radio_button_unchecked_rounded)
+              : const Icon(Icons.check_circle_rounded),
           backgroundColor: task.completed
               ? colorScheme.primary
               : isDark
@@ -127,10 +120,7 @@ class TasksDismissibleList extends StatelessWidget {
         );
 
         final deleteAction = M3EListSwipeAction(
-          icon: Icon(
-            Icons.delete_outline_rounded,
-            color: isDark ? colorScheme.onErrorContainer : Colors.white,
-          ),
+          icon: const Icon(Icons.delete_outline_rounded),
           backgroundColor: isDark
               ? colorScheme.errorContainer
               : colorScheme.error,

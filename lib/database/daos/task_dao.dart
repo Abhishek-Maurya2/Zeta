@@ -41,6 +41,84 @@ class TaskDao {
     return rows.map(AppDatabase.rowToTask).toList();
   }
 
+  Future<List<Task>> getActiveTasksPage({
+    int limit = 50,
+    int offset = 0,
+    String? search,
+    bool? completed,
+  }) => _getTaskPage(
+    deleted: false,
+    limit: limit,
+    offset: offset,
+    search: search,
+    completed: completed,
+  );
+
+  Future<List<Task>> getBinTasksPage({int limit = 50, int offset = 0}) =>
+      _getTaskPage(deleted: true, limit: limit, offset: offset);
+
+  Future<int> countActiveTasks({bool? completed, String? search}) async {
+    final query = _db.selectOnly(_db.tasksTable)
+      ..addColumns([_db.tasksTable.id.count()])
+      ..where(
+        _db.tasksTable.deletedAtMs.isNull() & _owner(_db.tasksTable.userId),
+      );
+    _applyTaskFilters(query, search: search, completed: completed);
+    final row = await query.getSingle();
+    return row.read(_db.tasksTable.id.count()) ?? 0;
+  }
+
+  Future<int> countBinTasks() async {
+    final query = _db.selectOnly(_db.tasksTable)
+      ..addColumns([_db.tasksTable.id.count()])
+      ..where(
+        _db.tasksTable.deletedAtMs.isNotNull() & _owner(_db.tasksTable.userId),
+      );
+    final row = await query.getSingle();
+    return row.read(_db.tasksTable.id.count()) ?? 0;
+  }
+
+  Future<List<Task>> _getTaskPage({
+    required bool deleted,
+    required int limit,
+    required int offset,
+    String? search,
+    bool? completed,
+  }) async {
+    final query = _db.select(_db.tasksTable)
+      ..where(
+        (t) =>
+            (deleted ? t.deletedAtMs.isNotNull() : t.deletedAtMs.isNull()) &
+            _owner(t.userId),
+      )
+      ..orderBy([
+        (t) => deleted
+            ? OrderingTerm.desc(t.deletedAtMs)
+            : OrderingTerm.desc(t.createdAtMs),
+      ])
+      ..limit(limit.clamp(1, 200), offset: offset < 0 ? 0 : offset);
+    _applyTaskFilters(query, search: search, completed: completed);
+    final rows = await query.get();
+    return rows
+        .map((row) => AppDatabase.rowToTask(row, decodeDetails: false))
+        .toList();
+  }
+
+  void _applyTaskFilters(dynamic query, {String? search, bool? completed}) {
+    if (completed != null) {
+      query.where(_db.tasksTable.completed.equals(completed));
+    }
+    final normalizedSearch = search?.trim();
+    if (normalizedSearch != null && normalizedSearch.isNotEmpty) {
+      final pattern = '%${normalizedSearch.replaceAll('%', r'\%')}%';
+      query.where(
+        _db.tasksTable.title.like(pattern) |
+            _db.tasksTable.description.like(pattern) |
+            _db.tasksTable.dueDate.like(pattern),
+      );
+    }
+  }
+
   Future<Task?> getTask(String taskId) async {
     final row =
         await (_db.select(_db.tasksTable)

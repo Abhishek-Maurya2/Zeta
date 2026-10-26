@@ -2,6 +2,7 @@
 
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
+import '../../../theme/breakpoints.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
 import 'pomodoro_chart_canvas.dart';
@@ -100,6 +101,8 @@ class PomodoroAnalysisHeader extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final now = DateTime.now();
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isMedium || sizeClass.isCompact;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,8 +128,10 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                     if (states.contains(WidgetState.selected)) {
                       return colorScheme.primary;
                     }
-                    return colorScheme.surfaceContainerLowest.withValues(
-                      alpha: 0.3,
+                    return isCompact ? colorScheme.secondaryContainer.withValues(
+                      alpha: 0.5,
+                    ) : colorScheme.surfaceContainerLowest.withValues(
+                      alpha: 0.5,
                     );
                   }),
                   foregroundColor: WidgetStateProperty.resolveWith((states) {
@@ -181,8 +186,9 @@ class PomodoroAnalysisHeader extends StatelessWidget {
               actions: [
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerLowest
-                        .withValues(alpha: 0.4),
+                    backgroundColor: isCompact ? colorScheme.secondaryContainer
+                        .withValues(alpha: 0.5) : colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.5),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   minWidth: 43,
@@ -194,8 +200,9 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerLowest
-                        .withValues(alpha: 0.4),
+                    backgroundColor: isCompact ? colorScheme.secondaryContainer
+                        .withValues(alpha: 0.5) : colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.5),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   minWidth: 43,
@@ -210,8 +217,9 @@ class PomodoroAnalysisHeader extends StatelessWidget {
                 ),
                 M3EButtonGroupAction(
                   decoration: M3EButtonDecoration.styleFrom(
-                    backgroundColor: colorScheme.surfaceContainerLowest
-                        .withValues(alpha: 0.4),
+                    backgroundColor: isCompact ? colorScheme.secondaryContainer
+                        .withValues(alpha: 0.5) : colorScheme.surfaceContainerLowest
+                        .withValues(alpha: 0.5),
                     foregroundColor: colorScheme.onSurface,
                   ),
                   icon: Icon(
