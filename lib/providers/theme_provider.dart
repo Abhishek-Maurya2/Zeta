@@ -95,7 +95,6 @@ class ThemeProvider extends ChangeNotifier {
   static const String _prefKeyTypographyTitles = 'zeta_typo_titles';
   static const String _prefKeyTypographyBody = 'zeta_typo_body';
   static const String _prefKeyTypographyLabels = 'zeta_typo_labels';
-  static const String _prefKeyNotifications = 'zeta_notifications';
   static const String _prefKeySoundEffects = 'zeta_sound_effects';
   static const String _prefKeyAutoSave = 'zeta_auto_save';
   static const String _prefKeyTelemetry = 'zeta_telemetry';
@@ -113,7 +112,6 @@ class ThemeProvider extends ChangeNotifier {
     _prefKeyTypographyTitles,
     _prefKeyTypographyBody,
     _prefKeyTypographyLabels,
-    _prefKeyNotifications,
     _prefKeySoundEffects,
     _prefKeyAutoSave,
     _prefKeyTelemetry,
@@ -364,16 +362,7 @@ class ThemeProvider extends ChangeNotifier {
   Future<void> refreshWeather() => _weather.refreshWeather();
   Future<bool> detectUserLocation() => _weather.detectDeviceLocationFromGps();
 
-  // ─── Cross-Platform Sound & Notifications ────────────────────────────────
-  bool _notifications = true;
-  bool get notifications => _notifications;
-
-  void setNotifications(bool val) {
-    if (_notifications == val) return;
-    _notifications = val;
-    notifyListeners();
-    _saveSetting(_prefKeyNotifications, val);
-  }
+  // ─── Sound Effects ────────────────────────────────
 
   bool _soundEffects = true;
   bool get soundEffects => _soundEffects;
@@ -530,9 +519,6 @@ class ThemeProvider extends ChangeNotifier {
           );
         }
       }
-      if (json['notifications'] is bool) {
-        setNotifications(json['notifications'] as bool);
-      }
       if (json['soundEffects'] is bool) {
         setSoundEffects(json['soundEffects'] as bool);
       }
@@ -561,7 +547,6 @@ class ThemeProvider extends ChangeNotifier {
     _bodyTypography = RoleTypographyConfig.defaultBody;
     _labelsTypography = RoleTypographyConfig.defaultLabels;
     _weather.setCityName('Bokaro');
-    _notifications = true;
     _soundEffects = true;
     _autoSave = true;
     _telemetry = false;
@@ -643,7 +628,6 @@ class ThemeProvider extends ChangeNotifier {
           );
         } catch (_) {}
       }
-      _notifications = prefs.getBool(_prefKeyNotifications) ?? _notifications;
       _soundEffects = prefs.getBool(_prefKeySoundEffects) ?? _soundEffects;
       _autoSave = prefs.getBool(_prefKeyAutoSave) ?? _autoSave;
       _telemetry = prefs.getBool(_prefKeyTelemetry) ?? _telemetry;

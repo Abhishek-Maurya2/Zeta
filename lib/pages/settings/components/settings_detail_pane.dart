@@ -7,7 +7,6 @@ import 'profile_section.dart';
 import 'appearance_section.dart';
 import 'typography_section.dart';
 import 'weather_section.dart';
-import 'notifications_section.dart';
 import 'sync_data_section.dart';
 import 'cross_device_section.dart';
 import 'updates_section.dart';
@@ -49,9 +48,6 @@ class SettingsDetailPane extends StatelessWidget {
         break;
       case SettingsCategory.weather:
         detailContent = WeatherSection(onToast: onToast);
-        break;
-      case SettingsCategory.notifications:
-        detailContent = NotificationsSyncSection(onToast: onToast);
         break;
       case SettingsCategory.syncAndData:
         detailContent = SyncDataSection(onToast: onToast);

@@ -31,7 +31,6 @@ import '../../../utils/haptics.dart';
 ///    - Center percentage, title, and "X of Y" count
 /// 2. Bento Capsule Metric Pills:
 ///    - Focus: Total Pomodoro focus time today
-///    - Revision: completed today / today's revision workload
 ///    - Tasks: completed today / today's regular task workload
 class CompletionRateCard extends StatelessWidget {
   final VoidCallback? onMoreTap;
@@ -59,8 +58,6 @@ class CompletionRateCard extends StatelessWidget {
     final tasks = taskProvider.allTasks;
     int regularWorkload = 0;
     int regularCompletedToday = 0;
-    int revisionWorkload = 0;
-    int revisionCompletedToday = 0;
 
     for (final task in tasks) {
       final due = task.parsedDueDate;
@@ -81,18 +78,12 @@ class CompletionRateCard extends StatelessWidget {
                   wasCompletedToday));
       if (!belongsToTodaysWorkload) continue;
 
-      final isRevision = TaskProvider.isRevisionTask(task);
-      if (isRevision) {
-        revisionWorkload++;
-        if (wasCompletedToday) revisionCompletedToday++;
-      } else {
-        regularWorkload++;
-        if (wasCompletedToday) regularCompletedToday++;
-      }
+      regularWorkload++;
+      if (wasCompletedToday) regularCompletedToday++;
     }
 
-    final totalAssignedToday = regularWorkload + revisionWorkload;
-    final totalCompletedToday = regularCompletedToday + revisionCompletedToday;
+    final totalAssignedToday = regularWorkload;
+    final totalCompletedToday = regularCompletedToday;
 
     final calculatedRate = totalAssignedToday > 0
         ? ((totalCompletedToday / totalAssignedToday) * 100).round()
@@ -126,14 +117,7 @@ class CompletionRateCard extends StatelessWidget {
     final focusValue =
         '${todayFocusMinutes ~/ 60}h ${todayFocusMinutes % 60}min';
 
-    // B) Revision Metric — Completed today / today's revision workload.
-    final revisionProgress = revisionWorkload > 0
-        ? (revisionCompletedToday / revisionWorkload).clamp(0.0, 1.0)
-        : 0.0;
-    final revisionValue =
-        revisionWorkload > 0 && revisionCompletedToday == revisionWorkload
-        ? 'All done'
-        : '$revisionCompletedToday/$revisionWorkload';
+
 
     // C) Regular Task Metric — Completed today / today's regular workload.
     final tasksProgress = regularWorkload > 0
@@ -170,31 +154,6 @@ class CompletionRateCard extends StatelessWidget {
       },
     );
 
-    // Revision capsule — Coral/Pink (Google Health "Readiness")
-    final revisionColor = isDark
-        ? const Color.fromRGBO(216, 246, 224, 1)
-        : const Color(0xFF08542C);
-    final revisionCapsule = _HealthMetricCapsule(
-      title: 'Revision',
-      value: revisionValue,
-      icon: Symbols.book_rounded,
-      progress: revisionProgress,
-      capsuleBg: isDark
-          ? const Color.fromRGBO(1, 99, 26, 1)
-          : const Color(0xFFBEF0BD),
-      progressFillBg: isDark
-          ? const Color.fromRGBO(1, 99, 26, 1)
-          : const Color(0xFFDEF7DA),
-      iconShapeBg: isDark
-          ? const Color.fromRGBO(1, 57, 26, 1)
-          : const Color.fromARGB(255, 236, 252, 234),
-      contentColor: revisionColor,
-      onTap: () {
-        ZetaHaptics.light();
-        taskProvider.setFilter(TaskFilter.revision);
-        navProvider.setActivePage(PageId.tasks);
-      },
-    );
 
     // Pending capsule — Purple/Lavender (Google Health "Sleep")
     final pendingColor = isDark
@@ -248,11 +207,9 @@ class CompletionRateCard extends StatelessWidget {
                       children: [
                         Expanded(child: focusCapsule),
                         const SizedBox(width: 8),
-                        Expanded(child: revisionCapsule),
+                        Expanded(child: pendingCapsule),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Row(children: [Expanded(child: pendingCapsule)]),
                   ],
                 ),
               ),
@@ -279,8 +236,7 @@ class CompletionRateCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     focusCapsule,
-                    const SizedBox(height: 7),
-                    revisionCapsule,
+
                     const SizedBox(height: 7),
                     pendingCapsule,
                   ],
@@ -298,8 +254,7 @@ class CompletionRateCard extends StatelessWidget {
             SizedBox(width: 160, height: 160, child: ringWidget),
             const SizedBox(height: 14),
             focusCapsule,
-            const SizedBox(height: 7),
-            revisionCapsule,
+
             const SizedBox(height: 7),
             pendingCapsule,
           ],

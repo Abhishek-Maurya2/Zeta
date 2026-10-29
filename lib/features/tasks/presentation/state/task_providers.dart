@@ -4,13 +4,6 @@ import '../../../../models/task.dart';
 import '../../domain/task_filter.dart';
 import '../../data/task_repository.dart';
 
-/// Single source of truth helper to check if a task is a revision task.
-bool isRevisionTask(Task t) {
-  final title = t.title.toLowerCase();
-  final desc = t.description?.toLowerCase() ?? '';
-  return title.contains('revise:') || desc.contains('#revision');
-}
-
 /// Stream of all active tasks from local SQLite.
 /// Managed off-thread by Drift, zero memory leaks with autoDispose.
 final activeTasksStreamProvider = StreamProvider.autoDispose<List<Task>>((ref) {
@@ -24,7 +17,7 @@ final binTasksStreamProvider = StreamProvider.autoDispose<List<Task>>((ref) {
   return repo.watchBinTasks();
 });
 
-/// Current active task filter (all, completed, pending, revision).
+/// Current active task filter (all, completed, pending).
 final taskFilterProvider = StateProvider<TaskFilter>((ref) => TaskFilter.all);
 
 /// Current active task sort order.
@@ -40,46 +33,31 @@ final pendingTasksProvider = Provider.autoDispose<List<Task>>((ref) {
   return tasks.where((t) => !t.completed && t.deletedAt == null).toList();
 });
 
-/// Memoized pending non-revision tasks for clean main list display.
-final pendingNonRevisionTasksProvider = Provider.autoDispose<List<Task>>((ref) {
-  final pending = ref.watch(pendingTasksProvider);
-  return pending.where((t) => !isRevisionTask(t)).toList();
-});
-
 /// Memoized completed tasks (completed == true, deletedAt == null).
 final completedTasksProvider = Provider.autoDispose<List<Task>>((ref) {
   final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
   return tasks.where((t) => t.completed && t.deletedAt == null).toList();
 });
 
-/// Memoized revision tasks.
-final revisionTasksProvider = Provider.autoDispose<List<Task>>((ref) {
-  final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
-  return tasks.where((t) => t.deletedAt == null && isRevisionTask(t)).toList();
-});
-
-/// Memoized task counts: (total, pending, completed, revision).
+/// Memoized task counts: (total, pending, completed).
 /// Lightweight record preventing UI badges from subscribing to entire task collections.
 final taskCountsProvider = Provider.autoDispose<
-    ({int total, int pending, int completed, int revision})>((ref) {
+    ({int total, int pending, int completed})>((ref) {
   final tasks = ref.watch(activeTasksStreamProvider).value ?? const [];
   int pending = 0;
   int completed = 0;
-  int revision = 0;
   for (final t in tasks) {
     if (t.deletedAt != null) continue;
     if (t.completed) {
       completed++;
     } else {
       pending++;
-      if (isRevisionTask(t)) revision++;
     }
   }
   return (
     total: tasks.length,
     pending: pending,
     completed: completed,
-    revision: revision,
   );
 });
 
@@ -120,8 +98,6 @@ final filteredTasksProvider = Provider.autoDispose<List<Task>>((ref) {
         return t.completed;
       case TaskFilter.pending:
         return !t.completed;
-      case TaskFilter.revision:
-        return isRevisionTask(t);
     }
   }).toList();
 

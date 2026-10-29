@@ -5,7 +5,7 @@ import '../theme/motion_tokens.dart';
 
 /// Material 3 Expressive transition styles for page navigation.
 enum M3EPageTransitionType {
-  /// Lateral tab navigation (Home -> Tasks -> Revision -> Pomodoro -> Bin -> Settings).
+  /// Lateral tab navigation (Home -> Tasks -> Pomodoro -> Bin -> Settings).
   /// Slides horizontally based on index direction with subtle scale (0.96 -> 1.0) and fade.
   sharedAxisX,
 

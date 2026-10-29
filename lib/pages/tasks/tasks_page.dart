@@ -8,7 +8,6 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
-import '../settings/components/settings_section_heading.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
 import 'components/tasks_filter_bar.dart';
@@ -125,12 +124,10 @@ class _TasksPageState extends State<TasksPage> {
     final isCompact = sizeClass.isCompact;
 
     final pending = taskProvider.pendingTasks;
-    final pendingNonRevision = taskProvider.pendingNonRevisionTasks;
     final completed = taskProvider.completedTasks;
     final filter = taskProvider.filter;
     final isSearching = taskProvider.searchQuery.isNotEmpty;
-    final revisionTasksCount = taskProvider.revisionTasks.length;
-    final totalCount = pendingNonRevision.length + revisionTasksCount;
+    final totalCount = pending.length;
 
     if (taskProvider.isLoading && taskProvider.allTasks.isEmpty) {
       return const Scaffold(
@@ -144,7 +141,7 @@ class _TasksPageState extends State<TasksPage> {
     }
 
     if (taskProvider.loadError != null && taskProvider.allTasks.isEmpty) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(child: Text('Unable to load tasks. Please try again.')),
       );
@@ -198,8 +195,7 @@ class _TasksPageState extends State<TasksPage> {
                   TasksFilterBar(
                     filter: filter,
                     totalCount: totalCount,
-                    pendingCount: pendingNonRevision.length,
-                    revisionCount: revisionTasksCount,
+                    pendingCount: pending.length,
                     sortBy: taskProvider.sortBy,
                     onFilterChanged: (newFilter) =>
                         taskProvider.setFilter(newFilter),
@@ -213,7 +209,7 @@ class _TasksPageState extends State<TasksPage> {
 
                   // 3. Task List Section
                   if (filter == TaskFilter.pending) ...[
-                    if (pendingNonRevision.isEmpty)
+                    if (pending.isEmpty)
                       TasksEmptyView(
                         filter: filter,
                         isSearching: isSearching,
@@ -222,7 +218,7 @@ class _TasksPageState extends State<TasksPage> {
                       )
                     else
                       TasksDismissibleList(
-                        tasks: pendingNonRevision,
+                        tasks: pending,
                         provider: taskProvider,
                         onContextMenu: _showContextMenu,
                       ),
@@ -265,22 +261,7 @@ class _TasksPageState extends State<TasksPage> {
                         },
                       ),
                     ],
-                  ] else if (filter == TaskFilter.revision) ...[
-                    if (taskProvider.revisionTasks.isEmpty)
-                      TasksEmptyView(
-                        filter: filter,
-                        isSearching: isSearching,
-                        searchQuery: taskProvider.searchQuery,
-                        onClearSearch: () => taskProvider.clearSearchQuery(),
-                      )
-                    else
-                      TasksDismissibleList(
-                        tasks: taskProvider.revisionTasks,
-                        provider: taskProvider,
-                        onContextMenu: _showContextMenu,
-                      ),
                   ] else ...[
-                    // All tasks view: 2 separate M3ELists (1 for Tasks, 1 for Revision)
                     if (pending.isEmpty && completed.isEmpty)
                       TasksEmptyView(
                         filter: filter,
@@ -289,49 +270,12 @@ class _TasksPageState extends State<TasksPage> {
                         onClearSearch: () => taskProvider.clearSearchQuery(),
                       )
                     else ...[
-                      // 1. Regular Tasks Section
-                      if (pendingNonRevision.isNotEmpty) ...[
-                        if (taskProvider.revisionTasks.isNotEmpty) ...[
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4, bottom: 8),
-                            child: SettingsSectionHeading(
-                              'Tasks (${pendingNonRevision.length})',
-                            ),
-                          ),
-                        ],
+                      if (pending.isNotEmpty)
                         TasksDismissibleList(
-                          key: const ValueKey('all_regular_tasks_list'),
-                          tasks: pendingNonRevision,
+                          key: const ValueKey('all_tasks_list'),
+                          tasks: pending,
                           provider: taskProvider,
                           onContextMenu: _showContextMenu,
-                        ),
-                      ],
-
-                      // 2. Revision Tasks Section (separate M3EList)
-                      if (taskProvider.revisionTasks.isNotEmpty) ...[
-                        if (pendingNonRevision.isNotEmpty)
-                          const SizedBox(height: 20),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 4, bottom: 8),
-                          child: SettingsSectionHeading(
-                            'Revision (${taskProvider.revisionTasks.length})',
-                          ),
-                        ),
-                        TasksDismissibleList(
-                          key: const ValueKey('all_revision_tasks_list'),
-                          tasks: taskProvider.revisionTasks,
-                          provider: taskProvider,
-                          onContextMenu: _showContextMenu,
-                        ),
-                      ],
-
-                      if (pendingNonRevision.isEmpty &&
-                          taskProvider.revisionTasks.isEmpty)
-                        TasksEmptyView(
-                          filter: filter,
-                          isSearching: isSearching,
-                          searchQuery: taskProvider.searchQuery,
-                          onClearSearch: () => taskProvider.clearSearchQuery(),
                         ),
 
                       // Completed Section

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:zeta/components/add_attachment_dialog.dart';
 import 'package:zeta/models/attachment.dart';
 import 'package:zeta/models/note_item.dart';
-import 'package:zeta/models/revision.dart';
 import 'package:zeta/models/task.dart';
 import 'package:zeta/services/attachment_parser_service.dart';
 
@@ -166,68 +165,6 @@ void main() {
       expect(copied.attachments.length, equals(2));
     });
 
-    test('Subject model serializes note and direct attachments', () {
-      final subject = Subject(
-        id: 's-1',
-        name: 'Physics',
-        note: NoteItem(
-          id: 'n-sub',
-          title: 'Physics Syllabus',
-          content: 'Course syllabus and formulas',
-        ),
-        attachments: [
-          AttachmentItem(
-            id: 'att-sub',
-            url: 'https://drive.google.com/drive/folders/folder123',
-            title: 'Physics Drive Folder',
-            type: AttachmentType.googleDrive,
-            driveType: GoogleDriveType.folder.toDbString(),
-          ),
-        ],
-      );
-
-      final json = subject.toJson();
-      final revived = Subject.fromJson(json);
-
-      expect(revived.note?.content, equals('Course syllabus and formulas'));
-      expect(revived.attachments.length, equals(1));
-      expect(revived.attachments.first.driveType, equals('folder'));
-    });
-
-    test('ChapterTopic preserves backward compatibility with description/notes fallback', () {
-      // Legacy JSON without note object or attachments
-      final legacyJson = {
-        'id': 'top-1',
-        'subjectId': 's-1',
-        'title': 'Kinematics',
-        'description': 'Velocity and acceleration vectors',
-        'notes': 'Legacy notes string',
-      };
-
-      final topic = ChapterTopic.fromJson(legacyJson);
-      expect(topic.note, isNotNull);
-      expect(topic.note!.content, equals('Velocity and acceleration vectors'));
-      expect(topic.attachments, isEmpty);
-
-      final updated = topic.copyWith(
-        note: NoteItem(
-          id: 'new-note',
-          title: 'Kinematics Notes',
-          content: 'Updated modern markdown notes',
-          attachments: [
-            AttachmentItem(
-              id: 'att-t-1',
-              url: 'https://flutter.dev',
-              title: 'Flutter Website',
-              type: AttachmentType.link,
-            ),
-          ],
-        ),
-      );
-
-      expect(updated.note?.content, equals('Updated modern markdown notes'));
-      expect(updated.note?.attachments.length, equals(1));
-    });
   });
 
   group('AddAttachmentDialog Widget Layout Test', () {

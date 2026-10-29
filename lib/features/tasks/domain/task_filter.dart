@@ -2,7 +2,6 @@ enum TaskFilter {
   all,
   completed,
   pending,
-  revision,
 }
 
 enum TaskSortOption {

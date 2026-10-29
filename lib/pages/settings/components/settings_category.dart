@@ -8,7 +8,6 @@ enum SettingsCategory {
   appearance,
   typography,
   weather,
-  notifications,
   syncAndData,
   crossDevice,
   updates,
@@ -65,13 +64,6 @@ const List<SettingsCategoryItem> kSettingsCategories = [
     description: 'Location and current conditions',
     icon: Symbols.partly_cloudy_day_rounded,
     selectedIcon: Symbols.partly_cloudy_day_rounded,
-  ),
-  SettingsCategoryItem(
-    id: SettingsCategory.notifications,
-    label: 'Notifications',
-    description: 'Reminders and sound feedback',
-    icon: Symbols.notifications_rounded,
-    selectedIcon: Symbols.notifications_active_rounded,
   ),
   SettingsCategoryItem(
     id: SettingsCategory.syncAndData,

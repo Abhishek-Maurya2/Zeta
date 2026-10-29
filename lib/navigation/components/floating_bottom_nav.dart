@@ -1,4 +1,4 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +7,6 @@ import '../../components/glass_surface.dart';
 import '../../components/task_edit_pane.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
-import '../../providers/revision_provider.dart';
 import '../../utils/haptics.dart';
 
 /// Floating bottom navigation toolbar for compact viewports.
@@ -27,11 +26,7 @@ class FloatingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTasksPage = navProvider.activePage == PageId.tasks;
-
     final colorScheme = context.colorScheme;
-    final revProvider = context.watch<RevisionProvider>();
-    final isRevisionSubpage = navProvider.activePage == PageId.revision &&
-        revProvider.isSubpageActive;
 
     return Positioned(
       bottom: 5,
@@ -50,8 +45,7 @@ class FloatingBottomNav extends StatelessWidget {
         child: AnimatedSlide(
           offset: (isSelectionMode ||
                   navProvider.activePage == PageId.settings ||
-                  navProvider.activePage == PageId.bin ||
-                  isRevisionSubpage)
+                  navProvider.activePage == PageId.bin)
               ? const Offset(0, 2.0)
               : Offset.zero,
           duration: const Duration(milliseconds: 320),
@@ -90,15 +84,6 @@ class FloatingBottomNav extends StatelessWidget {
                                 onTap: () {
                                   ZetaHaptics.heavy();
                                   context.read<TaskProvider>().clearSelection();
-
-                                  if (navProvider.activePage ==
-                                          PageId.revision &&
-                                      dest.id != PageId.revision) {
-                                    context
-                                        .read<RevisionProvider>()
-                                        .selectSubject(null);
-                                  }
-
                                   navProvider.setActivePage(dest.id);
                                 },
                               );

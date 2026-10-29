@@ -13,7 +13,6 @@ import '../pages/settings/components/settings_category.dart';
 import '../models/task.dart';
 import 'preferences_service.dart';
 import 'supabase_service.dart';
-import 'notification_service.dart';
 import 'windows_tray_service.dart';
 
 /// Models an incoming cross-device handoff event from another device.
@@ -86,7 +85,6 @@ class CrossDeviceService with WidgetsBindingObserver {
   static final CrossDeviceService instance = CrossDeviceService._();
 
   static const String _broadcastEventName = 'resume_activity';
-  static const int _notificationId = 77777;
 
   late final String _deviceId;
   String get deviceId => _deviceId;
@@ -192,11 +190,6 @@ class CrossDeviceService with WidgetsBindingObserver {
 
     WindowsTrayService.instance.onWindowEnteredTray = () {
       onWindowEnteredTray();
-    };
-
-    // Register notification callback for when the user clicks the toast on Windows / Android
-    NotificationService.instance.onResumeAction = (pageStr, itemId) {
-      consumeLatestResume(fallbackPage: pageStr, fallbackItemId: itemId);
     };
 
     // Listen to page changes to broadcast active page with smart throttling
@@ -380,9 +373,6 @@ class CrossDeviceService with WidgetsBindingObserver {
 
       if (!_hasShownBackgroundNotification) {
         // CASE 2: First event in this tray session -> send 1 toast!
-        if (prefs.crossDeviceShowToasts) {
-          _showWindowsResumeToast(event);
-        }
         _hasShownBackgroundNotification = true;
         if (kDebugMode) {
           debugPrint(
@@ -516,38 +506,6 @@ class CrossDeviceService with WidgetsBindingObserver {
       _navigationProvider?.resumeTo(page: page, itemId: fallbackItemId);
       activeResumeEvent.value = null;
     }
-  }
-
-  Future<void> _showWindowsResumeToast(CrossDeviceResumeEvent event) async {
-    final payloadString = 'resume:${event.page.name}|${event.itemId ?? ''}';
-    const title = 'Continue on Zeta';
-    String body = 'Resume "${event.title}" from ${event.deviceName}';
-
-    final taskDraft = event.contextData?['taskDraft'] as Map<String, dynamic>?;
-    if (taskDraft != null) {
-      final draftTitle = taskDraft['title'] as String?;
-      if (draftTitle != null && draftTitle.trim().isNotEmpty) {
-        body = 'Resume drafting "$draftTitle" from ${event.deviceName}';
-      } else {
-        body = 'Resume creating task from ${event.deviceName}';
-      }
-    } else if (event.contextData?['pomodoroTab'] != null) {
-      final tab = event.contextData!['pomodoroTab'] as String;
-      final tabName = tab == 'analysis'
-          ? 'Analysis'
-          : (tab == 'queue' ? 'Up Next' : 'Timer');
-      body = 'Resume Pomodoro $tabName from ${event.deviceName}';
-    } else if (event.contextData?['settingsCategory'] != null) {
-      final cat = event.contextData!['settingsCategory'] as String;
-      body = 'Resume Settings ($cat) from ${event.deviceName}';
-    }
-
-    await NotificationService.instance.showNow(
-      id: _notificationId,
-      title: title,
-      body: body,
-      payload: payloadString,
-    );
   }
 
   /// Dismisses the active in-app resume prompt banner
@@ -703,18 +661,14 @@ class CrossDeviceService with WidgetsBindingObserver {
       platform: 'android',
       page: PageId.tasks,
       itemId: null,
-      title: 'Chemistry Revision Notes',
+      title: 'Chemistry Study Notes',
       detail: 'Focus session completed',
       timestamp: DateTime.now(),
     );
 
     activeResumeEvent.value = testEvent;
 
-    if (!kIsWeb &&
-        Platform.isWindows &&
-        PreferencesService.instance.crossDeviceShowToasts) {
-      await _showWindowsResumeToast(testEvent);
-    }
+
     return true;
   }
 
@@ -769,12 +723,12 @@ class CrossDeviceService with WidgetsBindingObserver {
         return 'Overview & Dashboard';
       case PageId.tasks:
         return 'Task List';
-      case PageId.revision:
-        return 'Subjects';
       case PageId.pomodoro:
         return 'Pomodoro Timer';
       case PageId.bin:
         return 'Recycle Bin';
+      case PageId.space:
+        return 'Mindmap Space';
       case PageId.settings:
         return 'Settings';
     }

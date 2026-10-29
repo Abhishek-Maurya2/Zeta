@@ -76,8 +76,6 @@ class _UpNextSectionState extends State<UpNextSection> {
 
     final visibleTasks = widget.tasks.take(_maxDisplayed).toList();
     final hasMore = widget.tasks.length > visibleTasks.length;
-    final remainingCount = widget.tasks.length - visibleTasks.length;
-    final nextBatchCount = remainingCount < 3 ? remainingCount : 3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -201,9 +199,9 @@ class _UpNextSectionState extends State<UpNextSection> {
                                 fontWeight: FontWeight.bold,
                                 size: 27,
                               ),
-                              label: Text(
+                              label: const Text(
                                  'More Tasks',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),

@@ -4,7 +4,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import '../pages/settings/components/settings_category.dart';
 
 /// Top-level destinations available in the app shell.
-enum PageId { home, tasks, revision, pomodoro, bin, settings }
+enum PageId { home, tasks, pomodoro, space, bin, settings }
 
 /// Owns the destination route list and the small amount of shell navigation state.
 class NavigationProvider extends ChangeNotifier {
@@ -177,16 +177,16 @@ const List<NavDestination> kNavDestinations = [
     selectedIcon: Symbols.task_alt_rounded,
   ),
   NavDestination(
-    id: PageId.revision,
-    label: 'Subjects',
-    icon: Symbols.book_5_rounded,
-    selectedIcon: Symbols.menu_book_rounded,
-  ),
-  NavDestination(
     id: PageId.pomodoro,
     label: 'Pomodoro',
     icon: Symbols.timer_play_rounded,
     selectedIcon: Symbols.timer_rounded,
+  ),
+  NavDestination(
+    id: PageId.space,
+    label: 'Space',
+    icon: Symbols.hub_rounded,
+    selectedIcon: Symbols.hub_rounded,
   ),
   NavDestination(
     id: PageId.bin,

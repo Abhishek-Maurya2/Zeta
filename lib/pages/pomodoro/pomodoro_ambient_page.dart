@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,7 +8,6 @@ import 'package:provider/provider.dart';
 import '../../models/pomodoro.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../services/ambient_mode_service.dart';
-import '../../theme/breakpoints.dart';
 import '../../utils/haptics.dart';
 
 /// Fullscreen Ambient Display (AOD) matching Pixel Stand / StandBy charging mode:
@@ -45,7 +43,6 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   bool _controlsVisible = true;
   bool _isExiting = false;
   bool _showCountdown = false;
-  PomodoroMode? _lastMode;
   int? _lastPercent;
   PomodoroProvider? _pomodoroProvider;
 
@@ -197,10 +194,7 @@ class _PomodoroAmbientPageState extends State<PomodoroAmbientPage> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<PomodoroProvider>();
-    final sizeClass = ZetaWindowSizeClass.of(context);
-    final isCompact = sizeClass.isCompact;
 
-    _lastMode = provider.mode;
 
     final double progress = provider.progress.clamp(0.0, 1.0);
     final int percent = (progress * 100).round();

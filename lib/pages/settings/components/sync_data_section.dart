@@ -11,7 +11,6 @@ import '../../../providers/theme_provider.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
-import '../../../providers/revision_provider.dart';
 import '../../../services/preferences_service.dart';
 import '../../../utils/haptics.dart';
 import 'settings_section_heading.dart';
@@ -64,14 +63,10 @@ class _SyncDataSectionState extends State<SyncDataSection> {
         force: true,
       );
       final profileFuture = context.read<ProfileProvider>().syncProfileWithDb();
-      final revisionFuture = context.read<RevisionProvider>().syncWithCloud(
-        force: true,
-      );
       await Future.wait([
         taskFuture,
         pomodoroFuture,
         profileFuture,
-        revisionFuture,
       ]);
       if (!mounted) return;
       widget.onToast?.call('Cloud sync completed successfully!');
@@ -90,7 +85,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     ThemeProvider themeProvider,
     TaskProvider taskProvider,
     PomodoroProvider pomodoroProvider,
-    RevisionProvider revisionProvider,
   ) {
     final fullBackup = {
       'app': 'Zeta',
@@ -113,7 +107,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
           'body': themeProvider.bodyTypography.toJson(),
           'labels': themeProvider.labelsTypography.toJson(),
         },
-        'notifications': themeProvider.notifications,
         'soundEffects': themeProvider.soundEffects,
         'autoSave': themeProvider.autoSave,
       },
@@ -122,16 +115,12 @@ class _SyncDataSectionState extends State<SyncDataSection> {
       'pomodoroSessions': pomodoroProvider.sessionLog
           .map((s) => s.toJson())
           .toList(),
-      'revisionSubjects': revisionProvider.subjects
-          .map((s) => s.toJson())
-          .toList(),
-      'revisionTopics': revisionProvider.topics.map((t) => t.toJson()).toList(),
     };
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(fullBackup);
     Clipboard.setData(ClipboardData(text: jsonStr));
     widget.onToast?.call(
-      'Full backup copied to clipboard (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} pomodoro sessions, ${revisionProvider.totalTopicsCount} topics)!',
+      'Full backup copied to clipboard (${taskProvider.totalCount} tasks, ${pomodoroProvider.sessionLog.length} pomodoro sessions)!',
     );
   }
 
@@ -249,13 +238,11 @@ class _SyncDataSectionState extends State<SyncDataSection> {
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
     final themeProvider = context.watch<ThemeProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
 
     final isSyncBusy =
         _isSyncing ||
         taskProvider.isSyncing ||
-        pomodoroProvider.isSyncing ||
-        revisionProvider.isLoading;
+        pomodoroProvider.isSyncing;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -463,7 +450,7 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                       color: colorScheme.onSurfaceVariant,
                     ),
                     headline: 'Export Backup',
-                    supportingText: 'Tasks, Sessions & Subjects',
+                    supportingText: 'Tasks & Sessions',
                     trailing: M3EIconButton(
                       icon: const Icon(Icons.copy_rounded),
                       variant: M3EIconButtonVariant.filled,
@@ -481,7 +468,6 @@ class _SyncDataSectionState extends State<SyncDataSection> {
                         themeProvider,
                         taskProvider,
                         pomodoroProvider,
-                        revisionProvider,
                       ),
                     ),
                   );

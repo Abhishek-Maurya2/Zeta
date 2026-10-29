@@ -14,7 +14,6 @@ import '../../components/glass_surface.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/pomodoro_provider.dart';
-import '../../providers/revision_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/breakpoints.dart';
@@ -91,24 +90,20 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
     }
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
     final profileProvider = context.watch<ProfileProvider>();
     final colorScheme = context.colorScheme;
 
     final syncError =
         taskProvider.syncError ??
         pomodoroProvider.syncError ??
-        revisionProvider.syncError ??
         profileProvider.syncError;
     final isSyncing =
         taskProvider.isSyncing ||
         pomodoroProvider.isSyncing ||
-        revisionProvider.isSyncing ||
         profileProvider.isSyncing;
     final allSynced =
         taskProvider.lastSyncedAt != null &&
         pomodoroProvider.lastSyncedAt != null &&
-        revisionProvider.lastSyncedAt != null &&
         profileProvider.lastSyncedAt != null;
 
     if (syncError != null) {
@@ -126,13 +121,11 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
     final profileProvider = context.watch<ProfileProvider>();
 
     final syncError =
         taskProvider.syncError ??
         pomodoroProvider.syncError ??
-        revisionProvider.syncError ??
         profileProvider.syncError;
 
     final syncRingColor = _resolveSyncRingColor(context);
@@ -213,7 +206,6 @@ class _ProfileCardContent extends StatelessWidget {
     final pomodoroProvider = context.read<PomodoroProvider>();
     final profileProvider = context.read<ProfileProvider>();
     final themeProvider = context.read<ThemeProvider>();
-    final revisionProvider = context.read<RevisionProvider>();
 
     AppSnackbar.show(
       context,
@@ -227,14 +219,12 @@ class _ProfileCardContent extends StatelessWidget {
         pomodoroProvider.syncWithCloud(force: true),
         profileProvider.syncProfileWithDb(),
         themeProvider.refreshWeather(),
-        revisionProvider.refreshData(),
       ]);
       if (context.mounted) {
         final anyError =
             taskProvider.syncError ??
             pomodoroProvider.syncError ??
-            revisionProvider.syncError ??
-            profileProvider.syncError;
+                profileProvider.syncError;
         if (anyError != null) {
           AppSnackbar.show(
             context,
@@ -267,7 +257,6 @@ class _ProfileCardContent extends StatelessWidget {
     final textTheme = context.textTheme;
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
     final profileProvider = context.watch<ProfileProvider>();
     final navProvider = context.read<NavigationProvider>();
 
@@ -299,13 +288,6 @@ class _ProfileCardContent extends StatelessWidget {
         error: pomodoroProvider.syncError!.trim(),
       ));
     }
-    if (revisionProvider.syncError != null &&
-        revisionProvider.syncError!.trim().isNotEmpty) {
-      activeErrors.add((
-        source: 'Revision',
-        error: revisionProvider.syncError!.trim(),
-      ));
-    }
     if (profileProvider.syncError != null &&
         profileProvider.syncError!.trim().isNotEmpty) {
       activeErrors.add((
@@ -320,14 +302,12 @@ class _ProfileCardContent extends StatelessWidget {
     final isSyncing =
         taskProvider.isSyncing ||
         pomodoroProvider.isSyncing ||
-        revisionProvider.isSyncing ||
         profileProvider.isSyncing;
 
     final allSynced =
         !hasSyncError &&
         taskProvider.lastSyncedAt != null &&
         pomodoroProvider.lastSyncedAt != null &&
-        revisionProvider.lastSyncedAt != null &&
         profileProvider.lastSyncedAt != null;
 
     final Color statusColor;

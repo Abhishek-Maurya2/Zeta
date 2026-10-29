@@ -53,22 +53,6 @@ class TasksEmptyView extends StatelessWidget {
       );
     }
 
-    if (filter == TaskFilter.revision) {
-      if (isSearching) {
-        return ZetaEmptyState.search(
-          query: searchQuery,
-          subtitle: 'No revision tasks match "$searchQuery".',
-          onClearSearch: onClearSearch,
-        );
-      }
-      return ZetaEmptyState.tasks(
-        shapeKind: M3EShapeKind.cookie9Sided,
-        icon: Icons.sync_rounded,
-        title: 'No subject tasks',
-        subtitle: 'Tasks scheduled from the Subjects page will appear here.',
-      );
-    }
-
     // Default: All tasks
     if (isSearching) {
       return ZetaEmptyState.search(

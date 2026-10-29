@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:zeta/navigation/components/floating_bottom_nav.dart';
 import 'package:zeta/providers/navigation_provider.dart';
 import 'package:zeta/providers/task_provider.dart';
-import 'package:zeta/providers/revision_provider.dart';
 import 'package:zeta/providers/pomodoro_provider.dart';
 
 void main() {
@@ -14,14 +13,12 @@ void main() {
   group('FloatingBottomNav Scroll & Visibility Tests', () {
     late NavigationProvider navProvider;
     late TaskProvider taskProvider;
-    late RevisionProvider revisionProvider;
     late M3EToolbarVisibilityController toolbarController;
     late M3EToolbarScrollBehavior toolbarBehavior;
 
     setUp(() {
       navProvider = NavigationProvider();
       taskProvider = TaskProvider();
-      revisionProvider = RevisionProvider();
       toolbarController = M3EToolbarVisibilityController(exitExtent: 100.0);
       toolbarBehavior = M3EToolbarScrollBehavior.exitAlways(
         exitDirection: M3EToolbarExitDirection.bottom,
@@ -37,7 +34,6 @@ void main() {
         providers: [
           ChangeNotifierProvider<NavigationProvider>.value(value: navProvider),
           ChangeNotifierProvider<TaskProvider>.value(value: taskProvider),
-          ChangeNotifierProvider<RevisionProvider>.value(value: revisionProvider),
         ],
         child: MaterialApp(
           home: Scaffold(

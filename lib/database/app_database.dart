@@ -6,9 +6,7 @@ import 'package:drift/drift.dart';
 
 import '../models/task.dart';
 import '../models/pomodoro.dart';
-import '../models/revision.dart';
 import '../models/attachment.dart';
-import '../models/note_item.dart';
 import 'connection/connection.dart';
 import 'tables.dart';
 import 'account_scope.dart';
@@ -25,8 +23,6 @@ part 'app_database.g.dart';
     TasksTable,
     PomodoroSessionsTable,
     ProfilesTable,
-    RevisionSubjectsTable,
-    RevisionTopicsTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -53,12 +49,6 @@ class AppDatabase extends _$AppDatabase {
       );
       await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
-      );
-      await customStatement(
-        'CREATE INDEX IF NOT EXISTS idx_revision_topics_subject ON revision_topics (subject_id, sort_order);',
-      );
-      await customStatement(
-        'CREATE INDEX IF NOT EXISTS idx_revision_topics_user_subject ON revision_topics (user_id, subject_id, sort_order);',
       );
       await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
@@ -187,114 +177,6 @@ class AppDatabase extends _$AppDatabase {
       lastSyncedAtMs: s.lastSyncedAt != null
           ? Value(s.lastSyncedAt!.millisecondsSinceEpoch)
           : const Value.absent(),
-    );
-  }
-
-  // ─── Revision helpers ───────────────────────────────────────────────────────
-
-  static Subject rowToSubject(RevisionSubjectsTableData row) {
-    NoteItem? note;
-    if (row.notesJson.isNotEmpty && row.notesJson != '{}') {
-      try {
-        final decoded = jsonDecode(row.notesJson);
-        if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
-          note = NoteItem.fromJson(decoded);
-        }
-      } catch (_) {}
-    }
-
-    List<AttachmentItem> attachments = const [];
-    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
-      try {
-        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
-    }
-
-    return Subject(
-      id: row.id,
-      name: row.name,
-      iconName: row.iconName,
-      colorValue: row.colorValue,
-      note: note,
-      attachments: attachments,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtMs),
-    );
-  }
-
-  static RevisionSubjectsTableCompanion subjectToCompanion(Subject s) {
-    return RevisionSubjectsTableCompanion(
-      id: Value(s.id),
-      userId: Value(AccountScope.userId),
-      name: Value(s.name),
-      iconName: Value(s.iconName),
-      colorValue: Value(s.colorValue),
-      notesJson: Value(s.note != null ? jsonEncode(s.note!.toJson()) : '{}'),
-      attachmentsJson: Value(
-        jsonEncode(s.attachments.map((a) => a.toJson()).toList()),
-      ),
-      createdAtMs: Value(s.createdAt.millisecondsSinceEpoch),
-    );
-  }
-
-  static ChapterTopic rowToTopic(RevisionTopicsTableData row) {
-    NoteItem? note;
-    if (row.notesJson.isNotEmpty && row.notesJson != '{}') {
-      try {
-        final decoded = jsonDecode(row.notesJson);
-        if (decoded is Map<String, dynamic> && decoded.isNotEmpty) {
-          note = NoteItem.fromJson(decoded);
-        }
-      } catch (_) {}
-    }
-
-    List<AttachmentItem> attachments = const [];
-    if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
-      try {
-        attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-            .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
-    }
-
-    return ChapterTopic(
-      id: row.id,
-      subjectId: row.subjectId,
-      title: row.title,
-      description: row.description,
-      isCompleted: row.isCompleted,
-      revisionStage: row.revisionStage,
-      lastRevisedAt: row.lastRevisedAtMs != null
-          ? DateTime.fromMillisecondsSinceEpoch(row.lastRevisedAtMs!)
-          : null,
-      nextRevisionDate: row.nextRevisionDateMs != null
-          ? DateTime.fromMillisecondsSinceEpoch(row.nextRevisionDateMs!)
-          : null,
-      associatedTaskId: row.associatedTaskId,
-      sortOrder: row.sortOrder,
-      note: note,
-      attachments: attachments,
-    );
-  }
-
-  static RevisionTopicsTableCompanion topicToCompanion(ChapterTopic t) {
-    return RevisionTopicsTableCompanion(
-      id: Value(t.id),
-      userId: Value(AccountScope.userId),
-      subjectId: Value(t.subjectId),
-      title: Value(t.title),
-      description: Value(t.description),
-      notesJson: Value(t.note != null ? jsonEncode(t.note!.toJson()) : '{}'),
-      attachmentsJson: Value(
-        jsonEncode(t.attachments.map((a) => a.toJson()).toList()),
-      ),
-      isCompleted: Value(t.isCompleted),
-      revisionStage: Value(t.revisionStage),
-      lastRevisedAtMs: Value(t.lastRevisedAt?.millisecondsSinceEpoch),
-      nextRevisionDateMs: Value(t.nextRevisionDate?.millisecondsSinceEpoch),
-      associatedTaskId: Value(t.associatedTaskId),
-      sortOrder: Value(t.sortOrder),
     );
   }
 }

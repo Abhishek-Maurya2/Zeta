@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../components/task_edit_pane.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
-import '../../providers/revision_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../utils/haptics.dart';
 
@@ -47,10 +46,6 @@ class NavigationRailWidget extends StatelessWidget {
           ZetaHaptics.selection();
           context.read<TaskProvider>().clearSelection();
           final target = kNavDestinations[index].id;
-          if (navProvider.activePage == PageId.revision &&
-              target != PageId.revision) {
-            context.read<RevisionProvider>().selectSubject(null);
-          }
           navProvider.setActivePage(target);
         },
         fab: M3ENavigationRailFabSlot(

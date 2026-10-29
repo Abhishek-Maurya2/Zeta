@@ -76,15 +76,6 @@ void main() {
       expect(nav.canPop, isFalse);
     });
 
-    test('opening settings from Subjects (Revision) pops back to Subjects', () {
-      nav.setActivePage(PageId.revision);
-      nav.setActivePage(PageId.settings);
-
-      expect(nav.activePage, equals(PageId.settings));
-      expect(nav.pop(), isTrue);
-      expect(nav.activePage, equals(PageId.revision));
-    });
-
     test('opening settings from Bin pops back to Bin', () {
       nav.setActivePage(PageId.tasks);
       nav.setActivePage(PageId.bin);

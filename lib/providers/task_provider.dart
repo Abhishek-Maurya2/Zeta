@@ -7,7 +7,6 @@ import 'package:uuid/uuid.dart';
 import '../models/task.dart';
 import '../models/attachment.dart';
 import '../utils/haptics.dart';
-import '../services/notification_service.dart';
 import '../services/preferences_service.dart';
 import '../database/daos/task_dao.dart';
 import '../services/supabase_sync_service.dart';
@@ -15,7 +14,7 @@ import '../repositories/task_repository.dart';
 import '../utils/app_snackbar.dart';
 import '../utils/performance_trace.dart';
 
-enum TaskFilter { all, completed, pending, revision }
+enum TaskFilter { all, completed, pending }
 
 enum TaskSortOption { creationDesc, creationAsc, dueDate, az, za }
 
@@ -267,7 +266,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<Task>? _cachedFilteredAndSortedTasks;
   List<Task>? _cachedPendingTasks;
   List<Task>? _cachedCompletedTasks;
-  List<Task>? _cachedRevisionTasks;
   Map<String, List<Task>>? _cachedTasksByDateKey;
 
   void _invalidateCache() {
@@ -275,9 +273,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _binTasksSnapshot = null;
     _cachedFilteredAndSortedTasks = null;
     _cachedPendingTasks = null;
-    _cachedPendingNonRevisionTasks = null;
     _cachedCompletedTasks = null;
-    _cachedRevisionTasks = null;
     _cachedTasksByDateKey = null;
     _cachedCompletedCount = null;
   }
@@ -434,18 +430,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  /// Helper to check if a task is a revision task
-  static bool isRevisionTask(Task task) {
-    if (task.title.toLowerCase().contains('revise:')) return true;
-    if (task.description != null &&
-        task.description!.toLowerCase().contains('#revision')) {
-      return true;
-    }
-    return false;
-  }
-
-  /// Optional callback invoked when a task is completed (for bi-directional sync)
-  void Function(String taskId)? onTaskCompletedCallback;
 
   /// Returns true if [task] matches the given search query [query].
   static bool matchesSearch(Task task, String query) {
@@ -526,12 +510,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       return _cachedFilteredAndSortedTasks!;
     }
     final list = _tasks.where((task) {
-      if (_filter == TaskFilter.pending &&
-          (task.completed || isRevisionTask(task))) {
-        return false;
-      }
+      if (_filter == TaskFilter.pending && task.completed) return false;
       if (_filter == TaskFilter.completed && !task.completed) return false;
-      if (_filter == TaskFilter.revision && !isRevisionTask(task)) return false;
       if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
         return false;
       }
@@ -558,16 +538,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     return _cachedPendingTasks!;
   }
 
-  List<Task>? _cachedPendingNonRevisionTasks;
-
-  List<Task> get pendingNonRevisionTasks {
-    if (_cachedPendingNonRevisionTasks != null)
-      return _cachedPendingNonRevisionTasks!;
-    final list = pendingTasks.where((t) => !isRevisionTask(t)).toList();
-    _cachedPendingNonRevisionTasks = List.unmodifiable(list);
-    return _cachedPendingNonRevisionTasks!;
-  }
-
   List<Task> get completedTasks {
     if (_cachedCompletedTasks != null) return _cachedCompletedTasks!;
     final list = _tasks.where((task) {
@@ -580,20 +550,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _sortTaskList(list);
     _cachedCompletedTasks = List.unmodifiable(list);
     return _cachedCompletedTasks!;
-  }
-
-  List<Task> get revisionTasks {
-    if (_cachedRevisionTasks != null) return _cachedRevisionTasks!;
-    final list = _tasks.where((task) {
-      if (!isRevisionTask(task)) return false;
-      if (_searchQuery.isNotEmpty && !matchesSearch(task, _searchQuery)) {
-        return false;
-      }
-      return true;
-    }).toList();
-    _sortTaskList(list);
-    _cachedRevisionTasks = List.unmodifiable(list);
-    return _cachedRevisionTasks!;
   }
 
   Future<void> _loadFromStorage() =>
@@ -914,8 +870,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       final now = DateTime.now();
       task.completedAt = null;
       task.updatedAt = now;
-      // Re-schedule if un-completing a task that has a due time.
-      NotificationService.instance.scheduleTaskReminder(task);
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.saveTask(task));
@@ -923,9 +877,8 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   /// Records an explicit task completion, independently from edits/subtasks.
-  /// Revision progression can disable the callback when it is already handling
   /// that same completion.
-  void markTaskCompleted(String id, {bool syncRevision = true}) {
+  void markTaskCompleted(String id) {
     final index = _tasks.indexWhere((task) => task.id == id);
     if (index == -1) return;
 
@@ -938,8 +891,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     task.completedAt ??= now;
     task.updatedAt = now;
     _playSoundIfEnabled();
-    NotificationService.instance.cancelTaskReminder(task.id);
-    if (syncRevision) onTaskCompletedCallback?.call(task.id);
     _invalidateCache();
     notifyListeners();
     unawaited(_repository.saveTask(task));
@@ -960,7 +911,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     task.completedAt = null;
     task.updatedAt = DateTime.now();
     _playSoundIfEnabled();
-    NotificationService.instance.cancelTaskReminder(task.id);
     _invalidateCache();
     notifyListeners();
     unawaited(_repository.saveTask(task));
@@ -1048,8 +998,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     _invalidateCache();
     notifyListeners();
     unawaited(_repository.saveTask(newTask));
-    // Schedule a system notification if the task has a due time.
-    unawaited(NotificationService.instance.scheduleTaskReminder(newTask));
     return newTask.id;
   }
 
@@ -1078,8 +1026,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.saveTask(task));
-      // Re-schedule (or cancel) reminder based on updated due time.
-      NotificationService.instance.scheduleTaskReminder(task);
     }
   }
 
@@ -1095,8 +1041,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.softDeleteTask(task));
-      // Cancel scheduled reminder when task is deleted.
-      NotificationService.instance.cancelTaskReminder(task.id);
     }
   }
 
@@ -1115,7 +1059,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         task.updatedAt = DateTime.now();
         _binTasks.insert(0, task);
         tasksToBin.add(task);
-        NotificationService.instance.cancelTaskReminder(task.id);
       }
     }
 
@@ -1150,10 +1093,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (!targetState && taskStateChanged) task.completedAt = null;
       task.updatedAt = now;
       if (targetState) {
-        NotificationService.instance.cancelTaskReminder(task.id);
-        if (explicitCompletion) onTaskCompletedCallback?.call(task.id);
       } else {
-        NotificationService.instance.scheduleTaskReminder(task);
       }
     }
 
@@ -1182,7 +1122,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
       if (!task.completed) {
-        NotificationService.instance.scheduleTaskReminder(task);
       }
       _invalidateCache();
       notifyListeners();
@@ -1220,7 +1159,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
       if (!task.completed) {
-        NotificationService.instance.scheduleTaskReminder(task);
       }
     }
     _binTasks.clear();

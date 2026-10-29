@@ -11,7 +11,6 @@ class TasksFilterBar extends StatelessWidget {
   final TaskFilter filter;
   final int totalCount;
   final int pendingCount;
-  final int revisionCount;
   final TaskSortOption sortBy;
   final ValueChanged<TaskFilter> onFilterChanged;
   final ValueChanged<TaskSortOption> onSortChanged;
@@ -24,7 +23,6 @@ class TasksFilterBar extends StatelessWidget {
     required this.filter,
     required this.totalCount,
     required this.pendingCount,
-    required this.revisionCount,
     required this.sortBy,
     required this.onFilterChanged,
     required this.onSortChanged,
@@ -39,9 +37,7 @@ class TasksFilterBar extends StatelessWidget {
 
     final selectedFilterIndex = filter == TaskFilter.all
         ? 0
-        : (filter == TaskFilter.pending
-              ? 1
-              : (filter == TaskFilter.revision ? 2 : null));
+        : (filter == TaskFilter.pending ? 1 : null);
 
     final filterButtonGroup = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -71,14 +67,11 @@ class TasksFilterBar extends StatelessWidget {
             onFilterChanged(TaskFilter.all);
           } else if (index == 1) {
             onFilterChanged(TaskFilter.pending);
-          } else if (index == 2) {
-            onFilterChanged(TaskFilter.revision);
           }
         },
         actions: [
           M3EButtonGroupAction(label: Text('All ($totalCount)')),
           M3EButtonGroupAction(label: Text('Pending ($pendingCount)')),
-          M3EButtonGroupAction(label: Text('Revisions ($revisionCount)')),
         ],
       ),
     );

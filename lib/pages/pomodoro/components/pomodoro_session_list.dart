@@ -126,7 +126,6 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     final visibleDays = allDays.take(_displayedDaysCount).toList();
 
     final sizeClass = ZetaWindowSizeClass.of(context);
-    final isMedium = sizeClass.isMedium;
     final isCompact = sizeClass.isCompact;
 
     return Column(

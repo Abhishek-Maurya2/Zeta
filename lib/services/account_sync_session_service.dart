@@ -1,5 +1,4 @@
 import 'pomodoro_sync_service.dart';
-import 'revision_sync_service.dart';
 import 'supabase_sync_service.dart';
 
 /// Stops callbacks and in-memory retries when the active account signs out.
@@ -11,7 +10,6 @@ class AccountSyncSessionService {
 
   void endSession() {
     SupabaseSyncService().endAccountSession();
-    RevisionSyncService().endAccountSession();
     PomodoroSyncService().endAccountSession();
   }
 }

@@ -20,7 +20,6 @@ import '../pages/pomodoro/components/pomodoro_exit_dialog.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
-import '../providers/revision_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/profile_provider.dart';
 import 'components/body_pane.dart';
@@ -169,7 +168,7 @@ class _AppScaffoldState extends State<AppScaffold>
   Future<void> _triggerRefresh() async {
     if (_isRefreshing) return;
     final nav = context.read<NavigationProvider>();
-    if (nav.activePage == PageId.settings || nav.activePage == PageId.bin) {
+    if (nav.activePage == PageId.settings || nav.activePage == PageId.bin || nav.activePage == PageId.space) {
       return;
     }
 
@@ -186,7 +185,6 @@ class _AppScaffoldState extends State<AppScaffold>
     final pomodoroProvider = context.read<PomodoroProvider>();
     final profileProvider = context.read<ProfileProvider>();
     final themeProvider = context.read<ThemeProvider>();
-    final revisionProvider = context.read<RevisionProvider>();
 
     if (initialOffset < _refreshTargetHeight) {
       _refreshAnimation =
@@ -211,7 +209,6 @@ class _AppScaffoldState extends State<AppScaffold>
         pomodoroProvider.syncWithCloud(force: true),
         profileProvider.syncProfileWithDb(),
         themeProvider.refreshWeather(),
-        revisionProvider.refreshData(),
         minDelay,
       ]);
     } catch (_) {
@@ -266,8 +263,7 @@ class _AppScaffoldState extends State<AppScaffold>
     }
 
     if (_isRefreshing ||
-        context.read<NavigationProvider>().activePage == PageId.settings ||
-        context.read<NavigationProvider>().activePage == PageId.bin ||
+        context.read<NavigationProvider>().activePage == PageId.settings || context.read<NavigationProvider>().activePage == PageId.bin || context.read<NavigationProvider>().activePage == PageId.space ||
         notification.depth != 0 ||
         notification.metrics.axis != Axis.vertical) {
       return false;
@@ -413,7 +409,7 @@ class _AppScaffoldState extends State<AppScaffold>
             !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       final nav = context.read<NavigationProvider>();
-      if (nav.activePage != PageId.settings && nav.activePage != PageId.bin) {
+      if (nav.activePage != PageId.settings && nav.activePage != PageId.bin && nav.activePage != PageId.space) {
         unawaited(_triggerRefresh());
         return true;
       }
@@ -460,9 +456,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final isCompact = sizeClass.isCompact;
 
-    final isRevisionSubpage =
-        navProvider.activePage == PageId.revision &&
-        context.select<RevisionProvider, bool>((p) => p.isSubpageActive);
     final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
     final hasActivePane =
         riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider) != null;
@@ -470,17 +463,14 @@ class _AppScaffoldState extends State<AppScaffold>
         isEditPaneOpen ||
         hasActivePane ||
         isSelectionMode ||
-        isSearchOpen ||
-        isRevisionSubpage;
+        isSearchOpen;
 
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
     // On compact screens (< 600dp), Settings, Bin, Topics, and Notes provide their own dedicated top header with back navigation.
     final showTopAppBar =
         !isCompact ||
-        (navProvider.activePage != PageId.settings &&
-            navProvider.activePage != PageId.bin &&
-            !isRevisionSubpage);
+        (navProvider.activePage != PageId.settings && navProvider.activePage != PageId.bin && navProvider.activePage != PageId.space);
 
     final isDark = context.theme.brightness == Brightness.dark;
     final colorScheme = context.colorScheme;
@@ -553,22 +543,6 @@ class _AppScaffoldState extends State<AppScaffold>
         }
 
 
-        // 3.1. If in Revision and on Notes, pop back to Topics first
-        if (navProvider.activePage == PageId.revision) {
-          final revProvider = context.read<RevisionProvider>();
-          if (revProvider.isNotesOpen) {
-            ZetaHaptics.light();
-            revProvider.closeNotes();
-            return;
-          }
-
-          // 3.2. If in Revision and on Topics, pop back to Subjects first
-          if (revProvider.selectedSubjectId != null) {
-            ZetaHaptics.light();
-            revProvider.selectSubject(null);
-            return;
-          }
-        }
 
         // Destination routes and modal routes are popped by their Navigator.
         if (_bodyNavigatorKey.currentState?.canPop() == true) return;
@@ -604,9 +578,7 @@ class _AppScaffoldState extends State<AppScaffold>
                 children: [
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
-                  if (navProvider.activePage != PageId.settings &&
-                      navProvider.activePage != PageId.bin &&
-                      !isRevisionSubpage)
+                  if (navProvider.activePage != PageId.settings && navProvider.activePage != PageId.bin && navProvider.activePage != PageId.space)
                     ValueListenableBuilder<double>(
                       valueListenable: _refreshHeightNotifier,
                       builder: (context, height, _) {

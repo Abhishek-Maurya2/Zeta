@@ -63,9 +63,6 @@ class TodaysFocusCard extends StatelessWidget {
           )
         : null;
 
-    final revisionInfo = task != null
-        ? RevisionTagInfo.parse(task!.description, taskTitle: task!.title)
-        : const RevisionTagInfo(isRevision: false, label: '');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -182,19 +179,11 @@ class TodaysFocusCard extends StatelessWidget {
                                     : colorScheme.onSurface,
                               ),
                             ),
-                            if ((revisionInfo.isRevision
-                                        ? revisionInfo.cleanedDescription
-                                        : task!.description) !=
-                                    null &&
-                                (revisionInfo.isRevision
-                                        ? revisionInfo.cleanedDescription
-                                        : task!.description)!
-                                    .isNotEmpty) ...[
+                            if (task!.description != null &&
+                                task!.description!.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
-                                (revisionInfo.isRevision
-                                    ? revisionInfo.cleanedDescription
-                                    : task!.description)!,
+                                task!.description!,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.bodyLarge?.copyWith(
@@ -268,21 +257,18 @@ class TodaysFocusCard extends StatelessWidget {
                   ),
                 ],
 
-                // Chips Row (Due Date + Revision)
-                if (dueFormatted != null || revisionInfo.isRevision) ...[
+                // Chips Row (Due Date)
+                if (dueFormatted != null) ...[
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 6,
                     children: [
-                      if (dueFormatted != null)
-                        FocusTaskDueDateChip(
-                          dueFormatted: dueFormatted,
-                          hasTime: task!.hasTime,
-                          isOverdue: isOverdue,
-                        ),
-                      if (revisionInfo.isRevision)
-                        TaskRevisionChip(label: revisionInfo.label),
+                      FocusTaskDueDateChip(
+                        dueFormatted: dueFormatted,
+                        hasTime: task!.hasTime,
+                        isOverdue: isOverdue,
+                      ),
                     ],
                   ),
                 ],

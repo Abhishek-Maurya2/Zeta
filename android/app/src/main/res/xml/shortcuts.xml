@@ -45,19 +45,4 @@
             <extra android:name="shortcut_type" android:value="action_calendar" />
         </intent>
     </shortcut>
-    <shortcut
-        android:shortcutId="action_revision"
-        android:enabled="true"
-        android:icon="@drawable/ic_revision"
-        android:shortcutShortLabel="@string/shortcut_revision_short"
-        android:shortcutLongLabel="@string/shortcut_revision_long">
-        <intent
-            android:action="android.intent.action.VIEW"
-            android:targetPackage="com.abhishek.zeta.zeta"
-            android:targetClass="com.abhishek.zeta.zeta.MainActivity">
-            <extra android:name="route" android:value="action_revision" />
-            <extra android:name="some unique action key" android:value="action_revision" />
-            <extra android:name="shortcut_type" android:value="action_revision" />
-        </intent>
-    </shortcut>
 </shortcuts>

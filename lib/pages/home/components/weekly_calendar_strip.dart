@@ -203,7 +203,6 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
     final tasksByDateKey = context.watch<TaskProvider>().tasksByDateKey;
     final isSelectedToday = DateTimeUtils.isSameDay(
       widget.selectedDate,
@@ -292,7 +291,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
           },
         ),
         const SizedBox(height: 8),
-        _StripLegend(),
+        const _StripLegend(),
       ],
     );
   }

@@ -68,7 +68,6 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
 
-    final cardBg = isDark ? const Color(0xFF161719) : const Color(0xFFF7F6F2);
     final textColor = isDark ? Colors.white : const Color(0xFF141414);
     final textMuted = isDark
         ? const Color(0xFF8B929A)

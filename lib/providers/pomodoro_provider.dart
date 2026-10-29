@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../models/pomodoro.dart';
-import '../services/notification_service.dart';
 import '../services/preferences_service.dart';
 import '../utils/haptics.dart';
 import '../utils/performance_trace.dart';
@@ -43,24 +42,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       WidgetsBinding.instance.addObserver(this);
     } catch (_) {}
     _init();
-    NotificationService.instance.onPomodoroAction = (action) {
-      switch (action) {
-        case 'toggle':
-          toggleTimer();
-          break;
-        case 'pause':
-          pauseTimer();
-          break;
-        case 'resume':
-          startTimer();
-          break;
-        case 'skip':
-        case 'next':
-          skipSession();
-          break;
-      }
-    };
-  }
+}
 
   // ─── Getters ───────────────────────────────────────────────────────────────
   String _activeTab = 'timer'; // 'timer', 'queue', 'analysis'
@@ -296,7 +278,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     _saveActiveState();
     notifyListeners();
-    _updateLiveNotification(force: true);
   }
 
   void pauseTimer() {
@@ -307,7 +288,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     _timer = null;
     _saveActiveState();
     notifyListeners();
-    _updateLiveNotification(force: true);
   }
 
   void toggleTimer() {
@@ -323,14 +303,12 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     pauseTimer();
     _syncWithCurrentQueueItem();
     _saveActiveState();
-    NotificationService.instance.cancelPomodoroProgress();
     notifyListeners();
   }
 
   void skipSession() {
     _recordPartialSessionIfEligible();
     pauseTimer();
-    NotificationService.instance.cancelPomodoroProgress();
     _advanceQueue(userInitiated: true);
   }
 
@@ -340,7 +318,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
     _recordPartialSessionIfEligible();
     pauseTimer();
-    NotificationService.instance.cancelPomodoroProgress();
     _activeQueueIndex = index;
     _syncWithCurrentQueueItem();
     _saveActiveState();
@@ -360,7 +337,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (_timeLeft != remaining) {
         _timeLeft = remaining;
         tickNotifier.value = remaining;
-        _updateLiveNotification();
         // Throttle disk writes to at most every 50 seconds
         if (now.difference(_lastSaveTime).inSeconds >= 50) {
           _lastSaveTime = now;
@@ -368,18 +344,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
       }
     }
-  }
-
-  void _updateLiveNotification({bool force = false}) {
-    NotificationService.instance.updatePomodoroProgress(
-      mode: mode,
-      sessionLabel: currentSession?.label,
-      timeLeft: _timeLeft,
-      totalDuration: _totalDuration,
-      isRunning: _isRunning,
-      countUp: _settings.countUp,
-      forceWindowsUpdate: force,
-    );
   }
 
   @override
@@ -399,22 +363,11 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   void _onSessionComplete() {
     pauseTimer();
-
-    final ns = NotificationService.instance;
-    final alertsEnabled = ns.masterEnabled && ns.pomodoroAlertsEnabled;
-
-    // Haptic & Sound notification (only if alerts are enabled in settings)
-    if (alertsEnabled && _settings.soundNotification) {
+    // Haptic & Sound notification
+    if (_settings.soundNotification) {
       SystemSound.play(SystemSoundType.alert);
     }
-    if (alertsEnabled) {
-      ZetaHaptics.heavy();
-    }
-
-    // Fire system notification.
-    final completedMode = currentSession?.mode ?? PomodoroMode.focus;
-    ns.cancelPomodoroProgress();
-    ns.showPomodoroComplete(completedMode);
+    ZetaHaptics.heavy();
 
     // Log the completed session
     final currentItem = currentSession;
@@ -511,7 +464,6 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       _saveActiveState();
     }
-    _updateLiveNotification(force: true);
     notifyListeners();
   }
 
@@ -534,10 +486,7 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {}
     _saveActiveState();
     _timer?.cancel();
-    if (NotificationService.instance.onPomodoroAction != null) {
-      NotificationService.instance.onPomodoroAction = null;
-    }
-    NotificationService.instance.cancelPomodoroProgress();
+
     tickNotifier.dispose();
     super.dispose();
   }

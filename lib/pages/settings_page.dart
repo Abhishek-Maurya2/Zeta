@@ -4,6 +4,5 @@ export 'settings/components/profile_section.dart';
 export 'settings/components/appearance_section.dart';
 export 'settings/components/typography_section.dart';
 export 'settings/components/weather_section.dart';
-export 'settings/components/notifications_section.dart';
 export 'settings/components/sync_data_section.dart';
 export 'settings/components/updates_section.dart';

@@ -28,7 +28,7 @@ class ActivePaneConfig {
 }
 
 /// Global coordinator for the active supporting pane in the Material 3 Expressive layout.
-/// Pages publish their contextual side pane (e.g., Task Edit, Pomodoro Analysis, Revision Notes)
+/// Pages publish their contextual side pane (e.g., Task Edit, Pomodoro Analysis)
 /// to this coordinator. The unified shell renders it as a docked side pane on desktop
 /// or as an expressive modal sheet on compact viewports.
 class ActivePaneCoordinator extends StateNotifier<ActivePaneConfig?> {

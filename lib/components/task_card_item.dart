@@ -56,13 +56,7 @@ class TaskCardItem extends StatelessWidget {
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
     final isCompletedOrDeleted = isDeleted || task.completed;
-    final revisionInfo = RevisionTagInfo.parse(
-      task.description,
-      taskTitle: task.title,
-    );
-    final displayDescription = revisionInfo.isRevision
-        ? revisionInfo.cleanedDescription
-        : task.description;
+    final displayDescription = task.description;
 
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
@@ -152,7 +146,6 @@ class TaskCardItem extends StatelessWidget {
               if ((isDeleted && task.deletedAt != null) ||
                   task.dueDate != null ||
                   hasSubtasks ||
-                  revisionInfo.isRevision ||
                   task.attachments.isNotEmpty ||
                   (extraChips != null && extraChips!.isNotEmpty)) ...[
                 const SizedBox(height: 15),
@@ -172,8 +165,7 @@ class TaskCardItem extends StatelessWidget {
                             task: task,
                             isCompleted: isCompletedOrDeleted,
                           ),
-                        if (revisionInfo.isRevision)
-                          TaskRevisionChip(label: revisionInfo.label),
+
                         if (hasSubtasks)
                           TaskSubtasksBadge(
                             subtasks: subtasks,

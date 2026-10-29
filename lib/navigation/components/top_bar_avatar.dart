@@ -1,11 +1,10 @@
-﻿import 'package:zeta/core/core.dart';
+import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/task_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/pomodoro_provider.dart';
-import '../../providers/revision_provider.dart';
 import '../../theme/breakpoints.dart';
 import 'profile_avatar_menu.dart';
 
@@ -17,7 +16,6 @@ class TopBarAvatar extends StatelessWidget {
     final profileProvider = context.watch<ProfileProvider>();
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
-    final revisionProvider = context.watch<RevisionProvider>();
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
 
     // Map sync state → ring color
@@ -25,17 +23,14 @@ class TopBarAvatar extends StatelessWidget {
     final syncError =
         taskProvider.syncError ??
         pomodoroProvider.syncError ??
-        revisionProvider.syncError ??
         profileProvider.syncError;
     final isSyncing =
         taskProvider.isSyncing ||
         pomodoroProvider.isSyncing ||
-        revisionProvider.isSyncing ||
         profileProvider.isSyncing;
     final allSynced =
         taskProvider.lastSyncedAt != null &&
         pomodoroProvider.lastSyncedAt != null &&
-        revisionProvider.lastSyncedAt != null &&
         profileProvider.lastSyncedAt != null;
     final String tooltipMessage;
 

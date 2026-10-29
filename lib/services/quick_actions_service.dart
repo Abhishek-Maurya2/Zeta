@@ -29,8 +29,7 @@ class QuickActionsService {
         break;
       } else if (arg == 'action_pomodoro' ||
           arg == 'action_tasks' ||
-          arg == 'action_calendar' ||
-          arg == 'action_revision') {
+          arg == 'action_calendar') {
         _pendingShortcut = arg;
         break;
       }
@@ -74,11 +73,6 @@ class QuickActionsService {
         type: 'action_calendar',
         localizedTitle: 'Calendar',
         icon: 'ic_calendar',
-      ),
-      const ShortcutItem(
-        type: 'action_revision',
-        localizedTitle: 'Subjects',
-        icon: 'ic_revision',
       ),
     ]);
 
@@ -162,10 +156,6 @@ class QuickActionsService {
       case 'calendar':
       case 'home':
         targetPage = PageId.home;
-        break;
-      case 'action_revision':
-      case 'revision':
-        targetPage = PageId.revision;
         break;
       case 'bin':
         targetPage = PageId.bin;

@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
     final navProvider = context.read<NavigationProvider>();
 
     if (taskProvider.isLoading && taskProvider.allTasks.isEmpty) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(
           child: M3ELoadingIndicator(
@@ -90,7 +90,7 @@ class _HomePageState extends State<HomePage> {
     }
 
     if (taskProvider.loadError != null && taskProvider.allTasks.isEmpty) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(child: Text('Unable to load your tasks.')),
       );

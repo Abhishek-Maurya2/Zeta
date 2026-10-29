@@ -4,8 +4,8 @@ import 'package:provider/provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../pages/home_page.dart';
 import '../../pages/tasks_page.dart';
-import '../../pages/revision_page.dart';
 import '../../pages/pomodoro_page.dart';
+import '../../pages/space_page.dart';
 import '../../pages/bin_page.dart';
 import '../../pages/settings_page.dart';
 
@@ -75,10 +75,10 @@ class BodyPane extends StatelessWidget {
         return const HomePage();
       case PageId.tasks:
         return const TasksPage();
-      case PageId.revision:
-        return const RevisionPage();
       case PageId.pomodoro:
         return const PomodoroPage();
+      case PageId.space:
+        return const SpacePage();
       case PageId.bin:
         return const BinPage();
       case PageId.settings:

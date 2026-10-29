@@ -39,12 +39,6 @@ const std::vector<ShortcutTask> kTasks = {
     L"View calendar and schedule",
     L"--route=action_calendar",
     IDI_CALENDAR
-  },
-  {
-    L"Revision Notes",
-    L"Spaced repetition and notes",
-    L"--route=action_revision",
-    IDI_REVISION
   }
 };
 

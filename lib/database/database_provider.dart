@@ -2,7 +2,6 @@ import 'app_database.dart';
 import 'daos/task_dao.dart';
 import 'daos/session_dao.dart';
 import 'daos/profile_dao.dart';
-import 'daos/revision_dao.dart';
 import 'daos/sync_outbox_dao.dart';
 import 'account_scope.dart';
 
@@ -21,7 +20,6 @@ class DatabaseProvider {
   TaskDao? _taskDao;
   SessionDao? _sessionDao;
   ProfileDao? _profileDao;
-  RevisionDao? _revisionDao;
   SyncOutboxDao? _syncOutboxDao;
 
   bool _initialized = false;
@@ -33,7 +31,6 @@ class DatabaseProvider {
     _taskDao = TaskDao(_db!);
     _sessionDao = SessionDao(_db!);
     _profileDao = ProfileDao(_db!);
-    _revisionDao = RevisionDao(_db!);
     _syncOutboxDao = SyncOutboxDao(_db!);
     _initialized = true;
   }
@@ -51,11 +48,6 @@ class DatabaseProvider {
   ProfileDao get profileDao {
     if (!_initialized) init();
     return _profileDao!;
-  }
-
-  RevisionDao get revisionDao {
-    if (!_initialized) init();
-    return _revisionDao!;
   }
 
   SyncOutboxDao get syncOutboxDao {

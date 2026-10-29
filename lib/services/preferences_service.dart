@@ -63,7 +63,6 @@ class PreferencesService {
   static const String keyCompletedTaskSortBy = 'zeta_completed_task_sort_by_v1';
   static const String keyPomodoroSettings = 'zeta_pomodoro_settings_v1';
   static const String keyPomodoroState = 'zeta_pomodoro_active_state_v1';
-  static const String keyRevisionSettings = 'zeta_revision_settings_v1';
 
   // ─── Cross-Device Resume Keys ──────────────────────────────────────────────
   static const String keyCrossDeviceEnabled = 'zeta_cross_device_enabled';
