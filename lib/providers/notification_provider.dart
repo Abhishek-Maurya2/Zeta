@@ -65,7 +65,7 @@ class NotificationProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _syncService() {
-    NotificationService.instance.masterEnabled = _notificationsEnabled;
+    NotificationService.instance.setMasterEnabled(_notificationsEnabled);
     NotificationService.instance.taskRemindersEnabled = _taskRemindersEnabled;
     NotificationService.instance.overdueAlertsEnabled = _overdueAlertsEnabled;
     NotificationService.instance.pomodoroAlertsEnabled = _pomodoroAlertsEnabled;

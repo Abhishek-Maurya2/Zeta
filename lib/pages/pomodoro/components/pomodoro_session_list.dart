@@ -1,4 +1,5 @@
 ﻿import 'package:zeta/core/core.dart';
+
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -6,6 +7,7 @@ import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import '../../../theme/breakpoints.dart';
 import '../../../components/glass_alert_dialog.dart';
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
@@ -123,6 +125,10 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
     // Take the requested number of full days
     final visibleDays = allDays.take(_displayedDaysCount).toList();
 
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isMedium = sizeClass.isMedium;
+    final isCompact = sizeClass.isCompact;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -178,13 +184,12 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
           )
         else
           M3EList(
-            color: colorScheme.surfaceContainerLowest,
+            color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
             itemCount: visibleDays.length,
             expandStyle: M3EExpandableStyle(
               expandedStateFill: false,
               gap: 5,
               expandedIconBackground: colorScheme.surfaceContainerHighest,
-           
             ),
             itemBuilder: (context, index) {
               final dayKey = visibleDays[index];
@@ -222,7 +227,9 @@ class _PomodoroSessionListState extends State<PomodoroSessionList> {
                 leading: const Icon(Icons.calendar_today_rounded),
                 expanded: M3EExpandableExpanded.list(
                   M3EList(
-                    color: colorScheme.tertiaryContainer,
+                    color: isCompact
+                        ? colorScheme.tertiaryContainer
+                        : colorScheme.tertiary.withAlpha(40),
                     haptic: M3EHapticFeedback.heavy,
                     itemCount: sessionsForDay.length,
                     itemBuilder: (context, sessionIndex) {

@@ -48,11 +48,21 @@ class NotificationService {
 
   /// User preference flags synced from NotificationProvider
   bool masterEnabled = true;
+  int _notificationGeneration = 0;
   int _liveNotificationGeneration = 0;
   bool taskRemindersEnabled = true;
   bool overdueAlertsEnabled = true;
   bool pomodoroAlertsEnabled = true;
   bool pomodoroLiveEnabled = true;
+
+  void setMasterEnabled(bool value) {
+    if (masterEnabled == value) return;
+    masterEnabled = value;
+    if (!value) {
+      _notificationGeneration++;
+      _liveNotificationGeneration++;
+    }
+  }
 
   /// Callback for interactive notification actions (e.g. 'toggle', 'pause', 'resume', 'skip')
   void Function(String action)? onPomodoroAction;
@@ -258,7 +268,9 @@ class NotificationService {
     bool isPomodoro = false,
   }) async {
     if (!masterEnabled) return false;
+    final generation = _notificationGeneration;
     if (!_initialized) await init();
+    if (!masterEnabled || generation != _notificationGeneration) return false;
 
     if (kIsWeb) {
       showWebNotification(title, body);
@@ -266,6 +278,7 @@ class NotificationService {
     }
 
     if (Platform.isWindows) {
+      if (!masterEnabled || generation != _notificationGeneration) return false;
       if (_winNotifier != null) {
         try {
           await _winNotifier!.showNotificationPluginTemplate(
@@ -278,6 +291,7 @@ class NotificationService {
           );
         }
       }
+      if (!masterEnabled || generation != _notificationGeneration) return false;
       try {
         final notification = LocalNotification(
           identifier: id.toString(),
@@ -444,8 +458,9 @@ class NotificationService {
     bool countUp = false,
     bool forceWindowsUpdate = false,
   }) async {
-    if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled)
+    if (!masterEnabled || !pomodoroAlertsEnabled || !pomodoroLiveEnabled) {
       return;
+    }
     final generation = _liveNotificationGeneration;
     if (!_initialized) await init();
 
@@ -778,6 +793,8 @@ class NotificationService {
   // --- Cancel All ---
 
   Future<void> cancelAll() async {
+    _notificationGeneration++;
+    _liveNotificationGeneration++;
     _pendingWebWindows.clear();
     if (!_initialized) await init();
     await cancelPomodoroProgress();
