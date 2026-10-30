@@ -84,6 +84,7 @@ class SpaceProvider extends ChangeNotifier {
       }
       notifyListeners();
     };
+    unawaited(sync.processPendingQueue());
     unawaited(sync.pullMindMaps());
     sync.setupRealtime();
   }
