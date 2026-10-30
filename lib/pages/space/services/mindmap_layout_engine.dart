@@ -10,20 +10,22 @@ class MindMapLayoutResult {
   final Map<String, Rect> nodeBounds;
   final List<MindMapEdge> edges;
   final Map<String, Color> nodeColors;
+  final Map<String, bool> nodeIsLeft;
   final Rect totalBounds;
 
   const MindMapLayoutResult({
     required this.nodeBounds,
     required this.edges,
     required this.nodeColors,
+    required this.nodeIsLeft,
     required this.totalBounds,
   });
 }
 
 /// Dynamic Walker / Reingold-Tilford hierarchy layout engine.
 class MindMapLayoutEngine {
-  static const double siblingGap = 22.0;
-  static const double levelGap = 72.0;
+  static const double siblingGap = 24.0;
+  static const double levelGap = 84.0;
   static const double canvasOriginX = 4000.0;
   static const double canvasOriginY = 4000.0;
 
@@ -71,6 +73,7 @@ class MindMapLayoutEngine {
         nodeBounds: {},
         edges: [],
         nodeColors: {},
+        nodeIsLeft: {},
         totalBounds: Rect.fromLTWH(canvasOriginX, canvasOriginY, 100, 100),
       );
     }
@@ -81,6 +84,7 @@ class MindMapLayoutEngine {
         nodeBounds: {},
         edges: [],
         nodeColors: {},
+        nodeIsLeft: {},
         totalBounds: Rect.fromLTWH(canvasOriginX, canvasOriginY, 100, 100),
       );
     }
@@ -104,6 +108,7 @@ class MindMapLayoutEngine {
     final nodeBounds = <String, Rect>{};
     final edges = <MindMapEdge>[];
     final nodeColors = <String, Color>{};
+    final nodeIsLeft = <String, bool>{};
 
     final isBalanced = mindMap.layoutType == 'balanced';
 
@@ -117,12 +122,14 @@ class MindMapLayoutEngine {
     );
     nodeBounds[root.id] = rootRect;
     nodeColors[root.id] = defaultEdgeColor;
+    nodeIsLeft[root.id] = false;
 
     if (root.isCollapsed) {
       return MindMapLayoutResult(
         nodeBounds: nodeBounds,
         edges: edges,
         nodeColors: nodeColors,
+        nodeIsLeft: nodeIsLeft,
         totalBounds: rootRect,
       );
     }
@@ -133,6 +140,7 @@ class MindMapLayoutEngine {
         nodeBounds: nodeBounds,
         edges: edges,
         nodeColors: nodeColors,
+        nodeIsLeft: nodeIsLeft,
         totalBounds: rootRect,
       );
     }
@@ -147,12 +155,14 @@ class MindMapLayoutEngine {
         nodeBounds: nodeBounds,
         edges: edges,
         nodeColors: nodeColors,
+        nodeIsLeft: nodeIsLeft,
         palette: palette,
         isLeft: false,
         depth: 1,
+        colorOffset: 0,
       );
     } else {
-      // Balanced: Partition children into right and left branches
+      // Balanced: Partition children into right and left branches with distinct color indices
       final rightChildren = <MindMapNode>[];
       final leftChildren = <MindMapNode>[];
       for (int i = 0; i < rootChildren.length; i++) {
@@ -172,9 +182,11 @@ class MindMapLayoutEngine {
           nodeBounds: nodeBounds,
           edges: edges,
           nodeColors: nodeColors,
+          nodeIsLeft: nodeIsLeft,
           palette: palette,
           isLeft: false,
           depth: 1,
+          colorOffset: 0,
         );
       }
 
@@ -187,9 +199,11 @@ class MindMapLayoutEngine {
           nodeBounds: nodeBounds,
           edges: edges,
           nodeColors: nodeColors,
+          nodeIsLeft: nodeIsLeft,
           palette: palette,
           isLeft: true,
           depth: 1,
+          colorOffset: rightChildren.length,
         );
       }
     }
@@ -218,6 +232,7 @@ class MindMapLayoutEngine {
       nodeBounds: nodeBounds,
       edges: edges,
       nodeColors: nodeColors,
+      nodeIsLeft: nodeIsLeft,
       totalBounds: totalBounds,
     );
   }
@@ -230,9 +245,11 @@ class MindMapLayoutEngine {
     required Map<String, Rect> nodeBounds,
     required List<MindMapEdge> edges,
     required Map<String, Color> nodeColors,
+    required Map<String, bool> nodeIsLeft,
     required List<Color> palette,
     required bool isLeft,
     required int depth,
+    required int colorOffset,
   }) {
     if (children.isEmpty) return;
 
@@ -274,10 +291,11 @@ class MindMapLayoutEngine {
         childSize.height,
       );
       nodeBounds[child.id] = childRect;
+      nodeIsLeft[child.id] = isLeft;
 
-      // Color inheritance: Level-1 gets palette color, descendants inherit
+      // Color inheritance: Level-1 gets offset palette color, descendants inherit
       final branchColor = (depth == 1)
-          ? palette[i % palette.length]
+          ? palette[(colorOffset + i) % palette.length]
           : (nodeColors[child.parentId] ?? palette[0]);
       nodeColors[child.id] = branchColor;
 
@@ -314,9 +332,11 @@ class MindMapLayoutEngine {
             nodeBounds: nodeBounds,
             edges: edges,
             nodeColors: nodeColors,
+            nodeIsLeft: nodeIsLeft,
             palette: palette,
             isLeft: isLeft,
             depth: depth + 1,
+            colorOffset: colorOffset,
           );
         }
       }
@@ -351,42 +371,72 @@ class MindMapLayoutEngine {
     return math.max(selfHeight, childrenHeight);
   }
 
-  static Size _measureNode(
+ static Size _measureNode(
     MindMapNode node,
     TextStyle? baseStyle, {
     bool hasChildren = false,
   }) {
     final isRoot = node.isRoot;
-    final maxTextWidth = isRoot ? 260.0 : 220.0;
-    final minWidth = isRoot ? 140.0 : 100.0;
 
-    final style = (baseStyle ?? const TextStyle(fontSize: 14)).copyWith(
-      fontSize: isRoot ? 16 : 14,
+    final minNodeWidth = isRoot ? 170.0 : 150.0;
+    final maxNodeWidth = isRoot ? 320.0 : 400.0;
+    final minNodeHeight = isRoot ? 68.0 : 48.0;
+
+    // Padding (36 or 28) + Border & sub-pixel safety buffer (8)
+    // + Checkbox (18 box + 8 gap = 26) + Collapse badge (6 gap + 28 pill = 34)
+    final horizontalOverhead = (isRoot ? 36.0 : 28.0) +
+        8.0 +
+        (node.style.hasCheckbox ? 26.0 : 0.0) +
+        (hasChildren ? 38.0 : 0.0);
+
+    final maxContentWidth = maxNodeWidth - horizontalOverhead;
+
+    final style = (baseStyle ?? const TextStyle(fontSize: 18)).copyWith(
+      fontSize: isRoot ? 20 : 18,
       fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
+      height: 1.35,
     );
 
-    final text = node.content.isEmpty ? (isRoot ? 'Central Topic' : 'Node') : node.content;
+    final text = node.content.isEmpty
+        ? (isRoot ? 'Central Topic' : 'Node')
+        : node.content;
 
-    final textPainter = TextPainter(
+    final singleLinePainter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
-      maxLines: 8,
-    )..layout(maxWidth: maxTextWidth);
+      maxLines: 1,
+    )..layout();
 
-    double measuredWidth = textPainter.width + (isRoot ? 36.0 : 28.0);
-    if (node.style.hasCheckbox) {
-      measuredWidth += 26.0;
-    }
-    if (hasChildren) {
-      measuredWidth += 30.0;
-    }
-    measuredWidth = measuredWidth.clamp(minWidth, maxTextWidth + 48.0);
+    final singleLineWidth = singleLinePainter.width.ceilToDouble();
+    final fitsOnOneLine =
+        singleLineWidth <= maxContentWidth && !text.contains('\n');
 
-    double measuredHeight = textPainter.height + (isRoot ? 28.0 : 20.0);
+    final TextPainter textPainter;
+    if (fitsOnOneLine) {
+      textPainter = singleLinePainter;
+    } else {
+      textPainter = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: 8,
+      )..layout(maxWidth: maxContentWidth);
+    }
+
+    final targetContentWidth =
+        fitsOnOneLine ? singleLineWidth : maxContentWidth;
+    double measuredWidth = targetContentWidth + horizontalOverhead;
+    measuredWidth = measuredWidth.clamp(
+      minNodeWidth,
+      maxNodeWidth,
+    );
+
+    final verticalOverhead = isRoot ? 36.0 : 30.0;
+    double measuredHeight =
+        textPainter.height.ceilToDouble() + verticalOverhead;
     if (node.style.tags.isNotEmpty) {
-      measuredHeight += 20.0;
+      measuredHeight += 22.0;
     }
-    measuredHeight = measuredHeight.clamp(isRoot ? 48.0 : 38.0, 300.0);
+    measuredHeight = measuredHeight.clamp(minNodeHeight, 420.0);
 
     return Size(measuredWidth, measuredHeight);
   }

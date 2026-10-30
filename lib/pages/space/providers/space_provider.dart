@@ -68,11 +68,15 @@ class SpaceProvider extends ChangeNotifier {
 
   void selectMindMap(String id) {
     if (_activeMindMap?.id == id) return;
-    final match = _mindMaps.firstWhere((m) => m.id == id, orElse: () => _mindMaps.first);
+    final match = _mindMaps.firstWhere(
+      (m) => m.id == id,
+      orElse: () => _mindMaps.first,
+    );
     _activeMindMap = match;
     _selectedNodeId = match.rootNode?.id;
     _editingNodeId = null;
     _draggedNodeId = null;
+    _hoverTargetId = null;
     _history.clear();
     _repository.setActiveMindMapId(id);
     notifyListeners();
@@ -134,7 +138,9 @@ class SpaceProvider extends ChangeNotifier {
   }
 
   void changeLayoutType(String layoutType) {
-    if (_activeMindMap == null || _activeMindMap!.layoutType == layoutType) return;
+    if (_activeMindMap == null || _activeMindMap!.layoutType == layoutType) {
+      return;
+    }
     _activeMindMap = _activeMindMap!.copyWith(layoutType: layoutType);
     _updateActiveInList();
     _repository.saveMindMaps(_mindMaps);
@@ -166,33 +172,37 @@ class SpaceProvider extends ChangeNotifier {
 
   void addChildNode({String? parentId, String content = 'New Topic'}) {
     if (_activeMindMap == null) return;
-    final effectiveParentId = parentId ?? _selectedNodeId ?? _activeMindMap!.rootNode?.id;
+    final effectiveParentId =
+        parentId ?? _selectedNodeId ?? _activeMindMap!.rootNode?.id;
     if (effectiveParentId == null) return;
 
     _pushHistory();
 
     final siblings = _activeMindMap!.childrenOf(effectiveParentId);
-    double maxOrder = -1.0;
-    for (final s in siblings) {
-      if (s.orderIndex > maxOrder) maxOrder = s.orderIndex;
-    }
-
     final newId = _uuid.v4();
     final newNode = MindMapNode(
       id: newId,
       parentId: effectiveParentId,
-      orderIndex: maxOrder + 1.0,
+      orderIndex: siblings.length.toDouble(),
       content: content,
       style: const MindMapNodeStyle(hasCheckbox: true),
     );
 
-    // Uncollapse parent so child is visible
+    // Uncollapse parent and normalize sibling indices
+    final siblingOrderMap = <String, double>{
+      for (int i = 0; i < siblings.length; i++) siblings[i].id: i.toDouble(),
+    };
+
     final updatedNodes = _activeMindMap!.nodes.map((n) {
       if (n.id == effectiveParentId && n.isCollapsed) {
         return n.copyWith(isCollapsed: false);
       }
+      if (siblingOrderMap.containsKey(n.id)) {
+        return n.copyWith(orderIndex: siblingOrderMap[n.id]);
+      }
       return n;
-    }).toList()..add(newNode);
+    }).toList()
+      ..add(newNode);
 
     _activeMindMap = _activeMindMap!.copyWith(
       nodes: updatedNodes,
@@ -209,10 +219,14 @@ class SpaceProvider extends ChangeNotifier {
 
   void addSiblingNode({String? siblingOfId, String content = 'New Topic'}) {
     if (_activeMindMap == null) return;
-    final targetId = siblingOfId ?? _selectedNodeId ?? _activeMindMap!.rootNode?.id;
+    final targetId =
+        siblingOfId ?? _selectedNodeId ?? _activeMindMap!.rootNode?.id;
     if (targetId == null) return;
 
-    final targetNode = _activeMindMap!.nodes.firstWhere((n) => n.id == targetId);
+    final targetNodeIdx =
+        _activeMindMap!.nodes.indexWhere((n) => n.id == targetId);
+    if (targetNodeIdx == -1) return;
+    final targetNode = _activeMindMap!.nodes[targetNodeIdx];
 
     // Root cannot have siblings, add child instead
     if (targetNode.isRoot) {
@@ -223,24 +237,32 @@ class SpaceProvider extends ChangeNotifier {
     _pushHistory();
 
     final siblings = _activeMindMap!.childrenOf(targetNode.parentId);
-    final targetIndex = siblings.indexWhere((s) => s.id == targetNode.id);
-    double newOrder = targetNode.orderIndex + 1.0;
-
-    if (targetIndex >= 0 && targetIndex < siblings.length - 1) {
-      final nextSibling = siblings[targetIndex + 1];
-      newOrder = (targetNode.orderIndex + nextSibling.orderIndex) / 2.0;
-    }
+    final targetSibIdx = siblings.indexWhere((s) => s.id == targetNode.id);
 
     final newId = _uuid.v4();
     final newNode = MindMapNode(
       id: newId,
       parentId: targetNode.parentId,
-      orderIndex: newOrder,
+      orderIndex: 0.0,
       content: content,
       style: const MindMapNodeStyle(hasCheckbox: true),
     );
 
-    final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes)..add(newNode);
+    final orderedSiblings = List<MindMapNode>.from(siblings);
+    final insertPos =
+        targetSibIdx >= 0 ? targetSibIdx + 1 : orderedSiblings.length;
+    orderedSiblings.insert(insertPos, newNode);
+
+    final orderMap = <String, double>{
+      for (int i = 0; i < orderedSiblings.length; i++)
+        orderedSiblings[i].id: i.toDouble(),
+    };
+
+    final updatedNodes = _activeMindMap!.nodes
+        .map((n) =>
+            orderMap.containsKey(n.id) ? n.copyWith(orderIndex: orderMap[n.id]) : n)
+        .toList()
+      ..add(newNode.copyWith(orderIndex: orderMap[newId]));
 
     _activeMindMap = _activeMindMap!.copyWith(
       nodes: updatedNodes,
@@ -321,11 +343,11 @@ class SpaceProvider extends ChangeNotifier {
 
   void deleteNode(String id) {
     if (_activeMindMap == null) return;
-    final node = _activeMindMap!.nodes.firstWhere((n) => n.id == id, orElse: () => _activeMindMap!.nodes.first);
-    if (node.isRoot) {
-      // Root cannot be deleted
-      return;
-    }
+    final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
+    if (index == -1) return;
+
+    final node = _activeMindMap!.nodes[index];
+    if (node.isRoot) return; // Root cannot be deleted
 
     _pushHistory();
 
@@ -335,7 +357,9 @@ class SpaceProvider extends ChangeNotifier {
       toDeleteIds.add(d.id);
     }
 
-    final updatedNodes = _activeMindMap!.nodes.where((n) => !toDeleteIds.contains(n.id)).toList();
+    final updatedNodes = _activeMindMap!.nodes
+        .where((n) => !toDeleteIds.contains(n.id))
+        .toList();
 
     _activeMindMap = _activeMindMap!.copyWith(
       nodes: updatedNodes,
@@ -364,21 +388,35 @@ class SpaceProvider extends ChangeNotifier {
   }
 
   void updateDragHover({
-    required String targetId,
+    required String? targetId,
     required bool isReparent,
     required bool isAbove,
   }) {
     if (_draggedNodeId == null || _activeMindMap == null) return;
 
+    if (targetId == null || targetId.isEmpty) {
+      if (_hoverTargetId != null) {
+        _hoverTargetId = null;
+        _isHoverReparent = false;
+        _isHoverAbove = false;
+        _isInvalidDrop = false;
+        notifyListeners();
+      }
+      return;
+    }
+
+    final isTargetRoot = _activeMindMap!.rootNode?.id == targetId;
+    final effectiveReparent = isTargetRoot ? true : isReparent;
+
     final isDisallowed = _draggedNodeId == targetId ||
         _activeMindMap!.isDescendant(targetId, _draggedNodeId!);
 
     if (_hoverTargetId != targetId ||
-        _isHoverReparent != isReparent ||
+        _isHoverReparent != effectiveReparent ||
         _isHoverAbove != isAbove ||
         _isInvalidDrop != isDisallowed) {
       _hoverTargetId = targetId;
-      _isHoverReparent = isReparent;
+      _isHoverReparent = effectiveReparent;
       _isHoverAbove = isAbove;
       _isInvalidDrop = isDisallowed;
       notifyListeners();
@@ -386,7 +424,11 @@ class SpaceProvider extends ChangeNotifier {
   }
 
   void endDragNode() {
-    if (_draggedNodeId != null && _hoverTargetId != null && !_isInvalidDrop && _activeMindMap != null) {
+    if (_draggedNodeId != null &&
+        _hoverTargetId != null &&
+        _hoverTargetId!.isNotEmpty &&
+        !_isInvalidDrop &&
+        _activeMindMap != null) {
       if (_isHoverReparent) {
         reparentNode(_draggedNodeId!, _hoverTargetId!);
       } else {
@@ -406,19 +448,38 @@ class SpaceProvider extends ChangeNotifier {
     if (_activeMindMap == null || draggedId == newParentId) return;
     if (_activeMindMap!.isDescendant(newParentId, draggedId)) return;
 
+    final draggedIdx =
+        _activeMindMap!.nodes.indexWhere((n) => n.id == draggedId);
+    if (draggedIdx == -1) return;
+    final draggedNode = _activeMindMap!.nodes[draggedIdx];
+
+    final existingSiblings = _activeMindMap!.childrenOf(newParentId);
+    // Avoid redundant undo snapshot if already the last child of newParentId
+    if (draggedNode.parentId == newParentId &&
+        existingSiblings.isNotEmpty &&
+        existingSiblings.last.id == draggedId) {
+      return;
+    }
+
     _pushHistory();
 
-    final siblings = _activeMindMap!.childrenOf(newParentId);
-    double maxOrder = -1.0;
-    for (final s in siblings) {
-      if (s.id != draggedId && s.orderIndex > maxOrder) {
-        maxOrder = s.orderIndex;
-      }
-    }
+    final siblingsWithoutDragged =
+        existingSiblings.where((s) => s.id != draggedId).toList();
+    final orderMap = <String, double>{
+      for (int i = 0; i < siblingsWithoutDragged.length; i++)
+        siblingsWithoutDragged[i].id: i.toDouble(),
+      draggedId: siblingsWithoutDragged.length.toDouble(),
+    };
 
     final updatedNodes = _activeMindMap!.nodes.map((n) {
       if (n.id == draggedId) {
-        return n.copyWith(parentId: newParentId, orderIndex: maxOrder + 1.0);
+        return n.copyWith(
+          parentId: newParentId,
+          orderIndex: orderMap[draggedId],
+        );
+      }
+      if (orderMap.containsKey(n.id)) {
+        return n.copyWith(orderIndex: orderMap[n.id]);
       }
       if (n.id == newParentId && n.isCollapsed) {
         return n.copyWith(isCollapsed: false);
@@ -435,33 +496,54 @@ class SpaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reorderSibling(String draggedId, String targetSiblingId, bool insertAbove) {
+  void reorderSibling(
+    String draggedId,
+    String targetSiblingId,
+    bool insertAbove,
+  ) {
     if (_activeMindMap == null || draggedId == targetSiblingId) return;
     if (_activeMindMap!.isDescendant(targetSiblingId, draggedId)) return;
 
-    final targetNode = _activeMindMap!.nodes.firstWhere((n) => n.id == targetSiblingId);
+    final targetIndexInNodes =
+        _activeMindMap!.nodes.indexWhere((n) => n.id == targetSiblingId);
+    final draggedIndexInNodes =
+        _activeMindMap!.nodes.indexWhere((n) => n.id == draggedId);
+    if (targetIndexInNodes == -1 || draggedIndexInNodes == -1) return;
+
+    final targetNode = _activeMindMap!.nodes[targetIndexInNodes];
     if (targetNode.isRoot) return; // Cannot be sibling to root
 
     _pushHistory();
 
     final parentId = targetNode.parentId;
-    final siblings = _activeMindMap!.childrenOf(parentId).where((s) => s.id != draggedId).toList();
+    final siblings = _activeMindMap!
+        .childrenOf(parentId)
+        .where((s) => s.id != draggedId)
+        .toList();
     final targetIdx = siblings.indexWhere((s) => s.id == targetSiblingId);
 
-    double newOrder;
+    final draggedNode =
+        _activeMindMap!.nodes[draggedIndexInNodes].copyWith(parentId: parentId);
+
     if (targetIdx == -1) {
-      newOrder = targetNode.orderIndex;
+      siblings.add(draggedNode);
     } else if (insertAbove) {
-      final prevOrder = targetIdx > 0 ? siblings[targetIdx - 1].orderIndex : targetNode.orderIndex - 2.0;
-      newOrder = (prevOrder + targetNode.orderIndex) / 2.0;
+      siblings.insert(targetIdx, draggedNode);
     } else {
-      final nextOrder = targetIdx < siblings.length - 1 ? siblings[targetIdx + 1].orderIndex : targetNode.orderIndex + 2.0;
-      newOrder = (targetNode.orderIndex + nextOrder) / 2.0;
+      siblings.insert(targetIdx + 1, draggedNode);
     }
+
+    // Normalize all sibling orderIndex values to clean integers (0.0, 1.0, 2.0...)
+    final orderMap = <String, double>{
+      for (int i = 0; i < siblings.length; i++) siblings[i].id: i.toDouble(),
+    };
 
     final updatedNodes = _activeMindMap!.nodes.map((n) {
       if (n.id == draggedId) {
-        return n.copyWith(parentId: parentId, orderIndex: newOrder);
+        return n.copyWith(parentId: parentId, orderIndex: orderMap[draggedId]);
+      }
+      if (orderMap.containsKey(n.id)) {
+        return n.copyWith(orderIndex: orderMap[n.id]);
       }
       return n;
     }).toList();
@@ -487,6 +569,11 @@ class SpaceProvider extends ChangeNotifier {
     final prevNodes = _history.undo(_activeMindMap!.nodes);
     if (prevNodes != null) {
       _activeMindMap = _activeMindMap!.copyWith(nodes: prevNodes);
+      _editingNodeId = null;
+      if (_selectedNodeId != null &&
+          !prevNodes.any((n) => n.id == _selectedNodeId)) {
+        _selectedNodeId = _activeMindMap!.rootNode?.id;
+      }
       _updateActiveInList();
       _repository.saveMindMaps(_mindMaps);
       notifyListeners();
@@ -498,6 +585,11 @@ class SpaceProvider extends ChangeNotifier {
     final nextNodes = _history.redo(_activeMindMap!.nodes);
     if (nextNodes != null) {
       _activeMindMap = _activeMindMap!.copyWith(nodes: nextNodes);
+      _editingNodeId = null;
+      if (_selectedNodeId != null &&
+          !nextNodes.any((n) => n.id == _selectedNodeId)) {
+        _selectedNodeId = _activeMindMap!.rootNode?.id;
+      }
       _updateActiveInList();
       _repository.saveMindMaps(_mindMaps);
       notifyListeners();

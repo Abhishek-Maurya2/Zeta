@@ -19,4 +19,28 @@ class MindMapEdge {
     required this.strokeWidth,
     this.isLeft = false,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MindMapEdge &&
+        other.sourceId == sourceId &&
+        other.targetId == targetId &&
+        other.startPoint == startPoint &&
+        other.endPoint == endPoint &&
+        other.color == color &&
+        other.strokeWidth == strokeWidth &&
+        other.isLeft == isLeft;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        sourceId,
+        targetId,
+        startPoint,
+        endPoint,
+        color,
+        strokeWidth,
+        isLeft,
+      );
 }

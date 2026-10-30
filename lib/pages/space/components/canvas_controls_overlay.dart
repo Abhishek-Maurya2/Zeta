@@ -31,7 +31,9 @@ class CanvasControlsOverlay extends StatefulWidget {
 }
 
 class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
-  bool _isCenterMode = true;
+  // Starts false because the canvas launches already centered on the root node,
+  // so the first tap triggers "Fit to Screen".
+  bool _isCenterMode = false;
 
   void _handleToggle() {
     ZetaHaptics.selection();
@@ -51,10 +53,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
     final activeMap = provider.activeMindMap;
     final isBalanced = activeMap?.layoutType == 'balanced';
 
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode(context);
     final colorScheme = context.colorScheme;
-
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
@@ -112,6 +111,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
               provider.changeLayoutType(isBalanced ? 'horizontal' : 'balanced');
             },
           ),
+
           // Center on Root / Fit to Screen Toggle
           M3EToolbarAction(
             icon: _isCenterMode

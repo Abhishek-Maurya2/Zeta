@@ -27,7 +27,10 @@ class MindMap {
 
   List<MindMapNode> childrenOf(String? parentId) {
     final children = nodes.where((n) => n.parentId == parentId).toList();
-    children.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+    children.sort((a, b) {
+      final cmp = a.orderIndex.compareTo(b.orderIndex);
+      return cmp != 0 ? cmp : a.id.compareTo(b.id);
+    });
     return children;
   }
 
@@ -84,8 +87,10 @@ class MindMap {
     return MindMap(
       id: json['id'] as String,
       title: json['title'] as String? ?? 'Untitled Mindmap',
-      createdAtMs: json['createdAtMs'] as int? ?? DateTime.now().millisecondsSinceEpoch,
-      updatedAtMs: json['updatedAtMs'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+      createdAtMs:
+          json['createdAtMs'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+      updatedAtMs:
+          json['updatedAtMs'] as int? ?? DateTime.now().millisecondsSinceEpoch,
       layoutType: json['layoutType'] as String? ?? 'horizontal',
       nodes: (json['nodes'] as List<dynamic>?)
               ?.map((e) => MindMapNode.fromJson(e as Map<String, dynamic>))

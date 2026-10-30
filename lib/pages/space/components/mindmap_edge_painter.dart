@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/mindmap_edge.dart';
 
 /// CustomPainter that renders procedurally calculated Cubic Bézier splines
-/// connecting parent nodes to child nodes with tapering strokes and branch colors.
+/// with M3 Expressive tonal glow and ring-styled anchor joints.
 class MindMapEdgePainter extends CustomPainter {
   final List<MindMapEdge> edges;
   final String? hoveredNodeId;
@@ -22,23 +23,13 @@ class MindMapEdgePainter extends CustomPainter {
       final isHighlighted = hoveredNodeId != null &&
           (edge.sourceId == hoveredNodeId || edge.targetId == hoveredNodeId);
 
-      final strokeWidth = isHighlighted ? edge.strokeWidth + 1.2 : edge.strokeWidth;
-      final edgeColor = isHighlighted
-          ? edge.color.withValues(alpha: 0.98)
-          : edge.color.withValues(alpha: isDark ? 0.85 : 0.70);
-
-      final paint = Paint()
-        ..color = edgeColor
-        ..strokeWidth = strokeWidth
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..isAntiAlias = true;
+      final strokeWidth =
+          isHighlighted ? edge.strokeWidth + 1.4 : edge.strokeWidth;
 
       final start = edge.startPoint;
       final end = edge.endPoint;
       final dx = end.dx - start.dx;
 
-      // Cubic Bézier control points
       final cp1 = Offset(start.dx + dx * 0.5, start.dy);
       final cp2 = Offset(end.dx - dx * 0.5, end.dy);
 
@@ -46,22 +37,53 @@ class MindMapEdgePainter extends CustomPainter {
         ..moveTo(start.dx, start.dy)
         ..cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, end.dx, end.dy);
 
-      canvas.drawPath(path, paint);
-
-      // Draw subtle circular connector joints at endpoints
-      final jointPaint = Paint()
-        ..color = edge.color
-        ..style = PaintingStyle.fill
+      // 1. Subtle ambient under-glow for depth
+      final glowPaint = Paint()
+        ..color = edge.color.withValues(
+          alpha: isHighlighted ? (isDark ? 0.45 : 0.30) : (isDark ? 0.18 : 0.10),
+        )
+        ..strokeWidth = strokeWidth + (isHighlighted ? 6.0 : 3.5)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
         ..isAntiAlias = true;
+      canvas.drawPath(path, glowPaint);
 
-      canvas.drawCircle(end, strokeWidth * 0.9, jointPaint);
+      // 2. Crisp core spline
+      final corePaint = Paint()
+        ..color = isHighlighted
+            ? edge.color
+            : edge.color.withValues(alpha: isDark ? 0.90 : 0.82)
+        ..strokeWidth = strokeWidth
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..isAntiAlias = true;
+      canvas.drawPath(path, corePaint);
+
+      // 3. Expressive two-tone terminal joint
+      final jointRadius = (strokeWidth * 1.15).clamp(3.0, 5.5);
+      canvas.drawCircle(
+        end,
+        jointRadius,
+        Paint()
+          ..color = edge.color
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true,
+      );
+      canvas.drawCircle(
+        end,
+        jointRadius * 0.45,
+        Paint()
+          ..color = isDark ? const Color(0xFF1A1C1E) : Colors.white
+          ..style = PaintingStyle.fill
+          ..isAntiAlias = true,
+      );
     }
   }
 
   @override
   bool shouldRepaint(covariant MindMapEdgePainter oldDelegate) {
-    return oldDelegate.edges != edges ||
-        oldDelegate.hoveredNodeId != hoveredNodeId ||
-        oldDelegate.isDark != isDark;
+    return oldDelegate.hoveredNodeId != hoveredNodeId ||
+        oldDelegate.isDark != isDark ||
+        !listEquals(oldDelegate.edges, edges);
   }
 }

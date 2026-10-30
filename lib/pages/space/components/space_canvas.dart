@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -5,10 +6,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
 
+import '../models/mindmap_edge.dart';
 import '../providers/space_provider.dart';
 import '../services/mindmap_layout_engine.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../utils/haptics.dart';
+import '../../../theme/motion_tokens.dart'; // <-- Adjust path to your M3Motion file
 import 'dot_matrix_painter.dart';
 import 'mindmap_edge_painter.dart';
 import 'mindmap_node_widget.dart';
@@ -60,18 +63,21 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     _transformationController.value = matrix;
   }
 
-  void _zoomBy(double factor) {
+  void _zoomBy(double factor, Size viewportSize) {
     final currentMatrix = _transformationController.value;
     final currentScale = currentMatrix.getMaxScaleOnAxis();
     final newScale = (currentScale * factor).clamp(0.15, 3.0);
     final scaleDelta = newScale / currentScale;
 
     final translation = currentMatrix.getTranslation();
+    final cx = viewportSize.width / 2.0;
+    final cy = viewportSize.height / 2.0;
+
     final matrix = Matrix4.identity();
     matrix.storage[0] = newScale;
     matrix.storage[5] = newScale;
-    matrix.storage[12] = translation.x * scaleDelta;
-    matrix.storage[13] = translation.y * scaleDelta;
+    matrix.storage[12] = cx - (cx - translation.x) * scaleDelta;
+    matrix.storage[13] = cy - (cy - translation.y) * scaleDelta;
 
     _transformationController.value = matrix;
   }
@@ -151,7 +157,6 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
         HardwareKeyboard.instance.isMetaPressed;
     final isShift = HardwareKeyboard.instance.isShiftPressed;
 
-    // Global Undo / Redo
     if (isCtrlOrCmd && event.logicalKey == LogicalKeyboardKey.keyZ) {
       if (isShift) {
         provider.redo();
@@ -165,7 +170,6 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       return KeyEventResult.handled;
     }
 
-    // When editing text, let the TextField handle typing
     if (isEditing) {
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         provider.stopEditingNode();
@@ -174,36 +178,30 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       return KeyEventResult.ignored;
     }
 
-    // Keyboard-First Node CRUD when a node is selected:
     final selectedId = provider.selectedNodeId;
     if (selectedId != null) {
-      // Tab: Create child node
       if (event.logicalKey == LogicalKeyboardKey.tab) {
         provider.addChildNode(parentId: selectedId);
         return KeyEventResult.handled;
       }
 
-      // Enter: Create sibling node
       if (event.logicalKey == LogicalKeyboardKey.enter ||
           event.logicalKey == LogicalKeyboardKey.numpadEnter) {
         provider.addSiblingNode(siblingOfId: selectedId);
         return KeyEventResult.handled;
       }
 
-      // F2: Inline text edit
       if (event.logicalKey == LogicalKeyboardKey.f2) {
         provider.startEditingNode(selectedId);
         return KeyEventResult.handled;
       }
 
-      // Delete / Backspace: Cascade delete
       if (event.logicalKey == LogicalKeyboardKey.delete ||
           event.logicalKey == LogicalKeyboardKey.backspace) {
         provider.deleteNode(selectedId);
         return KeyEventResult.handled;
       }
 
-      // Escape: Deselect
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         provider.selectNode(null);
         return KeyEventResult.handled;
@@ -218,12 +216,10 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     final provider = context.watch<SpaceProvider>();
     final activeMap = provider.activeMindMap;
 
-    // React to global theme changes via ThemeProvider and ZetaContextX
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
-    final isCompact = context.isCompact;
 
     if (provider.isLoading || activeMap == null) {
       return Center(
@@ -231,7 +227,6 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       );
     }
 
-    // Dynamic theme-driven canvas and dot matrix colors
     final canvasBgColor = isDark
         ? colorScheme.surfaceContainerLowest
         : colorScheme.surface;
@@ -240,7 +235,6 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
         ? colorScheme.onSurface.withValues(alpha: 0.22)
         : colorScheme.outlineVariant.withValues(alpha: 0.40);
 
-    // Step 1: Compute Layout with dynamic color scheme and text theme
     final layoutResult = MindMapLayoutEngine.computeLayout(
       mindMap: activeMap,
       defaultEdgeColor: colorScheme.primary,
@@ -252,7 +246,6 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       builder: (context, constraints) {
         final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
 
-        // Center on root on initial build
         if (!_initializedCenter &&
             viewportSize.width > 0 &&
             viewportSize.height > 0) {
@@ -266,56 +259,61 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
           focusNode: _canvasFocusNode,
           autofocus: true,
           onKeyEvent: _handleKeyEvent,
-          child: Stack(
-            children: [
-              // 1. Zoomable & Scrollable Dotmatrix Canvas
-              Positioned.fill(
-                child: InteractiveViewer(
-                  transformationController: _transformationController,
-                  boundaryMargin: const EdgeInsets.all(3000),
-                  minScale: 0.15,
-                  maxScale: 3.0,
-                  constrained: false,
-                  child: GestureDetector(
-                    onTap: () {
-                      // Tap on canvas background clears selection and commits active edit
-                      provider.selectNode(null);
-                      provider.stopEditingNode();
-                      _canvasFocusNode.requestFocus();
-                    },
-                    child: Container(
+          child: ColoredBox(
+            color: canvasBgColor,
+            child: Stack(
+              children: [
+                // Layer 0: Viewport-Culled Dot-Matrix Grid
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: DotMatrixPainter(
+                        dotColor: dotColor,
+                        transformationController: _transformationController,
+                        spacing: 24.0,
+                        dotRadius: 1.25,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Layer 1: Zoomable & Scrollable Interactive Canvas
+                Positioned.fill(
+                  child: InteractiveViewer(
+                    transformationController: _transformationController,
+                    boundaryMargin: const EdgeInsets.all(3000),
+                    minScale: 0.15,
+                    maxScale: 3.0,
+                    constrained: false,
+                    child: SizedBox(
                       width: canvasSize,
                       height: canvasSize,
-                      color: canvasBgColor,
                       child: Stack(
                         children: [
-                          // Layer 1: Dot-matrix Background Grid (Theme & Mode reactive)
+                          // Sub-Layer 0: Background Tap Target
                           Positioned.fill(
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                painter: DotMatrixPainter(
-                                  dotColor: dotColor,
-                                  spacing: 24.0,
-                                  dotRadius: 1.25,
-                                ),
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                provider.selectNode(null);
+                                provider.stopEditingNode();
+                                _canvasFocusNode.requestFocus();
+                              },
+                            ),
+                          ),
+
+                          // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: _AnimatedMindMapEdges(
+                                edges: layoutResult.edges,
+                                hoveredNodeId: provider.hoverTargetId,
+                                isDark: isDark,
                               ),
                             ),
                           ),
 
-                          // Layer 2: Procedural Cubic Bézier Spline Connectors
-                          Positioned.fill(
-                            child: RepaintBoundary(
-                              child: CustomPaint(
-                                painter: MindMapEdgePainter(
-                                  edges: layoutResult.edges,
-                                  hoveredNodeId: provider.hoverTargetId,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // Layer 3: Interactive MindMap Node Cards
+                          // Sub-Layer 2: Interactive MindMap Node Cards
                           for (final node in activeMap.nodes)
                             if (layoutResult.nodeBounds.containsKey(node.id))
                               MindMapNodeWidget(
@@ -331,66 +329,185 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                                 childCount: activeMap
                                     .childrenOf(node.id)
                                     .length,
+                                isLeft:
+                                    layoutResult.nodeIsLeft[node.id] ?? false,
                               ),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
 
-              // 2. Refined Top Floating Toolbar (eliminating full-width topbar)
-              const Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: SpaceFloatingToolbar(),
+                // 2. Refined Top Floating Toolbar
+                const Positioned(
+                  top: 16,
+                  left: 16,
+                  right: 16,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SpaceFloatingToolbar(),
+                  ),
                 ),
-              ),
 
-              // 3. Canvas Zoom Controls (Zoom In, Zoom Out, Center, Fit)
-              Positioned(
-                left: 15,
-                bottom: 15,
-                child: CanvasControlsOverlay(
-                  onZoomIn: () => _zoomBy(1.2),
-                  onZoomOut: () => _zoomBy(0.8),
-                  onCenterRoot: () => _centerOnRoot(viewportSize),
-                  onFitToView: () =>
-                      _fitToView(viewportSize, layoutResult.totalBounds),
+                // 3. Canvas Zoom Controls
+                Positioned(
+                  left: 15,
+                  bottom: 15,
+                  child: CanvasControlsOverlay(
+                    onZoomIn: () => _zoomBy(1.2, viewportSize),
+                    onZoomOut: () => _zoomBy(0.8, viewportSize),
+                    onCenterRoot: () => _centerOnRoot(viewportSize),
+                    onFitToView: () =>
+                        _fitToView(viewportSize, layoutResult.totalBounds),
+                  ),
                 ),
-              ),
 
-              // 4. M3EFabMenu with rich actions
-              Positioned(
-                right: 20,
-                bottom: 20,
-                child: M3EFabMenu(
-                  color: M3EFabColor.primary,
-                  position: M3EFabMenuPosition.right,
-                  icon: const Icon(Icons.add_rounded),
-                  items: [
-                    M3EFabMenuItem(
-                      icon: const Icon(Icons.add_chart_rounded),
-                      label: 'New Mindmap',
-                      onPressed: _handleCreateMindmap,
-                    ),
-                    M3EFabMenuItem(
-                      icon: const Icon(Symbols.edit_rounded),
-                      label: 'Rename Mindmap',
-                      onPressed: _handleRenameMindmap,
-                    ),
-                    M3EFabMenuItem(
-                      icon: const Icon(Symbols.delete_rounded),
-                      label: 'Delete Mindmap',
-                      onPressed: _handleDeleteMindmap,
-                    ),
-                  ],
+                // 4. M3EFabMenu
+                Positioned(
+                  right: 20,
+                  bottom: 20,
+                  child: M3EFabMenu(
+                    color: M3EFabColor.primary,
+                    position: M3EFabMenuPosition.right,
+                    icon: const Icon(Icons.add_rounded),
+                    items: [
+                      M3EFabMenuItem(
+                        icon: const Icon(Icons.add_chart_rounded),
+                        label: 'New Mindmap',
+                        onPressed: _handleCreateMindmap,
+                      ),
+                      M3EFabMenuItem(
+                        icon: const Icon(Symbols.edit_rounded),
+                        label: 'Rename Mindmap',
+                        onPressed: _handleRenameMindmap,
+                      ),
+                      M3EFabMenuItem(
+                        icon: const Icon(Symbols.delete_rounded),
+                        label: 'Delete Mindmap',
+                        onPressed: _handleDeleteMindmap,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Smoothly interpolates procedural Bézier edges using M3MotionDuration.medium3
+/// and M3MotionEasing.emphasized so connector splines stay glued to nodes as they
+/// expand, collapse, or reorder.
+class _AnimatedMindMapEdges extends StatefulWidget {
+  final List<MindMapEdge> edges;
+  final String? hoveredNodeId;
+  final bool isDark;
+
+  const _AnimatedMindMapEdges({
+    required this.edges,
+    required this.hoveredNodeId,
+    required this.isDark,
+  });
+
+  @override
+  State<_AnimatedMindMapEdges> createState() => _AnimatedMindMapEdgesState();
+}
+
+class _AnimatedMindMapEdgesState extends State<_AnimatedMindMapEdges>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _curvedAnimation;
+
+  Map<String, MindMapEdge> _fromEdges = {};
+  List<MindMapEdge> _currentEdges = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentEdges = widget.edges;
+    _fromEdges = {for (final e in widget.edges) e.targetId: e};
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: M3MotionDuration.medium3,
+    );
+    _curvedAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: M3MotionEasing.emphasized,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _AnimatedMindMapEdges oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.edges, widget.edges)) {
+      // Snapshot current interpolated positions as the new starting point
+      final interpolated = _evaluateEdges(_curvedAnimation.value);
+      _fromEdges = {for (final e in interpolated) e.targetId: e};
+      _currentEdges = widget.edges;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  List<MindMapEdge> _evaluateEdges(double t) {
+    if (t >= 1.0 || _fromEdges.isEmpty) return _currentEdges;
+
+    return _currentEdges.map((targetEdge) {
+      final prev = _fromEdges[targetEdge.targetId];
+      if (prev == null) {
+        // Newly expanded edge: unfurl outward from its parent's current startPoint
+        final start = targetEdge.startPoint;
+        final end =
+            Offset.lerp(targetEdge.startPoint, targetEdge.endPoint, t) ??
+            targetEdge.endPoint;
+        return MindMapEdge(
+          sourceId: targetEdge.sourceId,
+          targetId: targetEdge.targetId,
+          startPoint: start,
+          endPoint: end,
+          color: targetEdge.color,
+          strokeWidth: targetEdge.strokeWidth * t,
+          isLeft: targetEdge.isLeft,
+        );
+      }
+
+      return MindMapEdge(
+        sourceId: targetEdge.sourceId,
+        targetId: targetEdge.targetId,
+        startPoint:
+            Offset.lerp(prev.startPoint, targetEdge.startPoint, t) ??
+            targetEdge.startPoint,
+        endPoint:
+            Offset.lerp(prev.endPoint, targetEdge.endPoint, t) ??
+            targetEdge.endPoint,
+        color:
+            Color.lerp(prev.color, targetEdge.color, t) ?? targetEdge.color,
+        strokeWidth:
+            prev.strokeWidth + (targetEdge.strokeWidth - prev.strokeWidth) * t,
+        isLeft: targetEdge.isLeft,
+      );
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _curvedAnimation,
+      builder: (context, _) {
+        return CustomPaint(
+          painter: MindMapEdgePainter(
+            edges: _evaluateEdges(_curvedAnimation.value),
+            hoveredNodeId: widget.hoveredNodeId,
+            isDark: widget.isDark,
           ),
         );
       },
