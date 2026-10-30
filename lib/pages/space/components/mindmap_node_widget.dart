@@ -419,7 +419,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                       curve: M3MotionEasing.emphasized,
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 6,
-                                        vertical: 2,
+                                        vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
                                         color: widget.node.isCollapsed
@@ -427,7 +427,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                             : widget.branchColor.withValues(
                                                 alpha: isDark ? 0.25 : 0.16,
                                               ),
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(50),
                                       ),
                                       child: AnimatedSwitcher(
                                         duration: M3MotionDuration.short4,
@@ -448,7 +448,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                                 '${widget.childCount}',
                                                 key: const ValueKey('collapsed'),
                                                 style: const TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: 15,
                                                   fontWeight: FontWeight.w600,
                                                   color: Colors.white,
                                                 ),
@@ -458,7 +458,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                                     ? Icons.chevron_right_rounded
                                                     : Icons.chevron_left_rounded,
                                                 key: const ValueKey('expanded'),
-                                                size: 16,
+                                                size: 23,
                                                 color: widget.branchColor,
                                               ),
                                       ),

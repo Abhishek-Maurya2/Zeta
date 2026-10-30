@@ -13,7 +13,7 @@ class DotMatrixPainter extends CustomPainter {
     required this.dotColor,
     required this.transformationController,
     this.spacing = 24.0,
-    this.dotRadius = 1.25,
+    this.dotRadius = 6,
   }) : super(repaint: transformationController);
 
   @override

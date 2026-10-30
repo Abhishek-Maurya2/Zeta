@@ -29,9 +29,7 @@ class SpacePage extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: isDark
-            ? colorScheme.surfaceContainerLowest
-            : colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLow,
         body: const SpaceCanvas(),
       ),
     );

@@ -12,6 +12,7 @@ import '../services/mindmap_layout_engine.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../../theme/motion_tokens.dart'; // <-- Adjust path to your M3Motion file
+import '../../../theme/breakpoints.dart';
 import 'dot_matrix_painter.dart';
 import 'mindmap_edge_painter.dart';
 import 'mindmap_node_widget.dart';
@@ -241,10 +242,12 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       colorScheme: colorScheme,
       baseTextStyle: textTheme.bodyMedium,
     );
+    
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
+        
 
         if (!_initializedCenter &&
             viewportSize.width > 0 &&
@@ -255,141 +258,155 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
           });
         }
 
+        final sizeClass = ZetaWindowSizeClass.of(context);
+        final isCompact = sizeClass.isCompact;
+
         return Focus(
           focusNode: _canvasFocusNode,
           autofocus: true,
           onKeyEvent: _handleKeyEvent,
-          child: ColoredBox(
-            color: canvasBgColor,
-            child: Stack(
-              children: [
-                // Layer 0: Viewport-Culled Dot-Matrix Grid
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: DotMatrixPainter(
-                        dotColor: dotColor,
-                        transformationController: _transformationController,
-                        spacing: 24.0,
-                        dotRadius: 1.25,
+          child: ClipRRect(
+            borderRadius: !isCompact
+                ? const BorderRadius.only(
+                    topLeft: Radius.circular(25),
+                    topRight: Radius.circular(25),
+                    bottomLeft: Radius.circular(25),
+                  )
+                : const BorderRadius.only(
+                    topLeft: Radius.circular(0),
+                  ),
+            child: ColoredBox(
+              color: canvasBgColor,
+              child: Stack(
+                children: [
+                  // Layer 0: Viewport-Culled Dot-Matrix Grid
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: DotMatrixPainter(
+                          dotColor: dotColor,
+                          transformationController: _transformationController,
+                          spacing: 24.0,
+                          dotRadius: 1.25,
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Layer 1: Zoomable & Scrollable Interactive Canvas
-                Positioned.fill(
-                  child: InteractiveViewer(
-                    transformationController: _transformationController,
-                    boundaryMargin: const EdgeInsets.all(3000),
-                    minScale: 0.15,
-                    maxScale: 3.0,
-                    constrained: false,
-                    child: SizedBox(
-                      width: canvasSize,
-                      height: canvasSize,
-                      child: Stack(
-                        children: [
-                          // Sub-Layer 0: Background Tap Target
-                          Positioned.fill(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                provider.selectNode(null);
-                                provider.stopEditingNode();
-                                _canvasFocusNode.requestFocus();
-                              },
-                            ),
-                          ),
-
-                          // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: _AnimatedMindMapEdges(
-                                edges: layoutResult.edges,
-                                hoveredNodeId: provider.hoverTargetId,
-                                isDark: isDark,
+                  // Layer 1: Zoomable & Scrollable Interactive Canvas
+                  Positioned.fill(
+                    child: InteractiveViewer(
+                      transformationController: _transformationController,
+                      boundaryMargin: const EdgeInsets.all(3000),
+                      minScale: 0.15,
+                      maxScale: 3.0,
+                      constrained: false,
+                      child: SizedBox(
+                        width: canvasSize,
+                        height: canvasSize,
+                        child: Stack(
+                          children: [
+                            // Sub-Layer 0: Background Tap Target
+                            Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  provider.selectNode(null);
+                                  provider.stopEditingNode();
+                                  _canvasFocusNode.requestFocus();
+                                },
                               ),
                             ),
-                          ),
 
-                          // Sub-Layer 2: Interactive MindMap Node Cards
-                          for (final node in activeMap.nodes)
-                            if (layoutResult.nodeBounds.containsKey(node.id))
-                              MindMapNodeWidget(
-                                key: ValueKey(node.id),
-                                node: node,
-                                bounds: layoutResult.nodeBounds[node.id]!,
-                                branchColor:
-                                    layoutResult.nodeColors[node.id] ??
-                                    colorScheme.primary,
-                                hasChildren: activeMap
-                                    .childrenOf(node.id)
-                                    .isNotEmpty,
-                                childCount: activeMap
-                                    .childrenOf(node.id)
-                                    .length,
-                                isLeft:
-                                    layoutResult.nodeIsLeft[node.id] ?? false,
+                            // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: _AnimatedMindMapEdges(
+                                  edges: layoutResult.edges,
+                                  hoveredNodeId: provider.hoverTargetId,
+                                  isDark: isDark,
+                                ),
                               ),
-                        ],
+                            ),
+
+                            // Sub-Layer 2: Interactive MindMap Node Cards
+                            for (final node in activeMap.nodes)
+                              if (layoutResult.nodeBounds.containsKey(node.id))
+                                MindMapNodeWidget(
+                                  key: ValueKey(node.id),
+                                  node: node,
+                                  bounds: layoutResult.nodeBounds[node.id]!,
+                                  branchColor:
+                                      layoutResult.nodeColors[node.id] ??
+                                      colorScheme.primary,
+                                  hasChildren: activeMap
+                                      .childrenOf(node.id)
+                                      .isNotEmpty,
+                                  childCount: activeMap
+                                      .childrenOf(node.id)
+                                      .length,
+                                  isLeft:
+                                      layoutResult.nodeIsLeft[node.id] ?? false,
+                                ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // 2. Refined Top Floating Toolbar
-                const Positioned(
-                  top: 16,
-                  left: 16,
-                  right: 16,
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: SpaceFloatingToolbar(),
+                  // 2. Refined Top Floating Toolbar
+                  const Positioned(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: SpaceFloatingToolbar(),
+                    ),
                   ),
-                ),
 
-                // 3. Canvas Zoom Controls
-                Positioned(
-                  left: 15,
-                  bottom: 15,
-                  child: CanvasControlsOverlay(
-                    onZoomIn: () => _zoomBy(1.2, viewportSize),
-                    onZoomOut: () => _zoomBy(0.8, viewportSize),
-                    onCenterRoot: () => _centerOnRoot(viewportSize),
-                    onFitToView: () =>
-                        _fitToView(viewportSize, layoutResult.totalBounds),
+                  // 3. Canvas Zoom Controls
+                  Positioned(
+                    left: 15,
+                    bottom: 15,
+                    child: CanvasControlsOverlay(
+                      onZoomIn: () => _zoomBy(1.2, viewportSize),
+                      onZoomOut: () => _zoomBy(0.8, viewportSize),
+                      onCenterRoot: () => _centerOnRoot(viewportSize),
+                      onFitToView: () =>
+                          _fitToView(viewportSize, layoutResult.totalBounds),
+                    ),
                   ),
-                ),
 
-                // 4. M3EFabMenu
-                Positioned(
-                  right: 20,
-                  bottom: 20,
-                  child: M3EFabMenu(
-                    color: M3EFabColor.primary,
-                    position: M3EFabMenuPosition.right,
-                    icon: const Icon(Icons.add_rounded),
-                    items: [
-                      M3EFabMenuItem(
-                        icon: const Icon(Icons.add_chart_rounded),
-                        label: 'New Mindmap',
-                        onPressed: _handleCreateMindmap,
-                      ),
-                      M3EFabMenuItem(
-                        icon: const Icon(Symbols.edit_rounded),
-                        label: 'Rename Mindmap',
-                        onPressed: _handleRenameMindmap,
-                      ),
-                      M3EFabMenuItem(
-                        icon: const Icon(Symbols.delete_rounded),
-                        label: 'Delete Mindmap',
-                        onPressed: _handleDeleteMindmap,
-                      ),
-                    ],
+                  // 4. M3EFabMenu
+                  Positioned(
+                    right: 20,
+                    bottom: 20,
+                    child: M3EFabMenu(
+                      color: M3EFabColor.primary,
+                      position: M3EFabMenuPosition.right,
+                      icon: const Icon(Icons.add_rounded),
+                      items: [
+                        M3EFabMenuItem(
+                          icon: const Icon(Icons.add_chart_rounded),
+                          label: 'New Mindmap',
+                          onPressed: _handleCreateMindmap,
+                        ),
+                        M3EFabMenuItem(
+                          icon: const Icon(Symbols.edit_rounded),
+                          label: 'Rename Mindmap',
+                          onPressed: _handleRenameMindmap,
+                        ),
+                        M3EFabMenuItem(
+                          icon: const Icon(Symbols.delete_rounded),
+                          label: 'Delete Mindmap',
+                          onPressed: _handleDeleteMindmap,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -483,8 +500,7 @@ class _AnimatedMindMapEdgesState extends State<_AnimatedMindMapEdges>
         endPoint:
             Offset.lerp(prev.endPoint, targetEdge.endPoint, t) ??
             targetEdge.endPoint,
-        color:
-            Color.lerp(prev.color, targetEdge.color, t) ?? targetEdge.color,
+        color: Color.lerp(prev.color, targetEdge.color, t) ?? targetEdge.color,
         strokeWidth:
             prev.strokeWidth + (targetEdge.strokeWidth - prev.strokeWidth) * t,
         isLeft: targetEdge.isLeft,
