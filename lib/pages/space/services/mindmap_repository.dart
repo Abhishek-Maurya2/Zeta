@@ -1,42 +1,91 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
+
+import '../../../database/database_provider.dart';
+import '../../../database/daos/mindmap_dao.dart';
 import '../../../services/preferences_service.dart';
 import '../models/mindmap.dart';
 import '../models/mindmap_node.dart';
 
-/// Repository that manages local persistence of mindmaps.
+/// Repository that manages local persistence of mindmaps using Drift SQLite.
 class MindMapRepository {
   static const String _keyMindmaps = 'zeta_mindmaps_v1';
   static const String _keyActiveMapId = 'zeta_active_mindmap_id';
   static const _uuid = Uuid();
 
-  /// Loads all mindmaps from preferences, seeding default data if empty.
+  MindmapDao get _dao => DatabaseProvider.instance.mindmapDao;
+
+  /// Loads all user mindmaps from SQLite, migrating legacy preferences if needed,
+  /// filtering out any old boilerplate/sample mindmaps, or starting with a clean blank map.
   Future<List<MindMap>> loadMindMaps() async {
+    // 1. Fetch from local SQLite
+    final localMaps = await _dao.getActiveMindMaps();
+
+    // Purge any lingering boilerplate/sample mindmaps from prior runs
+    final validMaps = <MindMap>[];
+    for (final map in localMaps) {
+      if (_isBoilerplateMap(map)) {
+        await _dao.deleteMindMap(map.id);
+      } else {
+        validMaps.add(map);
+      }
+    }
+
+    if (validMaps.isNotEmpty) {
+      return validMaps;
+    }
+
+    // 2. Check for legacy SharedPreferences data (if migrating from old version)
     final prefs = PreferencesService.instance.prefs;
     final jsonStr = prefs.getString(_keyMindmaps);
+    await prefs.remove(_keyMindmaps);
 
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
         final decoded = jsonDecode(jsonStr) as List<dynamic>;
-        final maps = decoded
+        final legacyMaps = decoded
             .map((item) => MindMap.fromJson(item as Map<String, dynamic>))
+            .where((m) => !_isBoilerplateMap(m))
             .toList();
-        if (maps.isNotEmpty) return maps;
+        if (legacyMaps.isNotEmpty) {
+          await _dao.upsertAllAndQueue(legacyMaps);
+          return legacyMaps;
+        }
       } catch (_) {}
     }
 
-    // Seed default initial mindmap
-    final defaultMap = createSeedMindMap();
-    await saveMindMaps([defaultMap]);
-    await setActiveMindMapId(defaultMap.id);
-    return [defaultMap];
+    // 3. Create a clean, blank starter mindmap with just a central topic
+    final blankMap = createBlankMindMap();
+    await _dao.upsertMindMapAndQueue(blankMap);
+    await setActiveMindMapId(blankMap.id);
+    return [blankMap];
   }
 
-  /// Saves the complete list of mindmaps.
+  /// Identifies whether a mindmap is the old sample/boilerplate seed data.
+  bool _isBoilerplateMap(MindMap map) {
+    if (map.title == 'Zeta Project Plan') return true;
+    return map.nodes.any((n) =>
+        n.content == 'Zeta Mindmap' ||
+        n.content == 'N-ary Tree Engine' ||
+        n.content == 'Single-Parent Invariant' ||
+        n.content == 'Walker Auto-Layout' ||
+        n.content == 'Visual Splines' ||
+        n.content == 'Cubic Bézier Routing');
+  }
+
+  /// Saves the complete list of mindmaps to SQLite and queues sync.
   Future<void> saveMindMaps(List<MindMap> maps) async {
-    final prefs = PreferencesService.instance.prefs;
-    final encoded = jsonEncode(maps.map((m) => m.toJson()).toList());
-    await prefs.setString(_keyMindmaps, encoded);
+    await _dao.upsertAllAndQueue(maps);
+  }
+
+  /// Saves a single mindmap to SQLite and queues it for sync.
+  Future<void> saveMindMap(MindMap map) async {
+    await _dao.upsertMindMapAndQueue(map);
+  }
+
+  /// Deletes a mindmap from SQLite and queues the deletion.
+  Future<void> deleteMindMap(String id) async {
+    await _dao.deleteMindMapAndQueue(id);
   }
 
   /// Gets the ID of the last active mindmap.
@@ -49,114 +98,31 @@ class MindMapRepository {
     await PreferencesService.instance.prefs.setString(_keyActiveMapId, id);
   }
 
-  /// Creates a rich starter mindmap to showcase the canvas features.
-  MindMap createSeedMindMap() {
+  /// Reactive stream of active mindmaps.
+  Stream<List<MindMap>> watchMindMaps() {
+    return _dao.watchActiveMindMaps();
+  }
+
+  /// Creates a clean, empty mindmap with just a single central root node.
+  MindMap createBlankMindMap([String title = 'Untitled Mindmap']) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final rootId = _uuid.v4();
 
-    final b1Id = _uuid.v4();
-    final b1c1Id = _uuid.v4();
-    final b1c2Id = _uuid.v4();
-
-    final b2Id = _uuid.v4();
-    final b2c1Id = _uuid.v4();
-    final b2c2Id = _uuid.v4();
-    final b2c3Id = _uuid.v4();
-
-    final b3Id = _uuid.v4();
-    final b3c1Id = _uuid.v4();
-    final b3c2Id = _uuid.v4();
-
-    final nodes = [
-      MindMapNode(
-        id: rootId,
-        parentId: null,
-        orderIndex: 0.0,
-        content: 'Zeta Mindmap',
-        style: const MindMapNodeStyle(shape: 'rounded', hasCheckbox: false),
-      ),
-      // Branch 1: Architecture
-      MindMapNode(
-        id: b1Id,
-        parentId: rootId,
-        orderIndex: 0.0,
-        content: 'N-ary Tree Engine',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      MindMapNode(
-        id: b1c1Id,
-        parentId: b1Id,
-        orderIndex: 0.0,
-        content: 'Single-Parent Invariant',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      MindMapNode(
-        id: b1c2Id,
-        parentId: b1Id,
-        orderIndex: 1.0,
-        content: 'Walker Auto-Layout',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      // Branch 2: Procedural Branching
-      MindMapNode(
-        id: b2Id,
-        parentId: rootId,
-        orderIndex: 1.0,
-        content: 'Visual Splines',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: false),
-      ),
-      MindMapNode(
-        id: b2c1Id,
-        parentId: b2Id,
-        orderIndex: 0.0,
-        content: 'Cubic Bézier Routing',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      MindMapNode(
-        id: b2c2Id,
-        parentId: b2Id,
-        orderIndex: 1.0,
-        content: 'Tapering Line Strokes',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: false),
-      ),
-      MindMapNode(
-        id: b2c3Id,
-        parentId: b2Id,
-        orderIndex: 2.0,
-        content: 'Branch Color Inheritance',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      // Branch 3: Keyboard-First Interaction
-      MindMapNode(
-        id: b3Id,
-        parentId: rootId,
-        orderIndex: 2.0,
-        content: 'Interaction Polish',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: false),
-      ),
-      MindMapNode(
-        id: b3c1Id,
-        parentId: b3Id,
-        orderIndex: 0.0,
-        content: 'Tab for Child / Enter for Sibling',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: true),
-      ),
-      MindMapNode(
-        id: b3c2Id,
-        parentId: b3Id,
-        orderIndex: 1.0,
-        content: 'Drag-and-Drop Reparenting',
-        style: const MindMapNodeStyle(hasCheckbox: true, isChecked: false),
-      ),
-    ];
-
     return MindMap(
       id: _uuid.v4(),
-      title: 'Zeta Project Plan',
+      title: title,
       createdAtMs: now,
       updatedAtMs: now,
       layoutType: 'horizontal',
-      nodes: nodes,
+      nodes: [
+        MindMapNode(
+          id: rootId,
+          parentId: null,
+          orderIndex: 0.0,
+          content: 'Central Topic',
+          style: const MindMapNodeStyle(shape: 'rounded', hasCheckbox: false),
+        ),
+      ],
     );
   }
 }

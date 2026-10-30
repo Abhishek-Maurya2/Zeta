@@ -1,3 +1,4 @@
+import 'mindmap_sync_service.dart';
 import 'pomodoro_sync_service.dart';
 import 'supabase_sync_service.dart';
 
@@ -11,5 +12,6 @@ class AccountSyncSessionService {
   void endSession() {
     SupabaseSyncService().endAccountSession();
     PomodoroSyncService().endAccountSession();
+    MindmapSyncService().endAccountSession();
   }
 }

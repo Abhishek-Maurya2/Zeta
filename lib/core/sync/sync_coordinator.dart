@@ -9,6 +9,7 @@ import '../../services/network_service.dart';
 import '../../services/supabase_service.dart';
 import '../../models/task.dart';
 
+
 /// Sync state model exposed to Riverpod consumers with zero unnecessary re-renders.
 @immutable
 class SyncState {
@@ -171,6 +172,21 @@ class SyncCoordinator extends StateNotifier<SyncState> {
             task.id,
             DateTime.now(),
             expectedUpdatedAt: task.updatedAt,
+          );
+        }
+      }
+    } else if (entry.feature == 'space') {
+      if (entry.operation == 'delete') {
+        await client.from('mindmaps').delete().eq('id', entry.entityId);
+      } else {
+        final map = await DatabaseProvider.instance.mindmapDao.getMindMap(entry.entityId);
+        if (map != null) {
+          final payload = map.toSupabaseRow(userId: userId);
+          await client.from('mindmaps').upsert(payload);
+          await DatabaseProvider.instance.mindmapDao.markMindMapSynced(
+            map.id,
+            DateTime.now(),
+            expectedUpdatedAtMs: map.updatedAtMs,
           );
         }
       }

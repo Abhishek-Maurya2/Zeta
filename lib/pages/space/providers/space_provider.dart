@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -5,6 +6,7 @@ import '../models/mindmap.dart';
 import '../models/mindmap_node.dart';
 import '../models/mindmap_history.dart';
 import '../services/mindmap_repository.dart';
+import '../../../services/mindmap_sync_service.dart';
 
 /// Provider for managing Space mindmap state, interactions, and persistence.
 class SpaceProvider extends ChangeNotifier {
@@ -64,6 +66,26 @@ class SpaceProvider extends ChangeNotifier {
     _history.clear();
     _isLoading = false;
     notifyListeners();
+
+    _setupSync();
+  }
+
+  void _setupSync() {
+    final sync = MindmapSyncService();
+    sync.onRemoteChange = (remoteMap, eventType) {
+      final index = _mindMaps.indexWhere((m) => m.id == remoteMap.id);
+      if (index >= 0) {
+        _mindMaps[index] = remoteMap;
+        if (_activeMindMap?.id == remoteMap.id) {
+          _activeMindMap = remoteMap;
+        }
+      } else {
+        _mindMaps.add(remoteMap);
+      }
+      notifyListeners();
+    };
+    unawaited(sync.pullMindMaps());
+    sync.setupRealtime();
   }
 
   void selectMindMap(String id) {
@@ -132,8 +154,9 @@ class SpaceProvider extends ChangeNotifier {
     _selectedNodeId = _activeMindMap?.rootNode?.id;
     _editingNodeId = null;
     _history.clear();
-    await _repository.saveMindMaps(_mindMaps);
+    await _repository.deleteMindMap(currentId);
     await _repository.setActiveMindMapId(_activeMindMap!.id);
+    unawaited(MindmapSyncService().processPendingQueue());
     notifyListeners();
   }
 
@@ -602,5 +625,6 @@ class SpaceProvider extends ChangeNotifier {
     if (index >= 0) {
       _mindMaps[index] = _activeMindMap!;
     }
+    MindmapSyncService().schedulePush(_activeMindMap!);
   }
 }

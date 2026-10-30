@@ -3,6 +3,7 @@ import 'daos/task_dao.dart';
 import 'daos/session_dao.dart';
 import 'daos/profile_dao.dart';
 import 'daos/sync_outbox_dao.dart';
+import 'daos/mindmap_dao.dart';
 import 'account_scope.dart';
 
 /// Global singleton accessor for the drift SQLite database and its DAOs.
@@ -21,6 +22,7 @@ class DatabaseProvider {
   SessionDao? _sessionDao;
   ProfileDao? _profileDao;
   SyncOutboxDao? _syncOutboxDao;
+  MindmapDao? _mindmapDao;
 
   bool _initialized = false;
 
@@ -32,6 +34,7 @@ class DatabaseProvider {
     _sessionDao = SessionDao(_db!);
     _profileDao = ProfileDao(_db!);
     _syncOutboxDao = SyncOutboxDao(_db!);
+    _mindmapDao = MindmapDao(_db!);
     _initialized = true;
   }
 
@@ -53,6 +56,11 @@ class DatabaseProvider {
   SyncOutboxDao get syncOutboxDao {
     if (!_initialized) init();
     return _syncOutboxDao!;
+  }
+
+  MindmapDao get mindmapDao {
+    if (!_initialized) init();
+    return _mindmapDao!;
   }
 
   AppDatabase get db {

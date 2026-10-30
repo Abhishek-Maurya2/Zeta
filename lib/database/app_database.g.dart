@@ -1759,6 +1759,584 @@ class ProfilesTableCompanion extends UpdateCompanion<ProfilesTableData> {
   }
 }
 
+class $MindmapsTableTable extends MindmapsTable
+    with TableInfo<$MindmapsTableTable, MindmapsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MindmapsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Untitled Mindmap'),
+  );
+  static const VerificationMeta _layoutTypeMeta = const VerificationMeta(
+    'layoutType',
+  );
+  @override
+  late final GeneratedColumn<String> layoutType = GeneratedColumn<String>(
+    'layout_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('horizontal'),
+  );
+  static const VerificationMeta _nodesJsonMeta = const VerificationMeta(
+    'nodesJson',
+  );
+  @override
+  late final GeneratedColumn<String> nodesJson = GeneratedColumn<String>(
+    'nodes_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _createdAtMsMeta = const VerificationMeta(
+    'createdAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> createdAtMs = GeneratedColumn<int>(
+    'created_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMsMeta = const VerificationMeta(
+    'updatedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+    'updated_at_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMsMeta = const VerificationMeta(
+    'deletedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAtMs = GeneratedColumn<int>(
+    'deleted_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSyncedAtMsMeta = const VerificationMeta(
+    'lastSyncedAtMs',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncedAtMs = GeneratedColumn<int>(
+    'last_synced_at_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    userId,
+    title,
+    layoutType,
+    nodesJson,
+    createdAtMs,
+    updatedAtMs,
+    deletedAtMs,
+    lastSyncedAtMs,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mindmaps';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MindmapsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('layout_type')) {
+      context.handle(
+        _layoutTypeMeta,
+        layoutType.isAcceptableOrUnknown(data['layout_type']!, _layoutTypeMeta),
+      );
+    }
+    if (data.containsKey('nodes_json')) {
+      context.handle(
+        _nodesJsonMeta,
+        nodesJson.isAcceptableOrUnknown(data['nodes_json']!, _nodesJsonMeta),
+      );
+    }
+    if (data.containsKey('created_at_ms')) {
+      context.handle(
+        _createdAtMsMeta,
+        createdAtMs.isAcceptableOrUnknown(
+          data['created_at_ms']!,
+          _createdAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMsMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+        _updatedAtMsMeta,
+        updatedAtMs.isAcceptableOrUnknown(
+          data['updated_at_ms']!,
+          _updatedAtMsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    if (data.containsKey('deleted_at_ms')) {
+      context.handle(
+        _deletedAtMsMeta,
+        deletedAtMs.isAcceptableOrUnknown(
+          data['deleted_at_ms']!,
+          _deletedAtMsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_synced_at_ms')) {
+      context.handle(
+        _lastSyncedAtMsMeta,
+        lastSyncedAtMs.isAcceptableOrUnknown(
+          data['last_synced_at_ms']!,
+          _lastSyncedAtMsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MindmapsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MindmapsTableData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      layoutType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}layout_type'],
+      )!,
+      nodesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nodes_json'],
+      )!,
+      createdAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at_ms'],
+      )!,
+      updatedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at_ms'],
+      )!,
+      deletedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at_ms'],
+      ),
+      lastSyncedAtMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_synced_at_ms'],
+      ),
+    );
+  }
+
+  @override
+  $MindmapsTableTable createAlias(String alias) {
+    return $MindmapsTableTable(attachedDatabase, alias);
+  }
+}
+
+class MindmapsTableData extends DataClass
+    implements Insertable<MindmapsTableData> {
+  final String id;
+  final String? userId;
+  final String title;
+  final String layoutType;
+  final String nodesJson;
+  final int createdAtMs;
+  final int updatedAtMs;
+  final int? deletedAtMs;
+  final int? lastSyncedAtMs;
+  const MindmapsTableData({
+    required this.id,
+    this.userId,
+    required this.title,
+    required this.layoutType,
+    required this.nodesJson,
+    required this.createdAtMs,
+    required this.updatedAtMs,
+    this.deletedAtMs,
+    this.lastSyncedAtMs,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    if (!nullToAbsent || userId != null) {
+      map['user_id'] = Variable<String>(userId);
+    }
+    map['title'] = Variable<String>(title);
+    map['layout_type'] = Variable<String>(layoutType);
+    map['nodes_json'] = Variable<String>(nodesJson);
+    map['created_at_ms'] = Variable<int>(createdAtMs);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    if (!nullToAbsent || deletedAtMs != null) {
+      map['deleted_at_ms'] = Variable<int>(deletedAtMs);
+    }
+    if (!nullToAbsent || lastSyncedAtMs != null) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs);
+    }
+    return map;
+  }
+
+  MindmapsTableCompanion toCompanion(bool nullToAbsent) {
+    return MindmapsTableCompanion(
+      id: Value(id),
+      userId: userId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userId),
+      title: Value(title),
+      layoutType: Value(layoutType),
+      nodesJson: Value(nodesJson),
+      createdAtMs: Value(createdAtMs),
+      updatedAtMs: Value(updatedAtMs),
+      deletedAtMs: deletedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAtMs),
+      lastSyncedAtMs: lastSyncedAtMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncedAtMs),
+    );
+  }
+
+  factory MindmapsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MindmapsTableData(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String?>(json['userId']),
+      title: serializer.fromJson<String>(json['title']),
+      layoutType: serializer.fromJson<String>(json['layoutType']),
+      nodesJson: serializer.fromJson<String>(json['nodesJson']),
+      createdAtMs: serializer.fromJson<int>(json['createdAtMs']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      deletedAtMs: serializer.fromJson<int?>(json['deletedAtMs']),
+      lastSyncedAtMs: serializer.fromJson<int?>(json['lastSyncedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String?>(userId),
+      'title': serializer.toJson<String>(title),
+      'layoutType': serializer.toJson<String>(layoutType),
+      'nodesJson': serializer.toJson<String>(nodesJson),
+      'createdAtMs': serializer.toJson<int>(createdAtMs),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'deletedAtMs': serializer.toJson<int?>(deletedAtMs),
+      'lastSyncedAtMs': serializer.toJson<int?>(lastSyncedAtMs),
+    };
+  }
+
+  MindmapsTableData copyWith({
+    String? id,
+    Value<String?> userId = const Value.absent(),
+    String? title,
+    String? layoutType,
+    String? nodesJson,
+    int? createdAtMs,
+    int? updatedAtMs,
+    Value<int?> deletedAtMs = const Value.absent(),
+    Value<int?> lastSyncedAtMs = const Value.absent(),
+  }) => MindmapsTableData(
+    id: id ?? this.id,
+    userId: userId.present ? userId.value : this.userId,
+    title: title ?? this.title,
+    layoutType: layoutType ?? this.layoutType,
+    nodesJson: nodesJson ?? this.nodesJson,
+    createdAtMs: createdAtMs ?? this.createdAtMs,
+    updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+    deletedAtMs: deletedAtMs.present ? deletedAtMs.value : this.deletedAtMs,
+    lastSyncedAtMs: lastSyncedAtMs.present
+        ? lastSyncedAtMs.value
+        : this.lastSyncedAtMs,
+  );
+  MindmapsTableData copyWithCompanion(MindmapsTableCompanion data) {
+    return MindmapsTableData(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      title: data.title.present ? data.title.value : this.title,
+      layoutType: data.layoutType.present
+          ? data.layoutType.value
+          : this.layoutType,
+      nodesJson: data.nodesJson.present ? data.nodesJson.value : this.nodesJson,
+      createdAtMs: data.createdAtMs.present
+          ? data.createdAtMs.value
+          : this.createdAtMs,
+      updatedAtMs: data.updatedAtMs.present
+          ? data.updatedAtMs.value
+          : this.updatedAtMs,
+      deletedAtMs: data.deletedAtMs.present
+          ? data.deletedAtMs.value
+          : this.deletedAtMs,
+      lastSyncedAtMs: data.lastSyncedAtMs.present
+          ? data.lastSyncedAtMs.value
+          : this.lastSyncedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MindmapsTableData(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('title: $title, ')
+          ..write('layoutType: $layoutType, ')
+          ..write('nodesJson: $nodesJson, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('deletedAtMs: $deletedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    userId,
+    title,
+    layoutType,
+    nodesJson,
+    createdAtMs,
+    updatedAtMs,
+    deletedAtMs,
+    lastSyncedAtMs,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MindmapsTableData &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.title == this.title &&
+          other.layoutType == this.layoutType &&
+          other.nodesJson == this.nodesJson &&
+          other.createdAtMs == this.createdAtMs &&
+          other.updatedAtMs == this.updatedAtMs &&
+          other.deletedAtMs == this.deletedAtMs &&
+          other.lastSyncedAtMs == this.lastSyncedAtMs);
+}
+
+class MindmapsTableCompanion extends UpdateCompanion<MindmapsTableData> {
+  final Value<String> id;
+  final Value<String?> userId;
+  final Value<String> title;
+  final Value<String> layoutType;
+  final Value<String> nodesJson;
+  final Value<int> createdAtMs;
+  final Value<int> updatedAtMs;
+  final Value<int?> deletedAtMs;
+  final Value<int?> lastSyncedAtMs;
+  final Value<int> rowid;
+  const MindmapsTableCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.layoutType = const Value.absent(),
+    this.nodesJson = const Value.absent(),
+    this.createdAtMs = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.deletedAtMs = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MindmapsTableCompanion.insert({
+    required String id,
+    this.userId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.layoutType = const Value.absent(),
+    this.nodesJson = const Value.absent(),
+    required int createdAtMs,
+    required int updatedAtMs,
+    this.deletedAtMs = const Value.absent(),
+    this.lastSyncedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       createdAtMs = Value(createdAtMs),
+       updatedAtMs = Value(updatedAtMs);
+  static Insertable<MindmapsTableData> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? title,
+    Expression<String>? layoutType,
+    Expression<String>? nodesJson,
+    Expression<int>? createdAtMs,
+    Expression<int>? updatedAtMs,
+    Expression<int>? deletedAtMs,
+    Expression<int>? lastSyncedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (title != null) 'title': title,
+      if (layoutType != null) 'layout_type': layoutType,
+      if (nodesJson != null) 'nodes_json': nodesJson,
+      if (createdAtMs != null) 'created_at_ms': createdAtMs,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (deletedAtMs != null) 'deleted_at_ms': deletedAtMs,
+      if (lastSyncedAtMs != null) 'last_synced_at_ms': lastSyncedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MindmapsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String?>? userId,
+    Value<String>? title,
+    Value<String>? layoutType,
+    Value<String>? nodesJson,
+    Value<int>? createdAtMs,
+    Value<int>? updatedAtMs,
+    Value<int?>? deletedAtMs,
+    Value<int?>? lastSyncedAtMs,
+    Value<int>? rowid,
+  }) {
+    return MindmapsTableCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      layoutType: layoutType ?? this.layoutType,
+      nodesJson: nodesJson ?? this.nodesJson,
+      createdAtMs: createdAtMs ?? this.createdAtMs,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      deletedAtMs: deletedAtMs ?? this.deletedAtMs,
+      lastSyncedAtMs: lastSyncedAtMs ?? this.lastSyncedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (layoutType.present) {
+      map['layout_type'] = Variable<String>(layoutType.value);
+    }
+    if (nodesJson.present) {
+      map['nodes_json'] = Variable<String>(nodesJson.value);
+    }
+    if (createdAtMs.present) {
+      map['created_at_ms'] = Variable<int>(createdAtMs.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (deletedAtMs.present) {
+      map['deleted_at_ms'] = Variable<int>(deletedAtMs.value);
+    }
+    if (lastSyncedAtMs.present) {
+      map['last_synced_at_ms'] = Variable<int>(lastSyncedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MindmapsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('title: $title, ')
+          ..write('layoutType: $layoutType, ')
+          ..write('nodesJson: $nodesJson, ')
+          ..write('createdAtMs: $createdAtMs, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('deletedAtMs: $deletedAtMs, ')
+          ..write('lastSyncedAtMs: $lastSyncedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1766,6 +2344,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PomodoroSessionsTableTable pomodoroSessionsTable =
       $PomodoroSessionsTableTable(this);
   late final $ProfilesTableTable profilesTable = $ProfilesTableTable(this);
+  late final $MindmapsTableTable mindmapsTable = $MindmapsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1774,6 +2353,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tasksTable,
     pomodoroSessionsTable,
     profilesTable,
+    mindmapsTable,
   ];
 }
 
@@ -2684,6 +3264,305 @@ typedef $$ProfilesTableTableProcessedTableManager =
       ProfilesTableData,
       PrefetchHooks Function()
     >;
+typedef $$MindmapsTableTableCreateCompanionBuilder =
+    MindmapsTableCompanion Function({
+      required String id,
+      Value<String?> userId,
+      Value<String> title,
+      Value<String> layoutType,
+      Value<String> nodesJson,
+      required int createdAtMs,
+      required int updatedAtMs,
+      Value<int?> deletedAtMs,
+      Value<int?> lastSyncedAtMs,
+      Value<int> rowid,
+    });
+typedef $$MindmapsTableTableUpdateCompanionBuilder =
+    MindmapsTableCompanion Function({
+      Value<String> id,
+      Value<String?> userId,
+      Value<String> title,
+      Value<String> layoutType,
+      Value<String> nodesJson,
+      Value<int> createdAtMs,
+      Value<int> updatedAtMs,
+      Value<int?> deletedAtMs,
+      Value<int?> lastSyncedAtMs,
+      Value<int> rowid,
+    });
+
+class $$MindmapsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MindmapsTableTable> {
+  $$MindmapsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get layoutType => $composableBuilder(
+    column: $table.layoutType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nodesJson => $composableBuilder(
+    column: $table.nodesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAtMs => $composableBuilder(
+    column: $table.deletedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MindmapsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MindmapsTableTable> {
+  $$MindmapsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get layoutType => $composableBuilder(
+    column: $table.layoutType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nodesJson => $composableBuilder(
+    column: $table.nodesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAtMs => $composableBuilder(
+    column: $table.deletedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MindmapsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MindmapsTableTable> {
+  $$MindmapsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get layoutType => $composableBuilder(
+    column: $table.layoutType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nodesJson =>
+      $composableBuilder(column: $table.nodesJson, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAtMs => $composableBuilder(
+    column: $table.createdAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+    column: $table.updatedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get deletedAtMs => $composableBuilder(
+    column: $table.deletedAtMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSyncedAtMs => $composableBuilder(
+    column: $table.lastSyncedAtMs,
+    builder: (column) => column,
+  );
+}
+
+class $$MindmapsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MindmapsTableTable,
+          MindmapsTableData,
+          $$MindmapsTableTableFilterComposer,
+          $$MindmapsTableTableOrderingComposer,
+          $$MindmapsTableTableAnnotationComposer,
+          $$MindmapsTableTableCreateCompanionBuilder,
+          $$MindmapsTableTableUpdateCompanionBuilder,
+          (
+            MindmapsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $MindmapsTableTable,
+              MindmapsTableData
+            >,
+          ),
+          MindmapsTableData,
+          PrefetchHooks Function()
+        > {
+  $$MindmapsTableTableTableManager(_$AppDatabase db, $MindmapsTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MindmapsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MindmapsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MindmapsTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String?> userId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> layoutType = const Value.absent(),
+                Value<String> nodesJson = const Value.absent(),
+                Value<int> createdAtMs = const Value.absent(),
+                Value<int> updatedAtMs = const Value.absent(),
+                Value<int?> deletedAtMs = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MindmapsTableCompanion(
+                id: id,
+                userId: userId,
+                title: title,
+                layoutType: layoutType,
+                nodesJson: nodesJson,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                deletedAtMs: deletedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String?> userId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> layoutType = const Value.absent(),
+                Value<String> nodesJson = const Value.absent(),
+                required int createdAtMs,
+                required int updatedAtMs,
+                Value<int?> deletedAtMs = const Value.absent(),
+                Value<int?> lastSyncedAtMs = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MindmapsTableCompanion.insert(
+                id: id,
+                userId: userId,
+                title: title,
+                layoutType: layoutType,
+                nodesJson: nodesJson,
+                createdAtMs: createdAtMs,
+                updatedAtMs: updatedAtMs,
+                deletedAtMs: deletedAtMs,
+                lastSyncedAtMs: lastSyncedAtMs,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$MindmapsTableTable, MindmapsTableData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $MindmapsTableTable,
+                    MindmapsTableData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MindmapsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MindmapsTableTable,
+      MindmapsTableData,
+      $$MindmapsTableTableFilterComposer,
+      $$MindmapsTableTableOrderingComposer,
+      $$MindmapsTableTableAnnotationComposer,
+      $$MindmapsTableTableCreateCompanionBuilder,
+      $$MindmapsTableTableUpdateCompanionBuilder,
+      (
+        MindmapsTableData,
+        BaseReferences<_$AppDatabase, $MindmapsTableTable, MindmapsTableData>,
+      ),
+      MindmapsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2694,4 +3573,6 @@ class $AppDatabaseManager {
       $$PomodoroSessionsTableTableTableManager(_db, _db.pomodoroSessionsTable);
   $$ProfilesTableTableTableManager get profilesTable =>
       $$ProfilesTableTableTableManager(_db, _db.profilesTable);
+  $$MindmapsTableTableTableManager get mindmapsTable =>
+      $$MindmapsTableTableTableManager(_db, _db.mindmapsTable);
 }

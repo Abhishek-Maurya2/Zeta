@@ -481,7 +481,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                           },
                           onDragEnd: (_) => provider.endDragNode(),
                           onDragCompleted: () => provider.endDragNode(),
-                          onDraggableCanceled: (_, __) => provider.endDragNode(),
+                          onDraggableCanceled: (_, _) => provider.endDragNode(),
                           feedback: FractionalTranslation(
                             translation: const Offset(-0.5, -0.5),
                             child: IgnorePointer(

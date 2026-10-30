@@ -7,6 +7,8 @@ import 'package:drift/drift.dart';
 import '../models/task.dart';
 import '../models/pomodoro.dart';
 import '../models/attachment.dart';
+import '../pages/space/models/mindmap.dart';
+import '../pages/space/models/mindmap_node.dart';
 import 'connection/connection.dart';
 import 'tables.dart';
 import 'account_scope.dart';
@@ -23,13 +25,14 @@ part 'app_database.g.dart';
     TasksTable,
     PomodoroSessionsTable,
     ProfilesTable,
+    MindmapsTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,6 +56,9 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
       );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_mindmaps_user_updated ON mindmaps (user_id, deleted_at_ms, updated_at_ms DESC);',
+      );
     },
     onUpgrade: (m, from, to) async {
       if (from < 10) {
@@ -64,6 +70,13 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           'UPDATE tasks SET completed_at_ms = updated_at_ms '
           'WHERE completed = 1 AND completed_at_ms IS NULL;',
+        );
+      }
+
+      if (from < 13) {
+        await m.createTable(mindmapsTable);
+        await customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_mindmaps_user_updated ON mindmaps (user_id, deleted_at_ms, updated_at_ms DESC);',
         );
       }
     },
@@ -176,6 +189,54 @@ class AppDatabase extends _$AppDatabase {
       completedAtMs: Value(s.completedAt),
       lastSyncedAtMs: s.lastSyncedAt != null
           ? Value(s.lastSyncedAt!.millisecondsSinceEpoch)
+          : const Value.absent(),
+    );
+  }
+
+  // ─── Mindmap helpers ────────────────────────────────────────────────────────
+
+  static MindMap rowToMindMap(MindmapsTableData row) {
+    List<MindMapNode> nodes = const [];
+    if (row.nodesJson.isNotEmpty && row.nodesJson != '[]') {
+      try {
+        final decoded = jsonDecode(row.nodesJson) as List<dynamic>;
+        nodes = decoded
+            .map((e) => MindMapNode.fromJson(e as Map<String, dynamic>))
+            .toList();
+      } catch (_) {}
+    }
+
+    return MindMap(
+      id: row.id,
+      title: row.title,
+      createdAtMs: row.createdAtMs,
+      updatedAtMs: row.updatedAtMs,
+      layoutType: row.layoutType,
+      nodes: nodes,
+    );
+  }
+
+  static MindmapsTableCompanion mindMapToCompanion(
+    MindMap map, {
+    String? userId,
+    DateTime? deletedAt,
+    DateTime? lastSyncedAt,
+  }) {
+    return MindmapsTableCompanion(
+      id: Value(map.id),
+      userId: Value(userId ?? AccountScope.userId),
+      title: Value(map.title),
+      layoutType: Value(map.layoutType),
+      nodesJson: Value(
+        jsonEncode(map.nodes.map((n) => n.toJson()).toList()),
+      ),
+      createdAtMs: Value(map.createdAtMs),
+      updatedAtMs: Value(map.updatedAtMs),
+      deletedAtMs: deletedAt != null
+          ? Value(deletedAt.millisecondsSinceEpoch)
+          : const Value.absent(),
+      lastSyncedAtMs: lastSyncedAt != null
+          ? Value(lastSyncedAt.millisecondsSinceEpoch)
           : const Value.absent(),
     );
   }

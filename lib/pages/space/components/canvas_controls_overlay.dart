@@ -6,7 +6,7 @@ import 'package:zeta/core/core.dart';
 
 import '../providers/space_provider.dart';
 import '../../../components/glass_surface.dart';
-import '../../../providers/theme_provider.dart';
+
 import '../../../utils/haptics.dart';
 import '../../../theme/breakpoints.dart';
 

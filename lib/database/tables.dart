@@ -56,3 +56,22 @@ class ProfilesTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// SQLite table for Space mindmaps (deleted_at IS NOT NULL = bin/trash).
+class MindmapsTable extends Table {
+  @override
+  String get tableName => 'mindmaps';
+
+  TextColumn get id => text()();
+  TextColumn get userId => text().nullable()();
+  TextColumn get title => text().withDefault(const Constant('Untitled Mindmap'))();
+  TextColumn get layoutType => text().withDefault(const Constant('horizontal'))();
+  TextColumn get nodesJson => text().withDefault(const Constant('[]'))();
+  IntColumn get createdAtMs => integer()();
+  IntColumn get updatedAtMs => integer()();
+  IntColumn get deletedAtMs => integer().nullable()();
+  IntColumn get lastSyncedAtMs => integer().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

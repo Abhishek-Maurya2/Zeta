@@ -98,4 +98,39 @@ class MindMap {
           [],
     );
   }
+
+  Map<String, dynamic> toSupabaseRow({required String userId}) {
+    return {
+      'id': id,
+      'user_id': userId,
+      'title': title,
+      'layout_type': layoutType,
+      'nodes_json': nodes.map((n) => n.toJson()).toList(),
+      'created_at_ms': createdAtMs,
+      'updated_at_ms': updatedAtMs,
+      'deleted_at_ms': null,
+      'updated_at': DateTime.fromMillisecondsSinceEpoch(updatedAtMs).toIso8601String(),
+    };
+  }
+
+  factory MindMap.fromSupabaseRow(Map<String, dynamic> row) {
+    List<MindMapNode> parsedNodes = const [];
+    final rawNodes = row['nodes_json'];
+    if (rawNodes is List) {
+      parsedNodes = rawNodes
+          .map((e) => MindMapNode.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
+    return MindMap(
+      id: row['id'] as String,
+      title: row['title'] as String? ?? 'Untitled Mindmap',
+      createdAtMs: (row['created_at_ms'] as num?)?.toInt() ??
+          DateTime.now().millisecondsSinceEpoch,
+      updatedAtMs: (row['updated_at_ms'] as num?)?.toInt() ??
+          DateTime.now().millisecondsSinceEpoch,
+      layoutType: row['layout_type'] as String? ?? 'horizontal',
+      nodes: parsedNodes,
+    );
+  }
 }
