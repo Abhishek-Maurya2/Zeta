@@ -1,4 +1,6 @@
 import 'package:flutter/services.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
@@ -6,12 +8,16 @@ import 'package:zeta/core/core.dart';
 import '../providers/space_provider.dart';
 import '../services/mindmap_layout_engine.dart';
 import '../../../providers/theme_provider.dart';
+import '../../../utils/haptics.dart';
 import 'dot_matrix_painter.dart';
 import 'mindmap_edge_painter.dart';
 import 'mindmap_node_widget.dart';
 import 'canvas_controls_overlay.dart';
+import 'space_floating_toolbar.dart';
+import 'create_mindmap_dialog.dart';
 
-/// The infinite, scrollable, zoomable dotmatrix canvas that hosts the mindmap.
+/// The infinite, scrollable, zoomable dotmatrix canvas that hosts the mindmap,
+/// top floating toolbar, canvas controls, and the M3E FAB menu.
 class SpaceCanvas extends StatefulWidget {
   const SpaceCanvas({super.key});
 
@@ -88,6 +94,14 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     matrix.storage[13] = targetY;
 
     _transformationController.value = matrix;
+  }
+
+  Future<void> _handleCreateMindmap() async {
+    ZetaHaptics.medium();
+    final title = await CreateMindMapDialog.show(context);
+    if (title != null && mounted) {
+      await context.read<SpaceProvider>().createMindMap(title);
+    }
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -172,6 +186,7 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     final isDark = themeProvider.isDarkMode(context);
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
+    final isCompact = context.isCompact;
 
     if (provider.isLoading || activeMap == null) {
       return Center(
@@ -214,78 +229,141 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
           onKeyEvent: _handleKeyEvent,
           child: Stack(
             children: [
-              // Zoomable & Scrollable Dotmatrix Canvas
-              InteractiveViewer(
-                transformationController: _transformationController,
-                boundaryMargin: const EdgeInsets.all(3000),
-                minScale: 0.15,
-                maxScale: 3.0,
-                constrained: false,
-                child: GestureDetector(
-                  onTap: () {
-                    // Tap on canvas background clears selection and commits active edit
-                    provider.selectNode(null);
-                    provider.stopEditingNode();
-                    _canvasFocusNode.requestFocus();
-                  },
-                  child: Container(
-                    width: canvasSize,
-                    height: canvasSize,
-                    color: canvasBgColor,
-                    child: Stack(
-                      children: [
-                        // Layer 1: Dot-matrix Background Grid (Theme & Mode reactive)
-                        Positioned.fill(
-                          child: RepaintBoundary(
-                            child: CustomPaint(
-                              painter: DotMatrixPainter(
-                                dotColor: dotColor,
-                                spacing: 24.0,
-                                dotRadius: 1.25,
+              // 1. Zoomable & Scrollable Dotmatrix Canvas
+              Positioned.fill(
+                child: InteractiveViewer(
+                  transformationController: _transformationController,
+                  boundaryMargin: const EdgeInsets.all(3000),
+                  minScale: 0.15,
+                  maxScale: 3.0,
+                  constrained: false,
+                  child: GestureDetector(
+                    onTap: () {
+                      // Tap on canvas background clears selection and commits active edit
+                      provider.selectNode(null);
+                      provider.stopEditingNode();
+                      _canvasFocusNode.requestFocus();
+                    },
+                    child: Container(
+                      width: canvasSize,
+                      height: canvasSize,
+                      color: canvasBgColor,
+                      child: Stack(
+                        children: [
+                          // Layer 1: Dot-matrix Background Grid (Theme & Mode reactive)
+                          Positioned.fill(
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: DotMatrixPainter(
+                                  dotColor: dotColor,
+                                  spacing: 24.0,
+                                  dotRadius: 1.25,
+                                ),
                               ),
                             ),
                           ),
-                        ),
 
-                        // Layer 2: Procedural Cubic Bézier Spline Connectors
-                        Positioned.fill(
-                          child: RepaintBoundary(
-                            child: CustomPaint(
-                              painter: MindMapEdgePainter(
-                                edges: layoutResult.edges,
-                                hoveredNodeId: provider.hoverTargetId,
-                                isDark: isDark,
+                          // Layer 2: Procedural Cubic Bézier Spline Connectors
+                          Positioned.fill(
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                painter: MindMapEdgePainter(
+                                  edges: layoutResult.edges,
+                                  hoveredNodeId: provider.hoverTargetId,
+                                  isDark: isDark,
+                                ),
                               ),
                             ),
                           ),
-                        ),
 
-                        // Layer 3: Interactive MindMap Node Cards
-                        for (final node in activeMap.nodes)
-                          if (layoutResult.nodeBounds.containsKey(node.id))
-                            MindMapNodeWidget(
-                              key: ValueKey(node.id),
-                              node: node,
-                              bounds: layoutResult.nodeBounds[node.id]!,
-                              branchColor: layoutResult.nodeColors[node.id] ?? colorScheme.primary,
-                              hasChildren: activeMap.childrenOf(node.id).isNotEmpty,
-                              childCount: activeMap.childrenOf(node.id).length,
-                            ),
-                      ],
+                          // Layer 3: Interactive MindMap Node Cards
+                          for (final node in activeMap.nodes)
+                            if (layoutResult.nodeBounds.containsKey(node.id))
+                              MindMapNodeWidget(
+                                key: ValueKey(node.id),
+                                node: node,
+                                bounds: layoutResult.nodeBounds[node.id]!,
+                                branchColor: layoutResult.nodeColors[node.id] ?? colorScheme.primary,
+                                hasChildren: activeMap.childrenOf(node.id).isNotEmpty,
+                                childCount: activeMap.childrenOf(node.id).length,
+                              ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
 
-              // Canvas Navigation Controls Overlay (Zoom In, Zoom Out, Center, Fit)
+              // 2. Refined Top Floating Toolbar (eliminating full-width topbar)
+              const Positioned(
+                top: 16,
+                left: 16,
+                right: 16,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SpaceFloatingToolbar(),
+                ),
+              ),
+
+              // 3. Canvas Zoom Controls (Zoom In, Zoom Out, Center, Fit)
               Positioned(
                 left: 16,
-                bottom: 16,
+                bottom: isCompact ? 88 : 24,
                 child: CanvasControlsOverlay(
                   onZoomIn: () => _zoomBy(1.2),
                   onZoomOut: () => _zoomBy(0.8),
                   onCenterRoot: () => _centerOnRoot(viewportSize),
                   onFitToView: () => _fitToView(viewportSize, layoutResult.totalBounds),
+                ),
+              ),
+
+              // 4. M3EFabMenu with rich actions
+              Positioned(
+                right: 20,
+                bottom: isCompact ? 88 : 24,
+                child: M3EFabMenu(
+                  color: M3EFabColor.primary,
+                  position: M3EFabMenuPosition.right,
+                  icon: const Icon(Icons.add_rounded),
+                  items: [
+                    M3EFabMenuItem(
+                      icon: const Icon(Icons.add_chart_rounded),
+                      label: 'New Mindmap',
+                      onPressed: _handleCreateMindmap,
+                    ),
+                    M3EFabMenuItem(
+                      icon: const Icon(Icons.subdirectory_arrow_right_rounded),
+                      label: 'Add Child (Tab)',
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        provider.addChildNode();
+                      },
+                    ),
+                    M3EFabMenuItem(
+                      icon: const Icon(Icons.playlist_add_rounded),
+                      label: 'Add Sibling (Enter)',
+                      onPressed: () {
+                        ZetaHaptics.light();
+                        provider.addSiblingNode();
+                      },
+                    ),
+                    M3EFabMenuItem(
+                      icon: const Icon(Symbols.center_focus_strong_rounded),
+                      label: 'Center on Root',
+                      onPressed: () {
+                        ZetaHaptics.selection();
+                        _centerOnRoot(viewportSize);
+                      },
+                    ),
+                    M3EFabMenuItem(
+                      icon: const Icon(Symbols.fit_screen_rounded),
+                      label: 'Fit to Screen',
+                      onPressed: () {
+                        ZetaHaptics.selection();
+                        _fitToView(viewportSize, layoutResult.totalBounds);
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
