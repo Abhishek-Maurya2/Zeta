@@ -84,9 +84,50 @@ class SpaceProvider extends ChangeNotifier {
       }
       notifyListeners();
     };
-    unawaited(sync.processPendingQueue());
-    unawaited(sync.pullMindMaps());
+    sync.onNetworkReconnect = () async {
+      await sync.syncAll();
+      final freshMaps = await _repository.loadMindMaps();
+      _mindMaps = freshMaps;
+      if (_activeMindMap != null) {
+        final match = _mindMaps.firstWhere(
+          (m) => m.id == _activeMindMap!.id,
+          orElse: () => _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
+        );
+        _activeMindMap = match;
+      }
+      notifyListeners();
+    };
+
+    unawaited(() async {
+      await sync.syncAll();
+      final freshMaps = await _repository.loadMindMaps();
+      _mindMaps = freshMaps;
+      if (_activeMindMap != null) {
+        final match = _mindMaps.firstWhere(
+          (m) => m.id == _activeMindMap!.id,
+          orElse: () => _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
+        );
+        _activeMindMap = match;
+      }
+      notifyListeners();
+    }());
     sync.setupRealtime();
+  }
+
+  /// Manually triggers bi-directional cloud sync and refreshes local state.
+  Future<void> syncCloud() async {
+    final sync = MindmapSyncService();
+    await sync.syncAll();
+    final freshMaps = await _repository.loadMindMaps();
+    _mindMaps = freshMaps;
+    if (_activeMindMap != null) {
+      final match = _mindMaps.firstWhere(
+        (m) => m.id == _activeMindMap!.id,
+        orElse: () => _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
+      );
+      _activeMindMap = match;
+    }
+    notifyListeners();
   }
 
   void selectMindMap(String id) {

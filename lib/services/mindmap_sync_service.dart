@@ -20,7 +20,7 @@ class MindmapSyncService {
     ) {
       if (isOnline) {
         final reconnect = onNetworkReconnect;
-        unawaited(reconnect != null ? reconnect() : processPendingQueue());
+        unawaited(reconnect != null ? reconnect() : syncAll());
       }
     });
   }
@@ -65,6 +65,12 @@ class MindmapSyncService {
         debugPrint('MindmapSyncService: Failed to initialize SupabaseService: $e');
       }
     }
+  }
+
+  /// Full bi-directional sync: pushes pending outbox, then pulls remote updates.
+  Future<void> syncAll() async {
+    await processPendingQueue();
+    await pullMindMaps();
   }
 
   /// Processes durable cloud mutation intent from SQLite outbox.
@@ -209,6 +215,7 @@ class MindmapSyncService {
             syncedAt,
             expectedUpdatedAtMs: remote.updatedAtMs,
           );
+          onRemoteChange?.call(remote, 'INSERT');
         } else if (remote.updatedAtMs > local.updatedAtMs) {
           // Remote is newer (LWW): update local
           await dao.upsertMindMap(remote);
@@ -217,6 +224,7 @@ class MindmapSyncService {
             syncedAt,
             expectedUpdatedAtMs: remote.updatedAtMs,
           );
+          onRemoteChange?.call(remote, 'UPDATE');
         } else if (local.updatedAtMs > remote.updatedAtMs) {
           // Local is newer: enqueue push to cloud
           await dao.upsertMindMapAndQueue(local);

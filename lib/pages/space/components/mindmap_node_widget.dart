@@ -9,6 +9,7 @@ import '../providers/space_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../../theme/motion_tokens.dart';
+import '../../../components/glass_alert_dialog.dart';
 
 /// Interactive node tile inside the MindMap canvas.
 class MindMapNodeWidget extends StatefulWidget {
@@ -77,6 +78,116 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
     final provider = context.read<SpaceProvider>();
     provider.updateNodeContent(widget.node.id, _textController.text.trim());
     _focusNode.unfocus();
+  }
+
+  Future<void> _handleDelete(SpaceProvider provider) async {
+    if (widget.node.isRoot) return;
+
+    if (widget.hasChildren) {
+      final shouldDelete = await showGlassDialog<bool>(
+        context: context,
+        builder: (ctx) => GlassAlertDialog(
+          title: const Text('Delete Node & Subtopics?'),
+          content: Text(
+            'Deleting "${widget.node.content.isEmpty ? 'this topic' : widget.node.content}" will also delete all of its ${widget.childCount} subtopic(s). This can be undone with Ctrl+Z.',
+          ),
+          actions: [
+            GlassButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            GlassButton(
+              isDestructive: true,
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldDelete != true || !mounted) return;
+    }
+
+    ZetaHaptics.medium();
+    provider.deleteNode(widget.node.id);
+  }
+
+  void _showContextMenu(BuildContext context, Offset globalPosition) {
+    if (widget.node.isRoot) return;
+    final provider = context.read<SpaceProvider>();
+    provider.selectNode(widget.node.id);
+
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    if (overlay == null) return;
+
+    showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        const PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Symbols.edit_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('Edit (F2)'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'add_child',
+          child: Row(
+            children: [
+              Icon(Icons.add_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('Add Child (Tab)'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          value: 'add_sibling',
+          child: Row(
+            children: [
+              Icon(Icons.playlist_add_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('Add Sibling (Enter)'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(
+                Symbols.delete_rounded,
+                size: 18,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Delete (Del)',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).then((value) {
+      if (value == null || !mounted) return;
+      if (value == 'edit') {
+        provider.startEditingNode(widget.node.id);
+      } else if (value == 'add_child') {
+        provider.addChildNode(parentId: widget.node.id);
+      } else if (value == 'add_sibling') {
+        provider.addSiblingNode(siblingOfId: widget.node.id);
+      } else if (value == 'delete') {
+        _handleDelete(provider);
+      }
+    });
   }
 
   /// Claims mouse wheel events over the card so InteractiveViewer never zooms,
@@ -259,6 +370,16 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                           ZetaHaptics.light();
                           provider.startEditingNode(widget.node.id);
                         },
+                  onSecondaryTapUp: (details) {
+                    if (!isEditing) {
+                      _showContextMenu(context, details.globalPosition);
+                    }
+                  },
+                  onLongPressStart: (details) {
+                    if (!isEditing) {
+                      _showContextMenu(context, details.globalPosition);
+                    }
+                  },
                   child: DragTarget<String>(
                     onWillAcceptWithDetails: (details) {
                       return details.data != widget.node.id;
@@ -614,6 +735,20 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                     ZetaHaptics.light();
                     provider.addSiblingNode(siblingOfId: widget.node.id);
                   },
+                ),
+              ),
+
+            // 5. Delete Affordance Button
+            if (isSelected && !isEditing && !isRoot)
+              Positioned(
+                top: 8,
+                right: widget.isLeft ? null : 8,
+                left: widget.isLeft ? 8 : null,
+                child: _AffordanceButton(
+                  icon: Symbols.delete_rounded,
+                  tooltip: 'Delete Node (Delete / Backspace)',
+                  color: colorScheme.error,
+                  onTap: () => _handleDelete(provider),
                 ),
               ),
           ],
