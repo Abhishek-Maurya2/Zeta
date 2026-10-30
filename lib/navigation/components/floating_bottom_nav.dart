@@ -45,7 +45,8 @@ class FloatingBottomNav extends StatelessWidget {
         child: AnimatedSlide(
           offset: (isSelectionMode ||
                   navProvider.activePage == PageId.settings ||
-                  navProvider.activePage == PageId.bin)
+                  navProvider.activePage == PageId.bin ||
+                  navProvider.activePage == PageId.space)
               ? const Offset(0, 2.0)
               : Offset.zero,
           duration: const Duration(milliseconds: 320),

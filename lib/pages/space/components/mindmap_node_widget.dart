@@ -30,7 +30,6 @@ class MindMapNodeWidget extends StatefulWidget {
 }
 
 class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
-  bool _isHovered = false;
   late TextEditingController _textController;
   late FocusNode _focusNode;
 
@@ -82,8 +81,10 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
 
     // Drop targeting
     final isHoverTarget = provider.hoverTargetId == widget.node.id;
-    final isReparentGlow = isHoverTarget && provider.isHoverReparent && !provider.isInvalidDrop;
-    final isSiblingIndicator = isHoverTarget && !provider.isHoverReparent && !provider.isInvalidDrop;
+    final isReparentGlow =
+        isHoverTarget && provider.isHoverReparent && !provider.isInvalidDrop;
+    final isSiblingIndicator =
+        isHoverTarget && !provider.isHoverReparent && !provider.isInvalidDrop;
     final isDisallowedTarget = isHoverTarget && provider.isInvalidDrop;
 
     // Theme hook reactivity via ThemeProvider and ZetaContextX
@@ -142,8 +143,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
         color: isRoot
             ? widget.branchColor.withValues(alpha: isDark ? 0.80 : 0.60)
             : (isDark
-                ? colorScheme.outlineVariant.withValues(alpha: 0.35)
-                : colorScheme.outlineVariant.withValues(alpha: 0.45)),
+                  ? colorScheme.outlineVariant.withValues(alpha: 0.35)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.45)),
         width: isRoot ? 1.8 : 1.0,
       );
     }
@@ -152,44 +153,51 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
     final cardBgColor = isRoot
         ? widget.branchColor.withValues(alpha: isDark ? 0.22 : 0.12)
         : (isSelected
-            ? (isDark ? colorScheme.surfaceContainerHighest : colorScheme.surfaceContainerHigh)
-            : (isDark ? colorScheme.surfaceContainer : colorScheme.surfaceContainerLow));
+              ? (isDark
+                    ? colorScheme.surfaceContainerHighest
+                    : colorScheme.surfaceContainerHigh)
+              : (isDark
+                    ? colorScheme.surfaceContainer
+                    : colorScheme.surfaceContainerLow));
+
+    const double hitMargin = 20;
 
     return Positioned(
-      left: widget.bounds.left,
-      top: widget.bounds.top,
-      width: widget.bounds.width,
-      height: widget.bounds.height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Sibling insertion indicator line (top or bottom)
-          if (isSiblingIndicator)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: provider.isHoverAbove ? -4 : null,
-              bottom: provider.isHoverAbove ? null : -4,
-              child: Container(
-                height: 4,
-                decoration: BoxDecoration(
-                  color: widget.branchColor,
-                  borderRadius: BorderRadius.circular(2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: widget.branchColor.withValues(alpha: isDark ? 0.8 : 0.6),
-                      blurRadius: 6,
-                    ),
-                  ],
+      left: widget.bounds.left - hitMargin,
+      top: widget.bounds.top - hitMargin,
+      width: widget.bounds.width + (hitMargin * 2),
+      height: widget.bounds.height + (hitMargin * 2),
+      child: Padding(
+        padding: const EdgeInsets.all(hitMargin),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Sibling insertion indicator line (top or bottom)
+            if (isSiblingIndicator)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: provider.isHoverAbove ? -4 : null,
+                bottom: provider.isHoverAbove ? null : -4,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: widget.branchColor,
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: widget.branchColor.withValues(
+                          alpha: isDark ? 0.8 : 0.6,
+                        ),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-          // Main Node Card
-          MouseRegion(
-            onEnter: (_) => setState(() => _isHovered = true),
-            onExit: (_) => setState(() => _isHovered = false),
-            child: GestureDetector(
+            // Main Node Card
+            GestureDetector(
               // Single tap/click: expands/collapses the subtree & selects the node
               onTap: isEditing
                   ? null
@@ -207,12 +215,6 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                       ZetaHaptics.light();
                       provider.startEditingNode(widget.node.id);
                     },
-              onLongPress: () {
-                if (!isRoot) {
-                  ZetaHaptics.medium();
-                  provider.startDragNode(widget.node.id);
-                }
-              },
               child: DragTarget<String>(
                 onWillAcceptWithDetails: (details) {
                   return details.data != widget.node.id;
@@ -223,7 +225,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                     final localPos = renderBox.globalToLocal(details.offset);
                     final h = renderBox.size.height;
                     // Center 60% is reparent, top 20% is above sibling, bottom 20% is below sibling
-                    final isReparent = localPos.dy >= h * 0.2 && localPos.dy <= h * 0.8;
+                    final isReparent =
+                        localPos.dy >= h * 0.2 && localPos.dy <= h * 0.8;
                     final isAbove = localPos.dy < h * 0.5;
                     provider.updateDragHover(
                       targetId: widget.node.id,
@@ -250,29 +253,18 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: cardBgColor,
-                        borderRadius: BorderRadius.circular(isRoot ? 14 : 10),
+                        borderRadius: BorderRadius.circular(isRoot ? 8 : 15),
                         border: border,
                         boxShadow: shadows,
                       ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isRoot ? 14 : 10,
-                        vertical: isRoot ? 10 : 7,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 10,
                       ),
                       alignment: Alignment.centerLeft,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Left color indicator dot
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: widget.branchColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
                           // Optional Task Checkbox
                           if (widget.node.style.hasCheckbox) ...[
                             GestureDetector(
@@ -293,8 +285,9 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                     color: widget.node.style.isChecked
                                         ? widget.branchColor
                                         : (isDark
-                                            ? colorScheme.outlineVariant.withValues(alpha: 0.7)
-                                            : colorScheme.outlineVariant),
+                                              ? colorScheme.outlineVariant
+                                                    .withValues(alpha: 0.7)
+                                              : colorScheme.outlineVariant),
                                     width: 1.5,
                                   ),
                                 ),
@@ -317,8 +310,10 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                     controller: _textController,
                                     focusNode: _focusNode,
                                     style: textTheme.bodyMedium?.copyWith(
-                                      fontSize: isRoot ? 16 : 14,
-                                      fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
+                                      fontSize: isRoot ? 20 : 18,
+                                      fontWeight: isRoot
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
                                       color: colorScheme.onSurface,
                                     ),
                                     cursorColor: colorScheme.primary,
@@ -335,8 +330,10 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                         ? (isRoot ? 'Central Topic' : 'Node')
                                         : widget.node.content,
                                     style: textTheme.bodyMedium?.copyWith(
-                                      fontSize: isRoot ? 16 : 14,
-                                      fontWeight: isRoot ? FontWeight.bold : FontWeight.w500,
+                                      fontSize: isRoot ? 20 : 18,
+                                      fontWeight: isRoot
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
                                       color: colorScheme.onSurface,
                                       decoration: widget.node.style.isChecked
                                           ? TextDecoration.lineThrough
@@ -347,6 +344,26 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                           ),
+
+                          // Trailing Subtree Collapse / Expand Indicator
+                          if (widget.hasChildren &&
+                              widget.node.isCollapsed) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: widget.branchColor,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${widget.childCount}',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -363,28 +380,48 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                       onDragEnd: (_) {
                         provider.endDragNode();
                       },
+                      onDragCompleted: () {
+                        provider.endDragNode();
+                      },
+                      onDraggableCanceled: (_, __) {
+                        provider.endDragNode();
+                      },
                       feedback: Material(
                         color: Colors.transparent,
                         child: Container(
                           width: widget.bounds.width,
                           height: widget.bounds.height,
                           decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.90),
+                            color: colorScheme.surfaceContainerHigh.withValues(
+                              alpha: 0.90,
+                            ),
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: widget.branchColor, width: 2),
+                            border: Border.all(
+                              color: widget.branchColor,
+                              width: 2,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: widget.branchColor.withValues(alpha: isDark ? 0.55 : 0.4),
+                                color: widget.branchColor.withValues(
+                                  alpha: isDark ? 0.55 : 0.4,
+                                ),
                                 blurRadius: 16,
                                 spreadRadius: 4,
                               ),
                             ],
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 7,
+                          ),
                           alignment: Alignment.centerLeft,
                           child: Row(
                             children: [
-                              Icon(Symbols.drag_indicator_rounded, size: 16, color: widget.branchColor),
+                              Icon(
+                                Symbols.drag_indicator_rounded,
+                                size: 16,
+                                color: widget.branchColor,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -399,21 +436,32 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                               ),
                               if (widget.hasChildren)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: widget.branchColor.withValues(alpha: 0.2),
+                                    color: widget.branchColor.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     '+${widget.childCount}',
-                                    style: TextStyle(fontSize: 10, color: widget.branchColor),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: widget.branchColor,
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                         ),
                       ),
-                      childWhenDragging: Opacity(opacity: 0.25, child: nodeContent),
+                      childWhenDragging: Opacity(
+                        opacity: 0.25,
+                        child: nodeContent,
+                      ),
                       child: nodeContent,
                     );
                   }
@@ -422,82 +470,40 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                 },
               ),
             ),
-          ),
 
-          // Right '+' affordance: Add Child Node (Tab)
-          if ((_isHovered || isSelected) && !isEditing)
-            Positioned(
-              right: -13,
-              top: (widget.bounds.height - 22) / 2,
-              child: _AffordanceButton(
-                icon: Icons.add_rounded,
-                tooltip: 'Add Child (Tab)',
-                color: widget.branchColor,
-                onTap: () {
-                  ZetaHaptics.light();
-                  provider.addChildNode(parentId: widget.node.id);
-                },
-              ),
-            ),
-
-          // Bottom '+' affordance: Add Sibling Node (Enter)
-          if ((_isHovered || isSelected) && !isEditing && !isRoot)
-            Positioned(
-              bottom: -13,
-              left: (widget.bounds.width - 22) / 2,
-              child: _AffordanceButton(
-                icon: Icons.add_rounded,
-                tooltip: 'Add Sibling (Enter)',
-                color: widget.branchColor,
-                onTap: () {
-                  ZetaHaptics.light();
-                  provider.addSiblingNode(siblingOfId: widget.node.id);
-                },
-              ),
-            ),
-
-          // Subtree Collapse / Expand Circular Toggle Badge
-          if (widget.hasChildren)
-            Positioned(
-              right: -10,
-              top: -8,
-              child: GestureDetector(
-                onTap: () {
-                  ZetaHaptics.selection();
-                  provider.toggleNodeCollapsed(widget.node.id);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: widget.node.isCollapsed
-                        ? widget.branchColor
-                        : colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: widget.branchColor,
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.15),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    widget.node.isCollapsed ? '+${widget.childCount}' : '−',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: widget.node.isCollapsed
-                          ? Colors.white
-                          : colorScheme.onSurface,
-                    ),
-                  ),
+            // Right '+' affordance: Add Child Node (Tab) - visible when node is active/pressed
+            if (isSelected && !isEditing)
+              Positioned(
+                right: -35,
+                top: (widget.bounds.height - 35) / 2,
+                child: _AffordanceButton(
+                  icon: Icons.add_rounded,
+                  tooltip: 'Add Child (Tab)',
+                  color: widget.branchColor,
+                  onTap: () {
+                    ZetaHaptics.light();
+                    provider.addChildNode(parentId: widget.node.id);
+                  },
                 ),
               ),
-            ),
-        ],
+
+            // Bottom '+' affordance: Add Sibling Node (Enter) - visible when node is active/pressed
+            if (isSelected && !isEditing && !isRoot)
+              Positioned(
+                bottom: -25,
+                left: (widget.bounds.width - 30) / 2,
+                child: _AffordanceButton(
+                  icon: Icons.add_rounded,
+                  tooltip: 'Add Sibling (Enter)',
+                  color: widget.branchColor,
+                  onTap: () {
+                    ZetaHaptics.light();
+                    provider.addSiblingNode(siblingOfId: widget.node.id);
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -523,24 +529,13 @@ class _AffordanceButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 22,
-          height: 22,
+          width: 45,
+          height: 35,
           decoration: BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 4,
-                spreadRadius: 1,
-              ),
-            ],
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Icon(
-            icon,
-            size: 15,
-            color: Colors.white,
-          ),
+          child: Icon(icon, size: 25, color: Colors.white),
         ),
       ),
     );

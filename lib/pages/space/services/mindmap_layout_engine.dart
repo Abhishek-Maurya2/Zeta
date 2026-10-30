@@ -93,7 +93,12 @@ class MindMapLayoutEngine {
     // Step 1: Pre-calculate node dimensions
     final nodeSizes = <String, Size>{};
     for (final node in mindMap.nodes) {
-      nodeSizes[node.id] = _measureNode(node, baseTextStyle);
+      final hasChildren = mindMap.childrenOf(node.id).isNotEmpty;
+      nodeSizes[node.id] = _measureNode(
+        node,
+        baseTextStyle,
+        hasChildren: hasChildren,
+      );
     }
 
     final nodeBounds = <String, Rect>{};
@@ -346,7 +351,11 @@ class MindMapLayoutEngine {
     return math.max(selfHeight, childrenHeight);
   }
 
-  static Size _measureNode(MindMapNode node, TextStyle? baseStyle) {
+  static Size _measureNode(
+    MindMapNode node,
+    TextStyle? baseStyle, {
+    bool hasChildren = false,
+  }) {
     final isRoot = node.isRoot;
     final maxTextWidth = isRoot ? 260.0 : 220.0;
     final minWidth = isRoot ? 140.0 : 100.0;
@@ -367,6 +376,9 @@ class MindMapLayoutEngine {
     double measuredWidth = textPainter.width + (isRoot ? 36.0 : 28.0);
     if (node.style.hasCheckbox) {
       measuredWidth += 26.0;
+    }
+    if (hasChildren) {
+      measuredWidth += 30.0;
     }
     measuredWidth = measuredWidth.clamp(minWidth, maxTextWidth + 48.0);
 

@@ -84,8 +84,10 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     final scaleY = (viewportSize.height - padding) / totalBounds.height;
     final scale = (scaleX < scaleY ? scaleX : scaleY).clamp(0.2, 1.5);
 
-    final targetX = (viewportSize.width / 2.0) - (totalBounds.center.dx * scale);
-    final targetY = (viewportSize.height / 2.0) - (totalBounds.center.dy * scale);
+    final targetX =
+        (viewportSize.width / 2.0) - (totalBounds.center.dx * scale);
+    final targetY =
+        (viewportSize.height / 2.0) - (totalBounds.center.dy * scale);
 
     final matrix = Matrix4.identity();
     matrix.storage[0] = scale;
@@ -104,13 +106,48 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     }
   }
 
+  Future<void> _handleRenameMindmap() async {
+    final provider = context.read<SpaceProvider>();
+    final activeMap = provider.activeMindMap;
+    if (activeMap == null) return;
+    ZetaHaptics.light();
+    final newTitle = await CreateMindMapDialog.show(
+      context,
+      initialTitle: activeMap.title,
+      isRename: true,
+    );
+    if (newTitle != null && mounted) {
+      await provider.renameActiveMindMap(newTitle);
+    }
+  }
+
+  Future<void> _handleDeleteMindmap() async {
+    final provider = context.read<SpaceProvider>();
+    final activeMap = provider.activeMindMap;
+    if (activeMap == null) return;
+    ZetaHaptics.light();
+    if (provider.mindMaps.length > 1) {
+      await provider.deleteActiveMindMap();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot delete the only remaining mindmap.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
     final provider = context.read<SpaceProvider>();
     final isEditing = provider.editingNodeId != null;
 
-    final isCtrlOrCmd = HardwareKeyboard.instance.isControlPressed ||
+    final isCtrlOrCmd =
+        HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isMetaPressed;
     final isShift = HardwareKeyboard.instance.isShiftPressed;
 
@@ -216,7 +253,9 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
         final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
 
         // Center on root on initial build
-        if (!_initializedCenter && viewportSize.width > 0 && viewportSize.height > 0) {
+        if (!_initializedCenter &&
+            viewportSize.width > 0 &&
+            viewportSize.height > 0) {
           _initializedCenter = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _centerOnRoot(viewportSize);
@@ -283,9 +322,15 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                                 key: ValueKey(node.id),
                                 node: node,
                                 bounds: layoutResult.nodeBounds[node.id]!,
-                                branchColor: layoutResult.nodeColors[node.id] ?? colorScheme.primary,
-                                hasChildren: activeMap.childrenOf(node.id).isNotEmpty,
-                                childCount: activeMap.childrenOf(node.id).length,
+                                branchColor:
+                                    layoutResult.nodeColors[node.id] ??
+                                    colorScheme.primary,
+                                hasChildren: activeMap
+                                    .childrenOf(node.id)
+                                    .isNotEmpty,
+                                childCount: activeMap
+                                    .childrenOf(node.id)
+                                    .length,
                               ),
                         ],
                       ),
@@ -307,20 +352,21 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
 
               // 3. Canvas Zoom Controls (Zoom In, Zoom Out, Center, Fit)
               Positioned(
-                left: 16,
-                bottom: isCompact ? 88 : 24,
+                left: 15,
+                bottom: 15,
                 child: CanvasControlsOverlay(
                   onZoomIn: () => _zoomBy(1.2),
                   onZoomOut: () => _zoomBy(0.8),
                   onCenterRoot: () => _centerOnRoot(viewportSize),
-                  onFitToView: () => _fitToView(viewportSize, layoutResult.totalBounds),
+                  onFitToView: () =>
+                      _fitToView(viewportSize, layoutResult.totalBounds),
                 ),
               ),
 
               // 4. M3EFabMenu with rich actions
               Positioned(
                 right: 20,
-                bottom: isCompact ? 88 : 24,
+                bottom: 20,
                 child: M3EFabMenu(
                   color: M3EFabColor.primary,
                   position: M3EFabMenuPosition.right,
@@ -332,36 +378,14 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                       onPressed: _handleCreateMindmap,
                     ),
                     M3EFabMenuItem(
-                      icon: const Icon(Icons.subdirectory_arrow_right_rounded),
-                      label: 'Add Child (Tab)',
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        provider.addChildNode();
-                      },
+                      icon: const Icon(Symbols.edit_rounded),
+                      label: 'Rename Mindmap',
+                      onPressed: _handleRenameMindmap,
                     ),
                     M3EFabMenuItem(
-                      icon: const Icon(Icons.playlist_add_rounded),
-                      label: 'Add Sibling (Enter)',
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        provider.addSiblingNode();
-                      },
-                    ),
-                    M3EFabMenuItem(
-                      icon: const Icon(Symbols.center_focus_strong_rounded),
-                      label: 'Center on Root',
-                      onPressed: () {
-                        ZetaHaptics.selection();
-                        _centerOnRoot(viewportSize);
-                      },
-                    ),
-                    M3EFabMenuItem(
-                      icon: const Icon(Symbols.fit_screen_rounded),
-                      label: 'Fit to Screen',
-                      onPressed: () {
-                        ZetaHaptics.selection();
-                        _fitToView(viewportSize, layoutResult.totalBounds);
-                      },
+                      icon: const Icon(Symbols.delete_rounded),
+                      label: 'Delete Mindmap',
+                      onPressed: _handleDeleteMindmap,
                     ),
                   ],
                 ),

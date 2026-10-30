@@ -1,14 +1,18 @@
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
 
-import '../../../providers/theme_provider.dart';
+import '../providers/space_provider.dart';
 import '../../../components/glass_surface.dart';
+import '../../../providers/theme_provider.dart';
 import '../../../utils/haptics.dart';
+import '../../../theme/breakpoints.dart';
 
-/// Floating canvas navigation controls (Zoom +/-, Center Root, Fit to View).
-class CanvasControlsOverlay extends StatelessWidget {
+/// Floating canvas navigation and workflow controls as a vertical M3E toolbar
+/// (Undo, Redo, Layout Switcher, Zoom In, Zoom Out, Center Root / Fit to Screen toggle).
+class CanvasControlsOverlay extends StatefulWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
   final VoidCallback onCenterRoot;
@@ -23,68 +27,120 @@ class CanvasControlsOverlay extends StatelessWidget {
   });
 
   @override
+  State<CanvasControlsOverlay> createState() => _CanvasControlsOverlayState();
+}
+
+class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
+  bool _isCenterMode = true;
+
+  void _handleToggle() {
+    ZetaHaptics.selection();
+    if (_isCenterMode) {
+      widget.onCenterRoot();
+    } else {
+      widget.onFitToView();
+    }
+    setState(() {
+      _isCenterMode = !_isCenterMode;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final provider = context.watch<SpaceProvider>();
+    final activeMap = provider.activeMindMap;
+    final isBalanced = activeMap?.layoutType == 'balanced';
+
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
     final colorScheme = context.colorScheme;
 
+    final sizeClass = ZetaWindowSizeClass.of(context);
+    final isCompact = sizeClass.isCompact;
+
     return GlassSurface(
-      borderRadius: BorderRadius.circular(24),
-      blurSigma: 8,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        decoration: BoxDecoration(
-          color: isDark
-              ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.65)
-              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.30),
+      borderRadius: BorderRadius.circular(32),
+      blurSigma: 10,
+      color: colorScheme.tertiaryContainer.withValues(alpha: 0.55),
+      child: M3EToolbar(
+        axis: Axis.vertical,
+        screenOffset: 0,
+        safeArea: false,
+        elevation: 0,
+        size: M3EToolbarSize.small,
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+        backgroundColor: Colors.transparent,
+        foregroundColor: colorScheme.onTertiaryContainer,
+        maxInlineActions: isCompact ? 4 : 6,
+        actions: [
+          // Undo Button
+          M3EToolbarAction(
+            icon: Icons.undo_rounded,
+            tooltip: 'Undo (Ctrl+Z)',
+            enabled: provider.canUndo,
+            onPressed: () {
+              if (provider.canUndo) {
+                ZetaHaptics.light();
+                provider.undo();
+              }
+            },
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove_rounded, size: 18),
-              tooltip: 'Zoom Out',
-              onPressed: () {
-                ZetaHaptics.selection();
-                onZoomOut();
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_rounded, size: 18),
-              tooltip: 'Zoom In',
-              onPressed: () {
-                ZetaHaptics.selection();
-                onZoomIn();
-              },
-            ),
-            Container(
-              height: 18,
-              width: 1,
-              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-            ),
-            IconButton(
-              icon: const Icon(Symbols.center_focus_strong_rounded, size: 18),
-              tooltip: 'Center on Root',
-              onPressed: () {
-                ZetaHaptics.selection();
-                onCenterRoot();
-              },
-            ),
-            IconButton(
-              icon: const Icon(Symbols.fit_screen_rounded, size: 18),
-              tooltip: 'Fit to Screen',
-              onPressed: () {
-                ZetaHaptics.selection();
-                onFitToView();
-              },
-            ),
-          ],
-        ),
+
+          // Redo Button
+          M3EToolbarAction(
+            icon: Icons.redo_rounded,
+            tooltip: 'Redo (Ctrl+Y)',
+            enabled: provider.canRedo,
+            onPressed: () {
+              if (provider.canRedo) {
+                ZetaHaptics.light();
+                provider.redo();
+              }
+            },
+          ),
+
+          // Layout Mode Switcher: Dual-Sided (Balanced) vs Horizontal (LTR)
+          M3EToolbarAction(
+            icon: isBalanced
+                ? Symbols.schema_rounded
+                : Symbols.account_tree_rounded,
+            tooltip: isBalanced
+                ? 'Layout: Dual-Sided (click for Horizontal)'
+                : 'Layout: Horizontal (click for Dual-Sided)',
+            onPressed: () {
+              ZetaHaptics.selection();
+              provider.changeLayoutType(isBalanced ? 'horizontal' : 'balanced');
+            },
+          ),
+          // Center on Root / Fit to Screen Toggle
+          M3EToolbarAction(
+            icon: _isCenterMode
+                ? Symbols.center_focus_strong_rounded
+                : Symbols.fit_screen_rounded,
+            tooltip: _isCenterMode ? 'Center on Root' : 'Fit to Screen',
+            onPressed: _handleToggle,
+          ),
+
+          // Zoom In
+          M3EToolbarAction(
+            icon: Icons.add_rounded,
+            tooltip: 'Zoom In',
+            onPressed: () {
+              ZetaHaptics.selection();
+              widget.onZoomIn();
+            },
+          ),
+
+          // Zoom Out
+          M3EToolbarAction(
+            icon: Icons.remove_rounded,
+            tooltip: 'Zoom Out',
+            onPressed: () {
+              ZetaHaptics.selection();
+              widget.onZoomOut();
+            },
+          ),
+        ],
       ),
     );
   }
