@@ -55,6 +55,12 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _notifyUiChanges() {
+    if (_isDisposed) return;
+    uiChanges.notifyListeners();
+    notifyListeners();
+  }
+
   TaskProvider({
     TaskRepository? repository,
     TaskDao? taskDao,
@@ -329,13 +335,13 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _selectedTaskIds.add(taskId);
     }
-    uiChanges.notifyListeners();
+    _notifyUiChanges();
   }
 
   void selectTask(String taskId) {
     if (!_selectedTaskIds.contains(taskId)) {
       _selectedTaskIds.add(taskId);
-      uiChanges.notifyListeners();
+      _notifyUiChanges();
     }
   }
 
@@ -348,7 +354,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   void clearSelection() {
     if (_selectedTaskIds.isNotEmpty) {
       _selectedTaskIds.clear();
-      uiChanges.notifyListeners();
+      _notifyUiChanges();
     }
   }
 
@@ -358,7 +364,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     } else {
       _expandedTaskIds.add(taskId);
     }
-    uiChanges.notifyListeners();
+    _notifyUiChanges();
   }
 
   void setFilter(TaskFilter filter) {
@@ -429,7 +435,6 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
         return Icons.arrow_upward_rounded;
     }
   }
-
 
   /// Returns true if [task] matches the given search query [query].
   static bool matchesSearch(Task task, String query) {
@@ -1093,8 +1098,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       if (!targetState && taskStateChanged) task.completedAt = null;
       task.updatedAt = now;
       if (targetState) {
-      } else {
-      }
+      } else {}
     }
 
     if (targetState) {
@@ -1121,8 +1125,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
-      if (!task.completed) {
-      }
+      if (!task.completed) {}
       _invalidateCache();
       notifyListeners();
       unawaited(_repository.saveTask(task));
@@ -1158,8 +1161,7 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       task.deletedAt = null;
       task.updatedAt = DateTime.now();
       _tasks.insert(0, task);
-      if (!task.completed) {
-      }
+      if (!task.completed) {}
     }
     _binTasks.clear();
     _binTotalCount = 0;

@@ -14,6 +14,7 @@ class FloatingBottomNav extends StatelessWidget {
   final NavigationProvider navProvider;
   final bool isSelectionMode;
   final bool keepVisible;
+  final bool showSelectionToolbar;
   final M3EToolbarScrollBehavior scrollBehavior;
   const FloatingBottomNav({
     super.key,
@@ -21,6 +22,7 @@ class FloatingBottomNav extends StatelessWidget {
     required this.isSelectionMode,
     required this.scrollBehavior,
     this.keepVisible = false,
+    this.showSelectionToolbar = false,
   });
 
   @override
@@ -29,7 +31,7 @@ class FloatingBottomNav extends StatelessWidget {
     final colorScheme = context.colorScheme;
 
     return Positioned(
-      bottom: 5,
+      bottom: showSelectionToolbar ? 64 : 5,
       left: 0,
       right: 0,
       child: AnimatedBuilder(
@@ -43,7 +45,8 @@ class FloatingBottomNav extends StatelessWidget {
           );
         },
         child: AnimatedSlide(
-          offset: (isSelectionMode ||
+          offset:
+              (isSelectionMode ||
                   navProvider.activePage == PageId.settings ||
                   navProvider.activePage == PageId.bin ||
                   navProvider.activePage == PageId.space)

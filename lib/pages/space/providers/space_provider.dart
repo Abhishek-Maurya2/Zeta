@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 
@@ -30,7 +31,7 @@ class SpaceProvider extends ChangeNotifier {
   bool _isLoading = true;
 
   SpaceProvider({MindMapRepository? repository})
-      : _repository = repository ?? MindMapRepository() {
+    : _repository = repository ?? MindMapRepository() {
     _init();
   }
 
@@ -74,6 +75,11 @@ class SpaceProvider extends ChangeNotifier {
     final sync = MindmapSyncService();
     sync.onRemoteChange = (remoteMap, eventType) {
       final index = _mindMaps.indexWhere((m) => m.id == remoteMap.id);
+      final activeMap = _activeMindMap;
+      if (activeMap?.id == remoteMap.id &&
+          activeMap!.updatedAtMs >= remoteMap.updatedAtMs) {
+        return;
+      }
       if (index >= 0) {
         _mindMaps[index] = remoteMap;
         if (_activeMindMap?.id == remoteMap.id) {
@@ -91,7 +97,8 @@ class SpaceProvider extends ChangeNotifier {
       if (_activeMindMap != null) {
         final match = _mindMaps.firstWhere(
           (m) => m.id == _activeMindMap!.id,
-          orElse: () => _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
+          orElse: () =>
+              _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
         );
         _activeMindMap = match;
       }
@@ -105,7 +112,8 @@ class SpaceProvider extends ChangeNotifier {
       if (_activeMindMap != null) {
         final match = _mindMaps.firstWhere(
           (m) => m.id == _activeMindMap!.id,
-          orElse: () => _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
+          orElse: () =>
+              _mindMaps.isNotEmpty ? _mindMaps.first : _activeMindMap!,
         );
         _activeMindMap = match;
       }
@@ -266,8 +274,7 @@ class SpaceProvider extends ChangeNotifier {
         return n.copyWith(orderIndex: siblingOrderMap[n.id]);
       }
       return n;
-    }).toList()
-      ..add(newNode);
+    }).toList()..add(newNode);
 
     _activeMindMap = _activeMindMap!.copyWith(
       nodes: updatedNodes,
@@ -288,8 +295,9 @@ class SpaceProvider extends ChangeNotifier {
         siblingOfId ?? _selectedNodeId ?? _activeMindMap!.rootNode?.id;
     if (targetId == null) return;
 
-    final targetNodeIdx =
-        _activeMindMap!.nodes.indexWhere((n) => n.id == targetId);
+    final targetNodeIdx = _activeMindMap!.nodes.indexWhere(
+      (n) => n.id == targetId,
+    );
     if (targetNodeIdx == -1) return;
     final targetNode = _activeMindMap!.nodes[targetNodeIdx];
 
@@ -314,8 +322,9 @@ class SpaceProvider extends ChangeNotifier {
     );
 
     final orderedSiblings = List<MindMapNode>.from(siblings);
-    final insertPos =
-        targetSibIdx >= 0 ? targetSibIdx + 1 : orderedSiblings.length;
+    final insertPos = targetSibIdx >= 0
+        ? targetSibIdx + 1
+        : orderedSiblings.length;
     orderedSiblings.insert(insertPos, newNode);
 
     final orderMap = <String, double>{
@@ -323,11 +332,15 @@ class SpaceProvider extends ChangeNotifier {
         orderedSiblings[i].id: i.toDouble(),
     };
 
-    final updatedNodes = _activeMindMap!.nodes
-        .map((n) =>
-            orderMap.containsKey(n.id) ? n.copyWith(orderIndex: orderMap[n.id]) : n)
-        .toList()
-      ..add(newNode.copyWith(orderIndex: orderMap[newId]));
+    final updatedNodes =
+        _activeMindMap!.nodes
+            .map(
+              (n) => orderMap.containsKey(n.id)
+                  ? n.copyWith(orderIndex: orderMap[n.id])
+                  : n,
+            )
+            .toList()
+          ..add(newNode.copyWith(orderIndex: orderMap[newId]));
 
     _activeMindMap = _activeMindMap!.copyWith(
       nodes: updatedNodes,
@@ -406,6 +419,45 @@ class SpaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleNodeCheckbox(String id) {
+    if (_activeMindMap == null) return;
+    final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
+    if (index == -1) return;
+
+    _pushHistory();
+
+    final current = _activeMindMap!.nodes[index];
+    final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes);
+    updatedNodes[index] = current.copyWith(
+      style: current.style.copyWith(hasCheckbox: !current.style.hasCheckbox),
+    );
+
+    _activeMindMap = _activeMindMap!.copyWith(nodes: updatedNodes);
+    _updateActiveInList();
+    _repository.saveMindMaps(_mindMaps);
+    notifyListeners();
+  }
+
+  void beginNodeResize() => _pushHistory();
+
+  void updateNodeWidth(String id, double width) {
+    if (_activeMindMap == null) return;
+    final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
+    if (index == -1) return;
+
+    final current = _activeMindMap!.nodes[index];
+    final minWidth = current.isRoot ? 170.0 : 150.0;
+    final nextWidth = width.clamp(minWidth, 600.0);
+    final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes);
+    updatedNodes[index] = current.copyWith(
+      style: current.style.copyWith(customWidth: nextWidth),
+    );
+    _activeMindMap = _activeMindMap!.copyWith(nodes: updatedNodes);
+    _updateActiveInList();
+    _repository.saveMindMaps(_mindMaps);
+    notifyListeners();
+  }
+
   void deleteNode(String id) {
     if (_activeMindMap == null) return;
     final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
@@ -473,7 +525,8 @@ class SpaceProvider extends ChangeNotifier {
     final isTargetRoot = _activeMindMap!.rootNode?.id == targetId;
     final effectiveReparent = isTargetRoot ? true : isReparent;
 
-    final isDisallowed = _draggedNodeId == targetId ||
+    final isDisallowed =
+        _draggedNodeId == targetId ||
         _activeMindMap!.isDescendant(targetId, _draggedNodeId!);
 
     if (_hoverTargetId != targetId ||
@@ -513,8 +566,9 @@ class SpaceProvider extends ChangeNotifier {
     if (_activeMindMap == null || draggedId == newParentId) return;
     if (_activeMindMap!.isDescendant(newParentId, draggedId)) return;
 
-    final draggedIdx =
-        _activeMindMap!.nodes.indexWhere((n) => n.id == draggedId);
+    final draggedIdx = _activeMindMap!.nodes.indexWhere(
+      (n) => n.id == draggedId,
+    );
     if (draggedIdx == -1) return;
     final draggedNode = _activeMindMap!.nodes[draggedIdx];
 
@@ -528,8 +582,9 @@ class SpaceProvider extends ChangeNotifier {
 
     _pushHistory();
 
-    final siblingsWithoutDragged =
-        existingSiblings.where((s) => s.id != draggedId).toList();
+    final siblingsWithoutDragged = existingSiblings
+        .where((s) => s.id != draggedId)
+        .toList();
     final orderMap = <String, double>{
       for (int i = 0; i < siblingsWithoutDragged.length; i++)
         siblingsWithoutDragged[i].id: i.toDouble(),
@@ -569,10 +624,12 @@ class SpaceProvider extends ChangeNotifier {
     if (_activeMindMap == null || draggedId == targetSiblingId) return;
     if (_activeMindMap!.isDescendant(targetSiblingId, draggedId)) return;
 
-    final targetIndexInNodes =
-        _activeMindMap!.nodes.indexWhere((n) => n.id == targetSiblingId);
-    final draggedIndexInNodes =
-        _activeMindMap!.nodes.indexWhere((n) => n.id == draggedId);
+    final targetIndexInNodes = _activeMindMap!.nodes.indexWhere(
+      (n) => n.id == targetSiblingId,
+    );
+    final draggedIndexInNodes = _activeMindMap!.nodes.indexWhere(
+      (n) => n.id == draggedId,
+    );
     if (targetIndexInNodes == -1 || draggedIndexInNodes == -1) return;
 
     final targetNode = _activeMindMap!.nodes[targetIndexInNodes];
@@ -587,8 +644,9 @@ class SpaceProvider extends ChangeNotifier {
         .toList();
     final targetIdx = siblings.indexWhere((s) => s.id == targetSiblingId);
 
-    final draggedNode =
-        _activeMindMap!.nodes[draggedIndexInNodes].copyWith(parentId: parentId);
+    final draggedNode = _activeMindMap!.nodes[draggedIndexInNodes].copyWith(
+      parentId: parentId,
+    );
 
     if (targetIdx == -1) {
       siblings.add(draggedNode);
@@ -663,6 +721,12 @@ class SpaceProvider extends ChangeNotifier {
 
   void _updateActiveInList() {
     if (_activeMindMap == null) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    _activeMindMap = _activeMindMap!.copyWith(
+      updatedAtMs: now > _activeMindMap!.updatedAtMs
+          ? now
+          : _activeMindMap!.updatedAtMs + 1,
+    );
     final index = _mindMaps.indexWhere((m) => m.id == _activeMindMap!.id);
     if (index >= 0) {
       _mindMaps[index] = _activeMindMap!;

@@ -5,6 +5,7 @@ class MindMapNodeStyle {
   final bool hasCheckbox;
   final bool isChecked;
   final List<String> tags;
+  final double? customWidth;
 
   const MindMapNodeStyle({
     this.colorIndex,
@@ -12,6 +13,7 @@ class MindMapNodeStyle {
     this.hasCheckbox = true,
     this.isChecked = false,
     this.tags = const [],
+    this.customWidth,
   });
 
   MindMapNodeStyle copyWith({
@@ -20,6 +22,7 @@ class MindMapNodeStyle {
     bool? hasCheckbox,
     bool? isChecked,
     List<String>? tags,
+    double? customWidth,
   }) {
     return MindMapNodeStyle(
       colorIndex: colorIndex ?? this.colorIndex,
@@ -27,6 +30,7 @@ class MindMapNodeStyle {
       hasCheckbox: hasCheckbox ?? this.hasCheckbox,
       isChecked: isChecked ?? this.isChecked,
       tags: tags ?? this.tags,
+      customWidth: customWidth ?? this.customWidth,
     );
   }
 
@@ -37,6 +41,7 @@ class MindMapNodeStyle {
       'hasCheckbox': hasCheckbox,
       'isChecked': isChecked,
       'tags': tags,
+      'customWidth': customWidth,
     };
   }
 
@@ -46,7 +51,10 @@ class MindMapNodeStyle {
       shape: json['shape'] as String? ?? 'rounded',
       hasCheckbox: json['hasCheckbox'] as bool? ?? true,
       isChecked: json['isChecked'] as bool? ?? false,
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          const [],
+      customWidth: (json['customWidth'] as num?)?.toDouble(),
     );
   }
 }

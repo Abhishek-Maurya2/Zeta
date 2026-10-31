@@ -72,7 +72,9 @@ class _AppScaffoldState extends State<AppScaffold>
   static const double _refreshTargetHeight = 80;
   late final AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
-  final ValueNotifier<double> _refreshHeightNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _refreshHeightNotifier = ValueNotifier<double>(
+    0.0,
+  );
   double _dragOffset = 0;
   bool _isRefreshing = false;
   bool _isUserPulling = false;
@@ -168,7 +170,9 @@ class _AppScaffoldState extends State<AppScaffold>
   Future<void> _triggerRefresh() async {
     if (_isRefreshing) return;
     final nav = context.read<NavigationProvider>();
-    if (nav.activePage == PageId.settings || nav.activePage == PageId.bin || nav.activePage == PageId.space) {
+    if (nav.activePage == PageId.settings ||
+        nav.activePage == PageId.bin ||
+        nav.activePage == PageId.space) {
       return;
     }
 
@@ -263,7 +267,9 @@ class _AppScaffoldState extends State<AppScaffold>
     }
 
     if (_isRefreshing ||
-        context.read<NavigationProvider>().activePage == PageId.settings || context.read<NavigationProvider>().activePage == PageId.bin || context.read<NavigationProvider>().activePage == PageId.space ||
+        context.read<NavigationProvider>().activePage == PageId.settings ||
+        context.read<NavigationProvider>().activePage == PageId.bin ||
+        context.read<NavigationProvider>().activePage == PageId.space ||
         notification.depth != 0 ||
         notification.metrics.axis != Axis.vertical) {
       return false;
@@ -409,7 +415,9 @@ class _AppScaffoldState extends State<AppScaffold>
             !isCtrlOrCmd) ||
         (isCtrlOrCmd && logical == LogicalKeyboardKey.keyR)) {
       final nav = context.read<NavigationProvider>();
-      if (nav.activePage != PageId.settings && nav.activePage != PageId.bin && nav.activePage != PageId.space) {
+      if (nav.activePage != PageId.settings &&
+          nav.activePage != PageId.bin &&
+          nav.activePage != PageId.space) {
         unawaited(_triggerRefresh());
         return true;
       }
@@ -458,21 +466,22 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final isSearchOpen = _topBarKey.currentState?.isSearchOpen ?? false;
     final hasActivePane =
-        riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider) != null;
+        riverpod.ProviderScope.containerOf(
+          context,
+          listen: false,
+        ).read(activePaneProvider) !=
+        null;
     final backHandledByScaffold =
-        isEditPaneOpen ||
-        hasActivePane ||
-        isSelectionMode ||
-        isSearchOpen;
+        isEditPaneOpen || hasActivePane || isSelectionMode || isSearchOpen;
 
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
     // On compact screens (< 600dp), Settings, Bin, Topics, and Notes provide their own dedicated top header with back navigation.
     final showTopAppBar =
-        
         (!isCompact ||
-            (navProvider.activePage != PageId.settings &&
-                navProvider.activePage != PageId.bin && navProvider.activePage != PageId.space));
+        (navProvider.activePage != PageId.settings &&
+            navProvider.activePage != PageId.bin &&
+            navProvider.activePage != PageId.space));
 
     final isDark = context.theme.brightness == Brightness.dark;
     final colorScheme = context.colorScheme;
@@ -523,7 +532,10 @@ class _AppScaffoldState extends State<AppScaffold>
         }
 
         // 0.1. If an active contextual supporting pane is open, close it
-        final activeCoord = riverpod.ProviderScope.containerOf(context, listen: false).read(activePaneProvider.notifier);
+        final activeCoord = riverpod.ProviderScope.containerOf(
+          context,
+          listen: false,
+        ).read(activePaneProvider.notifier);
         if (activeCoord.isOpen) {
           ZetaHaptics.light();
           activeCoord.closePane();
@@ -543,8 +555,6 @@ class _AppScaffoldState extends State<AppScaffold>
           topBar.closeSearch();
           return;
         }
-
-
 
         // Destination routes and modal routes are popped by their Navigator.
         if (_bodyNavigatorKey.currentState?.canPop() == true) return;
@@ -580,7 +590,10 @@ class _AppScaffoldState extends State<AppScaffold>
                 children: [
                   // 1. Top App Bar (contains rail toggle button, hidden on mobile)
                   if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
-                  if (navProvider.activePage != PageId.settings && navProvider.activePage != PageId.bin && navProvider.activePage != PageId.space && navProvider.activePage != PageId.space)
+                  if (navProvider.activePage != PageId.settings &&
+                      navProvider.activePage != PageId.bin &&
+                      navProvider.activePage != PageId.space &&
+                      navProvider.activePage != PageId.space)
                     ValueListenableBuilder<double>(
                       valueListenable: _refreshHeightNotifier,
                       builder: (context, height, _) {
@@ -625,6 +638,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                       isSelectionMode: isSelectionMode,
                                       scrollBehavior: _toolbarBehavior,
                                       keepVisible: isPomodoroTimerPane,
+                                      showSelectionToolbar: isSelectionMode,
                                     ),
                                     TaskSelectionToolbar(
                                       taskProvider: context
@@ -648,10 +662,16 @@ class _AppScaffoldState extends State<AppScaffold>
                                             builder: (context, taskProvider, _) {
                                               return riverpod.Consumer(
                                                 builder: (context, ref, _) {
-                                                  final activePane = ref.watch(activePaneProvider);
-                                                  final hasTaskEdit = isEditPaneOpen;
-                                                  final hasActivePane = activePane != null;
-                                                  final showSupporting = hasTaskEdit || hasActivePane;
+                                                  final activePane = ref.watch(
+                                                    activePaneProvider,
+                                                  );
+                                                  final hasTaskEdit =
+                                                      isEditPaneOpen;
+                                                  final hasActivePane =
+                                                      activePane != null;
+                                                  final showSupporting =
+                                                      hasTaskEdit ||
+                                                      hasActivePane;
 
                                                   Widget? supportingContent;
                                                   if (hasTaskEdit) {
@@ -659,45 +679,68 @@ class _AppScaffoldState extends State<AppScaffold>
                                                       key: ValueKey(
                                                         '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
                                                       ),
-                                                      task: taskProvider.editingTask,
-                                                      initialTitle: taskProvider.editingInitialTitle,
-                                                      initialDescription: taskProvider.editingInitialDescription,
-                                                      initialDueDate: taskProvider.editingInitialDueDate,
-                                                      initialDueTime: taskProvider.editingInitialDueTime,
-                                                      initialHasTime: taskProvider.editingInitialHasTime,
-                                                      initialSubtasks: taskProvider.editingInitialSubtasks,
-                                                      onClose: taskProvider.closeEditPane,
+                                                      task: taskProvider
+                                                          .editingTask,
+                                                      initialTitle: taskProvider
+                                                          .editingInitialTitle,
+                                                      initialDescription:
+                                                          taskProvider
+                                                              .editingInitialDescription,
+                                                      initialDueDate: taskProvider
+                                                          .editingInitialDueDate,
+                                                      initialDueTime: taskProvider
+                                                          .editingInitialDueTime,
+                                                      initialHasTime: taskProvider
+                                                          .editingInitialHasTime,
+                                                      initialSubtasks: taskProvider
+                                                          .editingInitialSubtasks,
+                                                      onClose: taskProvider
+                                                          .closeEditPane,
                                                     );
                                                   } else if (hasActivePane) {
-                                                    supportingContent = activePane.child;
+                                                    supportingContent =
+                                                        activePane.child;
                                                   }
 
                                                   return SupportingPaneScaffold(
-                                                    defaultPaneWidth: activePane?.width ?? _taskEditPaneWidth,
+                                                    defaultPaneWidth:
+                                                        activePane?.width ??
+                                                        _taskEditPaneWidth,
                                                     primaryPane: BodyPane(
-                                                      navigatorKey: _bodyNavigatorKey,
-                                                      backHandledByScaffold: backHandledByScaffold,
+                                                      navigatorKey:
+                                                          _bodyNavigatorKey,
+                                                      backHandledByScaffold:
+                                                          backHandledByScaffold,
                                                     ),
-                                                    supportingPane: !showSupporting || supportingContent == null
+                                                    supportingPane:
+                                                        !showSupporting ||
+                                                            supportingContent ==
+                                                                null
                                                         ? null
                                                         : Container(
-                                                            margin: const EdgeInsets.fromLTRB(
-                                                              0,
-                                                              10,
-                                                              10,
-                                                              6,
-                                                            ),
+                                                            margin:
+                                                                const EdgeInsets.fromLTRB(
+                                                                  0,
+                                                                  10,
+                                                                  10,
+                                                                  6,
+                                                                ),
                                                             decoration: BoxDecoration(
                                                               color: hasTaskEdit
-                                                                  ? colorScheme.tertiaryContainer
-                                                                  : colorScheme.surfaceContainerHigh,
-                                                              borderRadius: BorderRadius.circular(
-                                                                20,
-                                                              ),
+                                                                  ? colorScheme
+                                                                        .tertiaryContainer
+                                                                  : colorScheme
+                                                                        .surfaceContainerHigh,
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    20,
+                                                                  ),
                                                             ),
-                                                            clipBehavior: Clip.antiAlias,
+                                                            clipBehavior:
+                                                                Clip.antiAlias,
                                                             child: SafeArea(
-                                                              child: supportingContent,
+                                                              child:
+                                                                  supportingContent,
                                                             ),
                                                           ),
                                                   );

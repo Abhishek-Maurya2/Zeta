@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 import '../models/mindmap.dart';
@@ -371,7 +372,7 @@ class MindMapLayoutEngine {
     return math.max(selfHeight, childrenHeight);
   }
 
- static Size _measureNode(
+  static Size _measureNode(
     MindMapNode node,
     TextStyle? baseStyle, {
     bool hasChildren = false,
@@ -379,12 +380,14 @@ class MindMapLayoutEngine {
     final isRoot = node.isRoot;
 
     final minNodeWidth = isRoot ? 170.0 : 150.0;
-    final maxNodeWidth = isRoot ? 320.0 : 400.0;
+    final maxNodeWidth = (node.style.customWidth ?? (isRoot ? 320.0 : 400.0))
+        .clamp(minNodeWidth, 600.0);
     final minNodeHeight = isRoot ? 68.0 : 48.0;
 
     // Padding (36 or 28) + Border & sub-pixel safety buffer (8)
     // + Checkbox (18 box + 8 gap = 26) + Collapse badge (6 gap + 28 pill = 34)
-    final horizontalOverhead = (isRoot ? 36.0 : 28.0) +
+    final horizontalOverhead =
+        (isRoot ? 36.0 : 28.0) +
         8.0 +
         (node.style.hasCheckbox ? 26.0 : 0.0) +
         (hasChildren ? 38.0 : 0.0);
@@ -422,13 +425,12 @@ class MindMapLayoutEngine {
       )..layout(maxWidth: maxContentWidth);
     }
 
-    final targetContentWidth =
-        fitsOnOneLine ? singleLineWidth : maxContentWidth;
-    double measuredWidth = targetContentWidth + horizontalOverhead;
-    measuredWidth = measuredWidth.clamp(
-      minNodeWidth,
-      maxNodeWidth,
-    );
+    final targetContentWidth = fitsOnOneLine
+        ? singleLineWidth
+        : maxContentWidth;
+    double measuredWidth =
+        node.style.customWidth ?? (targetContentWidth + horizontalOverhead);
+    measuredWidth = measuredWidth.clamp(minNodeWidth, maxNodeWidth);
 
     final verticalOverhead = isRoot ? 36.0 : 30.0;
     double measuredHeight =

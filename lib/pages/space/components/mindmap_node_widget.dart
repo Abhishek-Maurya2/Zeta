@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
 
@@ -10,6 +11,7 @@ import '../../../providers/theme_provider.dart';
 import '../../../utils/haptics.dart';
 import '../../../theme/motion_tokens.dart';
 import '../../../components/glass_alert_dialog.dart';
+import '../../../components/glass_m3e_menu.dart';
 
 /// Interactive node tile inside the MindMap canvas.
 class MindMapNodeWidget extends StatefulWidget {
@@ -113,81 +115,140 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
   }
 
   void _showContextMenu(BuildContext context, Offset globalPosition) {
-    if (widget.node.isRoot) return;
     final provider = context.read<SpaceProvider>();
     provider.selectNode(widget.node.id);
-
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
-    if (overlay == null) return;
-
-    showMenu<String>(
+    final isRoot = widget.node.isRoot;
+    final isCollapsed = widget.node.isCollapsed;
+    final hasCheckbox = widget.node.style.hasCheckbox;
+    showGlassM3EMenu<String>(
       context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        const PopupMenuItem(
+      anchor: Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 1, 1),
+      position: M3EMenuAnchorPosition.bottomStart,
+      colorStyle: M3EMenuColorStyle.vibrant,
+      preferredWidth: 220,
+      children: [
+        M3EMenuWidget(
+          semanticLabel: 'Quick node actions',
+          child: Row(
+            children: [
+              Expanded(
+                child: _quickMenuAction(
+                  context,
+                  icon: Icons.add_rounded,
+                  label: 'Child',
+                  onTap: () => provider.addChildNode(parentId: widget.node.id),
+                ),
+              ),
+              Expanded(
+                child: _quickMenuAction(
+                  context,
+                  icon: Icons.playlist_add_rounded,
+                  label: 'Sibling',
+                  enabled: !isRoot,
+                  onTap: () =>
+                      provider.addSiblingNode(siblingOfId: widget.node.id),
+                ),
+              ),
+              Expanded(
+                child: _quickMenuAction(
+                  context,
+                  icon: hasCheckbox
+                      ? Icons.check_box_outline_blank_rounded
+                      : Icons.check_box_rounded,
+                  label: 'Checkbox',
+                  onTap: () => provider.toggleNodeCheckbox(widget.node.id),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const M3EMenuEntry(
           value: 'edit',
-          child: Row(
-            children: [
-              Icon(Symbols.edit_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Edit (F2)'),
-            ],
+          label: 'Edit (F2)',
+          leading: Icon(Symbols.edit_rounded, size: 20),
+        ),
+        M3EMenuEntry(
+          value: 'toggle_collapse',
+          label: isCollapsed ? 'Expand Branch' : 'Collapse Branch',
+          leading: Icon(
+            isCollapsed ? Icons.unfold_more_rounded : Icons.unfold_less_rounded,
+            size: 20,
+          ),
+          enabled: widget.hasChildren,
+        ),
+        M3EMenuEntry(
+          value: 'toggle_checkbox',
+          label: hasCheckbox ? 'Remove Checkbox' : 'Add Checkbox',
+          leading: Icon(
+            hasCheckbox
+                ? Icons.check_box_outline_blank_rounded
+                : Icons.check_box_rounded,
+            size: 20,
           ),
         ),
-        const PopupMenuItem(
-          value: 'add_child',
-          child: Row(
-            children: [
-              Icon(Icons.add_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Add Child (Tab)'),
-            ],
+        if (!isRoot) ...[
+          const M3EMenuDivider(),
+          const M3EMenuEntry(
+            value: 'delete',
+            label: 'Delete (Del)',
+            leading: Icon(Symbols.delete_rounded, size: 20),
+            isDestructive: true,
           ),
-        ),
-        const PopupMenuItem(
-          value: 'add_sibling',
-          child: Row(
-            children: [
-              Icon(Icons.playlist_add_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Add Sibling (Enter)'),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(
-                Symbols.delete_rounded,
-                size: 18,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Delete (Del)',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-          ),
-        ),
+        ],
       ],
     ).then((value) {
       if (value == null || !mounted) return;
       if (value == 'edit') {
         provider.startEditingNode(widget.node.id);
-      } else if (value == 'add_child') {
-        provider.addChildNode(parentId: widget.node.id);
-      } else if (value == 'add_sibling') {
-        provider.addSiblingNode(siblingOfId: widget.node.id);
+      } else if (value == 'toggle_collapse') {
+        provider.toggleNodeCollapsed(widget.node.id);
       } else if (value == 'delete') {
         _handleDelete(provider);
       }
     });
+  }
+
+  Widget _quickMenuAction(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool enabled = true,
+  }) {
+    final colorScheme = context.colorScheme;
+    return InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: enabled
+            ? () {
+                ZetaHaptics.light();
+                Navigator.of(context).pop();
+                onTap();
+              }
+            : null,
+        child: SizedBox(
+          height: 52,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: enabled ? colorScheme.onSurface : colorScheme.outline,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: enabled ? colorScheme.onSurface : colorScheme.outline,
+                ),
+              ),
+            ],
+          ),
+      ),
+    );
   }
 
   /// Claims mouse wheel events over the card so InteractiveViewer never zooms,
@@ -363,6 +424,9 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                       : () {
                           ZetaHaptics.selection();
                           provider.selectNode(widget.node.id);
+                          if (widget.hasChildren) {
+                            provider.toggleNodeCollapsed(widget.node.id);
+                          }
                         },
                   onDoubleTap: isEditing
                       ? null
@@ -385,13 +449,19 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                       return details.data != widget.node.id;
                     },
                     onMove: (details) {
-                      final renderBox = context.findRenderObject() as RenderBox?;
+                      final renderBox =
+                          context.findRenderObject() as RenderBox?;
                       if (renderBox != null) {
-                        final localPos = renderBox.globalToLocal(details.offset);
-                        final cardY = (localPos.dy - hitMargin)
-                            .clamp(0.0, widget.bounds.height);
+                        final localPos = renderBox.globalToLocal(
+                          details.offset,
+                        );
+                        final cardY = (localPos.dy - hitMargin).clamp(
+                          0.0,
+                          widget.bounds.height,
+                        );
                         final h = widget.bounds.height;
-                        final isReparent = cardY >= h * 0.25 && cardY <= h * 0.75;
+                        final isReparent =
+                            cardY >= h * 0.25 && cardY <= h * 0.75;
                         final isAbove = cardY < h * 0.5;
                         provider.updateDragHover(
                           targetId: widget.node.id,
@@ -422,7 +492,9 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                           height: widget.bounds.height,
                           decoration: BoxDecoration(
                             color: cardBgColor,
-                            borderRadius: BorderRadius.circular(isRoot ? 8 : 15),
+                            borderRadius: BorderRadius.circular(
+                              isRoot ? 8 : 15,
+                            ),
                             border: border,
                             boxShadow: shadows,
                           ),
@@ -516,20 +588,24 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                                 widget.node.style.isChecked
                                                 ? TextDecoration.lineThrough
                                                 : null,
-                                            decorationColor: colorScheme.outline,
+                                            decorationColor:
+                                                colorScheme.outline,
                                           ),
                                         ),
                                       ),
                               ),
 
                               // Expressive Animated Collapse / Expand Toggle Badge
-                              if (widget.hasChildren) ...[
+                              if (widget.hasChildren &&
+                                  widget.node.isCollapsed) ...[
                                 const SizedBox(width: 6),
                                 GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () {
                                     ZetaHaptics.selection();
-                                    provider.toggleNodeCollapsed(widget.node.id);
+                                    provider.toggleNodeCollapsed(
+                                      widget.node.id,
+                                    );
                                   },
                                   child: Tooltip(
                                     message: widget.node.isCollapsed
@@ -567,7 +643,9 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                         child: widget.node.isCollapsed
                                             ? Text(
                                                 '${widget.childCount}',
-                                                key: const ValueKey('collapsed'),
+                                                key: const ValueKey(
+                                                  'collapsed',
+                                                ),
                                                 style: const TextStyle(
                                                   fontSize: 15,
                                                   fontWeight: FontWeight.w600,
@@ -576,8 +654,10 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                               )
                                             : Icon(
                                                 widget.isLeft
-                                                    ? Icons.chevron_right_rounded
-                                                    : Icons.chevron_left_rounded,
+                                                    ? Icons
+                                                          .chevron_right_rounded
+                                                    : Icons
+                                                          .chevron_left_rounded,
                                                 key: const ValueKey('expanded'),
                                                 size: 23,
                                                 color: widget.branchColor,
@@ -610,8 +690,10 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                 color: Colors.transparent,
                                 child: ConstrainedBox(
                                   constraints: BoxConstraints(
-                                    maxWidth:
-                                        widget.bounds.width.clamp(120.0, 220.0),
+                                    maxWidth: widget.bounds.width.clamp(
+                                      120.0,
+                                      220.0,
+                                    ),
                                     maxHeight: 42.0,
                                   ),
                                   child: Container(
@@ -705,94 +787,43 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
               ),
             ),
 
-            // 3. Child (+) Affordance Button
             if (isSelected && !isEditing)
               Positioned(
-                left: widget.isLeft ? 6 : null,
-                right: widget.isLeft ? null : 6,
-                top: hitMargin + (widget.bounds.height - 30) / 2,
-                child: _AffordanceButton(
-                  icon: Icons.add_rounded,
-                  tooltip: 'Add Child (Tab)',
-                  color: widget.branchColor,
-                  onTap: () {
-                    ZetaHaptics.light();
-                    provider.addChildNode(parentId: widget.node.id);
+                right: hitMargin - 6,
+                bottom: hitMargin - 6,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanStart: (_) => provider.beginNodeResize(),
+                  onPanUpdate: (details) {
+                    provider.updateNodeWidth(
+                      widget.node.id,
+                      widget.bounds.width + details.delta.dx,
+                    );
                   },
-                ),
-              ),
-
-            // 4. Sibling (+) Affordance Button
-            if (isSelected && !isEditing && !isRoot)
-              Positioned(
-                bottom: 8,
-                left: hitMargin + (widget.bounds.width - 36) / 2,
-                child: _AffordanceButton(
-                  icon: Icons.add_rounded,
-                  tooltip: 'Add Sibling (Enter)',
-                  color: widget.branchColor,
-                  onTap: () {
-                    ZetaHaptics.light();
-                    provider.addSiblingNode(siblingOfId: widget.node.id);
-                  },
-                ),
-              ),
-
-            // 5. Delete Affordance Button
-            if (isSelected && !isEditing && !isRoot)
-              Positioned(
-                top: 8,
-                right: widget.isLeft ? null : 8,
-                left: widget.isLeft ? 8 : null,
-                child: _AffordanceButton(
-                  icon: Symbols.delete_rounded,
-                  tooltip: 'Delete Node (Delete / Backspace)',
-                  color: colorScheme.error,
-                  onTap: () => _handleDelete(provider),
+                  child: Tooltip(
+                    message: 'Drag to resize node',
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: widget.branchColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colorScheme.surface,
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.branchColor.withValues(alpha: 0.4),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AffordanceButton extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _AffordanceButton({
-    required this.icon,
-    required this.tooltip,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 30,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.45),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Icon(icon, size: 20, color: Colors.white),
         ),
       ),
     );
