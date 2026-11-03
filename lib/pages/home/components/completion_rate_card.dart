@@ -1,14 +1,21 @@
+import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:provider/provider.dart';
 
+import '../../../components/glass_surface.dart';
+import '../../../core/extensions/context_extensions.dart';
+import '../../../models/task.dart';
 import '../../../providers/navigation_provider.dart';
 import '../../../providers/pomodoro_provider.dart';
 import '../../../providers/task_provider.dart';
 import '../../../providers/theme_provider.dart';
+import '../../../theme/motion_tokens.dart';
 import '../../../utils/date_time_utils.dart';
 import '../../../utils/haptics.dart';
 
@@ -35,13 +42,20 @@ import '../../../utils/haptics.dart';
 class CompletionRateCard extends StatelessWidget {
   final VoidCallback? onMoreTap;
   final VoidCallback? onOptionsTap;
+  final bool? enableHoverFlyout;
 
-  const CompletionRateCard({super.key, this.onMoreTap, this.onOptionsTap});
+  const CompletionRateCard({
+    super.key,
+    this.onMoreTap,
+    this.onOptionsTap,
+    this.enableHoverFlyout,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode(context);
+    context.watch<ThemeProvider>();
+    final isDark = context.theme.brightness == Brightness.dark;
+    final colorScheme = context.colorScheme;
 
     final taskProvider = context.watch<TaskProvider>();
     final pomodoroProvider = context.watch<PomodoroProvider>();
@@ -58,6 +72,7 @@ class CompletionRateCard extends StatelessWidget {
     final tasks = taskProvider.allTasks;
     int regularWorkload = 0;
     int regularCompletedToday = 0;
+    final workloadTasks = <({Task task, bool isCompleted})>[];
 
     for (final task in tasks) {
       final due = task.parsedDueDate;
@@ -80,6 +95,7 @@ class CompletionRateCard extends StatelessWidget {
 
       regularWorkload++;
       if (wasCompletedToday) regularCompletedToday++;
+      workloadTasks.add((task: task, isCompleted: wasCompletedToday));
     }
 
     final totalAssignedToday = regularWorkload;
@@ -117,8 +133,6 @@ class CompletionRateCard extends StatelessWidget {
     final focusValue =
         '${todayFocusMinutes ~/ 60}h ${todayFocusMinutes % 60}min';
 
-
-
     // C) Regular Task Metric — Completed today / today's regular workload.
     final tasksProgress = regularWorkload > 0
         ? (regularCompletedToday / regularWorkload).clamp(0.0, 1.0)
@@ -154,12 +168,12 @@ class CompletionRateCard extends StatelessWidget {
       },
     );
 
-
     // Pending capsule — Purple/Lavender (Google Health "Sleep")
     final pendingColor = isDark
         ? const Color.fromRGBO(224, 212, 237, 1)
         : const Color(0xFF59318F);
-    final pendingCapsule = _HealthMetricCapsule(
+    final pendingCapsule = _TasksWorkloadCapsule(
+      key: const ValueKey('tasks_workload_capsule'),
       title: 'Tasks',
       value: tasksValue,
       icon: Symbols.checklist_rounded,
@@ -172,6 +186,12 @@ class CompletionRateCard extends StatelessWidget {
           ? const Color.fromARGB(255, 74, 5, 143)
           : const Color(0xFFF9EEFF),
       contentColor: pendingColor,
+      workloadTasks: workloadTasks,
+      completedCount: regularCompletedToday,
+      totalCount: regularWorkload,
+      colorScheme: colorScheme,
+      isDark: isDark,
+      enableHoverFlyout: enableHoverFlyout,
       onTap: () {
         ZetaHaptics.light();
         taskProvider.setFilter(TaskFilter.pending);
@@ -394,9 +414,9 @@ class MetricDonutRingGauge extends StatelessWidget {
                         ? const Color(0xFF7CA6FE)
                         : const Color(0xFF1D54C2),
                   ),
-                ),
               ),
             ),
+        ),
           ],
         );
       },
@@ -600,6 +620,377 @@ class _HealthMetricCapsule extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Tasks metric capsule that expands inline on hover on desktop platforms.
+class _TasksWorkloadCapsule extends StatefulWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final double progress;
+  final Color capsuleBg;
+  final Color progressFillBg;
+  final Color iconShapeBg;
+  final Color contentColor;
+  final VoidCallback? onTap;
+  final List<({Task task, bool isCompleted})> workloadTasks;
+  final int completedCount;
+  final int totalCount;
+  final material_ui.ColorScheme colorScheme;
+  final bool isDark;
+  final bool? enableHoverFlyout;
+
+  const _TasksWorkloadCapsule({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    this.progress = 0.0,
+    required this.capsuleBg,
+    this.progressFillBg = Colors.transparent,
+    required this.iconShapeBg,
+    required this.contentColor,
+    this.onTap,
+    required this.workloadTasks,
+    required this.completedCount,
+    required this.totalCount,
+    required this.colorScheme,
+    required this.isDark,
+    this.enableHoverFlyout,
+  });
+
+  @override
+  State<_TasksWorkloadCapsule> createState() => _TasksWorkloadCapsuleState();
+}
+
+class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
+    with SingleTickerProviderStateMixin {
+  final _overlayController = OverlayPortalController();
+  final _layerLink = LayerLink();
+  final _tapRegionGroupId = Object();
+  late final AnimationController _transformController;
+  Timer? _closeTimer;
+  bool _isExpanded = false;
+  bool _popupVisible = false;
+  bool _isHoveringPill = false;
+  bool _isHoveringPopup = false;
+  Size _closedSize = Size.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformController = AnimationController(
+      vsync: this,
+      duration: M3MotionDuration.medium3,
+      reverseDuration: M3MotionDuration.short4,
+    );
+  }
+
+  @override
+  void dispose() {
+    _closeTimer?.cancel();
+    _transformController.dispose();
+    super.dispose();
+  }
+
+  bool _resolveIsDesktop(BuildContext context) {
+    if (widget.enableHoverFlyout != null) {
+      return widget.enableHoverFlyout!;
+    }
+    final platform = context.theme.platform;
+    return platform == TargetPlatform.windows ||
+        platform == TargetPlatform.macOS ||
+        platform == TargetPlatform.linux ||
+        platform == TargetPlatform.fuchsia ||
+        kIsWeb;
+  }
+
+  void _openPopup(BuildContext triggerContext) {
+    _closeTimer?.cancel();
+    final renderObject = triggerContext.findRenderObject();
+    if (renderObject is RenderBox) {
+      _closedSize = renderObject.size;
+    }
+    if (!_popupVisible) {
+      setState(() {
+        _popupVisible = true;
+        _isExpanded = false;
+      });
+      _overlayController.show();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _popupVisible) {
+        setState(() => _isExpanded = true);
+        _transformController.forward();
+      }
+    });
+  }
+
+  void _closePopup() {
+    _closeTimer?.cancel();
+    if (!_popupVisible) return;
+    setState(() => _isExpanded = false);
+    _transformController.reverse().then((_) {
+      if (mounted && !_isExpanded) {
+        setState(() => _popupVisible = false);
+        _overlayController.hide();
+      }
+    });
+  }
+
+  void _scheduleClose() {
+    _closeTimer?.cancel();
+    _closeTimer = Timer(const Duration(milliseconds: 180), () {
+      if (!_isHoveringPill && !_isHoveringPopup) _closePopup();
+    });
+  }
+
+  Widget _buildPopup(BuildContext context) {
+    final maxWidth = math.min(340.0, MediaQuery.sizeOf(context).width - 32);
+    final closedWidth = _closedSize.width > 0 ? _closedSize.width : 180.0;
+    final closedHeight = _closedSize.height > 0 ? _closedSize.height : 58.0;
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: CompositedTransformFollower(
+        link: _layerLink,
+        showWhenUnlinked: false,
+        targetAnchor: Alignment.topRight,
+        followerAnchor: Alignment.topRight,
+        child: MouseRegion(
+          onEnter: (_) {
+            _isHoveringPopup = true;
+            _closeTimer?.cancel();
+          },
+          onExit: (_) {
+            _isHoveringPopup = false;
+            _scheduleClose();
+          },
+            child: AnimatedContainer(
+            duration: M3MotionDuration.medium3,
+              curve: M3MotionEasing.emphasizedDecelerate,
+              width: _isExpanded ? maxWidth : closedWidth,
+              constraints: BoxConstraints(
+                minHeight: closedHeight,
+                maxHeight: 380,
+              ),
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(_isExpanded ? 24 : 20),
+                blurSigma: 5,
+                color: widget.capsuleBg.withValues(
+                  alpha: 0.5,
+                ),
+                child: AnimatedSize(
+                  duration: M3MotionDuration.medium3,
+                  reverseDuration: M3MotionDuration.short4,
+                  curve: M3MotionEasing.emphasizedDecelerate,
+                  alignment: Alignment.topRight,
+                  child: AnimatedSwitcher(
+                    duration: M3MotionDuration.medium2,
+                    switchInCurve: M3MotionEasing.emphasizedDecelerate,
+                    switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        sizeFactor: animation,
+                        axisAlignment: -1,
+                        child: child,
+                      ),
+                    ),
+                    child: _isExpanded
+                        ? _TasksFlyoutCard(
+                            key: const ValueKey('expanded-workload'),
+                            workloadTasks: widget.workloadTasks,
+                            completedCount: widget.completedCount,
+                            totalCount: widget.totalCount,
+                            colorScheme: widget.colorScheme,
+                            isDark: widget.isDark,
+                            capsuleBg: widget.capsuleBg,
+                            iconShapeBg: widget.iconShapeBg,
+                            contentColor: widget.contentColor,
+                          )
+                        : KeyedSubtree(
+                            key: const ValueKey('closed-workload'),
+                            child: _HealthMetricCapsule(
+                              title: widget.title,
+                              value: widget.value,
+                              icon: widget.icon,
+                              progress: widget.progress,
+                              capsuleBg: widget.capsuleBg,
+                              progressFillBg: widget.progressFillBg,
+                              iconShapeBg: widget.iconShapeBg,
+                              contentColor: widget.contentColor,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final capsule = _HealthMetricCapsule(
+      title: widget.title,
+      value: widget.value,
+      icon: widget.icon,
+      progress: widget.progress,
+      capsuleBg: widget.capsuleBg,
+      progressFillBg: widget.progressFillBg,
+      iconShapeBg: widget.iconShapeBg,
+      contentColor: widget.contentColor,
+      onTap: () {
+        if (_isExpanded) _closePopup();
+        widget.onTap?.call();
+      },
+    );
+
+    final isDesktop = _resolveIsDesktop(context);
+
+    if (!isDesktop) {
+      return capsule;
+    }
+
+    return OverlayPortal(
+      controller: _overlayController,
+      overlayChildBuilder: _buildPopup,
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: MouseRegion(
+          onEnter: (_) {
+            _isHoveringPill = true;
+            _openPopup(context);
+          },
+          onExit: (_) {
+            _isHoveringPill = false;
+            _scheduleClose();
+          },
+          child: AnimatedOpacity(
+            duration: M3MotionDuration.short4,
+            opacity: _popupVisible ? 0.0 : 1.0,
+            child: capsule,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// View-only flyout card displaying the active workload tasks in an M3EList
+/// styled on a GlassSurface matching weather telemetry and profile flyouts.
+class _TasksFlyoutCard extends StatelessWidget {
+  final List<({Task task, bool isCompleted})> workloadTasks;
+  final int completedCount;
+  final int totalCount;
+  final material_ui.ColorScheme colorScheme;
+  final bool isDark;
+  final Color capsuleBg;
+  final Color iconShapeBg;
+  final Color contentColor;
+
+  const _TasksFlyoutCard({
+    super.key,
+    required this.workloadTasks,
+    required this.completedCount,
+    required this.totalCount,
+    required this.colorScheme,
+    required this.isDark,
+    required this.capsuleBg,
+    required this.iconShapeBg,
+    required this.contentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Symbols.checklist_rounded,
+                size: 18,
+                color: contentColor,
+                fill: 1.0,
+                weight: 700,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Today's Workload",
+                      style: TextStyle(
+                        fontFamily: 'GoogleSansFlex',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: contentColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // ─── Task List Display Using M3EList (View-Only) ────────────────
+          if (workloadTasks.isEmpty)
+            M3EList(
+              color: capsuleBg.withValues(alpha: isDark ? 0.5 : 0.72),
+              itemCount: 1,
+              itemBuilder: (context, index) => M3EListItem(
+                leading: Icon(
+                  Symbols.check_circle_rounded,
+                  size: 20,
+                  color: contentColor,
+                  fill: 1.0,
+                  weight: 700,
+                ),
+                headline: 'No workload tasks for today',
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: SingleChildScrollView(
+                child: M3EList(
+                  color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.4),
+                  itemCount: workloadTasks.length,
+                  itemBuilder: (context, index) {
+                    final item = workloadTasks[index];
+                    final isDone = item.isCompleted;
+                    final statusColor = isDone
+                        ? contentColor
+                        : contentColor.withValues(alpha: 0.78);
+                    return M3EListItem(
+                      leading: Icon(
+                        isDone
+                            ? Symbols.check_circle_rounded
+                            : Symbols.radio_button_unchecked_rounded,
+                        size: 20,
+                        color: isDone
+                            ? statusColor
+                            : contentColor,
+                        fill: 1.0,
+                        weight: 700,
+                      ),
+                      headline: item.task.title,
+                    );
+                  },
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
