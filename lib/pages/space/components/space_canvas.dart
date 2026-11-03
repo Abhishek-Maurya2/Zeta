@@ -355,13 +355,15 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                   ),
 
                   // 2. Refined Top Floating Toolbar
-                  const Positioned(
+                  Positioned(
                     top: 16,
                     left: 16,
                     right: 16,
                     child: Align(
-                      alignment: Alignment.topCenter,
-                      child: SpaceFloatingToolbar(),
+                      alignment: isCompact
+                          ? Alignment.topCenter
+                          : Alignment.topRight,
+                      child: const SpaceFloatingToolbar(),
                     ),
                   ),
 

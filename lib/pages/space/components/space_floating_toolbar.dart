@@ -39,9 +39,9 @@ class SpaceFloatingToolbar extends StatelessWidget {
 
     return GlassSurface(
       borderRadius: BorderRadius.circular(32),
-      blurSigma: 12,
+      blurSigma: 8,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: !isCompact ? 0 : 4, vertical: !isCompact ? 0 : 4),
         decoration: BoxDecoration(
           color:  colorScheme.tertiaryContainer.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(32),
@@ -49,9 +49,9 @@ class SpaceFloatingToolbar extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (navProvider.canPop) ...[
+            if (navProvider.canPop && isCompact) ...[
               IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                icon: Icon(Icons.arrow_back_rounded, size: 22, weight: 900, color: colorScheme.onPrimaryContainer),
                 tooltip: 'Back',
                 onPressed: () {
                   ZetaHaptics.light();
