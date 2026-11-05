@@ -61,9 +61,7 @@ class TopBarSearch extends StatelessWidget {
                 readOnly: true,
                 alignment: AlignmentDirectional.center,
                 wrapActions: false,
-                hintText: isCompact
-                    ? 'Search'
-                    : 'Search Tasks & Notes',
+                hintText: isCompact ? 'Search' : 'Search Tasks & Notes',
                 onTap: () {
                   if (!controller.isOpen) {
                     controller.openView();
@@ -110,14 +108,9 @@ class TopBarSearch extends StatelessWidget {
                             ),
                           ),
                         ),
-                        child: Text(
-                          '/',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontFamily: 'RobotoMono',
-                            fontWeight: FontWeight.w700,
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                        child: const Icon(
+                          Symbols.keyboard_command_key_rounded,
+                          size: 16,
                         ),
                       ),
                     ),
@@ -125,9 +118,13 @@ class TopBarSearch extends StatelessWidget {
                   M3EIconButton(
                     variant: M3EIconButtonVariant.standard,
                     icon: Icon(
-                      isDark
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
+                      themeProvider.themeMode == ThemeMode.system
+                          ? Symbols.routine_rounded
+                          : isDark
+                          ? Symbols.light_mode_rounded
+                          : Symbols.dark_mode_rounded,
+                      fill: 1,
+                      weight: 700,
                     ),
                     onPressed: () {
                       ZetaHaptics.light();
@@ -306,7 +303,8 @@ class TopBarSearch extends StatelessWidget {
           score += 100;
         }
       }
-      if (task.dueDate != null && task.dueDate!.toLowerCase().contains(qLower)) {
+      if (task.dueDate != null &&
+          task.dueDate!.toLowerCase().contains(qLower)) {
         score += 50;
       }
       return score;
@@ -322,7 +320,6 @@ class TopBarSearch extends StatelessWidget {
     final activeList = (activeTasks..sort(compareTasks)).take(5).toList();
     final completedList = (completedTasks..sort(compareTasks)).take(5).toList();
     final binList = (matchingBinTasks..sort(compareTasks)).take(5).toList();
-
 
     final totalCount = matchingTasks.length + matchingBinTasks.length;
 
@@ -356,8 +353,7 @@ class TopBarSearch extends StatelessWidget {
                     weight: 700,
                     color: colorScheme.primary,
                   ),
-                  headline:
-                      '$totalCount results found for \'$query\'',
+                  headline: '$totalCount results found for \'$query\'',
                 )
               : M3EListItem(
                   leading: Icon(
@@ -417,7 +413,6 @@ class TopBarSearch extends StatelessWidget {
             : null,
       );
     }
-
 
     if (activeList.isNotEmpty) {
       widgets.add(
