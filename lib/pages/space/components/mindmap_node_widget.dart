@@ -1,4 +1,5 @@
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -80,6 +81,48 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
     final provider = context.read<SpaceProvider>();
     provider.updateNodeContent(widget.node.id, _textController.text.trim());
     _focusNode.unfocus();
+  }
+
+  KeyEventResult _handleEditorKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final provider = context.read<SpaceProvider>();
+    if (event.logicalKey == LogicalKeyboardKey.tab) {
+      provider.updateNodeContent(widget.node.id, _textController.text.trim());
+      provider.addChildNode(parentId: widget.node.id);
+      return KeyEventResult.handled;
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      provider.updateNodeContent(widget.node.id, _textController.text.trim());
+      provider.addSiblingNode(siblingOfId: widget.node.id);
+      return KeyEventResult.handled;
+    }
+
+    return KeyEventResult.ignored;
+  }
+
+  bool _isOnSelectedPath(SpaceProvider provider) {
+    final selectedId = provider.selectedNodeId;
+    final nodes = provider.activeMindMap?.nodes;
+    if (selectedId == null || nodes == null) return false;
+
+    String? currentId = selectedId;
+    while (currentId != null) {
+      if (currentId == widget.node.id) return true;
+
+      MindMapNode? currentNode;
+      for (final node in nodes) {
+        if (node.id == currentId) {
+          currentNode = node;
+          break;
+        }
+      }
+      currentId = currentNode?.parentId;
+    }
+
+    return false;
   }
 
   Future<void> _handleDelete(SpaceProvider provider) async {
@@ -217,36 +260,36 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
   }) {
     final colorScheme = context.colorScheme;
     return InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: enabled
-            ? () {
-                ZetaHaptics.light();
-                Navigator.of(context).pop();
-                onTap();
-              }
-            : null,
-        child: SizedBox(
-          height: 52,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 20,
+      borderRadius: BorderRadius.circular(12),
+      onTap: enabled
+          ? () {
+              ZetaHaptics.light();
+              Navigator.of(context).pop();
+              onTap();
+            }
+          : null,
+      child: SizedBox(
+        height: 52,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: enabled ? colorScheme.onSurface : colorScheme.outline,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
                 color: enabled ? colorScheme.onSurface : colorScheme.outline,
               ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: enabled ? colorScheme.onSurface : colorScheme.outline,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -278,6 +321,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
     final isSelected = provider.selectedNodeId == widget.node.id;
     final isEditing = provider.editingNodeId == widget.node.id;
     final isDraggingSelf = provider.draggedNodeId == widget.node.id;
+    final isOnSelectedPath = _isOnSelectedPath(provider);
 
     // Drop targeting
     final isHoverTarget = provider.hoverTargetId == widget.node.id;
@@ -347,15 +391,9 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
       );
     }
 
-    final cardBgColor = isRoot
-        ? widget.branchColor.withValues(alpha: isDark ? 0.22 : 0.12)
-        : (isSelected
-              ? (isDark
-                    ? colorScheme.surfaceContainerHighest
-                    : colorScheme.surfaceContainerHigh)
-              : (isDark
-                    ? colorScheme.surfaceContainer
-                    : colorScheme.surfaceContainerLow));
+    final cardBgColor = widget.branchColor.withValues(
+      alpha: isOnSelectedPath ? 0.5 : 0.3,
+    );
 
     const double hitMargin = 48.0;
 
@@ -507,39 +545,24 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (widget.node.style.hasCheckbox) ...[
-                                GestureDetector(
-                                  onTap: () {
+                                M3ECheckbox(
+                                  value: widget.node.style.isChecked,
+                                  focusable: false,
+                                  checkedChild: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: widget.branchColor,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 13,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  onChanged: (_) {
                                     ZetaHaptics.light();
                                     provider.toggleNodeChecked(widget.node.id);
                                   },
-                                  child: AnimatedContainer(
-                                    duration: M3MotionDuration.short4,
-                                    curve: M3MotionEasing.emphasized,
-                                    width: 18,
-                                    height: 18,
-                                    decoration: BoxDecoration(
-                                      color: widget.node.style.isChecked
-                                          ? widget.branchColor
-                                          : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: widget.node.style.isChecked
-                                            ? widget.branchColor
-                                            : (isDark
-                                                  ? colorScheme.outlineVariant
-                                                        .withValues(alpha: 0.7)
-                                                  : colorScheme.outlineVariant),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: widget.node.style.isChecked
-                                        ? const Icon(
-                                            Icons.check_rounded,
-                                            size: 13,
-                                            color: Colors.white,
-                                          )
-                                        : null,
-                                  ),
                                 ),
                                 const SizedBox(width: 8),
                               ],
@@ -547,26 +570,29 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                               // Node Content / Inline Text Editor
                               Expanded(
                                 child: isEditing
-                                    ? TextField(
-                                        controller: _textController,
-                                        focusNode: _focusNode,
-                                        style: textTheme.bodyMedium?.copyWith(
-                                          fontSize: isRoot ? 20 : 18,
-                                          fontWeight: isRoot
-                                              ? FontWeight.bold
-                                              : FontWeight.w500,
-                                          color: colorScheme.onSurface,
-                                          height: 1.35,
+                                    ? Focus(
+                                        onKeyEvent: _handleEditorKeyEvent,
+                                        child: TextField(
+                                          controller: _textController,
+                                          focusNode: _focusNode,
+                                          style: textTheme.bodyMedium?.copyWith(
+                                            fontSize: isRoot ? 20 : 18,
+                                            fontWeight: isRoot
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            color: colorScheme.onSurface,
+                                            height: 1.35,
+                                          ),
+                                          cursorColor: colorScheme.primary,
+                                          maxLines: null,
+                                          textInputAction: TextInputAction.done,
+                                          decoration: const InputDecoration(
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                          onSubmitted: (_) => _commitEdit(),
                                         ),
-                                        cursorColor: colorScheme.primary,
-                                        maxLines: null,
-                                        textInputAction: TextInputAction.done,
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                        onSubmitted: (_) => _commitEdit(),
                                       )
                                     : SingleChildScrollView(
                                         controller: _scrollController,
@@ -608,9 +634,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                     );
                                   },
                                   child: Tooltip(
-                                    message: widget.node.isCollapsed
-                                        ? 'Expand (${widget.childCount})'
-                                        : 'Collapse branch',
+                                    message: 'Expand (${widget.childCount})',
                                     child: AnimatedContainer(
                                       duration: M3MotionDuration.short4,
                                       curve: M3MotionEasing.emphasized,
@@ -619,49 +643,16 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: widget.node.isCollapsed
-                                            ? widget.branchColor
-                                            : widget.branchColor.withValues(
-                                                alpha: isDark ? 0.25 : 0.16,
-                                              ),
+                                        color: widget.branchColor,
                                         borderRadius: BorderRadius.circular(50),
                                       ),
-                                      child: AnimatedSwitcher(
-                                        duration: M3MotionDuration.short4,
-                                        switchInCurve:
-                                            M3MotionEasing.emphasizedDecelerate,
-                                        switchOutCurve:
-                                            M3MotionEasing.emphasizedAccelerate,
-                                        transitionBuilder: (child, anim) =>
-                                            ScaleTransition(
-                                              scale: anim,
-                                              child: FadeTransition(
-                                                opacity: anim,
-                                                child: child,
-                                              ),
-                                            ),
-                                        child: widget.node.isCollapsed
-                                            ? Text(
-                                                '${widget.childCount}',
-                                                key: const ValueKey(
-                                                  'collapsed',
-                                                ),
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              )
-                                            : Icon(
-                                                widget.isLeft
-                                                    ? Icons
-                                                          .chevron_right_rounded
-                                                    : Icons
-                                                          .chevron_left_rounded,
-                                                key: const ValueKey('expanded'),
-                                                size: 23,
-                                                color: widget.branchColor,
-                                              ),
+                                      child: Text(
+                                        '${widget.childCount}',
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
