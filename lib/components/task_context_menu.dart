@@ -1,5 +1,5 @@
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
 
 import '../models/task.dart';
 import '../utils/haptics.dart';
@@ -35,19 +35,19 @@ class TaskContextMenu {
       position: M3EMenuAnchorPosition.bottomStart,
       colorStyle: M3EMenuColorStyle.vibrant,
       preferredWidth: 230,
-      menuHeightOverride: isBin ? 121.0 : 226.0,
+      blurSigma: 8.0,
       children: isBin
           ? [
               const M3EMenuEntry(
                 value: TaskContextAction.restore,
                 label: 'Restore Task',
-                leading: Icon(Icons.restore_from_trash_rounded, size: 20),
+                leading: Icon(Symbols.restore_from_trash_rounded, size: 20, fill: 1.0),
               ),
               const M3EMenuDivider(),
               const M3EMenuEntry(
                 value: TaskContextAction.permanentDelete,
                 label: 'Delete Permanently',
-                leading: Icon(Icons.delete_forever_rounded, size: 20),
+                leading: Icon(Symbols.delete_forever_rounded, size: 20, fill: 1.0),
                 isDestructive: true,
               ),
             ]
@@ -55,7 +55,7 @@ class TaskContextMenu {
               const M3EMenuEntry(
                 value: TaskContextAction.select,
                 label: 'Select',
-                leading: Icon(Icons.check_circle_outline_rounded, size: 20),
+                leading: Icon(Symbols.check_circle_rounded, size: 20, fill: 1.0),
               ),
               const M3EMenuDivider(),
               M3EMenuEntry(
@@ -65,21 +65,22 @@ class TaskContextMenu {
                     : 'Mark as Complete',
                 leading: Icon(
                   task.completed
-                      ? Icons.radio_button_unchecked_rounded
-                      : Icons.check_rounded,
+                      ? Symbols.radio_button_unchecked_rounded
+                      : Symbols.check_rounded,
                   size: 20,
+                  fill: 1.0,
                 ),
               ),
               const M3EMenuEntry(
                 value: TaskContextAction.edit,
                 label: 'Edit Details',
-                leading: Icon(Icons.edit_outlined, size: 20),
+                leading: Icon(Symbols.edit_rounded, size: 20, fill: 1.0),
               ),
               const M3EMenuDivider(),
               const M3EMenuEntry(
                 value: TaskContextAction.delete,
                 label: 'Move to Bin',
-                leading: Icon(Icons.delete_outline_rounded, size: 20),
+                leading: Icon(Symbols.delete_rounded, size: 20, fill: 1.0),
                 isDestructive: true,
               ),
             ],

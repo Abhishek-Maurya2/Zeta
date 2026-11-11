@@ -22,6 +22,7 @@ import '../providers/task_provider.dart';
 import '../providers/pomodoro_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/profile_provider.dart';
+import '../pages/space/providers/space_provider.dart';
 import 'components/body_pane.dart';
 import 'components/pull_to_refresh_container.dart';
 import 'components/floating_bottom_nav.dart';
@@ -361,6 +362,18 @@ class _AppScaffoldState extends State<AppScaffold>
       }
 
       final nav = context.read<NavigationProvider>();
+      if (nav.activePage == PageId.space) {
+        final spaceProvider = context.read<SpaceProvider>();
+        if (spaceProvider.editingNodeId != null) {
+          spaceProvider.stopEditingNode();
+          return true; // Consumed: cancel editing / delete draft node without popping page
+        }
+        if (spaceProvider.selectedNodeId != null) {
+          spaceProvider.selectNode(null);
+          return true; // Consumed: deselect node without popping page
+        }
+      }
+
       if (nav.canPop) {
         nav.pop();
         return true;

@@ -165,7 +165,7 @@ class _TasksSortSplitButtonState extends State<_TasksSortSplitButton> {
                 colorStyle: M3EMenuColorStyle.vibrant,
                 selectedValue: widget.sortBy,
                 preferredWidth: 200,
-                menuHeightOverride: 52.0 * TaskSortOption.values.length,
+                blurSigma: 8.0,
                 children: TaskSortOption.values.map((option) {
                   return M3EMenuSelectable(
                     value: option,

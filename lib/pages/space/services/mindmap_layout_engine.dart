@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../models/mindmap.dart';
 import '../models/mindmap_node.dart';
 import '../models/mindmap_edge.dart';
+import '../components/node/mindmap_node_metrics.dart';
 
 /// Computed results of the mindmap auto-layout engine.
 class MindMapLayoutResult {
@@ -382,32 +383,34 @@ class MindMapLayoutEngine {
   }) {
     final isRoot = node.isRoot;
 
-    // Minimum dimensions ensuring comfortable room for text + icons + padding without collision
-    final minNodeWidth = isRoot ? 180.0 : 160.0;
-    final maxNodeWidth = (node.style.customWidth ?? (isRoot ? 360.0 : 420.0))
-        .clamp(minNodeWidth, 600.0);
-    final minNodeHeight = isRoot ? 64.0 : 52.0;
-    const maxNodeHeight = 500.0;
-    const maxLines = 10;
+    // Horizontal & vertical card paddings
+    final paddingH = isRoot
+        ? MindMapNodeMetrics.paddingHRoot
+        : MindMapNodeMetrics.paddingHNonRoot;
+    final paddingV = isRoot
+        ? MindMapNodeMetrics.paddingVRoot
+        : MindMapNodeMetrics.paddingVNonRoot;
 
-    // Overhead calculation matching MindMapNodeWidget layout exactly:
-    // Horizontal padding: Root 18*2 = 36, Non-root 14*2 = 28
-    final paddingH = isRoot ? 36.0 : 28.0;
-    // Checkbox: 18 box + 8 gap = 26
-    final checkboxOverhead = node.style.hasCheckbox ? 26.0 : 0.0;
-    // Collapse / child count badge: 6 gap + 14 padding + pill content + buffer
-    double badgeOverhead = 0.0;
-    if (hasChildren) {
-      final digits = childCount > 0 ? childCount.toString().length : 1;
-      final pillContentWidth = math.max(16.0, digits * 10.0);
-      badgeOverhead = 6.0 + 14.0 + pillContentWidth + 4.0; // ~40.0 - 54.0
-    }
-    // Sub-pixel rounding + border thickness safety buffer (up to 2.5 on each side + buffer)
-    const safetyBuffer = 10.0;
+    // Checkbox overhead: M3ECheckbox slot (48.0) + gap (6.0) + cushion (2.0)
+    final checkboxOverhead = node.style.hasCheckbox
+        ? MindMapNodeMetrics.checkboxOverhead
+        : 0.0;
 
+    // Collapse / expand badge overhead (accounts for both expanded chevron and collapsed count pill)
+    final badgeOverhead = MindMapNodeMetrics.calculateBadgeOverhead(
+      hasChildren: hasChildren,
+      isCollapsed: node.isCollapsed,
+      childCount: childCount,
+    );
+
+    // Safety buffer for sub-pixel anti-aliasing, cursor headroom, and border thickness
+    const safetyBuffer = MindMapNodeMetrics.safetyBuffer;
     final horizontalOverhead =
         paddingH + checkboxOverhead + badgeOverhead + safetyBuffer;
-    final maxContentWidth = math.max(60.0, maxNodeWidth - horizontalOverhead);
+    final maxContentWidth = math.max(
+      60.0,
+      MindMapNodeMetrics.maxNodeWidth - horizontalOverhead,
+    );
 
     final style = (baseStyle ?? const TextStyle(fontSize: 18)).copyWith(
       fontSize: isRoot ? 20 : 18,
@@ -419,7 +422,7 @@ class MindMapLayoutEngine {
         ? (isRoot ? 'Central Topic' : 'Node')
         : node.content;
 
-    // Measure single line width
+    // Measure single line first to determine whether text fits or wraps at max width
     final singleLinePainter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
@@ -440,25 +443,33 @@ class MindMapLayoutEngine {
       textPainter = TextPainter(
         text: TextSpan(text: text, style: style),
         textDirection: TextDirection.ltr,
-        maxLines: maxLines,
       )..layout(maxWidth: maxContentWidth);
       targetContentWidth = textPainter.width.ceilToDouble();
     }
 
-    // Width expands dynamically as per content up to maxNodeWidth
-    double measuredWidth = node.style.customWidth ??
-        (targetContentWidth + horizontalOverhead);
-    measuredWidth = measuredWidth.clamp(minNodeWidth, maxNodeWidth);
+    final targetContentHeight = textPainter.height.ceilToDouble();
 
-    // Vertical overhead: Root padding 28 + borders/buffer 12 = 40; Non-root padding 22 + borders/buffer 12 = 34
-    final verticalOverhead = isRoot ? 40.0 : 34.0;
+    // Width expands dynamically up to maxNodeWidth (250px)
+    final minNodeWidth = isRoot
+        ? MindMapNodeMetrics.minNodeWidthRoot
+        : (node.style.hasCheckbox
+            ? (hasChildren ? 120.0 : 92.0)
+            : (hasChildren ? 64.0 : 44.0));
+    final measuredWidth = math.min(
+      MindMapNodeMetrics.maxNodeWidth,
+      math.max(minNodeWidth, targetContentWidth + horizontalOverhead),
+    );
+
+    // Height expands dynamically without any max height limitation
+    final minNodeHeight = isRoot
+        ? MindMapNodeMetrics.minNodeHeightRoot
+        : MindMapNodeMetrics.minNodeHeightNonRoot;
     double measuredHeight =
-        textPainter.height.ceilToDouble() + verticalOverhead;
+        targetContentHeight + paddingV + 6.0; // border & safety buffer
     if (node.style.tags.isNotEmpty) {
       measuredHeight += 24.0;
     }
-    // Height expands dynamically up to maxNodeHeight (accommodates 10 lines)
-    measuredHeight = measuredHeight.clamp(minNodeHeight, maxNodeHeight);
+    measuredHeight = math.max(minNodeHeight, measuredHeight);
 
     return Size(measuredWidth, measuredHeight);
   }

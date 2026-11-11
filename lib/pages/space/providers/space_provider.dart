@@ -20,6 +20,7 @@ class SpaceProvider extends ChangeNotifier {
 
   String? _selectedNodeId;
   String? _editingNodeId;
+  String? _pendingNewNodeId;
 
   // Drag and drop state
   String? _draggedNodeId;
@@ -40,6 +41,7 @@ class SpaceProvider extends ChangeNotifier {
   MindMap? get activeMindMap => _activeMindMap;
   String? get selectedNodeId => _selectedNodeId;
   String? get editingNodeId => _editingNodeId;
+  String? get pendingNewNodeId => _pendingNewNodeId;
   bool get isLoading => _isLoading;
 
   String? get draggedNodeId => _draggedNodeId;
@@ -237,7 +239,25 @@ class SpaceProvider extends ChangeNotifier {
 
   void stopEditingNode() {
     if (_editingNodeId == null) return;
+    final editingId = _editingNodeId!;
     _editingNodeId = null;
+
+    if (_activeMindMap != null && editingId == _pendingNewNodeId) {
+      _pendingNewNodeId = null;
+      final nodeIdx =
+          _activeMindMap!.nodes.indexWhere((n) => n.id == editingId);
+      if (nodeIdx != -1) {
+        final node = _activeMindMap!.nodes[nodeIdx];
+        if (!node.isRoot &&
+            (node.content.trim() == 'New Topic' ||
+             node.content.trim() == 'New Node' ||
+             node.content.trim().isEmpty)) {
+          deleteNode(editingId);
+          return;
+        }
+      }
+    }
+    _pendingNewNodeId = null;
     notifyListeners();
   }
 
@@ -284,6 +304,7 @@ class SpaceProvider extends ChangeNotifier {
 
     _selectedNodeId = newId;
     _editingNodeId = newId;
+    _pendingNewNodeId = newId;
 
     _repository.saveMindMaps(_mindMaps);
     notifyListeners();
@@ -350,6 +371,7 @@ class SpaceProvider extends ChangeNotifier {
 
     _selectedNodeId = newId;
     _editingNodeId = newId;
+    _pendingNewNodeId = newId;
 
     _repository.saveMindMaps(_mindMaps);
     notifyListeners();
@@ -361,6 +383,23 @@ class SpaceProvider extends ChangeNotifier {
     if (index == -1) return;
 
     final current = _activeMindMap!.nodes[index];
+    final trimmed = content.trim();
+
+    // If new node was not edited or left with default "New Topic" / empty, remove it
+    if (!current.isRoot &&
+        (id == _pendingNewNodeId ||
+         trimmed == 'New Topic' ||
+         trimmed == 'New Node' ||
+         trimmed.isEmpty)) {
+      if (trimmed == 'New Topic' || trimmed == 'New Node' || trimmed.isEmpty) {
+        _pendingNewNodeId = null;
+        _editingNodeId = null;
+        deleteNode(id);
+        return;
+      }
+    }
+    _pendingNewNodeId = null;
+
     if (current.content == content) {
       _editingNodeId = null;
       notifyListeners();
@@ -380,6 +419,27 @@ class SpaceProvider extends ChangeNotifier {
     _editingNodeId = null;
 
     _repository.saveMindMaps(_mindMaps);
+    notifyListeners();
+  }
+
+  /// Real-time node content update while typing in inline editor.
+  /// Dynamically updates content and notifies listeners so layout engine re-measures
+  /// node dimensions immediately without pushing to undo history or dismissing editor.
+  void updateNodeContentRealtime(String id, String content) {
+    if (_activeMindMap == null) return;
+    final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
+    if (index == -1) return;
+
+    final current = _activeMindMap!.nodes[index];
+    if (current.content == content) return;
+
+    final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes);
+    updatedNodes[index] = current.copyWith(content: content);
+
+    _activeMindMap = _activeMindMap!.copyWith(
+      nodes: updatedNodes,
+    );
+    _updateActiveInList();
     notifyListeners();
   }
 
