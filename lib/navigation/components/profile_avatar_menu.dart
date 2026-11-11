@@ -1,5 +1,5 @@
-import 'package:zeta/core/core.dart';
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../components/user_avatar.dart';
 import '../../components/glass_surface.dart';
@@ -17,12 +18,13 @@ import '../../providers/pomodoro_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../../theme/motion_tokens.dart';
 import '../../utils/app_snackbar.dart';
 import '../../utils/haptics.dart';
 
 /// Interactive Profile Avatar Component:
-/// - Tap (or hover on desktop) opens a Card with user profile & quick navigation.
-/// - Uses [MenuAnchor] for clean, accessible overlay anchoring and dismissal.
+/// - Animates and expands from the compact avatar pill into a rich GlassSurface card,
+///   matching the expressive container transform used in the home screen workload pills.
 class ProfileAvatarMenu extends StatefulWidget {
   final Color? syncRingColor;
   final String? tooltipMessage;
@@ -39,49 +41,100 @@ class ProfileAvatarMenu extends StatefulWidget {
   State<ProfileAvatarMenu> createState() => _ProfileAvatarMenuState();
 }
 
-class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
-  final MenuController _menuController = MenuController();
+class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
+    with SingleTickerProviderStateMixin {
+  final _overlayController = OverlayPortalController();
+  final _layerLink = LayerLink();
+  final _tapRegionGroupId = Object();
+  late final AnimationController _transformController;
   Timer? _closeTimer;
+  bool _isExpanded = false;
+  bool _popupVisible = false;
   bool _isHoveringAvatar = false;
-  bool _isHoveringCard = false;
+  bool _isHoveringPopup = false;
+  Size _closedSize = Size.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _transformController = AnimationController(
+      vsync: this,
+      duration: M3MotionDuration.medium3, // 350ms expressive container transform
+      reverseDuration: M3MotionDuration.short4, // 200ms clean reverse
+    );
+  }
 
   @override
   void dispose() {
     _closeTimer?.cancel();
+    _transformController.dispose();
     super.dispose();
   }
 
-  void _startCloseTimer() {
+  void _openPopup(BuildContext triggerContext) {
     _closeTimer?.cancel();
-    _closeTimer = Timer(const Duration(milliseconds: 250), () {
-      if (!mounted) return;
-      if (!_isHoveringAvatar && !_isHoveringCard) {
-        _menuController.close();
+    final renderObject = triggerContext.findRenderObject();
+    if (renderObject is RenderBox) {
+      _closedSize = renderObject.size;
+    }
+    if (!_popupVisible) {
+      setState(() {
+        _popupVisible = true;
+        _isExpanded = false;
+      });
+      _overlayController.show();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _popupVisible) {
+        setState(() => _isExpanded = true);
+        _transformController.forward();
       }
     });
   }
 
-  void _handleAvatarHoverEnter() {
+  void _closePopup() {
+    _closeTimer?.cancel();
+    if (!_popupVisible) return;
+    setState(() => _isExpanded = false);
+    _transformController.reverse().then((_) {
+      if (mounted && !_isExpanded) {
+        setState(() => _popupVisible = false);
+        _overlayController.hide();
+      }
+    });
+  }
+
+  void _scheduleClose() {
+    _closeTimer?.cancel();
+    _closeTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+      if (!_isHoveringAvatar && !_isHoveringPopup) {
+        _closePopup();
+      }
+    });
+  }
+
+  void _handleAvatarHoverEnter(BuildContext context) {
     _isHoveringAvatar = true;
     _closeTimer?.cancel();
-    if (!_menuController.isOpen) {
-      _menuController.open();
+    if (!_popupVisible) {
+      _openPopup(context);
     }
   }
 
   void _handleAvatarHoverExit() {
     _isHoveringAvatar = false;
-    _startCloseTimer();
+    _scheduleClose();
   }
 
-  void _handleCardHoverEnter() {
-    _isHoveringCard = true;
+  void _handlePopupHoverEnter() {
+    _isHoveringPopup = true;
     _closeTimer?.cancel();
   }
 
-  void _handleCardHoverExit() {
-    _isHoveringCard = false;
-    _startCloseTimer();
+  void _handlePopupHoverExit() {
+    _isHoveringPopup = false;
+    _scheduleClose();
   }
 
   Color _resolveSyncRingColor(BuildContext context) {
@@ -117,6 +170,122 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
     }
   }
 
+  Widget _buildAvatarPill(
+    BuildContext context, {
+    required Color syncRingColor,
+    required bool hasError,
+  }) {
+    return Container(
+      width: 48,
+      height: 48,
+      alignment: Alignment.center,
+      child: UserAvatar(
+        radius: 20,
+        ringColor: syncRingColor,
+        hasError: hasError,
+        shape: UserAvatarShape.gem,
+        showGlow: true,
+        showRing: false,
+      ),
+    );
+  }
+
+  Widget _buildPopup(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final maxWidth = math.min(320.0, MediaQuery.sizeOf(context).width - 24);
+    final closedWidth = _closedSize.width > 0 ? _closedSize.width : 48.0;
+    final closedHeight = _closedSize.height > 0 ? _closedSize.height : 48.0;
+
+    final taskProvider = context.watch<TaskProvider>();
+    final pomodoroProvider = context.watch<PomodoroProvider>();
+    final profileProvider = context.watch<ProfileProvider>();
+    final syncError =
+        taskProvider.syncError ??
+        pomodoroProvider.syncError ??
+        profileProvider.syncError;
+    final syncRingColor = _resolveSyncRingColor(context);
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: CompositedTransformFollower(
+        link: _layerLink,
+        showWhenUnlinked: false,
+        targetAnchor: Alignment.topRight,
+        followerAnchor: Alignment.topRight,
+        offset: Offset.zero,
+        child: MouseRegion(
+          onEnter: (_) => _handlePopupHoverEnter(),
+          onExit: (_) => _handlePopupHoverExit(),
+          child: Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.escape) {
+                _closePopup();
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TapRegion(
+              groupId: _tapRegionGroupId,
+              onTapOutside: (_) => _closePopup(),
+              child: AnimatedContainer(
+                duration: M3MotionDuration.medium3,
+                curve: M3MotionEasing.emphasizedDecelerate,
+                width: _isExpanded ? maxWidth : closedWidth,
+                constraints: BoxConstraints(
+                  minHeight: closedHeight,
+                  maxHeight: 650,
+                ),
+                child: GlassSurface(
+                  borderRadius: BorderRadius.circular(_isExpanded ? 24 : 16),
+                  blurSigma: 12,
+                  color: colorScheme.tertiaryContainer.withValues(
+                    alpha: isDark ? 0.65 : 0.45,
+                  ),
+                  child: AnimatedSize(
+                    duration: M3MotionDuration.medium3,
+                    reverseDuration: M3MotionDuration.short4,
+                    curve: M3MotionEasing.emphasizedDecelerate,
+                    alignment: Alignment.topRight,
+                    child: AnimatedSwitcher(
+                      duration: M3MotionDuration.medium2,
+                      switchInCurve: M3MotionEasing.emphasizedDecelerate,
+                      switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SizeTransition(
+                          sizeFactor: animation,
+                          alignment: Alignment.topRight,
+                          child: child,
+                        ),
+                      ),
+                      child: _isExpanded
+                          ? _ProfileCardContent(
+                              key: const ValueKey('expanded-profile'),
+                              onDismiss: _closePopup,
+                              syncRingColor: syncRingColor,
+                            )
+                          : KeyedSubtree(
+                              key: const ValueKey('closed-profile'),
+                              child: _buildAvatarPill(
+                                context,
+                                syncRingColor: syncRingColor,
+                                hasError: syncError != null,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
@@ -133,60 +302,43 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu> {
         defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS;
 
-    return MenuAnchor(
-      controller: _menuController,
-      alignmentOffset: const Offset(28, 6),
-      style: const MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(Colors.transparent),
-        elevation: WidgetStatePropertyAll(0),
-        shadowColor: WidgetStatePropertyAll(Colors.transparent),
-        surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-        padding: WidgetStatePropertyAll(EdgeInsets.zero),
-      ),
-      menuChildren: [
-        MouseRegion(
-          onEnter: isTouch ? null : (_) => _handleCardHoverEnter(),
-          onExit: isTouch ? null : (_) => _handleCardHoverExit(),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 280, maxWidth: 320),
-            child: _ProfileCardContent(
-              onDismiss: () => _menuController.close(),
-              syncRingColor: syncRingColor,
+    final avatarWidget = _buildAvatarPill(
+      context,
+      syncRingColor: syncRingColor,
+      hasError: syncError != null,
+    );
+
+    return OverlayPortal(
+      controller: _overlayController,
+      overlayChildBuilder: _buildPopup,
+      child: CompositedTransformTarget(
+        link: _layerLink,
+        child: MouseRegion(
+          onEnter: isTouch ? null : (_) => _handleAvatarHoverEnter(context),
+          onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
+          child: TapRegion(
+            groupId: _tapRegionGroupId,
+            child: Tooltip(
+              message: widget.tooltipMessage ?? '',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () {
+                  if (_popupVisible) {
+                    _closePopup();
+                  } else {
+                    _openPopup(context);
+                  }
+                },
+                child: AnimatedOpacity(
+                  duration: M3MotionDuration.short4,
+                  opacity: _popupVisible ? 0.0 : 1.0,
+                  child: avatarWidget,
+                ),
+              ),
             ),
           ),
         ),
-      ],
-      builder: (context, controller, child) {
-        return MouseRegion(
-          onEnter: isTouch ? null : (_) => _handleAvatarHoverEnter(),
-          onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
-          child: IconButton(
-            padding: const EdgeInsets.all(4),
-            visualDensity: VisualDensity.compact,
-            tooltip: widget.tooltipMessage,
-            style: IconButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            onPressed: () {
-              if (controller.isOpen) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            icon: UserAvatar(
-              radius: 20,
-              ringColor: syncRingColor,
-              hasError: syncError != null,
-              shape: UserAvatarShape.gem,
-              showGlow: true,
-              showRing: false,
-            ),
-          ),
-        );
-      },
+      ),
     );
   }
 }
@@ -196,6 +348,7 @@ class _ProfileCardContent extends StatelessWidget {
   final Color syncRingColor;
 
   const _ProfileCardContent({
+    super.key,
     required this.onDismiss,
     required this.syncRingColor,
   });
@@ -332,20 +485,12 @@ class _ProfileCardContent extends StatelessWidget {
       statusLabel = 'LOCAL';
     }
 
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(24),
-      child: Card(
-        color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
               // ─── Header: [Name, Email] + Photo ──────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -629,8 +774,6 @@ class _ProfileCardContent extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

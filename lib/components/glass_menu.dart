@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -41,6 +42,21 @@ typedef GlassMenuAnchorBuilder = Widget Function(
   BuildContext context,
   VoidCallback open,
 );
+
+/// Controller to programmatically manage and close a [GlassMenu] or submenu.
+class GlassMenuController {
+  VoidCallback? _dismissCallback;
+
+  /// Whether the menu controlled by this controller is currently open.
+  bool get isOpen => _dismissCallback != null;
+
+  /// Dismisses the open menu.
+  void dismiss() {
+    final callback = _dismissCallback;
+    _dismissCallback = null;
+    callback?.call();
+  }
+}
 
 /// Individual option in a [GlassMenuActionRow].
 class GlassMenuActionItem {
@@ -111,6 +127,8 @@ Future<T?> showGlassMenu<T>({
   Color? backgroundColor,
   Border? border,
   Color? barrierColor,
+  Object? tapRegionGroupId,
+  GlassMenuController? controller,
 }) {
   final completer = Completer<T?>();
   late OverlayEntry entry;
@@ -133,6 +151,8 @@ Future<T?> showGlassMenu<T>({
         backgroundColor: backgroundColor,
         border: border,
         barrierColor: barrierColor,
+        tapRegionGroupId: tapRegionGroupId,
+        controller: controller,
         onDismiss: (T? value) {
           if (!completer.isCompleted) {
             completer.complete(value);
@@ -167,6 +187,8 @@ Future<T?> showGlassM3EMenu<T>({
   Color? backgroundColor,
   Border? border,
   Color? barrierColor,
+  Object? tapRegionGroupId,
+  GlassMenuController? controller,
 }) {
   return showGlassMenu<T>(
     context: context,
@@ -185,11 +207,18 @@ Future<T?> showGlassM3EMenu<T>({
     backgroundColor: backgroundColor,
     border: border,
     barrierColor: barrierColor,
+    tapRegionGroupId: tapRegionGroupId,
+    controller: controller,
   );
 }
 
 /// Custom expressive menu widget utilizing a frosted [GlassSurface] container.
 class GlassMenu extends StatefulWidget {
+  static int _activeMenuCount = 0;
+
+  /// Whether any [GlassMenu] or submenu is currently open on screen.
+  static bool get hasActiveMenu => _activeMenuCount > 0;
+
   const GlassMenu({
     required this.anchorBuilder,
     this.children,
@@ -418,6 +447,8 @@ class _GlassMenuPopup<T> extends StatefulWidget {
   final Color? backgroundColor;
   final Border? border;
   final Color? barrierColor;
+  final Object? tapRegionGroupId;
+  final GlassMenuController? controller;
   final ValueChanged<T?> onDismiss;
   final VoidCallback onRemove;
 
@@ -439,6 +470,8 @@ class _GlassMenuPopup<T> extends StatefulWidget {
     this.backgroundColor,
     this.border,
     this.barrierColor,
+    this.tapRegionGroupId,
+    this.controller,
   });
 
   @override
@@ -449,6 +482,7 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animCtrl;
   late final Animation<double> _expandCurve;
+  late final Object _groupId = widget.tapRegionGroupId ?? Object();
   final FocusScopeNode _focusScopeNode = FocusScopeNode(
     debugLabel: 'GlassMenuPopupScope',
   );
@@ -457,12 +491,17 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     debugLabel: 'GlassMenuKeyFocus',
   );
   final ScrollController _scrollController = ScrollController();
+  M3EMenuSubmenu? _activeSubmenu;
+  GlassMenuController? _activeSubmenuController;
   bool _isDismissing = false;
   bool _dismissCompleted = false;
 
   @override
   void initState() {
     super.initState();
+    GlassMenu._activeMenuCount++;
+    widget.controller?._dismissCallback = () => _dismiss(null);
+
     _animCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -486,6 +525,11 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
 
   @override
   void dispose() {
+    GlassMenu._activeMenuCount = math.max(0, GlassMenu._activeMenuCount - 1);
+    if (widget.controller?._dismissCallback != null) {
+      widget.controller?._dismissCallback = null;
+    }
+    _activeSubmenuController?.dismiss();
     _animCtrl.dispose();
     _focusScopeNode.dispose();
     _keyFocus.dispose();
@@ -496,6 +540,10 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
   Future<void> _dismiss([T? value]) async {
     if (_isDismissing) return;
     _isDismissing = true;
+
+    _activeSubmenuController?.dismiss();
+    _activeSubmenu = null;
+    _activeSubmenuController = null;
 
     try {
       await _animCtrl.reverse();
@@ -516,6 +564,12 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
       return KeyEventResult.ignored;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
+      if (_activeSubmenuController != null && _activeSubmenuController!.isOpen) {
+        _activeSubmenuController!.dismiss();
+        _activeSubmenu = null;
+        _activeSubmenuController = null;
+        return KeyEventResult.handled;
+      }
       unawaited(_dismiss(null));
       return KeyEventResult.handled;
     }
@@ -565,24 +619,7 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
           : colorScheme.surfaceContainer.withValues(alpha: 0.48);
     }
 
-    final Border effectiveBorder;
-    if (widget.border != null) {
-      effectiveBorder = widget.border!;
-    } else if (widget.colorStyle == M3EMenuColorStyle.vibrant) {
-      effectiveBorder = Border.all(
-        color: colorScheme.outlineVariant.withValues(
-          alpha: isDark ? 0.25 : 0.20,
-        ),
-        width: 1.0,
-      );
-    } else {
-      effectiveBorder = Border.all(
-        color: colorScheme.outlineVariant.withValues(
-          alpha: isDark ? 0.25 : 0.20,
-        ),
-        width: 1.0,
-      );
-    }
+    final Border? effectiveBorder = widget.border;
 
     return FocusScope(
       node: _focusScopeNode,
@@ -593,16 +630,17 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // Barrier / Scrim
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _dismiss(null),
-                child: ColoredBox(
-                  color: widget.barrierColor ?? Colors.transparent,
+            // Barrier / Scrim (only rendered if explicit barrierColor is provided)
+            if (widget.barrierColor != null)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _dismiss(null),
+                  child: ColoredBox(
+                    color: widget.barrierColor!,
+                  ),
                 ),
               ),
-            ),
 
             // Anchored Menu Card - 0 elevation, no shadows, pure GlassSurface
             Positioned(
@@ -610,51 +648,56 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
               top: placement.top,
               bottom: placement.bottom,
               width: placement.width,
-              child: AnimatedBuilder(
-                animation: _expandCurve,
-                builder: (context, child) {
-                  final progress = _expandCurve.value;
-                  return Opacity(
-                    opacity: progress.clamp(0.0, 1.0),
-                    child: Transform.scale(
+              child: TapRegion(
+                groupId: _groupId,
+                onTapOutside: (_) => _dismiss(null),
+                child: AnimatedBuilder(
+                  animation: _expandCurve,
+                  builder: (context, child) {
+                    final progress = _expandCurve.value;
+                    return Transform.scale(
                       scale: 0.88 + 0.12 * progress,
                       alignment: placement.scaleAlignment,
-                      child: child,
-                    ),
-                  );
-                },
-                child: GlassSurface(
-                  borderRadius: effectiveBorderRadius,
-                  blurSigma: widget.blurSigma,
-                  color: effectiveBg,
-                  border: effectiveBorder,
-                  material: true,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: menuTheme.minWidth,
-                      maxWidth: placement.width,
-                      maxHeight: effectiveMaxHeight,
-                    ),
-                    child: RawScrollbar(
-                      controller: _scrollController,
-                      thumbVisibility: false,
-                      radius: const Radius.circular(4),
-                      child: SingleChildScrollView(
-                        controller: _scrollController,
-                        padding: EdgeInsets.symmetric(
-                          vertical: menuTheme.verticalPadding,
+                      child: GlassSurface(
+                        borderRadius: effectiveBorderRadius,
+                        blurSigma: widget.blurSigma,
+                        color: effectiveBg.withValues(
+                          alpha: effectiveBg.a * (0.2 + 0.8 * progress),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: _buildNodes(
-                            context: context,
-                            nodes: widget.children,
-                            menuTheme: menuTheme,
-                            colorScheme: colorScheme,
-                            textTheme: textTheme,
-                            isDark: isDark,
-                          ),
+                        border: effectiveBorder,
+                        material: true,
+                        child: Opacity(
+                          opacity: progress.clamp(0.0, 1.0),
+                          child: child,
+                        ),
+                      ),
+                    );
+                  },
+                  child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: menuTheme.minWidth,
+                    maxWidth: placement.width,
+                    maxHeight: effectiveMaxHeight,
+                  ),
+                  child: RawScrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: false,
+                    radius: const Radius.circular(4),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: EdgeInsets.symmetric(
+                        vertical: menuTheme.verticalPadding,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _buildNodes(
+                          context: context,
+                          nodes: widget.children,
+                          menuTheme: menuTheme,
+                          colorScheme: colorScheme,
+                          textTheme: textTheme,
+                          isDark: isDark,
                         ),
                       ),
                     ),
@@ -662,7 +705,8 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                 ),
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -827,31 +871,17 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     } else if (isDestructive) {
       foregroundColor = colorScheme.error;
     } else if (selected) {
-      foregroundColor = colorScheme.primary;
+      foregroundColor = colorScheme.onTertiary;
     } else if (action.color != null) {
       foregroundColor = action.color!;
     } else {
       foregroundColor = colorScheme.onSurface;
     }
 
-    final Color? tileBg;
-    if (selected) {
-      tileBg = colorScheme.primaryContainer.withValues(
-        alpha: isDark ? 0.35 : 0.45,
-      );
-    } else {
-      tileBg = null;
-    }
+    final Color? tileBg =
+        selected ? colorScheme.tertiary.withValues(alpha: 0.7) : null;
 
-    final Border? tileBorder;
-    if (selected) {
-      tileBorder = Border.all(
-        color: colorScheme.primary.withValues(alpha: 0.30),
-        width: 1.0,
-      );
-    } else {
-      tileBorder = null;
-    }
+    const Border? tileBorder = null;
 
     final Widget iconWidget = action.icon ??
         Icon(
@@ -1084,17 +1114,17 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     if (!enabled) {
       foregroundColor = colorScheme.onSurface.withValues(alpha: 0.38);
     } else if (selected) {
-      foregroundColor = colorScheme.primary;
+      foregroundColor = colorScheme.onSecondary;
     } else {
       foregroundColor = colorScheme.onSurface;
     }
 
     final Color? itemBg = selected
-        ? colorScheme.primaryContainer.withValues(alpha: isDark ? 0.30 : 0.40)
+        ? colorScheme.secondary.withValues(alpha: 0.7)
         : null;
 
     final Color iconColor = selected
-        ? colorScheme.primary
+        ? colorScheme.onSecondary
         : (enabled
             ? colorScheme.onSurfaceVariant
             : colorScheme.onSurface.withValues(alpha: 0.38));
@@ -1163,9 +1193,11 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.70,
-                            ),
+                            color: selected
+                                ? colorScheme.onSecondary.withValues(alpha: 0.85)
+                                : colorScheme.onSurfaceVariant.withValues(
+                                    alpha: 0.70,
+                                  ),
                           ),
                         ),
                     ],
@@ -1180,9 +1212,11 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                   Text(
                     item.trailingText!,
                     style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(
-                        alpha: 0.70,
-                      ),
+                      color: selected
+                          ? colorScheme.onSecondary.withValues(alpha: 0.85)
+                          : colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.70,
+                            ),
                       fontWeight: FontWeight.w400,
                     ),
                   ),
@@ -1203,7 +1237,7 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                     Symbols.check_rounded,
                     size: menuTheme.iconSize,
                     fill: 1.0,
-                    color: colorScheme.primary,
+                    color: colorScheme.onSecondary,
                   ),
                 ],
               ],
@@ -1229,7 +1263,7 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
         : colorScheme.onSurface.withValues(alpha: 0.38);
 
     final Color iconColor = checked
-        ? colorScheme.primary
+        ? colorScheme.secondary
         : (enabled
             ? colorScheme.onSurfaceVariant
             : colorScheme.onSurface.withValues(alpha: 0.38));
@@ -1305,8 +1339,9 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     required M3EMenuTheme menuTheme,
   }) {
     final enabled = submenu.enabled;
+    final isSubmenuOpen = _activeSubmenu == submenu;
     final foregroundColor = enabled
-        ? colorScheme.onSurface
+        ? (isSubmenuOpen ? colorScheme.secondary : colorScheme.onSurface)
         : colorScheme.onSurface.withValues(alpha: 0.38);
 
     return Builder(
@@ -1324,36 +1359,19 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
               splashColor: colorScheme.onSurface.withValues(alpha: 0.12),
               highlightColor: colorScheme.onSurface.withValues(alpha: 0.05),
               onTap: enabled
-                  ? () async {
-                      final box = itemContext.findRenderObject() as RenderBox?;
-                      if (box == null || !box.hasSize) return;
-                      final rootOverlay = Overlay.of(
-                        context,
-                        rootOverlay: true,
-                      );
-                      final overlayObject =
-                          rootOverlay.context.findRenderObject();
-                      final itemRect = MatrixUtils.transformRect(
-                        box.getTransformTo(overlayObject),
-                        Offset.zero & box.size,
-                      );
-
-                      final result = await showGlassMenu<Object>(
-                        context: context,
-                        anchor: itemRect,
-                        children: submenu.children,
-                        position: M3EMenuAnchorPosition.end,
-                        colorStyle: widget.colorStyle,
-                        blurSigma: widget.blurSigma,
-                      );
-
-                      if (result != null) {
-                        await _dismiss(result as T?);
-                      }
-                    }
+                  ? () => _handleSubmenuTap(
+                        itemContext: itemContext,
+                        submenu: submenu,
+                      )
                   : null,
               child: Container(
                 constraints: BoxConstraints(minHeight: menuTheme.entryHeight),
+                decoration: BoxDecoration(
+                  color: isSubmenuOpen
+                      ? colorScheme.secondary.withValues(alpha: 0.18)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(menuTheme.itemRadius),
+                ),
                 padding: EdgeInsets.symmetric(
                   horizontal: menuTheme.entryHorizontalPadding,
                   vertical: menuTheme.entryVerticalPadding,
@@ -1365,7 +1383,9 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                       IconTheme(
                         data: IconThemeData(
                           size: menuTheme.iconSize,
-                          color: colorScheme.onSurfaceVariant,
+                          color: isSubmenuOpen
+                              ? colorScheme.secondary
+                              : colorScheme.onSurfaceVariant,
                           fill: 1.0,
                         ),
                         child: submenu.leading!,
@@ -1379,7 +1399,9 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
                           color: foregroundColor,
-                          fontWeight: FontWeight.w400,
+                          fontWeight: isSubmenuOpen
+                              ? FontWeight.w600
+                              : FontWeight.w400,
                         ),
                       ),
                     ),
@@ -1392,7 +1414,9 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
                       Symbols.chevron_right_rounded,
                       size: menuTheme.iconSize,
                       fill: 1.0,
-                      color: colorScheme.onSurfaceVariant,
+                      color: isSubmenuOpen
+                          ? colorScheme.secondary
+                          : colorScheme.onSurfaceVariant,
                     ),
                   ],
                 ),
@@ -1402,6 +1426,71 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
         );
       },
     );
+  }
+
+  void _handleSubmenuTap({
+    required BuildContext itemContext,
+    required M3EMenuSubmenu submenu,
+  }) async {
+    // 1. If this submenu is already open, toggle it closed!
+    if (_activeSubmenu == submenu &&
+        _activeSubmenuController != null &&
+        _activeSubmenuController!.isOpen) {
+      _activeSubmenuController!.dismiss();
+      setState(() {
+        _activeSubmenu = null;
+        _activeSubmenuController = null;
+      });
+      return;
+    }
+
+    // 2. If a different submenu is open, close it first before opening the new one!
+    if (_activeSubmenuController != null && _activeSubmenuController!.isOpen) {
+      _activeSubmenuController!.dismiss();
+      _activeSubmenu = null;
+      _activeSubmenuController = null;
+    }
+
+    final box = itemContext.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+    final rootOverlay = Overlay.of(context, rootOverlay: true);
+    final overlayObject = rootOverlay.context.findRenderObject();
+    final itemRect = MatrixUtils.transformRect(
+      box.getTransformTo(overlayObject),
+      Offset.zero & box.size,
+    );
+
+    final submenuController = GlassMenuController();
+    setState(() {
+      _activeSubmenu = submenu;
+      _activeSubmenuController = submenuController;
+    });
+
+    final result = await showGlassMenu<Object>(
+      context: context,
+      anchor: itemRect,
+      children: submenu.children,
+      position: M3EMenuAnchorPosition.end,
+      colorStyle: widget.colorStyle,
+      selectedValue: widget.selectedValue,
+      blurSigma: widget.blurSigma,
+      tapRegionGroupId: _groupId,
+      controller: submenuController,
+      callerFocusNode: _keyFocus,
+    );
+
+    if (mounted) {
+      if (_activeSubmenu == submenu) {
+        setState(() {
+          _activeSubmenu = null;
+          _activeSubmenuController = null;
+        });
+      }
+    }
+
+    if (result != null) {
+      await _dismiss(result as T?);
+    }
   }
 
   Widget _buildDivider({

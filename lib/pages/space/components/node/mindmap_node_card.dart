@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../models/mindmap_node.dart';
 import '../../providers/space_provider.dart';
+import '../../../../providers/theme_provider.dart';
 import '../../../../utils/haptics.dart';
 import '../../../../theme/motion_tokens.dart';
 import 'mindmap_node_metrics.dart';
@@ -51,10 +53,10 @@ class MindMapNodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SpaceProvider>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode(context);
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final isRoot = node.isRoot;
 
     final Border border;

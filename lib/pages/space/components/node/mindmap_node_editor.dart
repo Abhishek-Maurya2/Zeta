@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../models/mindmap_node.dart';
 import '../../providers/space_provider.dart';
@@ -55,9 +56,8 @@ class MindMapNodeEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.read<SpaceProvider>();
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final textTheme = theme.textTheme;
+    final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
     final isRoot = node.isRoot;
 
     return Focus(

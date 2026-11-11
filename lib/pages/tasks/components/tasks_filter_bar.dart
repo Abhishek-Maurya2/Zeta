@@ -1,6 +1,7 @@
-import 'package:zeta/core/core.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../../components/glass_m3e_menu.dart';
 import '../../../providers/task_provider.dart';
@@ -158,30 +159,110 @@ class _TasksSortSplitButtonState extends State<_TasksSortSplitButton> {
               final anchor = renderBox != null
                   ? (renderBox.localToGlobal(Offset.zero) & renderBox.size)
                   : Rect.zero;
-              await showGlassM3EMenu<TaskSortOption>(
+              final isCreationSort =
+                  widget.sortBy == TaskSortOption.creationDesc ||
+                  widget.sortBy == TaskSortOption.creationAsc;
+              final isAlphaSort =
+                  widget.sortBy == TaskSortOption.az ||
+                  widget.sortBy == TaskSortOption.za;
+
+              final selected = await showGlassM3EMenu<TaskSortOption>(
                 context: buttonContext,
                 anchor: anchor,
                 position: M3EMenuAnchorPosition.bottomEnd,
                 colorStyle: M3EMenuColorStyle.vibrant,
                 selectedValue: widget.sortBy,
-                preferredWidth: 200,
+                preferredWidth: 210,
                 blurSigma: 8.0,
-                children: TaskSortOption.values.map((option) {
-                  return M3EMenuSelectable(
-                    value: option,
-                    label: widget.taskProvider.getSortLabel(option),
-                    leading: Icon(
-                      widget.taskProvider.getSortIcon(option),
-                      size: 22,
-                    ),
-                    selected: option == widget.sortBy,
+                children: [
+                  M3EMenuSelectable(
+                    value: TaskSortOption.dueDate,
+                    label: widget.taskProvider.getSortLabel(TaskSortOption.dueDate),
+                    leading: const Icon(Symbols.event_rounded, size: 20, fill: 1.0),
+                    selected: widget.sortBy == TaskSortOption.dueDate,
                     onPressed: () {
                       ZetaHaptics.selection();
-                      widget.onSortChanged(option);
+                      widget.onSortChanged(TaskSortOption.dueDate);
                     },
-                  );
-                }).toList(),
+                  ),
+                  const M3EMenuDivider(),
+                  M3EMenuSubmenu(
+                    label: 'Date Created',
+                    leading: const Icon(Symbols.schedule_rounded, size: 20, fill: 1.0),
+                    badge: isCreationSort
+                        ? Text(
+                            widget.taskProvider.getSortLabel(widget.sortBy),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: widget.colorScheme.secondary,
+                            ),
+                          )
+                        : null,
+                    children: [
+                      M3EMenuSelectable(
+                        value: TaskSortOption.creationDesc,
+                        label: widget.taskProvider.getSortLabel(TaskSortOption.creationDesc),
+                        leading: const Icon(Symbols.schedule_rounded, size: 20, fill: 1.0),
+                        selected: widget.sortBy == TaskSortOption.creationDesc,
+                        onPressed: () {
+                          ZetaHaptics.selection();
+                          widget.onSortChanged(TaskSortOption.creationDesc);
+                        },
+                      ),
+                      M3EMenuSelectable(
+                        value: TaskSortOption.creationAsc,
+                        label: widget.taskProvider.getSortLabel(TaskSortOption.creationAsc),
+                        leading: const Icon(Symbols.history_rounded, size: 20, fill: 1.0),
+                        selected: widget.sortBy == TaskSortOption.creationAsc,
+                        onPressed: () {
+                          ZetaHaptics.selection();
+                          widget.onSortChanged(TaskSortOption.creationAsc);
+                        },
+                      ),
+                    ],
+                  ),
+                  M3EMenuSubmenu(
+                    label: 'Alphabetical',
+                    leading: const Icon(Symbols.sort_by_alpha_rounded, size: 20, fill: 1.0),
+                    badge: isAlphaSort
+                        ? Text(
+                            widget.taskProvider.getSortLabel(widget.sortBy),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: widget.colorScheme.secondary,
+                            ),
+                          )
+                        : null,
+                    children: [
+                      M3EMenuSelectable(
+                        value: TaskSortOption.az,
+                        label: widget.taskProvider.getSortLabel(TaskSortOption.az),
+                        leading: const Icon(Symbols.arrow_downward_rounded, size: 20, fill: 1.0),
+                        selected: widget.sortBy == TaskSortOption.az,
+                        onPressed: () {
+                          ZetaHaptics.selection();
+                          widget.onSortChanged(TaskSortOption.az);
+                        },
+                      ),
+                      M3EMenuSelectable(
+                        value: TaskSortOption.za,
+                        label: widget.taskProvider.getSortLabel(TaskSortOption.za),
+                        leading: const Icon(Symbols.arrow_upward_rounded, size: 20, fill: 1.0),
+                        selected: widget.sortBy == TaskSortOption.za,
+                        onPressed: () {
+                          ZetaHaptics.selection();
+                          widget.onSortChanged(TaskSortOption.za);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               );
+              if (selected != null) {
+                widget.onSortChanged(selected);
+              }
               if (mounted) {
                 setState(() => _buttonGeneration++);
               }

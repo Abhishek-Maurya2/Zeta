@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/core/core.dart';
 
 import '../../models/mindmap_node.dart';
 import '../../providers/space_provider.dart';
+import '../../../../providers/theme_provider.dart';
 import '../../../../utils/haptics.dart';
 import 'mindmap_node_metrics.dart';
 
@@ -36,9 +38,9 @@ class MindMapNodeDnd extends StatelessWidget {
     final isHoverTarget = provider.hoverTargetId == node.id;
     final isSiblingIndicator =
         isHoverTarget && !provider.isHoverReparent && !provider.isInvalidDrop;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode(context);
+    final colorScheme = context.colorScheme;
     const hitMargin = MindMapNodeMetrics.hitMargin;
 
     return Stack(

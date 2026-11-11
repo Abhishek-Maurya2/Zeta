@@ -20,7 +20,7 @@ class MindMapNodeMetrics {
   static const double safetyBuffer = 14.0;
 
   // Maximum node width constraint
-  static const double maxNodeWidth = 250.0;
+  static const double maxNodeWidth = 400.0;
 
   // Minimum node dimensions
   static const double minNodeWidthRoot = 60.0;

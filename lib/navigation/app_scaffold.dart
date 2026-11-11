@@ -30,6 +30,7 @@ import 'components/navigation_rail_widget.dart';
 import 'components/global_shortcuts_handler.dart';
 import '../components/task_edit_pane.dart';
 import '../components/task_selection_toolbar.dart';
+import '../components/glass_menu.dart';
 import '../core/core.dart';
 
 import '../theme/breakpoints.dart';
@@ -345,6 +346,12 @@ class _AppScaffoldState extends State<AppScaffold>
 
     // ── Esc: dismiss search or task edit split pane or go back ──────
     if (logical == LogicalKeyboardKey.escape) {
+      // If a GlassMenu or submenu popup is open, let it handle Escape to dismiss
+      // itself instead of intercepting and popping the page route.
+      if (GlassMenu.hasActiveMenu) {
+        return false;
+      }
+
       final topBar = _topBarKey.currentState;
       if (topBar != null && topBar.isSearchOpen) {
         topBar.closeSearch();
