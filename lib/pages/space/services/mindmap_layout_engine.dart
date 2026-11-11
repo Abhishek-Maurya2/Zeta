@@ -98,11 +98,13 @@ class MindMapLayoutEngine {
     // Step 1: Pre-calculate node dimensions
     final nodeSizes = <String, Size>{};
     for (final node in mindMap.nodes) {
-      final hasChildren = mindMap.childrenOf(node.id).isNotEmpty;
+      final children = mindMap.childrenOf(node.id);
+      final hasChildren = children.isNotEmpty;
       nodeSizes[node.id] = _measureNode(
         node,
         baseTextStyle,
         hasChildren: hasChildren,
+        childCount: children.length,
       );
     }
 
@@ -376,23 +378,36 @@ class MindMapLayoutEngine {
     MindMapNode node,
     TextStyle? baseStyle, {
     bool hasChildren = false,
+    int childCount = 0,
   }) {
     final isRoot = node.isRoot;
 
-    final minNodeWidth = isRoot ? 170.0 : 150.0;
-    final maxNodeWidth = (node.style.customWidth ?? (isRoot ? 320.0 : 400.0))
+    // Minimum dimensions ensuring comfortable room for text + icons + padding without collision
+    final minNodeWidth = isRoot ? 180.0 : 160.0;
+    final maxNodeWidth = (node.style.customWidth ?? (isRoot ? 360.0 : 420.0))
         .clamp(minNodeWidth, 600.0);
-    final minNodeHeight = isRoot ? 68.0 : 48.0;
+    final minNodeHeight = isRoot ? 64.0 : 52.0;
+    const maxNodeHeight = 500.0;
+    const maxLines = 10;
 
-    // Padding (36 or 28) + Border & sub-pixel safety buffer (8)
-    // + Checkbox (18 box + 8 gap = 26) + Collapse badge (6 gap + 28 pill = 34)
+    // Overhead calculation matching MindMapNodeWidget layout exactly:
+    // Horizontal padding: Root 18*2 = 36, Non-root 14*2 = 28
+    final paddingH = isRoot ? 36.0 : 28.0;
+    // Checkbox: 18 box + 8 gap = 26
+    final checkboxOverhead = node.style.hasCheckbox ? 26.0 : 0.0;
+    // Collapse / child count badge: 6 gap + 14 padding + pill content + buffer
+    double badgeOverhead = 0.0;
+    if (hasChildren) {
+      final digits = childCount > 0 ? childCount.toString().length : 1;
+      final pillContentWidth = math.max(16.0, digits * 10.0);
+      badgeOverhead = 6.0 + 14.0 + pillContentWidth + 4.0; // ~40.0 - 54.0
+    }
+    // Sub-pixel rounding + border thickness safety buffer (up to 2.5 on each side + buffer)
+    const safetyBuffer = 10.0;
+
     final horizontalOverhead =
-        (isRoot ? 36.0 : 28.0) +
-        8.0 +
-        (node.style.hasCheckbox ? 26.0 : 0.0) +
-        (hasChildren ? 38.0 : 0.0);
-
-    final maxContentWidth = maxNodeWidth - horizontalOverhead;
+        paddingH + checkboxOverhead + badgeOverhead + safetyBuffer;
+    final maxContentWidth = math.max(60.0, maxNodeWidth - horizontalOverhead);
 
     final style = (baseStyle ?? const TextStyle(fontSize: 18)).copyWith(
       fontSize: isRoot ? 20 : 18,
@@ -404,6 +419,7 @@ class MindMapLayoutEngine {
         ? (isRoot ? 'Central Topic' : 'Node')
         : node.content;
 
+    // Measure single line width
     final singleLinePainter = TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: TextDirection.ltr,
@@ -415,30 +431,34 @@ class MindMapLayoutEngine {
         singleLineWidth <= maxContentWidth && !text.contains('\n');
 
     final TextPainter textPainter;
+    final double targetContentWidth;
+
     if (fitsOnOneLine) {
       textPainter = singleLinePainter;
+      targetContentWidth = singleLineWidth;
     } else {
       textPainter = TextPainter(
         text: TextSpan(text: text, style: style),
         textDirection: TextDirection.ltr,
-        maxLines: 8,
+        maxLines: maxLines,
       )..layout(maxWidth: maxContentWidth);
+      targetContentWidth = textPainter.width.ceilToDouble();
     }
 
-    final targetContentWidth = fitsOnOneLine
-        ? singleLineWidth
-        : maxContentWidth;
-    double measuredWidth =
-        node.style.customWidth ?? (targetContentWidth + horizontalOverhead);
+    // Width expands dynamically as per content up to maxNodeWidth
+    double measuredWidth = node.style.customWidth ??
+        (targetContentWidth + horizontalOverhead);
     measuredWidth = measuredWidth.clamp(minNodeWidth, maxNodeWidth);
 
-    final verticalOverhead = isRoot ? 36.0 : 30.0;
+    // Vertical overhead: Root padding 28 + borders/buffer 12 = 40; Non-root padding 22 + borders/buffer 12 = 34
+    final verticalOverhead = isRoot ? 40.0 : 34.0;
     double measuredHeight =
         textPainter.height.ceilToDouble() + verticalOverhead;
     if (node.style.tags.isNotEmpty) {
-      measuredHeight += 22.0;
+      measuredHeight += 24.0;
     }
-    measuredHeight = measuredHeight.clamp(minNodeHeight, 420.0);
+    // Height expands dynamically up to maxNodeHeight (accommodates 10 lines)
+    measuredHeight = measuredHeight.clamp(minNodeHeight, maxNodeHeight);
 
     return Size(measuredWidth, measuredHeight);
   }

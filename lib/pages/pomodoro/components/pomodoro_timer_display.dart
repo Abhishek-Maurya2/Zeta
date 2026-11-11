@@ -1,15 +1,16 @@
-﻿import 'package:zeta/core/core.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:material_3_expressive/material_3_expressive.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/pomodoro_provider.dart';
+import 'zeta_wavy_circle_progress_painter.dart';
 
 /// Circular wavy progress indicator and digital countdown display.
 ///
-/// Uses a [Ticker] to smoothly interpolate the wavy arc between the
-/// 1-second provider ticks, giving a fluid 60 fps animation instead
-/// of a jerky once-per-second jump.
+/// Features a decoupled, zero-allocation rendering architecture:
+/// - 60 Hz wavy circle animation rendered directly on Canvas without widget rebuilds.
+/// - 1 Hz digital countdown text isolated via [ValueListenableBuilder].
+/// - Auto-stopping lerp ticker for smooth progress transitions across second boundaries.
 class PomodoroTimerDisplay extends StatefulWidget {
   final double size;
 
@@ -20,129 +21,201 @@ class PomodoroTimerDisplay extends StatefulWidget {
 }
 
 class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+    with TickerProviderStateMixin {
+  late final AnimationController _waveController;
+  final ValueNotifier<double> _smoothProgressNotifier =
+      ValueNotifier<double>(0.0);
 
-  // Cached provider values to detect changes that need visual update
   double _currentProgress = 0.0;
   double _targetProgress = 0.0;
+  Ticker? _progressTicker;
+
+  // Cached TextStyle instances to prevent GC churn on 1Hz ticks
+  static const _runningTextStyle = TextStyle(
+    fontFamily: 'GoogleSansFlex',
+    fontSize: 70,
+    letterSpacing: 1,
+    fontVariations: [
+      FontVariation('wght', 900),
+      FontVariation('wdth', 80),
+      FontVariation('ROND', 100),
+    ],
+  );
+
+  static const _pausedTextStyle = TextStyle(
+    fontFamily: 'RobotoFlex',
+    fontSize: 70,
+    letterSpacing: 5,
+    fontVariations: [
+      FontVariation('wght', 600),
+      FontVariation('wdth', 180),
+      FontVariation('ROND', 100),
+    ],
+  );
 
   @override
   void initState() {
     super.initState();
-    // This controller runs indefinitely, driven by the ticker
-    _controller = AnimationController(
+    _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
-    )..addListener(_onAnimationTick);
+      duration: const Duration(seconds: 1), // 1 wavelength / sec = 50px/s
+    );
   }
 
-  void _onAnimationTick() {
-    // Smoothly lerp _currentProgress toward _targetProgress every frame
-    const lerpSpeed = 0.08; // ~8% of remaining gap per frame ≈ smooth ease-out
-    final diff = _targetProgress - _currentProgress;
-    if (diff.abs() > 0.0001) {
-      _currentProgress += diff * lerpSpeed;
+  bool? _lastIsRunning;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = Provider.of<PomodoroProvider>(context);
+    final isRunning = provider.isRunning;
+    if (_lastIsRunning != isRunning) {
+      _lastIsRunning = isRunning;
+      if (!isRunning) {
+        _currentProgress = provider.progress;
+        _targetProgress = _currentProgress;
+        _smoothProgressNotifier.value = _currentProgress;
+      }
+      _syncAnimationState(isRunning);
+    }
+  }
+
+  void _syncAnimationState(bool isRunning) {
+    if (isRunning) {
+      if (!_waveController.isAnimating) {
+        _waveController.repeat();
+      }
     } else {
-      _currentProgress = _targetProgress;
+      if (_waveController.isAnimating) {
+        _waveController.stop();
+      }
+      _progressTicker?.stop();
     }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onAnimationTick);
-    _controller.dispose();
+    _waveController.dispose();
+    _progressTicker?.dispose();
+    _smoothProgressNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<PomodoroProvider>();
-    final colorScheme = context.colorScheme;
-    final isRunning = provider.isRunning;
+    final provider = context.read<PomodoroProvider>();
+    final isRunning = context.select<PomodoroProvider, bool>(
+      (p) => p.isRunning,
+    );
+    final colorScheme = Theme.of(context).colorScheme;
 
-    if (isRunning) {
-      if (!_controller.isAnimating) {
-        _controller.repeat();
-      }
-    } else {
-      if (_controller.isAnimating) {
-        _controller.stop();
-      }
-      // Snap immediately when paused
-      _currentProgress = provider.progress;
-    }
+    return RepaintBoundary(
+      child: Center(
+        child: SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // 1. Continuous Wave Progress Layer (60 Hz / 120 Hz, ZERO Rebuilds)
+              RepaintBoundary(
+                child: CustomPaint(
+                  size: Size(widget.size, widget.size),
+                  painter: ZetaWavyCircleProgressPainter(
+                    repaintAnimation: _waveController,
+                    progressListenable: _smoothProgressNotifier,
+                    activeColor: colorScheme.primary,
+                    trackColor: colorScheme.tertiaryContainer,
+                    strokeWidth: 15.0,
+                    trackStrokeWidth: 12.0,
+                    wavelength: 50.0,
+                    amplitude: 5.0,
+                  ),
+                ),
+              ),
 
-    return AnimatedBuilder(
-      animation: provider.tickNotifier,
-      builder: (context, _) {
-        final providerProgress = provider.progress;
-        final formattedTime = provider.formattedTime;
-        _targetProgress = providerProgress;
+              // 2. Discrete Countdown Text Layer (1 Hz, ZERO Animation Tick Overhead)
+              RepaintBoundary(
+                child: ValueListenableBuilder<int>(
+                  valueListenable: provider.tickNotifier,
+                  builder: (context, remainingSeconds, _) {
+                    final isCurrentlyRunning =
+                        context.read<PomodoroProvider>().isRunning;
+                    _onSecondTick(
+                      provider.totalDuration > 0
+                          ? ((provider.totalDuration - remainingSeconds) /
+                                  provider.totalDuration)
+                              .clamp(0.0, 1.0)
+                          : provider.progress,
+                      isCurrentlyRunning,
+                    );
 
-        return Center(
-          child: SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Circular Wavy Progress Indicator (smooth 60fps interpolation)
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) {
-                    final currentM3ETheme = M3ETheme.of(context);
-                    return M3ETheme(
-                      data: currentM3ETheme.copyWith(
-                        progressIndicatorTheme: currentM3ETheme
-                            .progressIndicatorTheme
-                            .copyWith(
-                              circular: currentM3ETheme
-                                  .progressIndicatorTheme
-                                  .circular
-                                  .copyWith(
-                                    waveAmplitude: 5, // Increase this value for higher physical amplitude
-                                  ),
-                            ),
-                      ),
-                      child: M3EProgressIndicator.circularWavy(
-                        value: _currentProgress.clamp(0.0, 1.0),
-                        size: widget.size,
-                        strokeWidth: 15,
-                        wavelength: 50,
-                        trackStrokeWidth: 12,
-                        color: colorScheme.primary,
-                        trackColor: colorScheme.tertiaryContainer,
-                      ),
+                    final displaySeconds = provider.isCountUp
+                        ? (provider.totalDuration - remainingSeconds).clamp(
+                            0,
+                            provider.totalDuration,
+                          )
+                        : remainingSeconds;
+                    final mins = displaySeconds ~/ 60;
+                    final secs = displaySeconds % 60;
+                    final formattedTime =
+                        '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+
+                    return Text(
+                      formattedTime,
+                      style: (isRunning ? _runningTextStyle : _pausedTextStyle)
+                          .copyWith(color: colorScheme.tertiary),
                     );
                   },
                 ),
-
-                // Inner Countdown Display
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      formattedTime,
-                      style: TextStyle(
-                        fontFamily: isRunning ? 'GoogleSansFlex' : 'RobotoFlex',
-                        fontSize: 70,
-                        letterSpacing: isRunning ? 1 : 5,
-                        color: colorScheme.tertiary,
-                        fontVariations: [
-                          FontVariation('wght', isRunning ? 900 : 600),
-                          FontVariation('wdth', isRunning ? 80 : 180),
-                          const FontVariation('ROND', 100),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
+  }
+
+  void _onSecondTick(double newTarget, bool isRunning) {
+    _targetProgress = newTarget;
+    if (!isRunning) {
+      _currentProgress = newTarget;
+      _smoothProgressNotifier.value = newTarget;
+      if (_progressTicker?.isTicking ?? false) {
+        _progressTicker?.stop();
+      }
+      return;
+    }
+    // Auto-stopping lerp ticker: runs for ~300ms then completely stops
+    _startProgressLerp();
+  }
+
+  void _startProgressLerp() {
+    final diff = _targetProgress - _currentProgress;
+    if (diff.abs() <= 0.0001) {
+      _currentProgress = _targetProgress;
+      _smoothProgressNotifier.value = _currentProgress;
+      if (_progressTicker?.isTicking ?? false) {
+        _progressTicker?.stop();
+      }
+      return;
+    }
+
+    _progressTicker ??= createTicker((_) {
+      const lerpSpeed = 0.08;
+      final currentDiff = _targetProgress - _currentProgress;
+      if (currentDiff.abs() > 0.0001) {
+        _currentProgress += currentDiff * lerpSpeed;
+        _smoothProgressNotifier.value = _currentProgress;
+      } else {
+        _currentProgress = _targetProgress;
+        _smoothProgressNotifier.value = _currentProgress;
+        _progressTicker?.stop(); // Idle for remaining ~700ms
+      }
+    });
+
+    if (!_progressTicker!.isTicking) {
+      _progressTicker!.start();
+    }
   }
 }

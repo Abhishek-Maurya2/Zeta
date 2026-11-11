@@ -446,7 +446,7 @@ class SpaceProvider extends ChangeNotifier {
     if (index == -1) return;
 
     final current = _activeMindMap!.nodes[index];
-    final minWidth = current.isRoot ? 170.0 : 150.0;
+    final minWidth = current.isRoot ? 180.0 : 160.0;
     final nextWidth = width.clamp(minWidth, 600.0);
     final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes);
     updatedNodes[index] = current.copyWith(

@@ -521,9 +521,11 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                       provider.endDragNode();
                     },
                     builder: (context, candidateData, rejectedData) {
-                      Widget nodeContent = Opacity(
-                        opacity: isDraggingSelf ? 0.4 : 1.0,
-                        child: AnimatedContainer(
+                      Widget nodeContent = Material(
+                        type: MaterialType.transparency,
+                        child: Opacity(
+                          opacity: isDraggingSelf ? 0.4 : 1.0,
+                          child: AnimatedContainer(
                           duration: M3MotionDuration.short4,
                           curve: M3MotionEasing.standard,
                           width: widget.bounds.width,
@@ -584,7 +586,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                             height: 1.35,
                                           ),
                                           cursorColor: colorScheme.primary,
-                                          maxLines: null,
+                                          maxLines: 10,
+                                          minLines: 1,
                                           textInputAction: TextInputAction.done,
                                           decoration: const InputDecoration(
                                             border: InputBorder.none,
@@ -603,6 +606,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                                                     ? 'Central Topic'
                                                     : 'Node')
                                               : widget.node.content,
+                                          maxLines: 10,
+                                          overflow: TextOverflow.ellipsis,
                                           style: textTheme.bodyMedium?.copyWith(
                                             fontSize: isRoot ? 20 : 18,
                                             fontWeight: isRoot
@@ -661,7 +666,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                             ],
                           ),
                         ),
-                      );
+                      ),
+                    );
 
                       if (!isRoot && !isEditing) {
                         nodeContent = Draggable<String>(
