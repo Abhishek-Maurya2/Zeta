@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-11-12
+
+### Fixed
+- **Android Gradle Build Compatibility**: Upgraded Android Gradle Plugin to `9.1.1` and Gradle wrapper to `9.5.0` to meet Flutter's minimum build requirements and resolve CI build failures.
+
+### Changed
+- **GlassMenu Refinements**: Refactored glass menu components with zero elevation and shadows, instant frame-0 backdrop blur scaling, and non-blocking outside tap pass-through interaction via `TapRegion`.
+- **Submenu Hierarchy & Key Handling**: Fixed submenu re-tapping to collapse, automatic dismissal of previous submenus on switch, and scoped `Escape` key handling to prevent scaffold page pop.
+- **Tasks Sort Split Button**: Organized sorting actions into dedicated submenus for Alphabetical and Creation Date ordering with active badges and high-contrast selection styling.
+
 ## [1.7.0] - 2026-11-12
 
 ### Added
