@@ -496,7 +496,7 @@ class _AppScaffoldState extends State<AppScaffold>
 
     // Top app bar visibility
     // Visible on tablet & desktop (width >= 600dp, where navigation rail is active).
-    // On compact screens (< 600dp), Settings, Bin, Topics, and Notes provide their own dedicated top header with back navigation.
+    // On compact screens (< 600dp), Settings, Bin, and Space provide their own dedicated top header with back navigation.
     final showTopAppBar =
         (!isCompact ||
         (navProvider.activePage != PageId.settings &&

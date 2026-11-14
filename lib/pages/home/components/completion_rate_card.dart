@@ -670,7 +670,6 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
     with SingleTickerProviderStateMixin {
   final _overlayController = OverlayPortalController();
   final _layerLink = LayerLink();
-  final _tapRegionGroupId = Object();
   late final AnimationController _transformController;
   Timer? _closeTimer;
   bool _isExpanded = false;
@@ -796,7 +795,7 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
                       opacity: animation,
                       child: SizeTransition(
                         sizeFactor: animation,
-                        axisAlignment: -1,
+                        alignment: Alignment.topCenter,
                         child: child,
                       ),
                     ),

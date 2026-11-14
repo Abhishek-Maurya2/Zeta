@@ -134,7 +134,7 @@ void main() {
     testWidgets('renders node content with maxLines: 10 and ellipsis overflow', (tester) async {
       final spaceProvider = FakeSpaceProvider();
       const testContent = 'Sample Topic Text';
-      final node = const MindMapNode(
+      const node = MindMapNode(
         id: 'node_1',
         parentId: 'root',
         orderIndex: 0,
@@ -160,7 +160,7 @@ void main() {
 
     testWidgets('renders number badge when node has children and is collapsed', (tester) async {
       final spaceProvider = FakeSpaceProvider();
-      final node = const MindMapNode(
+      const node = MindMapNode(
         id: 'node_parent',
         parentId: 'root',
         orderIndex: 0,
@@ -190,7 +190,7 @@ void main() {
 
     testWidgets('TextField in edit mode has maxLines: 10 and minLines: 1', (tester) async {
       final spaceProvider = FakeSpaceProvider();
-      final node = const MindMapNode(
+      const node = MindMapNode(
         id: 'node_edit',
         parentId: 'root',
         orderIndex: 0,

@@ -2,7 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zeta/components/add_attachment_dialog.dart';
 import 'package:zeta/models/attachment.dart';
-import 'package:zeta/models/note_item.dart';
 import 'package:zeta/models/task.dart';
 import 'package:zeta/services/attachment_parser_service.dart';
 
@@ -77,7 +76,7 @@ void main() {
     });
   });
 
-  group('AttachmentItem and NoteItem Serialization Tests', () {
+  group('AttachmentItem Serialization Tests', () {
     test('AttachmentItem serializes and deserializes cleanly', () {
       final attachment = AttachmentItem(
         id: 'att-1',
@@ -96,34 +95,6 @@ void main() {
       expect(revived.title, equals(attachment.title));
       expect(revived.type, equals(AttachmentType.youtube));
       expect(revived.videoId, equals('dQw4w9WgXcQ'));
-    });
-
-    test('NoteItem serializes and deserializes with nested attachments', () {
-      final note = NoteItem(
-        id: 'note-1',
-        title: 'Chapter 1 Notes',
-        content: '# Chapter 1 Notes\nKey points: Spaced repetition is effective.',
-        createdAt: DateTime(2026, 9, 27, 10, 0, 0),
-        updatedAt: DateTime(2026, 9, 27, 11, 0, 0),
-        attachments: [
-          AttachmentItem(
-            id: 'att-sub-1',
-            url: 'https://docs.google.com/document/d/xyz',
-            title: 'Syllabus Summary Doc',
-            type: AttachmentType.googleDrive,
-            driveType: GoogleDriveType.document.toDbString(),
-          ),
-        ],
-      );
-
-      final json = note.toJson();
-      final revived = NoteItem.fromJson(json);
-
-      expect(revived.id, equals(note.id));
-      expect(revived.title, equals(note.title));
-      expect(revived.content, equals(note.content));
-      expect(revived.attachments.length, equals(1));
-      expect(revived.attachments.first.driveType, equals('document'));
     });
   });
 

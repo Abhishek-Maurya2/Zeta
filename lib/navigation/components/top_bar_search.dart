@@ -61,7 +61,7 @@ class TopBarSearch extends StatelessWidget {
                 readOnly: true,
                 alignment: AlignmentDirectional.center,
                 wrapActions: false,
-                hintText: isCompact ? 'Search' : 'Search Tasks & Notes',
+                hintText: isCompact ? 'Search' : 'Search Tasks',
                 onTap: () {
                   if (!controller.isOpen) {
                     controller.openView();

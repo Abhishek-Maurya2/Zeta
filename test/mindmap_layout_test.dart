@@ -9,12 +9,12 @@ void main() {
 
   group('MindMapLayoutEngine dynamic expansion and node sizing tests', () {
     test('Root node enforces minimum width (180.0) and minimum height (64.0)', () {
-      final mindMap = MindMap(
+      const mindMap = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -36,12 +36,12 @@ void main() {
     });
 
     test('Non-root node enforces minimum width (160.0) and minimum height (52.0)', () {
-      final mindMap = MindMap(
+      const mindMap = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -68,12 +68,12 @@ void main() {
     });
 
     test('Single-line text expands width as per content up to maxNodeWidth without wrapping', () {
-      final mindMap = MindMap(
+      const mindMap = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -112,12 +112,12 @@ void main() {
       const tenLinesText = 'Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10';
       const singleLineText = 'Single line text';
 
-      final mindMap = MindMap(
+      const mindMap = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -154,12 +154,12 @@ void main() {
     test('Collapsed node with children reserves badge overhead so text has sufficient space', () {
       const longText = 'Topic Title';
 
-      final mindMapWithoutChildren = MindMap(
+      const mindMapWithoutChildren = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -175,12 +175,12 @@ void main() {
         ],
       );
 
-      final mindMapWithChildren = MindMap(
+      const mindMapWithChildren = MindMap(
         id: 'map_2',
         title: 'Test Map 2',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
@@ -232,12 +232,12 @@ void main() {
     });
 
     test('Custom width is clamped to [minNodeWidth, 600.0] and height calculates to fit text', () {
-      final mindMap = MindMap(
+      const mindMap = MindMap(
         id: 'map_1',
         title: 'Test Map',
         createdAtMs: 1000,
         updatedAtMs: 1000,
-        nodes: const [
+        nodes: [
           MindMapNode(
             id: 'root',
             parentId: null,
