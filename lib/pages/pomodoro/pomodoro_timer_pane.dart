@@ -91,7 +91,7 @@ class PomodoroTimerPane extends StatelessWidget {
                     ), // Fixed gap substituting Spacer(flex: 1)
                     const PomodoroTimerDisplay(),
                     const SizedBox(
-                      height: 48,
+                      height: 35,
                     ), // Fixed gap substituting Spacer(flex: 2)
                     const PomodoroTimerControls(),
                     const SizedBox(height: 24),
