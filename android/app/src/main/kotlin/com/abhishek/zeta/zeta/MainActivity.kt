@@ -3,11 +3,11 @@ package com.abhishek.zeta.zeta
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private val CHANNEL = "zeta/android_shortcuts"
     private val WIDGET_CHANNEL = "zeta/tasks_widget"
     private var initialShortcut: String? = null

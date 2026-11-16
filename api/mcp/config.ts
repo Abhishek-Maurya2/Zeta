@@ -43,11 +43,15 @@ export interface AuthValidationResult {
 /**
  * Validates MCP request authentication strictly.
  * - HTTP 500 if ZETA_MCP_KEY is missing or empty in server environment.
- * - HTTP 401 if Authorization header is missing, malformed, or invalid.
+ * - HTTP 401 if key/token is missing, malformed, or invalid.
+ * - Accepts key via Authorization header ('Bearer <key>'), 'x-zeta-key' header, or URL query param '?key=<key>'.
  * - Constant-time comparison using crypto.timingSafeEqual to prevent timing attacks.
- * - Enforces Bearer token format exclusively; query params and custom headers are strictly rejected.
  */
-export function validateAuth(req: { headers?: Record<string, string | string[] | undefined> }): AuthValidationResult {
+export function validateAuth(req: {
+  headers?: Record<string, string | string[] | undefined>;
+  query?: Record<string, string | string[] | undefined>;
+  url?: string;
+}): AuthValidationResult {
   const serverKey = process.env.ZETA_MCP_KEY || ZETA_MCP_KEY;
   if (!serverKey || serverKey.trim() === '') {
     return {
@@ -57,18 +61,49 @@ export function validateAuth(req: { headers?: Record<string, string | string[] |
     };
   }
 
+  // 1. Check Authorization: Bearer <token>
   const authHeader = req.headers?.['authorization'] || req.headers?.['Authorization'];
-  const rawAuth = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  let rawAuth = Array.isArray(authHeader) ? authHeader[0] : authHeader;
+  let clientToken: string | undefined;
 
-  if (!rawAuth || typeof rawAuth !== 'string' || !rawAuth.startsWith('Bearer ')) {
+  if (rawAuth && typeof rawAuth === 'string') {
+    if (rawAuth.startsWith('Bearer ')) {
+      clientToken = rawAuth.slice(7).trim();
+    } else {
+      clientToken = rawAuth.trim();
+    }
+  }
+
+  // 2. Fallback to custom header x-zeta-key
+  if (!clientToken) {
+    const xKey = req.headers?.['x-zeta-key'];
+    if (xKey && typeof xKey === 'string') {
+      clientToken = xKey.trim();
+    }
+  }
+
+  // 3. Fallback to query parameter ?key= or ?token=
+  if (!clientToken) {
+    const queryKey = req.query?.['key'] || req.query?.['token'];
+    if (queryKey) {
+      clientToken = (Array.isArray(queryKey) ? queryKey[0] : queryKey).trim();
+    } else if (req.url && req.url.includes('?')) {
+      try {
+        const parsedUrl = new URL(req.url, 'http://localhost');
+        const qKey = parsedUrl.searchParams.get('key') || parsedUrl.searchParams.get('token');
+        if (qKey) clientToken = qKey.trim();
+      } catch (_) {}
+    }
+  }
+
+  if (!clientToken) {
     return {
       authorized: false,
       statusCode: 401,
-      errorMessage: 'Unauthorized: Missing or invalid Authorization header. Expected "Bearer <token>".',
+      errorMessage: 'Unauthorized: Missing authentication. Provide Authorization header ("Bearer <key>") or query parameter ("?key=<key>").',
     };
   }
 
-  const clientToken = rawAuth.slice(7).trim();
   const serverBuffer = Buffer.from(serverKey.trim(), 'utf8');
   const clientBuffer = Buffer.from(clientToken, 'utf8');
 

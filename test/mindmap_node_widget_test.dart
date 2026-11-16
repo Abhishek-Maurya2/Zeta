@@ -112,7 +112,7 @@ void main() {
         ChangeNotifierProvider<ThemeProvider>(create: (_) => MockThemeProvider()),
       ],
       child: MaterialApp(
-        localizationsDelegates: [
+        localizationsDelegates: const [
           m_ui.DefaultMaterialLocalizations.delegate,
           ...GlobalMaterialLocalizations.delegates,
         ],

@@ -189,7 +189,6 @@ export function registerPomodoroTools(server: McpServer): string[] {
           minutes,
           mode,
           completed_at: nowIso,
-          completed_at_ms: nowMs,
         };
 
         const { data, error } = await supabase.from('pomodoro_sessions').insert(newSession).select().single();
