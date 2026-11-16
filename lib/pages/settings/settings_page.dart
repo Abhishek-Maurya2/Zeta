@@ -299,15 +299,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         'settings_wide_detail_${activeCategory?.name ?? "default"}',
                       ),
                       slivers: [
-                        M3EAppBar.sliver(
-                          variant: M3EAppBarVariant.largeFlexible,
-                          hideOnScroll: false,
-                          backgroundColor: isDark
-                              ? colorScheme.surfaceContainerHigh
-                              : colorScheme.surfaceContainer,
-                          title: Text(
-                            activeCategoryMeta?.label ?? 'Settings',
-                            style: textTheme.displaySmall,
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                            child: Text(
+                              activeCategoryMeta?.label ?? 'Settings',
+                              style: textTheme.headlineMedium?.copyWith(
+                                color: colorScheme.onSurface,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                         SliverToBoxAdapter(
@@ -375,11 +376,17 @@ class _SettingsPageState extends State<SettingsPage> {
           start: CustomScrollView(
             key: const PageStorageKey<String>('settings_wide_nav'),
             slivers: [
-              M3EAppBar.sliver(
-                variant: M3EAppBarVariant.largeFlexible,
-                hideOnScroll: false,
-                title: Text('Settings', style: textTheme.displaySmall),
-                backgroundColor: colorScheme.surfaceContainerLow,
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  child: Text(
+                    'Settings',
+                    style: textTheme.headlineMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -410,13 +417,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   'settings_wide_detail_${activeCategory?.name ?? "default"}',
                 ),
                 slivers: [
-                  M3EAppBar.sliver(
-                    variant: M3EAppBarVariant.largeFlexible,
-                    hideOnScroll: false,
-                    backgroundColor: colorScheme.surfaceContainerHigh,
-                    title: Text(
-                      activeCategoryMeta?.label ?? 'Settings',
-                      style: textTheme.displaySmall,
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                      child: Text(
+                        activeCategoryMeta?.label ?? 'Settings',
+                        style: textTheme.headlineMedium?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   SliverToBoxAdapter(

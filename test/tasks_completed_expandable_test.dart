@@ -77,6 +77,10 @@ void main() {
   testWidgets(
       'loads only 5 completed tasks at a time and batches remaining 5 at a time on demand',
       (tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+
     final taskProvider = TaskProvider();
 
     await tester.pumpWidget(

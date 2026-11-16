@@ -37,6 +37,21 @@ class SupabaseSyncService {
   DateTime? get lastSyncedAt => _lastSyncedAt;
   String? get lastError => _lastError;
 
+  /// Safely returns the effective user ID if authenticated, or null otherwise.
+  String? get effectiveUserId {
+    try {
+      if (!_supabaseService.isInitialized || !_supabaseService.isAuthenticated) {
+        return null;
+      }
+      return _supabaseService.currentUser?.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Alias for [effectiveUserId] to safely retrieve the current user ID.
+  String? get currentUserId => effectiveUserId;
+
   void Function(Task task, String eventType)? onRemoteChange;
   Future<void> Function(Task task, DateTime syncedAt)? onTaskSynced;
   Future<Task?> Function(String taskId)? getTaskForSync;
@@ -60,7 +75,13 @@ class SupabaseSyncService {
   }
 
   Future<void> queuePermanentDeletions(Iterable<String> taskIds) async {
-    final userId = _supabaseService.effectiveUserId;
+    final userId = effectiveUserId;
+    if (userId == null || userId.isEmpty) {
+      debugPrint(
+        'SupabaseSyncService: Skipping queuePermanentDeletions because user session is null/offline.',
+      );
+      return;
+    }
     for (final taskId in taskIds) {
       await _outbox.enqueue(
         userId: userId,
@@ -73,8 +94,8 @@ class SupabaseSyncService {
   }
 
   Future<Set<String>> _getPendingPermanentDeletions() async {
-    final userId = _supabaseService.effectiveUserId;
-    if (userId.isEmpty) return {};
+    final userId = effectiveUserId;
+    if (userId == null || userId.isEmpty) return {};
     final pending = await _outbox.pendingForAccount(userId, feature: 'tasks');
     return pending
         .where((item) => item.operation == 'delete')
@@ -95,7 +116,8 @@ class SupabaseSyncService {
       // Process each durable mutation in order. A newer operation replaces an
       // older one for the same entity, and the timestamp check protects it
       // from being acknowledged while this request is in flight.
-      final userId = _supabaseService.effectiveUserId;
+      final userId = effectiveUserId;
+      if (userId == null || userId.isEmpty) return;
       final pendingDeletions = await _outbox.pendingForAccount(
         userId,
         feature: 'tasks',
@@ -159,7 +181,11 @@ class SupabaseSyncService {
     _lastError = null;
 
     try {
-      final userId = _supabaseService.effectiveUserId;
+      final userId = effectiveUserId;
+      if (userId == null || userId.isEmpty) {
+        _lastError = 'No authenticated user session.';
+        return [];
+      }
       const pageSize = 1000;
       int offset = 0;
       final List<Task> tasks = [];
@@ -243,7 +269,13 @@ class SupabaseSyncService {
       return false;
     }
 
-    final userId = _supabaseService.effectiveUserId;
+    final userId = effectiveUserId;
+    if (userId == null || userId.isEmpty) {
+      if (!_pendingQueue.any((t) => t.id == task.id)) {
+        _pendingQueue.add(task);
+      }
+      return false;
+    }
     final row = task.toSupabaseRow(userId: userId);
 
     int retryCount = 0;
@@ -321,11 +353,11 @@ class SupabaseSyncService {
   void subscribeToRealtime({
     void Function(Task task, String eventType)? onChange,
   }) {
-    if (!_supabaseService.isInitialized) return;
+    if (!_supabaseService.isInitialized || !_supabaseService.isAuthenticated) return;
     if (onChange != null) onRemoteChange = onChange;
 
-    final userId = _supabaseService.effectiveUserId;
-    if (userId.isEmpty) return;
+    final userId = effectiveUserId;
+    if (userId == null || userId.isEmpty) return;
 
     _realtimeChannel?.unsubscribe();
     _realtimeChannel = _supabaseService.client

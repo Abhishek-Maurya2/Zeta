@@ -11,5 +11,6 @@ QueryExecutor openPlatformConnection() {
   }
   return driftDatabase(
     name: 'zeta_app_db',
+    native: const DriftNativeOptions(shareAcrossIsolates: true),
   );
 }

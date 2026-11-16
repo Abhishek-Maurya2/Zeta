@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../models/attachment.dart';
 import '../../theme/breakpoints.dart';
-import '../glass_surface.dart';
+import '../tonal_surface.dart';
 
 /// Attachment Chip styled consistently with M3E date/time filter chips,
 /// displaying the page's favicon and truncated title to prevent RenderFlex overflow.
@@ -94,9 +94,9 @@ class AttachmentChip extends StatelessWidget {
     if (!isCompact) return chipWidget;
 
     final radius = BorderRadius.circular(8.0);
-    return GlassSurface(
+    return TonalSurface(
       borderRadius: radius,
-      color: colorScheme.primary.withValues(alpha: 0.12),
+      color: colorScheme.surfaceContainerHigh,
       child: chipWidget,
     );
   }

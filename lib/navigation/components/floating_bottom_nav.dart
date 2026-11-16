@@ -1,21 +1,23 @@
+import 'package:flutter/physics.dart';
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/glass_surface.dart';
+import '../../components/zeta_floating_toolbar.dart';
 import '../../components/task_edit_pane.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/haptics.dart';
 
 /// Floating bottom navigation toolbar for compact viewports.
-class FloatingBottomNav extends StatelessWidget {
+class FloatingBottomNav extends StatefulWidget {
   final NavigationProvider navProvider;
   final bool isSelectionMode;
   final bool keepVisible;
   final bool showSelectionToolbar;
   final M3EToolbarScrollBehavior scrollBehavior;
+
   const FloatingBottomNav({
     super.key,
     required this.navProvider,
@@ -26,45 +28,111 @@ class FloatingBottomNav extends StatelessWidget {
   });
 
   @override
+  State<FloatingBottomNav> createState() => _FloatingBottomNavState();
+}
+
+class _FloatingBottomNavState extends State<FloatingBottomNav>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _slideController;
+
+  bool get _shouldHide =>
+      widget.isSelectionMode ||
+      widget.showSelectionToolbar ||
+      widget.navProvider.activePage == PageId.settings ||
+      widget.navProvider.activePage == PageId.bin ||
+      widget.navProvider.activePage == PageId.space;
+
+  @override
+  void initState() {
+    super.initState();
+    _slideController = AnimationController.unbounded(
+      vsync: this,
+      value: _shouldHide ? 0.0 : 1.0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant FloatingBottomNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final shouldHide = _shouldHide;
+    final oldShouldHide = oldWidget.isSelectionMode ||
+        oldWidget.showSelectionToolbar ||
+        oldWidget.navProvider.activePage == PageId.settings ||
+        oldWidget.navProvider.activePage == PageId.bin ||
+        oldWidget.navProvider.activePage == PageId.space;
+
+    if (shouldHide != oldShouldHide) {
+      final target = shouldHide ? 0.0 : 1.0;
+      final simulation = SpringSimulation(
+        ZetaToolbarMotion.spatialSpring,
+        _slideController.value,
+        target,
+        0.0,
+      );
+      _slideController.animateWith(simulation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isTasksPage = navProvider.activePage == PageId.tasks;
+    final isTasksPage = widget.navProvider.activePage == PageId.tasks;
     final colorScheme = context.colorScheme;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Positioned(
-      bottom: showSelectionToolbar ? 64 : 5,
+      bottom: 5.0 + bottomInset,
       left: 0,
       right: 0,
       child: AnimatedBuilder(
-        animation: scrollBehavior.controller,
+        animation: widget.scrollBehavior.controller,
         builder: (context, child) {
           return Transform.translate(
-            offset: keepVisible
+            offset: widget.keepVisible
                 ? Offset.zero
-                : Offset(0, -scrollBehavior.controller.offset),
+                : Offset(0, -widget.scrollBehavior.controller.offset),
             child: child,
           );
         },
-        child: AnimatedSlide(
-          offset:
-              (isSelectionMode ||
-                  navProvider.activePage == PageId.settings ||
-                  navProvider.activePage == PageId.bin ||
-                  navProvider.activePage == PageId.space)
-              ? const Offset(0, 2.0)
-              : Offset.zero,
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeInOutCubicEmphasized,
+        child: AnimatedBuilder(
+          animation: _slideController,
+          builder: (context, child) {
+            final progress = _slideController.value;
+            final isFullyHidden = progress <= 0.001 && _shouldHide;
+            if (isFullyHidden) {
+              return const SizedBox.shrink();
+            }
+            final slideY = (1.0 - progress) * 160.0;
+            return Transform.translate(
+              offset: Offset(0, slideY),
+              child: Opacity(
+                opacity: progress.clamp(0.0, 1.0),
+                child: child,
+              ),
+            );
+          },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GlassSurface(
-                borderRadius: BorderRadius.circular(100),
+              ZetaFloatingToolbar.custom(
+                motion: const ZetaToolbarMotion(enabled: false),
+                style: ZetaToolbarStyle(
+                  borderRadius: BorderRadius.circular(100),
+                  backgroundColor: colorScheme.primaryContainer,
+                  blurSigma: 7.0,
+                  alpha: 0.50,
+                  border: const Border.fromBorderSide(BorderSide.none),
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                ),
                 child: M3EToolbar(
                   screenOffset: 0,
                   elevation: 0.0,
-                  backgroundColor: colorScheme.primaryContainer.withValues(
-                    alpha: 0.65,
-                  ),
+                  backgroundColor: Colors.transparent,
                   size: M3EToolbarSize.large,
                   colorStyle: M3EToolbarColorStyle.vibrant,
                   padding: const EdgeInsets.symmetric(horizontal: 1),
@@ -80,7 +148,7 @@ class FloatingBottomNav extends StatelessWidget {
                             )
                             .map((dest) {
                               final isSelected =
-                                  dest.id == navProvider.activePage;
+                                  dest.id == widget.navProvider.activePage;
 
                               return ToolbarNavItem(
                                 destination: dest,
@@ -88,7 +156,7 @@ class FloatingBottomNav extends StatelessWidget {
                                 onTap: () {
                                   ZetaHaptics.heavy();
                                   context.read<TaskProvider>().clearSelection();
-                                  navProvider.setActivePage(dest.id);
+                                  widget.navProvider.setActivePage(dest.id);
                                 },
                               );
                             })
@@ -100,13 +168,19 @@ class FloatingBottomNav extends StatelessWidget {
               ),
               if (isTasksPage) ...[
                 const SizedBox(width: 8),
-                GlassSurface(
-                  borderRadius: BorderRadius.circular(16),
+                ZetaFloatingToolbar.custom(
+                  motion: const ZetaToolbarMotion(enabled: false),
+                  style: ZetaToolbarStyle(
+                    borderRadius: BorderRadius.circular(16),
+                    backgroundColor: colorScheme.tertiaryContainer,
+                    blurSigma: 7.0,
+                    alpha: 0.50,
+                    border: const Border.fromBorderSide(BorderSide.none),
+                    padding: EdgeInsets.zero,
+                  ),
                   child: FloatingActionButton(
                     elevation: 0.0,
-                    backgroundColor: colorScheme.tertiaryContainer.withValues(
-                      alpha: 0.7,
-                    ),
+                    backgroundColor: Colors.transparent,
                     foregroundColor: colorScheme.onTertiaryContainer,
                     onPressed: () {
                       ZetaHaptics.medium();

@@ -12,7 +12,7 @@ import 'task_subtasks_list.dart';
 
 /// A modular, reusable task card item used across both the Tasks Page
 /// and the Bin Page (via [isDeleted: true]).
-class TaskCardItem extends StatelessWidget {
+class TaskCardItem extends StatefulWidget {
   final Task task;
   final bool isExpanded;
   final bool isDeleted;
@@ -29,6 +29,7 @@ class TaskCardItem extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final List<Widget>? extraChips;
+  final bool? moveChipsToTrailing;
 
   const TaskCardItem({
     super.key,
@@ -48,11 +49,40 @@ class TaskCardItem extends StatelessWidget {
     this.leading,
     this.trailing,
     this.extraChips,
+    this.moveChipsToTrailing,
   });
+
+  @override
+  State<TaskCardItem> createState() => _TaskCardItemState();
+}
+
+class _TaskCardItemState extends State<TaskCardItem> {
+  bool _isChipsHovered = false;
+
+  void _onChipsHover(bool isHovered) {
+    if (_isChipsHovered != isHovered) {
+      setState(() {
+        _isChipsHovered = isHovered;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final task = widget.task;
+    final isExpanded = widget.isExpanded;
+    final isDeleted = widget.isDeleted;
+    final isSelected = widget.isSelected;
+    final onToggleExpand = widget.onToggleExpand;
+    final onToggleSubtask = widget.onToggleSubtask;
+    final onTap = widget.onTap;
+    final onContextMenu = widget.onContextMenu;
+    final leading = widget.leading;
+    final trailing = widget.trailing;
+    final extraChips = widget.extraChips;
+    final moveChipsToTrailing = widget.moveChipsToTrailing;
+
     final subtasks = task.subtasks;
     final hasSubtasks = subtasks.isNotEmpty;
     final isCompletedOrDeleted = isDeleted || task.completed;
@@ -60,6 +90,57 @@ class TaskCardItem extends StatelessWidget {
 
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
+    final isCompactOrMedium = sizeClass.isCompact || sizeClass.isMedium;
+    final isLargeScreen = !isCompactOrMedium;
+    final shouldTrailingChips =
+        (moveChipsToTrailing ?? (trailing == null && !isDeleted)) &&
+        isLargeScreen;
+
+    final chips = <Widget>[
+      if (isDeleted && task.deletedAt != null)
+        TaskDeletedDateChip(timestamp: task.deletedAt),
+      if (task.dueDate != null)
+        TaskDueDateChip(
+          task: task,
+          isCompleted: isCompletedOrDeleted,
+        ),
+      if (hasSubtasks)
+        TaskSubtasksBadge(
+          subtasks: subtasks,
+          isExpanded: isExpanded,
+          onToggleExpand: isDeleted ? null : onToggleExpand,
+        ),
+      if (task.attachments.isNotEmpty)
+        TaskAttachmentsChipGroup(
+          attachments: task.attachments,
+          maxTitleLength: 20,
+        ),
+      ...?extraChips,
+    ];
+
+    Widget? effectiveTrailing;
+    if (shouldTrailingChips && chips.isNotEmpty) {
+      effectiveTrailing = MouseRegion(
+        onEnter: (_) => _onChipsHover(true),
+        onExit: (_) => _onChipsHover(false),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            for (int i = 0; i < chips.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              chips[i],
+            ],
+            if (trailing != null || isDeleted) ...[
+              const SizedBox(width: 8),
+              trailing ?? _buildBinTrailing(context),
+            ],
+          ],
+        ),
+      );
+    } else if (trailing != null || isDeleted) {
+      effectiveTrailing = trailing ?? _buildBinTrailing(context);
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -69,7 +150,11 @@ class TaskCardItem extends StatelessWidget {
           onContextMenu?.call(details.globalPosition),
       child: InkWell(
         borderRadius: BorderRadius.circular(isSelected ? 50.0 : 16),
-        onTap: onTap,
+        onTap: _isChipsHovered ? null : onTap,
+        hoverColor: _isChipsHovered ? Colors.transparent : null,
+        focusColor: _isChipsHovered ? Colors.transparent : null,
+        highlightColor: _isChipsHovered ? Colors.transparent : null,
+        canRequestFocus: !_isChipsHovered,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
@@ -77,7 +162,11 @@ class TaskCardItem extends StatelessWidget {
             children: [
               // ─── Header: Leading, Title/Description, Trailing ────────────
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: (shouldTrailingChips &&
+                        (displayDescription == null ||
+                            displayDescription.isEmpty))
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.start,
                 children: [
                   // Leading: Checkbox or Delete Icon
                   leading ?? _buildLeading(context),
@@ -88,9 +177,14 @@ class TaskCardItem extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           task.title,
+                          maxLines: shouldTrailingChips ? 1 : null,
+                          overflow: shouldTrailingChips
+                              ? TextOverflow.ellipsis
+                              : null,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: isSelected
@@ -134,52 +228,30 @@ class TaskCardItem extends StatelessWidget {
                     ),
                   ),
 
-                  // Trailing: Actions (Restore/Delete in Bin, or custom)
-                  if (trailing != null || isDeleted) ...[
-                    const SizedBox(width: 8),
-                    trailing ?? _buildBinTrailing(context),
+                  // Trailing: Actions / Trailing Chips
+                  if (effectiveTrailing != null) ...[
+                    const SizedBox(width: 12),
+                    effectiveTrailing,
                   ],
                 ],
               ),
 
               // ─── Chips: Aligned with Title & Description ─────────────────
-              if ((isDeleted && task.deletedAt != null) ||
-                  task.dueDate != null ||
-                  hasSubtasks ||
-                  task.attachments.isNotEmpty ||
-                  (extraChips != null && extraChips!.isNotEmpty)) ...[
+              if (!shouldTrailingChips && chips.isNotEmpty) ...[
                 const SizedBox(height: 15),
                 Padding(
                   padding: const EdgeInsets.only(left: 34),
                   child: SizedBox(
                     width: double.infinity,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        if (isDeleted && task.deletedAt != null)
-                          TaskDeletedDateChip(timestamp: task.deletedAt),
-                        if (task.dueDate != null)
-                          TaskDueDateChip(
-                            task: task,
-                            isCompleted: isCompletedOrDeleted,
-                          ),
-
-                        if (hasSubtasks)
-                          TaskSubtasksBadge(
-                            subtasks: subtasks,
-                            isExpanded: isExpanded,
-                            onToggleExpand: isDeleted ? null : onToggleExpand,
-                          ),
-                        // Inside TaskCardItem.build -> Wrap(children: [ ... ])
-                        if (task.attachments.isNotEmpty)
-                          TaskAttachmentsChipGroup(
-                            attachments: task.attachments,
-                            maxTitleLength: 20,
-                          ),
-                        ...?extraChips,
-                      ],
+                    child: MouseRegion(
+                      onEnter: (_) => _onChipsHover(true),
+                      onExit: (_) => _onChipsHover(false),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: chips,
+                      ),
                     ),
                   ),
                 ),
@@ -214,6 +286,11 @@ class TaskCardItem extends StatelessWidget {
 
   Widget _buildLeading(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final isDeleted = widget.isDeleted;
+    final isSelectionMode = widget.isSelectionMode;
+    final isSelected = widget.isSelected;
+    final task = widget.task;
+    final onToggle = widget.onToggle;
 
     if (isDeleted) {
       return Padding(
@@ -253,7 +330,7 @@ class TaskCardItem extends StatelessWidget {
       onTap: onToggle != null
           ? () {
               ZetaHaptics.light();
-              onToggle!();
+              onToggle();
             }
           : null,
       child: Padding(
@@ -275,6 +352,8 @@ class TaskCardItem extends StatelessWidget {
 
   Widget _buildBinTrailing(BuildContext context) {
     final colorScheme = context.colorScheme;
+    final onRestore = widget.onRestore;
+    final onPermanentDelete = widget.onPermanentDelete;
 
     final actions = <M3EButtonGroupAction>[];
     final callbacks = <VoidCallback>[];
@@ -293,7 +372,7 @@ class TaskCardItem extends StatelessWidget {
           ),
         ),
       );
-      callbacks.add(onRestore!);
+      callbacks.add(onRestore);
     }
 
     if (onPermanentDelete != null) {
@@ -310,7 +389,7 @@ class TaskCardItem extends StatelessWidget {
           ),
         ),
       );
-      callbacks.add(onPermanentDelete!);
+      callbacks.add(onPermanentDelete);
     }
 
     if (actions.isEmpty) return const SizedBox.shrink();

@@ -127,7 +127,9 @@ export function registerTasksTools(server: McpServer): string[] {
         if (status === 'pending') query = query.eq('completed', false);
         if (status === 'completed') query = query.eq('completed', true);
 
-        const { data, error } = await query.order('due_date', { ascending: true, nullsFirst: false });
+        const { data, error } = await query
+          .order('due_date', { ascending: true, nullsFirst: false })
+          .range(0, 49);
 
         if (error) throw error;
         if (!data || data.length === 0) {

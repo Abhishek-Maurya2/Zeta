@@ -73,7 +73,7 @@ class MindMapNodeEditor extends StatelessWidget {
           height: 1.35,
         ),
         cursorColor: colorScheme.primary,
-        maxLines: null,
+        maxLines: 10,
         minLines: 1,
         keyboardType: TextInputType.multiline,
         textInputAction: TextInputAction.newline,

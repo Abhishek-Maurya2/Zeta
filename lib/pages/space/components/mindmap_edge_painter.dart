@@ -8,11 +8,13 @@ class MindMapEdgePainter extends CustomPainter {
   final List<MindMapEdge> edges;
   final String? hoveredNodeId;
   final bool isDark;
+  final Rect? visibleRect;
 
   const MindMapEdgePainter({
     required this.edges,
     this.hoveredNodeId,
     this.isDark = false,
+    this.visibleRect,
   });
 
   @override
@@ -20,6 +22,14 @@ class MindMapEdgePainter extends CustomPainter {
     if (edges.isEmpty) return;
 
     for (final edge in edges) {
+      if (visibleRect != null) {
+        final edgeBounds =
+            Rect.fromPoints(edge.startPoint, edge.endPoint).inflate(24.0);
+        if (!edgeBounds.overlaps(visibleRect!)) {
+          continue;
+        }
+      }
+
       final isHighlighted = hoveredNodeId != null &&
           (edge.sourceId == hoveredNodeId || edge.targetId == hoveredNodeId);
 
@@ -84,6 +94,7 @@ class MindMapEdgePainter extends CustomPainter {
   bool shouldRepaint(covariant MindMapEdgePainter oldDelegate) {
     return oldDelegate.hoveredNodeId != hoveredNodeId ||
         oldDelegate.isDark != isDark ||
+        oldDelegate.visibleRect != visibleRect ||
         !listEquals(oldDelegate.edges, edges);
   }
 }

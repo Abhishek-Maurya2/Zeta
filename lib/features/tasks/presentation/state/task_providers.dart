@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/task.dart';
 import '../../domain/task_filter.dart';
 import '../../data/task_repository.dart';
+import '../../../../core/sync/sync_coordinator.dart';
+
+export '../../domain/task_filter.dart';
+export '../../../../core/sync/sync_coordinator.dart' show SyncState, syncCoordinatorProvider;
 
 /// Stream of all active tasks from local SQLite.
 /// Managed off-thread by Drift, zero memory leaks with autoDispose.
@@ -168,4 +172,56 @@ final activeEditingTaskProvider = Provider.autoDispose<Task?>((ref) {
   final taskId = ref.watch(activeEditingTaskIdProvider);
   if (taskId == null) return null;
   return ref.watch(taskByIdProvider(taskId));
+});
+
+/// First-class real-time sync status provider for Riverpod consumers.
+/// Exposes syncing state, online status, outbox backlog, and error details.
+final syncStatusProvider = Provider.autoDispose<SyncState>((ref) {
+  return ref.watch(syncCoordinatorProvider);
+});
+
+/// Primary active tasks stream provider (alias to [activeTasksStreamProvider]).
+final tasksStreamProvider = activeTasksStreamProvider;
+
+/// Controller providing clean task mutation primitives for Riverpod consumers.
+class TaskController {
+  final TaskRepository _repository;
+  final SyncCoordinator? _syncCoordinator;
+
+  TaskController(this._repository, this._syncCoordinator);
+
+  /// Create or update a task with atomic SQLite persistence and outbox sync.
+  Future<void> saveTask(Task task) => _repository.saveTask(task);
+
+  /// Toggle completion state of a task with timestamp recording.
+  Future<void> toggleTask(Task task) {
+    final updated = task.copyWith(
+      completed: !task.completed,
+      completedAt: !task.completed ? DateTime.now() : null,
+      clearCompletedAt: task.completed,
+      updatedAt: DateTime.now(),
+    );
+    return _repository.saveTask(updated);
+  }
+
+  /// Soft-delete task to bin.
+  Future<void> moveToBin(String taskId) => _repository.moveToBin(taskId);
+
+  /// Restore task from bin.
+  Future<void> restoreFromBin(String taskId) =>
+      _repository.restoreFromBin(taskId);
+
+  /// Permanently delete task from database and outbox.
+  Future<void> permanentlyDelete(String taskId) =>
+      _repository.permanentlyDeleteTask(taskId);
+
+  /// Trigger debounced background synchronization.
+  void triggerSync() => _syncCoordinator?.triggerSync();
+}
+
+/// Riverpod provider for [TaskController].
+final taskControllerProvider = Provider.autoDispose<TaskController>((ref) {
+  final repo = ref.watch(taskRepositoryProvider);
+  final syncCoordinator = ref.watch(syncCoordinatorProvider.notifier);
+  return TaskController(repo, syncCoordinator);
 });

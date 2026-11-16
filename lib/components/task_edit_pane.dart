@@ -16,7 +16,7 @@ import '../utils/task_date_formatter.dart';
 import '../utils/haptics.dart';
 import '../theme/breakpoints.dart';
 import 'glass_sheet.dart';
-import 'glass_surface.dart';
+import 'tonal_surface.dart';
 import 'zeta_timepicker.dart';
 
 /// Modal pane / dialog for creating or editing a task[cite: 1, 2].
@@ -611,19 +611,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     }
   }
 
-  Widget _wrapWithGlassSurface({
-    required Widget child,
-    required bool isCompact,
-    required Color borderColor,
-    double borderRadius = 24.0,
-  }) {
-    if (!isCompact) return child;
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: child,
-    );
-  }
-
   Widget _buildActionButton({
     required bool isCompact,
     required VoidCallback onPressed,
@@ -636,46 +623,41 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     bool boldIcon = false,
   }) {
     final effectiveIconColor = iconColor ?? foregroundColor;
-    return _wrapWithGlassSurface(
-      isCompact: isCompact,
-      borderColor: backgroundColor.withValues(alpha: 0.35),
-      borderRadius: isCompact ? 16.0 : 24.0,
-      child: isCompact
-          ? M3EIconButton(
-              icon: Icon(
-                iconData,
-                size: 25,
-                color: effectiveIconColor,
-                fontWeight: boldIcon ? FontWeight.w700 : null,
-              ),
-              size: M3EIconButtonSize.md,
-              width: M3EIconButtonWidth.wide,
-              decoration: M3EIconButtonDecoration(
-                backgroundColor: WidgetStatePropertyAll(backgroundColor),
-              ),
-              onPressed: onPressed,
-            )
-          : (showIconOnDesktop
-                ? M3EButton.icon(
-                    onPressed: onPressed,
-                    size: M3EButtonSize.md,
-                    decoration: M3EButtonDecoration(
-                      backgroundColor: WidgetStatePropertyAll(backgroundColor),
-                      foregroundColor: WidgetStatePropertyAll(foregroundColor),
-                    ),
-                    icon: Icon(iconData, size: 25, color: effectiveIconColor),
-                    label: Text(label, style: const TextStyle(fontSize: 16)),
-                  )
-                : M3EButton(
-                    onPressed: onPressed,
-                    size: M3EButtonSize.md,
-                    decoration: M3EButtonDecoration(
-                      backgroundColor: WidgetStatePropertyAll(backgroundColor),
-                      foregroundColor: WidgetStatePropertyAll(foregroundColor),
-                    ),
-                    child: Text(label, style: const TextStyle(fontSize: 16)),
-                  )),
-    );
+    return isCompact
+        ? M3EIconButton(
+            icon: Icon(
+              iconData,
+              size: 25,
+              color: effectiveIconColor,
+              fontWeight: boldIcon ? FontWeight.w700 : null,
+            ),
+            size: M3EIconButtonSize.md,
+            width: M3EIconButtonWidth.wide,
+            decoration: M3EIconButtonDecoration(
+              backgroundColor: WidgetStatePropertyAll(backgroundColor),
+            ),
+            onPressed: onPressed,
+          )
+        : (showIconOnDesktop
+              ? M3EButton.icon(
+                  onPressed: onPressed,
+                  size: M3EButtonSize.md,
+                  decoration: M3EButtonDecoration(
+                    backgroundColor: WidgetStatePropertyAll(backgroundColor),
+                    foregroundColor: WidgetStatePropertyAll(foregroundColor),
+                  ),
+                  icon: Icon(iconData, size: 25, color: effectiveIconColor),
+                  label: Text(label, style: const TextStyle(fontSize: 16)),
+                )
+              : M3EButton(
+                  onPressed: onPressed,
+                  size: M3EButtonSize.md,
+                  decoration: M3EButtonDecoration(
+                    backgroundColor: WidgetStatePropertyAll(backgroundColor),
+                    foregroundColor: WidgetStatePropertyAll(foregroundColor),
+                  ),
+                  child: Text(label, style: const TextStyle(fontSize: 16)),
+                ));
   }
 
   Widget _buildGlassChip({
@@ -687,7 +669,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
   }) {
     if (!isCompact) return child;
     final radius = BorderRadius.circular(borderRadius);
-    return GlassSurface(
+    return TonalSurface(
       borderRadius: radius,
       color: selected
           ? colorScheme.primary.withValues(alpha: 0.12)
@@ -701,7 +683,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
     required bool isCompact,
     required ColorScheme colorScheme,
   }) {
-    final inputWidget = Container(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
@@ -740,14 +722,6 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
           ),
         ],
       ),
-    );
-
-    if (!isCompact) return inputWidget;
-
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(16),
-      blurSigma: 5,
-      child: inputWidget,
     );
   }
 
@@ -1716,9 +1690,9 @@ class AttachmentChip extends StatelessWidget {
     if (!isCompact) return chipWidget;
 
     final radius = BorderRadius.circular(8.0);
-    return GlassSurface(
+    return TonalSurface(
       borderRadius: radius,
-      color: colorScheme.primary.withValues(alpha: 0.12),
+      color: colorScheme.surfaceContainerHigh,
       child: chipWidget,
     );
   }

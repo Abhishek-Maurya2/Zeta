@@ -44,7 +44,9 @@ export function registerMindmapsTools(server: McpServer): string[] {
           query = query.not('deleted_at_ms', 'is', null);
         }
 
-        const { data, error } = await query.order('created_at_ms', { ascending: false });
+        const { data, error } = await query
+          .order('created_at_ms', { ascending: false })
+          .range(0, 49);
 
         if (error) throw error;
         if (!data || data.length === 0) {

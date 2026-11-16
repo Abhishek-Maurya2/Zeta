@@ -42,6 +42,14 @@ class MindMapLayoutEngine {
     Color(0xFF14B8A6), // Teal
   ];
 
+  /// Cache of memoized node measurements keyed by node content, style, and badge state.
+  static final Map<String, Size> _nodeSizeCache = {};
+
+  /// Clears the node size measurement cache.
+  static void clearSizeCache() {
+    _nodeSizeCache.clear();
+  }
+
   static List<Color> getBranchPalette({
     ColorScheme? colorScheme,
     List<Color>? customPalette,
@@ -96,10 +104,25 @@ class MindMapLayoutEngine {
       customPalette: branchPalette,
     );
 
+    // Step 0: Pre-index children by parentId to achieve O(N) hierarchy traversal
+    final childrenByParentId = <String?, List<MindMapNode>>{};
+    for (final node in mindMap.nodes) {
+      (childrenByParentId[node.parentId] ??= []).add(node);
+    }
+    for (final list in childrenByParentId.values) {
+      list.sort((a, b) {
+        final cmp = a.orderIndex.compareTo(b.orderIndex);
+        return cmp != 0 ? cmp : a.id.compareTo(b.id);
+      });
+    }
+
+    List<MindMapNode> getChildren(String? parentId) =>
+        childrenByParentId[parentId] ?? const <MindMapNode>[];
+
     // Step 1: Pre-calculate node dimensions
     final nodeSizes = <String, Size>{};
     for (final node in mindMap.nodes) {
-      final children = mindMap.childrenOf(node.id);
+      final children = getChildren(node.id);
       final hasChildren = children.isNotEmpty;
       nodeSizes[node.id] = _measureNode(
         node,
@@ -138,7 +161,7 @@ class MindMapLayoutEngine {
       );
     }
 
-    final rootChildren = mindMap.childrenOf(root.id);
+    final rootChildren = getChildren(root.id);
     if (rootChildren.isEmpty) {
       return MindMapLayoutResult(
         nodeBounds: nodeBounds,
@@ -152,7 +175,7 @@ class MindMapLayoutEngine {
     if (!isBalanced) {
       // Standard Horizontal (Left-to-Right)
       _layoutBranchSubtrees(
-        mindMap: mindMap,
+        childrenByParentId: childrenByParentId,
         parentRect: rootRect,
         children: rootChildren,
         nodeSizes: nodeSizes,
@@ -179,7 +202,7 @@ class MindMapLayoutEngine {
 
       if (rightChildren.isNotEmpty) {
         _layoutBranchSubtrees(
-          mindMap: mindMap,
+          childrenByParentId: childrenByParentId,
           parentRect: rootRect,
           children: rightChildren,
           nodeSizes: nodeSizes,
@@ -196,7 +219,7 @@ class MindMapLayoutEngine {
 
       if (leftChildren.isNotEmpty) {
         _layoutBranchSubtrees(
-          mindMap: mindMap,
+          childrenByParentId: childrenByParentId,
           parentRect: rootRect,
           children: leftChildren,
           nodeSizes: nodeSizes,
@@ -242,7 +265,7 @@ class MindMapLayoutEngine {
   }
 
   static void _layoutBranchSubtrees({
-    required MindMap mindMap,
+    required Map<String?, List<MindMapNode>> childrenByParentId,
     required Rect parentRect,
     required List<MindMapNode> children,
     required Map<String, Size> nodeSizes,
@@ -261,7 +284,7 @@ class MindMapLayoutEngine {
     final subtreeHeights = <String, double>{};
     for (final child in children) {
       subtreeHeights[child.id] = _computeSubtreeHeight(
-        mindMap: mindMap,
+        childrenByParentId: childrenByParentId,
         node: child,
         nodeSizes: nodeSizes,
       );
@@ -326,10 +349,10 @@ class MindMapLayoutEngine {
 
       // Recurse into children if not collapsed
       if (!child.isCollapsed) {
-        final grandChildren = mindMap.childrenOf(child.id);
+        final grandChildren = childrenByParentId[child.id] ?? const [];
         if (grandChildren.isNotEmpty) {
           _layoutBranchSubtrees(
-            mindMap: mindMap,
+            childrenByParentId: childrenByParentId,
             parentRect: childRect,
             children: grandChildren,
             nodeSizes: nodeSizes,
@@ -350,20 +373,20 @@ class MindMapLayoutEngine {
   }
 
   static double _computeSubtreeHeight({
-    required MindMap mindMap,
+    required Map<String?, List<MindMapNode>> childrenByParentId,
     required MindMapNode node,
     required Map<String, Size> nodeSizes,
   }) {
     final selfHeight = nodeSizes[node.id]?.height ?? 50.0;
     if (node.isCollapsed) return selfHeight;
 
-    final children = mindMap.childrenOf(node.id);
-    if (children.isEmpty) return selfHeight;
+    final children = childrenByParentId[node.id];
+    if (children == null || children.isEmpty) return selfHeight;
 
     double childrenHeight = 0;
     for (int i = 0; i < children.length; i++) {
       childrenHeight += _computeSubtreeHeight(
-        mindMap: mindMap,
+        childrenByParentId: childrenByParentId,
         node: children[i],
         nodeSizes: nodeSizes,
       );
@@ -382,6 +405,13 @@ class MindMapLayoutEngine {
     int childCount = 0,
   }) {
     final isRoot = node.isRoot;
+    final cacheKey =
+        '${node.id}_${node.content}_${isRoot}_${node.style.hasCheckbox}_${node.style.tags.isNotEmpty}_${node.isCollapsed}_${hasChildren}_${childCount}_${baseStyle?.fontSize}_${baseStyle?.fontWeight}';
+
+    final cached = _nodeSizeCache[cacheKey];
+    if (cached != null) {
+      return cached;
+    }
 
     // Horizontal & vertical card paddings
     final paddingH = isRoot
@@ -433,32 +463,37 @@ class MindMapLayoutEngine {
     final fitsOnOneLine =
         singleLineWidth <= maxContentWidth && !text.contains('\n');
 
-    final TextPainter textPainter;
     final double targetContentWidth;
+    final double targetContentHeight;
 
     if (fitsOnOneLine) {
-      textPainter = singleLinePainter;
       targetContentWidth = singleLineWidth;
+      targetContentHeight = singleLinePainter.height.ceilToDouble();
+      singleLinePainter.dispose();
     } else {
-      textPainter = TextPainter(
+      singleLinePainter.dispose();
+      final multiLinePainter = TextPainter(
         text: TextSpan(text: text, style: style),
         textDirection: TextDirection.ltr,
       )..layout(maxWidth: maxContentWidth);
-      targetContentWidth = textPainter.width.ceilToDouble();
+      targetContentWidth = multiLinePainter.width.ceilToDouble();
+      targetContentHeight = multiLinePainter.height.ceilToDouble();
+      multiLinePainter.dispose();
     }
 
-    final targetContentHeight = textPainter.height.ceilToDouble();
-
-    // Width expands dynamically up to maxNodeWidth (250px)
     final minNodeWidth = isRoot
         ? MindMapNodeMetrics.minNodeWidthRoot
-        : (node.style.hasCheckbox
-            ? (hasChildren ? 120.0 : 92.0)
-            : (hasChildren ? 64.0 : 44.0));
-    final measuredWidth = math.min(
-      MindMapNodeMetrics.maxNodeWidth,
-      math.max(minNodeWidth, targetContentWidth + horizontalOverhead),
-    );
+        : MindMapNodeMetrics.minNodeWidthNonRoot;
+    final customWidth = node.style.customWidth;
+    final double measuredWidth;
+    if (customWidth != null) {
+      measuredWidth = customWidth.clamp(minNodeWidth, 600.0);
+    } else {
+      measuredWidth = math.min(
+        MindMapNodeMetrics.maxNodeWidth,
+        math.max(minNodeWidth, targetContentWidth + horizontalOverhead),
+      );
+    }
 
     // Height expands dynamically without any max height limitation
     final minNodeHeight = isRoot
@@ -471,6 +506,11 @@ class MindMapLayoutEngine {
     }
     measuredHeight = math.max(minNodeHeight, measuredHeight);
 
-    return Size(measuredWidth, measuredHeight);
+    final result = Size(measuredWidth, measuredHeight);
+    if (_nodeSizeCache.length > 2000) {
+      _nodeSizeCache.clear();
+    }
+    _nodeSizeCache[cacheKey] = result;
+    return result;
   }
 }

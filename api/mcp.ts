@@ -1,6 +1,6 @@
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer } from './mcp/index.js';
-import { ZETA_MCP_KEY, getUserId, validateConfig } from './mcp/config.js';
+import { validateAuth, getUserId, validateConfig } from './mcp/config.js';
 
 // Helper to parse JSON body from raw request stream if needed
 async function getRequestBody(req: any): Promise<any> {
@@ -36,35 +36,26 @@ export default async function handler(req: any, res: any) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-zeta-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  // Authentication Check (Option A: Secret Token)
-  if (ZETA_MCP_KEY) {
-    const url = new URL(req.url, `http://${req.headers?.host || 'localhost'}`);
-    const queryKey = url.searchParams.get('key');
-    const authHeader = req.headers?.authorization || '';
-    const bearerKey = authHeader.replace(/^Bearer\s+/i, '');
-    const customHeaderKey = req.headers?.['x-zeta-key'];
-
-    const providedKey = queryKey || bearerKey || customHeaderKey;
-
-    if (providedKey !== ZETA_MCP_KEY) {
-      return res.status(401).json({
-        jsonrpc: '2.0',
-        error: {
-          code: -32000,
-          message: 'Unauthorized: Invalid or missing Zeta MCP secret key.',
-        },
-        id: null,
-      });
-    }
+  // Strict Authentication Gate (Bearer token only, constant-time validation)
+  const auth = validateAuth(req);
+  if (!auth.authorized) {
+    return res.status(auth.statusCode).json({
+      jsonrpc: '2.0',
+      error: {
+        code: auth.statusCode === 500 ? -32603 : -32000,
+        message: auth.errorMessage,
+      },
+      id: null,
+    });
   }
 
-  // GET Request: Health Check & Status (unless text/event-stream requested)
+  // GET Request: Health Check & Status (Strictly Authenticated)
   if (req.method === 'GET') {
     const accept = req.headers?.accept || '';
     if (!accept.includes('text/event-stream')) {
@@ -80,7 +71,7 @@ export default async function handler(req: any, res: any) {
         resources_count: resources.length,
         resources: resources,
         configured_user: Boolean(getUserId()),
-        auth_enabled: Boolean(ZETA_MCP_KEY),
+        auth_enabled: true,
         config_health: configHealth,
       });
     }

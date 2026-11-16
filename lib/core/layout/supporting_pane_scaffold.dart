@@ -61,6 +61,9 @@ class SupportingPaneScaffold extends StatefulWidget {
   final double minPaneWidth;
   final double maxPaneWidth;
   final List<double> detents;
+  final bool showModalSheetOnCompact;
+  final Widget Function(BuildContext context, Widget supportingPane)? compactModalSheetBuilder;
+  final VoidCallback? onCompactSheetDismissed;
 
   const SupportingPaneScaffold({
     super.key,
@@ -71,7 +74,72 @@ class SupportingPaneScaffold extends StatefulWidget {
     this.minPaneWidth = 320.0,
     this.maxPaneWidth = 600.0,
     this.detents = const [360.0, 420.0, 500.0],
+    this.showModalSheetOnCompact = true,
+    this.compactModalSheetBuilder,
+    this.onCompactSheetDismissed,
   });
+
+  /// Displays [content] (e.g. task edit form) as a responsive Material 3 modal bottom sheet.
+  static Future<T?> showAsModalBottomSheet<T>({
+    required BuildContext context,
+    required Widget content,
+    Color? backgroundColor,
+    double maxHeightFactor = 0.90,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final viewInsets = MediaQuery.of(context).viewInsets;
+
+    return showModalBottomSheet<T>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      isDismissible: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.15),
+      builder: (ctx) {
+        return AnimatedPadding(
+          padding: EdgeInsets.only(bottom: viewInsets.bottom),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(ctx).height * maxHeightFactor,
+            ),
+            decoration: BoxDecoration(
+              color: backgroundColor ?? colorScheme.surfaceContainerHigh,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(28),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withValues(
+                        alpha: 0.40,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: content,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   State<SupportingPaneScaffold> createState() => _SupportingPaneScaffoldState();
@@ -79,11 +147,18 @@ class SupportingPaneScaffold extends StatefulWidget {
 
 class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
     with SingleTickerProviderStateMixin {
+  final GlobalKey _primaryPaneKey =
+      GlobalKey(debugLabel: 'SupportingPane_primaryPane');
+  final GlobalKey _supportingPaneKey =
+      GlobalKey(debugLabel: 'SupportingPane_supportingPane');
+
   late final SupportingPaneController _controller;
   late final AnimationController _animationController;
   late final Animation<double> _expandAnimation;
   bool _internalControllerCreated = false;
   double _currentWidth = 400.0;
+  Widget? _lastSupportingPane;
+  bool _isModalSheetShowing = false;
 
   @override
   void initState() {
@@ -98,12 +173,23 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
       _internalControllerCreated = true;
     }
 
+    _lastSupportingPane = widget.supportingPane;
     _currentWidth = _controller.paneWidth;
 
     _animationController = AnimationController(
       vsync: this,
       duration: M3MotionDuration.medium4,
     );
+
+    _animationController.addStatusListener((status) {
+      if (status == AnimationStatus.dismissed) {
+        if (mounted && widget.supportingPane == null) {
+          setState(() {
+            _lastSupportingPane = null;
+          });
+        }
+      }
+    });
 
     _expandAnimation = CurvedAnimation(
       parent: _animationController,
@@ -113,6 +199,9 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
 
     if (_controller.isOpen && widget.supportingPane != null) {
       _animationController.value = 1.0;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkCompactModalSheet();
+      });
     }
 
     _controller.addListener(_onControllerChanged);
@@ -121,10 +210,77 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
   @override
   void didUpdateWidget(covariant SupportingPaneScaffold oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.supportingPane != null && !_controller.isOpen) {
-      _controller.open();
-    } else if (widget.supportingPane == null && _controller.isOpen) {
-      _controller.close();
+    if (widget.supportingPane != null) {
+      _lastSupportingPane = widget.supportingPane;
+      if (!_controller.isOpen) {
+        _controller.open();
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkCompactModalSheet();
+      });
+    } else if (oldWidget.supportingPane != null) {
+      // Retain the last widget so the exit transition can animate smoothly
+      _lastSupportingPane = oldWidget.supportingPane;
+      if (_isModalSheetShowing) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+      }
+      if (_controller.isOpen) {
+        _controller.close();
+      } else {
+        _animationController.reverse();
+      }
+    }
+  }
+
+  void _checkCompactModalSheet() {
+    if (!mounted || !widget.showModalSheetOnCompact) return;
+    final width = MediaQuery.sizeOf(context).width;
+    final isCompact = width < ZetaBreakpoints.mediumMin;
+
+    if (isCompact &&
+        _controller.isOpen &&
+        widget.supportingPane != null &&
+        !_isModalSheetShowing) {
+      _presentCompactModalSheet();
+    } else if (!isCompact && _isModalSheetShowing) {
+      _isModalSheetShowing = false;
+      Navigator.of(context, rootNavigator: true).maybePop();
+    }
+  }
+
+  Future<void> _presentCompactModalSheet() async {
+    if (!mounted || _isModalSheetShowing) return;
+    final paneContent = widget.supportingPane ?? _lastSupportingPane;
+    if (paneContent == null) return;
+
+    _isModalSheetShowing = true;
+    try {
+      if (widget.compactModalSheetBuilder != null) {
+        await showModalBottomSheet<void>(
+          context: context,
+          useRootNavigator: true,
+          isScrollControlled: true,
+          isDismissible: true,
+          useSafeArea: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          barrierColor: Colors.black.withValues(alpha: 0.15),
+          builder: (ctx) => widget.compactModalSheetBuilder!(ctx, paneContent),
+        );
+      } else {
+        await SupportingPaneScaffold.showAsModalBottomSheet<void>(
+          context: context,
+          content: paneContent,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error presenting compact modal sheet: $e');
+    } finally {
+      _isModalSheetShowing = false;
+      widget.onCompactSheetDismissed?.call();
+      if (mounted && _controller.isOpen && widget.supportingPane == null) {
+        _controller.close();
+      }
     }
   }
 
@@ -169,10 +325,36 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isCompact = width < ZetaBreakpoints.mediumMin;
+    final paneToShow = widget.supportingPane ?? _lastSupportingPane;
 
     if (isCompact) {
-      // On mobile / compact form factor, render primary pane full-width.
-      return widget.primaryPane;
+      if (widget.showModalSheetOnCompact &&
+          _controller.isOpen &&
+          widget.supportingPane != null &&
+          !_isModalSheetShowing) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkCompactModalSheet();
+        });
+      }
+      // On mobile / compact form factor, render primary pane full-width while
+      // preserving primary and supporting pane state across size class transitions.
+      return Stack(
+        fit: StackFit.passthrough,
+        children: [
+          KeyedSubtree(
+            key: _primaryPaneKey,
+            child: widget.primaryPane,
+          ),
+          if (paneToShow != null && !_isModalSheetShowing)
+            Offstage(
+              offstage: true,
+              child: KeyedSubtree(
+                key: _supportingPaneKey,
+                child: paneToShow,
+              ),
+            ),
+        ],
+      );
     }
 
     return LayoutBuilder(
@@ -187,16 +369,27 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
           children: [
             Row(
               children: [
-                // Primary Content Area
-                Expanded(child: RepaintBoundary(child: widget.primaryPane)),
+                // Primary Content Area with preserved state
+                Expanded(
+                  child: RepaintBoundary(
+                    child: KeyedSubtree(
+                      key: _primaryPaneKey,
+                      child: widget.primaryPane,
+                    ),
+                  ),
+                ),
 
                 // Animated Supporting Pane with spring-driven M3 Expressive physics
-                if (widget.supportingPane != null)
+                if (paneToShow != null)
                   AnimatedBuilder(
                     animation: _expandAnimation,
                     builder: (context, child) {
                       final animValue = _expandAnimation.value;
-                      if (animValue == 0.0) return const SizedBox.shrink();
+                      if (animValue == 0.0 &&
+                          !_animationController.isAnimating &&
+                          !_controller.isOpen) {
+                        return const SizedBox.shrink();
+                      }
 
                       final paneEffectiveWidth = clampedWidth * animValue;
 
@@ -233,7 +426,10 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
                                   minWidth: clampedWidth,
                                   maxWidth: clampedWidth,
                                   alignment: Alignment.topLeft,
-                                  child: widget.supportingPane,
+                                  child: KeyedSubtree(
+                                    key: _supportingPaneKey,
+                                    child: paneToShow,
+                                  ),
                                 ),
                               ),
                             ),

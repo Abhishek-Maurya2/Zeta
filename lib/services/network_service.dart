@@ -82,18 +82,19 @@ class NetworkService with WidgetsBindingObserver {
 
     try {
       if (kIsWeb) {
-        // Ping PostgREST REST endpoint with apikey header which sends CORS headers for web origins
+        // Ping Supabase Auth health endpoint with apikey header which returns 200 and CORS headers
         final res = await http
-            .head(
-              Uri.parse('${SupabaseService.supaUrl}/rest/v1/'),
+            .get(
+              Uri.parse('${SupabaseService.supaUrl}/auth/v1/health'),
               headers: {'apikey': SupabaseService.supaAnonKey},
             )
             .timeout(const Duration(milliseconds: 1500));
-        reachable = res.statusCode > 0;
+        reachable = res.statusCode >= 200 && res.statusCode < 300;
       } else {
         // Fast DNS lookup on native platforms
+        final host = Uri.parse(SupabaseService.supaUrl).host;
         final result = await InternetAddress.lookup(
-          'uewczwnrchvmvmccrdqf.supabase.co',
+          host,
         ).timeout(const Duration(milliseconds: 1500));
         reachable = result.isNotEmpty && result[0].rawAddress.isNotEmpty;
       }

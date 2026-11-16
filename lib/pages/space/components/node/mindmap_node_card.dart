@@ -156,7 +156,8 @@ class MindMapNodeCard extends StatelessWidget {
                             ? (isRoot ? 'Central Topic' : 'Node')
                             : node.content,
                         softWrap: true,
-                        maxLines: null,
+                        maxLines: 10,
+                        overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
                           fontSize: isRoot ? 20 : 18,
                           fontWeight: isRoot

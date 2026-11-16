@@ -394,9 +394,8 @@ class _OtherDueTasksCard extends StatelessWidget {
               if (task.dueDate != null && task.subtasks.isNotEmpty)
                 const SizedBox(width: 6),
               if (task.subtasks.isNotEmpty)
-                TaskSubtasksBadge(
-                  subtasks: task.subtasks,
-                  isExpanded: false,
+                FocusTaskSubtasksChip(
+                  count: task.subtasks.length,
                 ),
             ],
           ),

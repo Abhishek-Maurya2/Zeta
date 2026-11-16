@@ -62,8 +62,8 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
     final selectedIdx =
         (_hoveredDayIndex != null && _hoveredDayIndex! < values.length)
-        ? _hoveredDayIndex!
-        : maxIndex;
+            ? _hoveredDayIndex!
+            : maxIndex;
 
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
@@ -111,7 +111,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     Text(
                       _hoveredDayIndex != null
                           ? PomodoroChartCanvas.formatDuration(selectedFocus)
-                                .toUpperCase()
+                              .toUpperCase()
                           : '${totalHours.toStringAsFixed(2)} hrs',
                       style: TextStyle(
                         fontFamily: 'headline',
@@ -140,16 +140,31 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                 ),
               ),
               if (widget.onOpenAnalysis != null)
-                M3EIconButton(
-                  onPressed: widget.onOpenAnalysis,
-                  icon: const Icon(Symbols.arrow_outward_rounded, weight: 700),
-                  tooltip: 'View Analysis',
+                GestureDetector(
+                  onTap: () {
+                    ZetaHaptics.light();
+                    widget.onOpenAnalysis!();
+                  },
+                  child: M3EShapeContainer(
+                    kind: M3EShapeKind.cookie4Sided,
+                    width: 55,
+                    height: 55,
+                    color: colorScheme.primaryContainer,
+                    child: Center(
+                      child: Icon(
+                        Symbols.arrow_outward_rounded,
+                        size: 26,
+                        weight: 700,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 18),
 
-          // Smooth Terrain Canvas
+          // Capsule Bar Chart Canvas
           LayoutBuilder(
             builder: (context, constraints) {
               void updateIndex(Offset localPosition) {
@@ -170,49 +185,51 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     updateIndex(details.localPosition),
                 onHorizontalDragUpdate: (details) =>
                     updateIndex(details.localPosition),
-                child: CustomPaint(
-                  size: Size(constraints.maxWidth, 110),
-                  painter: _SimpleTerrainPainter(
-                    values: values,
-                    selectedIndex: selectedIdx,
-                    accentColor: orangeAccent,
-                  ),
-                ),
+        child: CustomPaint(
+  size: Size(constraints.maxWidth, 110),
+  painter: _CapsuleBarPainter(
+    values: values,
+    accentColor: orangeAccent,
+    inactiveColor: isDark
+        ? Colors.white.withValues(alpha: 0.14)
+        : Colors.black.withValues(alpha: 0.10),
+  ),
+),
               );
             },
           ),
           const SizedBox(height: 10),
 
-          // Day Labels
+          // Day Labels aligned directly under each bar slot
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(days.length, (i) {
               final isSelected = i == selectedIdx;
               final isToday = days[i]['isHighlighted'] == true;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  ZetaHaptics.selection();
-                  setState(
-                    () => _hoveredDayIndex = _hoveredDayIndex == i ? null : i,
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 2,
-                  ),
-                  child: Text(
-                    days[i]['label'] as String,
-                    style: TextStyle(
-                      fontFamily: 'GoogleSansFlex',
-                      fontSize: 12,
-                      fontWeight: isSelected || isToday
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected
-                          ? orangeAccent
-                          : (isToday ? textColor : textMuted),
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    ZetaHaptics.selection();
+                    setState(
+                      () => _hoveredDayIndex = _hoveredDayIndex == i ? null : i,
+                    );
+                  },
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        days[i]['label'] as String,
+                        style: TextStyle(
+                          fontFamily: 'GoogleSansFlex',
+                          fontSize: 12,
+                          fontWeight: isSelected || isToday
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? orangeAccent
+                              : (isToday ? textColor : textMuted),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -225,16 +242,16 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
   }
 }
 
-/// Lightweight, smooth terrain area painter
-class _SimpleTerrainPainter extends CustomPainter {
+/// Capsule bar chart painter with stronger warm yellow-orange inner glow
+class _CapsuleBarPainter extends CustomPainter {
   final List<double> values;
-  final int selectedIndex;
   final Color accentColor;
+  final Color inactiveColor;
 
-  _SimpleTerrainPainter({
+  _CapsuleBarPainter({
     required this.values,
-    required this.selectedIndex,
     required this.accentColor,
+    required this.inactiveColor,
   });
 
   @override
@@ -243,72 +260,56 @@ class _SimpleTerrainPainter extends CustomPainter {
 
     final n = values.length;
     final maxVal = values.reduce(math.max);
-    final effectiveMax = maxVal <= 0 ? 60.0 : maxVal * 1.25;
+    final effectiveMax = maxVal <= 0 ? 60.0 : maxVal;
 
-    final points = List.generate(n, (i) {
-      final x = (i / (n - 1)) * size.width;
-      final normalized = (values[i] / effectiveMax).clamp(0.06, 0.92);
-      final y = size.height - (normalized * size.height);
-      return Offset(x, y);
-    });
+    final slotWidth = size.width / n;
+    final barWidth = (slotWidth * 0.56).clamp(16.0, 28.0);
+    final radius = Radius.circular(barWidth / 2);
 
-    // Build smooth cubic curve
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
-    for (int i = 0; i < n - 1; i++) {
-      final p0 = points[i];
-      final p1 = points[i + 1];
-      final midX = (p0.dx + p1.dx) / 2;
-      path.cubicTo(midX, p0.dy, midX, p1.dy, p1.dx, p1.dy);
-    }
+    // Stronger warm yellow-gold core blended with the orange accent
+    final coreColor = Color.lerp(accentColor, const Color(0xFFFFD54F), 0.65)!;
 
-    // Fill gradient terrain
-    final fillPath = Path.from(path)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
+    for (int i = 0; i < n; i++) {
+      final hasData = values[i] > 0;
 
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          accentColor.withValues(alpha: 0.35),
-          accentColor.withValues(alpha: 0.02),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawPath(fillPath, fillPaint);
+      // Minimum height equals barWidth so zero/low values render as clean circles at the bottom
+      final minBarHeight = barWidth;
+      final normalized =
+          hasData ? (values[i] / effectiveMax).clamp(0.0, 1.0) : 0.0;
+      final barHeight =
+          minBarHeight + (normalized * (size.height - minBarHeight));
 
-    // Stroke curve line
-    final strokePaint = Paint()
-      ..color = accentColor
-      ..strokeWidth = 2.2
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawPath(path, strokePaint);
+      final centerX = slotWidth * i + (slotWidth / 2);
+      final left = centerX - (barWidth / 2);
+      final top = size.height - barHeight;
 
-    // Highlight selected or peak point
-    if (selectedIndex >= 0 && selectedIndex < points.length) {
-      final p = points[selectedIndex];
+      final rect = Rect.fromLTWH(left, top, barWidth, barHeight);
+      final rrect = RRect.fromRectAndRadius(rect, radius);
 
-      // Vertical guide line
-      canvas.drawLine(
-        Offset(p.dx, size.height),
-        Offset(p.dx, p.dy),
-        Paint()
-          ..color = accentColor.withValues(alpha: 0.35)
-          ..strokeWidth = 1.5,
-      );
+      final paint = Paint();
+      if (hasData) {
+        paint.shader = RadialGradient(
+          center: Alignment.center,
+          radius: 1.15,
+          stops: const [0.0, 0.45, 1.0],
+          colors: [
+            coreColor,
+            Color.lerp(coreColor, accentColor, 0.45)!,
+            accentColor,
+          ],
+        ).createShader(rect);
+      } else {
+        paint.color = inactiveColor;
+      }
 
-      // Accent dot
-      canvas.drawCircle(p, 5.5, Paint()..color = accentColor);
-      canvas.drawCircle(p, 2.5, Paint()..color = Colors.white);
+      canvas.drawRRect(rrect, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _SimpleTerrainPainter oldDelegate) {
-    return oldDelegate.selectedIndex != selectedIndex ||
-        oldDelegate.values != values ||
-        oldDelegate.accentColor != accentColor;
+  bool shouldRepaint(covariant _CapsuleBarPainter oldDelegate) {
+    return oldDelegate.values != values ||
+        oldDelegate.accentColor != accentColor ||
+        oldDelegate.inactiveColor != inactiveColor;
   }
 }

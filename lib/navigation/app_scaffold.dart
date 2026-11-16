@@ -71,6 +71,37 @@ class _AppScaffoldState extends State<AppScaffold>
   PageId? _lastPage;
   String _lastPomodoroTab = 'timer';
 
+  bool? _lastTitleBarIsDark;
+  Color? _lastTitleBarCaptionColor;
+  Color? _lastTitleBarTextColor;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncWindowsTitleBar();
+  }
+
+  void _syncWindowsTitleBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
+    final captionColor = colorScheme.surfaceContainerLow;
+    final textColor = colorScheme.onSurface;
+
+    if (_lastTitleBarIsDark != isDark ||
+        _lastTitleBarCaptionColor != captionColor ||
+        _lastTitleBarTextColor != textColor) {
+      _lastTitleBarIsDark = isDark;
+      _lastTitleBarCaptionColor = captionColor;
+      _lastTitleBarTextColor = textColor;
+      WindowsTitleBar.update(
+        isDark: isDark,
+        captionColor: captionColor,
+        textColor: textColor,
+      );
+    }
+  }
+
   static const double _refreshTargetHeight = 80;
   late final AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
@@ -163,9 +194,6 @@ class _AppScaffoldState extends State<AppScaffold>
     _refreshHeightNotifier.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
-    if (AppSnackbar.rootContext == context) {
-      AppSnackbar.rootContext = null;
-    }
     super.dispose();
   }
 
@@ -459,7 +487,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
   @override
   Widget build(BuildContext context) {
-    AppSnackbar.rootContext = context;
     final navProvider = context.watch<NavigationProvider>();
     final isSelectionMode =
         context.select<TaskProvider, bool>((p) => p.isSelectionMode) &&
@@ -505,13 +532,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
     final isDark = context.theme.brightness == Brightness.dark;
     final colorScheme = context.colorScheme;
-
-    // Sync native Windows window title bar with theme colors safely via MethodChannel
-    WindowsTitleBar.update(
-      isDark: isDark,
-      captionColor: colorScheme.surfaceContainerLow,
-      textColor: colorScheme.onSurface,
-    );
 
     final systemOverlayStyle = SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -647,10 +667,70 @@ class _AppScaffoldState extends State<AppScaffold>
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
-                                      child: BodyPane(
-                                        navigatorKey: _bodyNavigatorKey,
-                                        backHandledByScaffold:
-                                            backHandledByScaffold,
+                                      child: Consumer<TaskProvider>(
+                                        builder: (context, taskProvider, _) {
+                                          return riverpod.Consumer(
+                                            builder: (context, ref, _) {
+                                              final activePane = ref.watch(
+                                                activePaneProvider,
+                                              );
+                                              final hasTaskEdit =
+                                                  isEditPaneOpen;
+                                              final hasActivePane =
+                                                  activePane != null;
+                                              final showSupporting =
+                                                  hasTaskEdit ||
+                                                  hasActivePane;
+
+                                              Widget? supportingContent;
+                                              if (hasTaskEdit) {
+                                                supportingContent = TaskEditFormContent(
+                                                  key: ValueKey(
+                                                    '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
+                                                  ),
+                                                  task: taskProvider
+                                                      .editingTask,
+                                                  initialTitle: taskProvider
+                                                      .editingInitialTitle,
+                                                  initialDescription:
+                                                      taskProvider
+                                                          .editingInitialDescription,
+                                                  initialDueDate: taskProvider
+                                                      .editingInitialDueDate,
+                                                  initialDueTime: taskProvider
+                                                      .editingInitialDueTime,
+                                                  initialHasTime: taskProvider
+                                                      .editingInitialHasTime,
+                                                  initialSubtasks: taskProvider
+                                                      .editingInitialSubtasks,
+                                                  onClose: taskProvider
+                                                      .closeEditPane,
+                                                );
+                                              } else if (hasActivePane) {
+                                                supportingContent =
+                                                    activePane.child;
+                                              }
+
+                                              return SupportingPaneScaffold(
+                                                defaultPaneWidth:
+                                                    activePane?.width ??
+                                                    _taskEditPaneWidth,
+                                                primaryPane: BodyPane(
+                                                  navigatorKey:
+                                                      _bodyNavigatorKey,
+                                                  backHandledByScaffold:
+                                                      backHandledByScaffold,
+                                                ),
+                                                supportingPane:
+                                                    !showSupporting ||
+                                                            supportingContent ==
+                                                                null
+                                                        ? null
+                                                        : supportingContent,
+                                              );
+                                            },
+                                          );
+                                        },
                                       ),
                                     ),
                                     FloatingBottomNav(

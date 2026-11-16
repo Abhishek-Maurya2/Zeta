@@ -29,38 +29,41 @@ class TaskDueDateChip extends StatelessWidget {
         task.dueTime != null &&
         task.dueTime!.trim().isNotEmpty;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            showTimeOnly ? Symbols.schedule_rounded : Symbols.today_rounded,
-            size: 16,
-            color: colorScheme.onSecondaryContainer,
-            fill: 1,
-            fontWeight: FontWeight.w600,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            DateTimeUtils.formatTaskListDate(
-              dueDate: task.dueDate!,
-              hasTime: task.hasTime,
-              dueTime: task.dueTime,
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              showTimeOnly ? Symbols.schedule_rounded : Symbols.today_rounded,
+              size: 16,
+              color: colorScheme.onSecondaryContainer,
+              fill: 0,
+              fontWeight: FontWeight.w600,
             ),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: isCompleted
-                  ? colorScheme.onSecondaryContainer.withValues(alpha: 0.6)
-                  : colorScheme.onSecondaryContainer,
+            const SizedBox(width: 8),
+            Text(
+              DateTimeUtils.formatTaskListDate(
+                dueDate: task.dueDate!,
+                hasTime: task.hasTime,
+                dueTime: task.dueTime,
+              ),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: isCompleted
+                    ? colorScheme.onSecondaryContainer.withValues(alpha: 0.6)
+                    : colorScheme.onSecondaryContainer,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -79,34 +82,37 @@ class TaskDeletedDateChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+    return MouseRegion(
+      cursor: SystemMouseCursors.basic,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Symbols.schedule_rounded,
-            size: 15,
-            color: colorScheme.onSurfaceVariant,
-            fill: 1,
-          ),
-          const SizedBox(width: 5),
-          Text(
-            DateTimeUtils.formatDeletedDate(timestamp),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Symbols.schedule_rounded,
+              size: 15,
               color: colorScheme.onSurfaceVariant,
+              fill: 0,
             ),
-          ),
-        ],
+            const SizedBox(width: 5),
+            Text(
+              DateTimeUtils.formatDeletedDate(timestamp),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -133,17 +139,13 @@ class TaskSubtasksBadge extends StatelessWidget {
     final completedCount = subtasks.where((s) => s.completed).length;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(6),
       onTap: onToggleExpand,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isExpanded
-              ? colorScheme.primaryContainer
-              : colorScheme.surfaceContainerHigh,
-          borderRadius: isExpanded
-              ? BorderRadius.circular(8)
-              : BorderRadius.circular(18),
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -151,25 +153,21 @@ class TaskSubtasksBadge extends StatelessWidget {
             Icon(
               Symbols.checklist_rounded,
               size: 16,
-              color: isExpanded
-                  ? colorScheme.onPrimaryContainer
-                  : colorScheme.onSurfaceVariant,
+              color: colorScheme.onPrimaryContainer,
               fill: 1,
               fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
             Text(
-              '$completedCount/${subtasks.length} Subtasks',
+              '$completedCount/${subtasks.length}',
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: isExpanded
-                    ? colorScheme.onPrimaryContainer
-                    : colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onPrimaryContainer,
               ),
             ),
             if (onToggleExpand != null) ...[
-              const SizedBox(width: 3),
+              const SizedBox(width: 4),
               Icon(
                 isExpanded
                     ? Symbols.expand_less_rounded
@@ -177,9 +175,7 @@ class TaskSubtasksBadge extends StatelessWidget {
                 size: 16,
                 fontWeight: FontWeight.w600,
                 fill: 1,
-                color: isExpanded
-                    ? colorScheme.onSecondaryContainer
-                    : colorScheme.onSurfaceVariant,
+                color: colorScheme.onPrimaryContainer,
               ),
             ],
           ],
@@ -342,7 +338,6 @@ class FocusTaskDueDateChip extends StatelessWidget {
             hasTime ? Symbols.schedule_rounded : Symbols.event_rounded,
             size: 16,
             color: fgColor,
-            fill: 1,
           ),
           const SizedBox(width: 8),
           Text(
@@ -351,6 +346,51 @@ class FocusTaskDueDateChip extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: fgColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Reusable subtasks count chip used inside Today's Focus card.
+class FocusTaskSubtasksChip extends StatelessWidget {
+  final int count;
+
+  const FocusTaskSubtasksChip({
+    super.key,
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+
+    final colorScheme = context.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Symbols.checklist_rounded,
+            size: 16,
+            color: colorScheme.onPrimaryContainer,
+            fill: 1,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: colorScheme.onPrimaryContainer,
             ),
           ),
         ],

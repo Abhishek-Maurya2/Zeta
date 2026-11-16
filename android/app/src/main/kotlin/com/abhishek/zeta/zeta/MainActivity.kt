@@ -2,6 +2,7 @@ package com.abhishek.zeta.zeta
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,6 +16,7 @@ class MainActivity : FlutterActivity() {
     private var widgetChannel: MethodChannel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         extractShortcut(intent)
         extractWidgetAction(intent)
         super.onCreate(savedInstanceState)

@@ -762,35 +762,46 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Local unsynced edits take precedence until their outbox retry succeeds.
       remoteTasks.removeWhere((task) => localDirtyIds.contains(task.id));
 
-      // 1. Reconcile Bin tasks. Keep local rows that have never synced.
-      final binTasksToPrune = _binTasks
-          .where(
-            (t) => !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id),
-          )
-          .toList();
-      if (binTasksToPrune.isNotEmpty) {
-        final pruneIds = binTasksToPrune.map((t) => t.id).toSet();
-        _binTasks.removeWhere((t) => pruneIds.contains(t.id));
-        await _repository.deleteMultipleTasks(pruneIds, pushToCloud: false);
-        debugPrint(
-          'TaskProvider: Pruned ${pruneIds.length} bin tasks absent from remote DB.',
-        );
-      }
+      // Reconcile deletions only when remote snapshot is non-empty.
+      // Eliminates destructive local task pruning when the remote server returns an empty list,
+      // and guarantees offline unsynced tasks are never wiped.
+      if (remoteSnapshot.isNotEmpty) {
+        // 1. Reconcile Bin tasks. Keep local rows that have never synced or are locally dirty.
+        final binTasksToPrune = _binTasks
+            .where(
+              (t) =>
+                  t.lastSyncedAt != null &&
+                  !localDirtyIds.contains(t.id) &&
+                  !remoteIds.contains(t.id),
+            )
+            .toList();
+        if (binTasksToPrune.isNotEmpty) {
+          final pruneIds = binTasksToPrune.map((t) => t.id).toSet();
+          _binTasks.removeWhere((t) => pruneIds.contains(t.id));
+          await _repository.deleteMultipleTasks(pruneIds, pushToCloud: false);
+          debugPrint(
+            'TaskProvider: Pruned ${pruneIds.length} bin tasks absent from remote DB.',
+          );
+        }
 
-      // 2. Reconcile active tasks. A synced local row absent remotely was
-      // permanently deleted on another device.
-      final activeTasksToPrune = _tasks
-          .where(
-            (t) => !localDirtyIds.contains(t.id) && !remoteIds.contains(t.id),
-          )
-          .toList();
-      if (activeTasksToPrune.isNotEmpty) {
-        final pruneIds = activeTasksToPrune.map((t) => t.id).toSet();
-        _tasks.removeWhere((t) => pruneIds.contains(t.id));
-        await _repository.deleteMultipleTasks(pruneIds, pushToCloud: false);
-        debugPrint(
-          'TaskProvider: Pruned ${pruneIds.length} active tasks absent from remote DB.',
-        );
+        // 2. Reconcile active tasks. A synced local row absent remotely was
+        // permanently deleted on another device. Never prune offline or dirty tasks.
+        final activeTasksToPrune = _tasks
+            .where(
+              (t) =>
+                  t.lastSyncedAt != null &&
+                  !localDirtyIds.contains(t.id) &&
+                  !remoteIds.contains(t.id),
+            )
+            .toList();
+        if (activeTasksToPrune.isNotEmpty) {
+          final pruneIds = activeTasksToPrune.map((t) => t.id).toSet();
+          _tasks.removeWhere((t) => pruneIds.contains(t.id));
+          await _repository.deleteMultipleTasks(pruneIds, pushToCloud: false);
+          debugPrint(
+            'TaskProvider: Pruned ${pruneIds.length} active tasks absent from remote DB.',
+          );
+        }
       }
 
       if (remoteTasks.isNotEmpty) {

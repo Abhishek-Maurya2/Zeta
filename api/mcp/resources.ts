@@ -10,7 +10,7 @@ export function registerResources(server: McpServer): string[] {
     'zeta://tasks/today',
     {
       title: "Today's Tasks",
-      description: 'Active and upcoming tasks scheduled for today or currently pending in Zeta',
+      description: 'Active and upcoming tasks scheduled for today or currently pending in Zeta (bounded to top 50)',
       mimeType: 'application/json',
     },
     async (uri) => {
@@ -36,7 +36,8 @@ export function registerResources(server: McpServer): string[] {
         .eq('user_id', userId)
         .is('deleted_at', null)
         .eq('completed', false)
-        .order('due_date', { ascending: true, nullsFirst: false });
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .range(0, 49);
 
       if (error) {
         return {
@@ -84,7 +85,7 @@ export function registerResources(server: McpServer): string[] {
     'zeta://tasks/summary',
     {
       title: 'Task Metrics & Summary',
-      description: 'Overall task breakdown (total active, pending, completed) in Zeta',
+      description: 'Overall task breakdown (total active, pending, completed) in Zeta (bounded to 50 items)',
       mimeType: 'application/json',
     },
     async (uri) => {
@@ -107,7 +108,8 @@ export function registerResources(server: McpServer): string[] {
         .from('tasks')
         .select('id, completed, due_date')
         .eq('user_id', userId)
-        .is('deleted_at', null);
+        .is('deleted_at', null)
+        .range(0, 49);
 
       if (error) {
         return {
@@ -133,6 +135,7 @@ export function registerResources(server: McpServer): string[] {
             mimeType: 'application/json',
             text: JSON.stringify(
               {
+                sample_count: total,
                 total_tasks: total,
                 pending_tasks: pending,
                 completed_tasks: completed,
@@ -154,7 +157,7 @@ export function registerResources(server: McpServer): string[] {
     'zeta://pomodoro/summary',
     {
       title: 'Pomodoro Focus Statistics',
-      description: "Current focus metrics, streaks, and today's completed pomodoro sessions",
+      description: "Current focus metrics, streaks, and today's completed pomodoro sessions (bounded to top 50)",
       mimeType: 'application/json',
     },
     async (uri) => {
@@ -177,7 +180,8 @@ export function registerResources(server: McpServer): string[] {
         .from('pomodoro_sessions')
         .select('id, minutes, mode, completed_at, created_at')
         .eq('user_id', userId)
-        .order('completed_at', { ascending: false });
+        .order('completed_at', { ascending: false })
+        .range(0, 49);
 
       if (error) {
         return {
@@ -230,7 +234,7 @@ export function registerResources(server: McpServer): string[] {
     'zeta://mindmaps/index',
     {
       title: 'Mindmaps Index',
-      description: 'Index of active mindmaps in Zeta Space with node counts and root topics',
+      description: 'Index of active mindmaps in Zeta Space with node counts and root topics (bounded to top 50)',
       mimeType: 'application/json',
     },
     async (uri) => {
@@ -254,7 +258,8 @@ export function registerResources(server: McpServer): string[] {
         .select('id, title, layout_type, nodes_json, created_at_ms, updated_at_ms')
         .eq('user_id', userId)
         .is('deleted_at_ms', null)
-        .order('updated_at_ms', { ascending: false });
+        .order('updated_at_ms', { ascending: false })
+        .range(0, 49);
 
       if (error) {
         return {

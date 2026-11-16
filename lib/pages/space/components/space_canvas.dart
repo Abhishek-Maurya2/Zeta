@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
 
 import '../models/mindmap_edge.dart';
+import '../models/mindmap_node.dart';
 import '../providers/space_provider.dart';
 import '../services/mindmap_layout_engine.dart';
 import '../../../providers/theme_provider.dart';
@@ -103,6 +104,36 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
     matrix.storage[13] = targetY;
 
     _transformationController.value = matrix;
+  }
+
+  /// Derives visible canvas Rect in local coordinates from transformation controller.
+  Rect _calculateVisibleRect(Size viewportSize) {
+    if (viewportSize.isEmpty) {
+      return const Rect.fromLTWH(0, 0, canvasSize, canvasSize);
+    }
+    try {
+      final matrix = _transformationController.value;
+      final inverse = Matrix4.tryInvert(matrix) ?? Matrix4.identity();
+      return MatrixUtils.transformRect(inverse, Offset.zero & viewportSize);
+    } catch (_) {
+      return const Rect.fromLTWH(0, 0, canvasSize, canvasSize);
+    }
+  }
+
+  /// Determines if a node's padded bounds intersect the visible viewport rectangle.
+  bool _shouldMountNode({
+    required MindMapNode node,
+    required Rect bounds,
+    required Rect culledRect,
+    required String? editingNodeId,
+    required int totalNodes,
+  }) {
+    // Never cull root node, active editing node, or in standard mindmaps (<= 150 nodes)
+    if (node.isRoot || node.id == editingNodeId || totalNodes <= 150) {
+      return true;
+    }
+    final nodePaddedBounds = bounds.inflate(MindMapNodeMetrics.hitMargin);
+    return nodePaddedBounds.overlaps(culledRect);
   }
 
   Future<void> _handleCreateMindmap() async {
@@ -242,12 +273,15 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       colorScheme: colorScheme,
       baseTextStyle: textTheme.bodyMedium,
     );
-    
+
+    final childrenByParentId = <String?, List<MindMapNode>>{};
+    for (final node in activeMap.nodes) {
+      (childrenByParentId[node.parentId] ??= []).add(node);
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
-        
 
         if (!_initializedCenter &&
             viewportSize.width > 0 &&
@@ -279,15 +313,17 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
               color: canvasBgColor,
               child: Stack(
                 children: [
-                  // Layer 0: Viewport-Culled Dot-Matrix Grid
+                  // Layer 0: Viewport-Culled Dot-Matrix Grid wrapped in RepaintBoundary
                   Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: DotMatrixPainter(
-                          dotColor: dotColor,
-                          transformationController: _transformationController,
-                          spacing: 24.0,
-                          dotRadius: 1.25,
+                    child: RepaintBoundary(
+                      child: IgnorePointer(
+                        child: CustomPaint(
+                          painter: DotMatrixPainter(
+                            dotColor: dotColor,
+                            transformationController: _transformationController,
+                            spacing: 24.0,
+                            dotRadius: 1.25,
+                          ),
                         ),
                       ),
                     ),
@@ -304,51 +340,75 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                       child: SizedBox(
                         width: canvasSize,
                         height: canvasSize,
-                        child: Stack(
-                          children: [
-                            // Sub-Layer 0: Background Tap Target
-                            Positioned.fill(
-                              child: GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  provider.selectNode(null);
-                                  provider.stopEditingNode();
-                                  _canvasFocusNode.requestFocus();
-                                },
-                              ),
-                            ),
+                        child: AnimatedBuilder(
+                          animation: _transformationController,
+                          builder: (context, _) {
+                            final visibleRect =
+                                _calculateVisibleRect(viewportSize);
+                            // Safety buffer to avoid pop-in during quick pans
+                            final culledRect = visibleRect.inflate(1000.0);
 
-                            // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: _AnimatedMindMapEdges(
-                                  edges: layoutResult.edges,
-                                  hoveredNodeId: provider.hoverTargetId,
-                                  isDark: isDark,
+                            return Stack(
+                              children: [
+                                // Sub-Layer 0: Background Tap Target
+                                Positioned.fill(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () {
+                                      provider.selectNode(null);
+                                      provider.stopEditingNode();
+                                      _canvasFocusNode.requestFocus();
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ),
 
-                            // Sub-Layer 2: Interactive MindMap Node Cards
-                            for (final node in activeMap.nodes)
-                              if (layoutResult.nodeBounds.containsKey(node.id))
-                                MindMapNodeWidget(
-                                  key: ValueKey(node.id),
-                                  node: node,
-                                  bounds: layoutResult.nodeBounds[node.id]!,
-                                  branchColor:
-                                      layoutResult.nodeColors[node.id] ??
-                                      colorScheme.primary,
-                                  hasChildren: activeMap
-                                      .childrenOf(node.id)
-                                      .isNotEmpty,
-                                  childCount: activeMap
-                                      .childrenOf(node.id)
-                                      .length,
-                                  isLeft:
-                                      layoutResult.nodeIsLeft[node.id] ?? false,
+                                // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
+                                Positioned.fill(
+                                  child: RepaintBoundary(
+                                    child: IgnorePointer(
+                                      child: _AnimatedMindMapEdges(
+                                        edges: layoutResult.edges,
+                                        hoveredNodeId: provider.hoverTargetId,
+                                        isDark: isDark,
+                                        visibleRect: culledRect,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                          ],
+
+                                // Sub-Layer 2: Interactive MindMap Node Cards (Direct children of Stack)
+                                for (final node in activeMap.nodes)
+                                  if (layoutResult.nodeBounds.containsKey(node.id))
+                                    if (_shouldMountNode(
+                                      node: node,
+                                      bounds: layoutResult.nodeBounds[node.id]!,
+                                      culledRect: culledRect,
+                                      editingNodeId: provider.editingNodeId,
+                                      totalNodes: activeMap.nodes.length,
+                                    ))
+                                      MindMapNodeWidget(
+                                        key: ValueKey(node.id),
+                                        node: node,
+                                        bounds:
+                                            layoutResult.nodeBounds[node.id]!,
+                                        branchColor:
+                                            layoutResult.nodeColors[node.id] ??
+                                            colorScheme.primary,
+                                        hasChildren:
+                                            childrenByParentId[node.id]
+                                                    ?.isNotEmpty ??
+                                                false,
+                                        childCount:
+                                            childrenByParentId[node.id]
+                                                    ?.length ??
+                                                0,
+                                        isLeft: layoutResult
+                                                .nodeIsLeft[node.id] ??
+                                            false,
+                                      ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
@@ -424,11 +484,13 @@ class _AnimatedMindMapEdges extends StatefulWidget {
   final List<MindMapEdge> edges;
   final String? hoveredNodeId;
   final bool isDark;
+  final Rect? visibleRect;
 
   const _AnimatedMindMapEdges({
     required this.edges,
     required this.hoveredNodeId,
     required this.isDark,
+    this.visibleRect,
   });
 
   @override
@@ -526,6 +588,7 @@ class _AnimatedMindMapEdgesState extends State<_AnimatedMindMapEdges>
             edges: _evaluateEdges(_curvedAnimation.value),
             hoveredNodeId: widget.hoveredNodeId,
             isDark: widget.isDark,
+            visibleRect: widget.visibleRect,
           ),
         );
       },

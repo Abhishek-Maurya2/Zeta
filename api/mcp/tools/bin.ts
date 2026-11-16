@@ -42,7 +42,8 @@ export function registerBinTools(server: McpServer): string[] {
             .select('id, title, deleted_at')
             .eq('user_id', userId)
             .not('deleted_at', 'is', null)
-            .order('deleted_at', { ascending: false });
+            .order('deleted_at', { ascending: false })
+            .range(0, 49);
 
           if (taskError) {
             // Check if error is due to deleted_at column or try deleted_at_ms
@@ -107,7 +108,8 @@ export function registerBinTools(server: McpServer): string[] {
             .select('id, title, deleted_at_ms')
             .eq('user_id', userId)
             .not('deleted_at_ms', 'is', null)
-            .order('deleted_at_ms', { ascending: false });
+            .order('deleted_at_ms', { ascending: false })
+            .range(0, 49);
 
           if (mindmapError) throw mindmapError;
 

@@ -9,6 +9,8 @@ class DotMatrixPainter extends CustomPainter {
   final double dotRadius;
   final TransformationController transformationController;
 
+  static Float32List? _sharedBuffer;
+
   DotMatrixPainter({
     required this.dotColor,
     required this.transformationController,
@@ -32,7 +34,15 @@ class DotMatrixPainter extends CustomPainter {
     final cols = (size.width / effectiveSpacing).ceil() + 1;
     final rows = (size.height / effectiveSpacing).ceil() + 1;
 
-    final coords = Float32List(cols * rows * 2);
+    final requiredCount = cols * rows * 2;
+    if (_sharedBuffer == null || _sharedBuffer!.length < requiredCount) {
+      _sharedBuffer = Float32List(requiredCount);
+    }
+
+    final Float32List coords = _sharedBuffer!.length == requiredCount
+        ? _sharedBuffer!
+        : _sharedBuffer!.buffer.asFloat32List(0, requiredCount);
+
     int idx = 0;
 
     for (int i = 0; i < cols; i++) {

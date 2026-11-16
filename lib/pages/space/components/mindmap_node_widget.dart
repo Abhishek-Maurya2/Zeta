@@ -107,23 +107,26 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
   }
 
   /// Claims mouse wheel events over the card so InteractiveViewer never zooms,
-  /// and scrolls internal multi-line content instead.
+  /// and scrolls internal multi-line content instead when scrollable.
   void _handlePointerSignal(PointerSignalEvent event) {
     if (event is PointerScrollEvent) {
-      GestureBinding.instance.pointerSignalResolver.register(event, (
-        PointerSignalEvent resolvedEvent,
-      ) {
-        final scrollEvent = resolvedEvent as PointerScrollEvent;
-        if (_scrollController.hasClients &&
-            _scrollController.position.maxScrollExtent > 0) {
-          final targetOffset =
-              (_scrollController.offset + scrollEvent.scrollDelta.dy).clamp(
-                0.0,
-                _scrollController.position.maxScrollExtent,
-              );
-          _scrollController.jumpTo(targetOffset);
-        }
-      });
+      if (_scrollController.hasClients &&
+          _scrollController.position.maxScrollExtent > 0) {
+        GestureBinding.instance.pointerSignalResolver.register(event, (
+          PointerSignalEvent resolvedEvent,
+        ) {
+          final scrollEvent = resolvedEvent as PointerScrollEvent;
+          if (_scrollController.hasClients &&
+              _scrollController.position.maxScrollExtent > 0) {
+            final targetOffset =
+                (_scrollController.offset + scrollEvent.scrollDelta.dy).clamp(
+                  0.0,
+                  _scrollController.position.maxScrollExtent,
+                );
+            _scrollController.jumpTo(targetOffset);
+          }
+        });
+      }
     }
   }
 
@@ -164,9 +167,6 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
             : () {
                 ZetaHaptics.selection();
                 provider.selectNode(widget.node.id);
-                if (widget.hasChildren) {
-                  provider.toggleNodeCollapsed(widget.node.id);
-                }
               },
         onDoubleTap: isEditing
             ? null
@@ -225,30 +225,32 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
       top: widget.bounds.top - hitMargin,
       width: widget.bounds.width + (hitMargin * 2),
       height: widget.bounds.height + (hitMargin * 2),
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: 0.0, end: 1.0),
-        duration: M3MotionDuration.medium2,
-        curve: M3MotionEasing.emphasizedDecelerate,
-        builder: (context, enterProgress, child) {
-          return Opacity(
-            opacity: enterProgress.clamp(0.0, 1.0),
-            child: Transform.scale(
-              scale: 0.86 + (0.14 * enterProgress),
-              alignment: widget.isLeft
-                  ? Alignment.centerRight
-                  : Alignment.centerLeft,
-              child: child,
-            ),
-          );
-        },
-        child: MindMapNodeDnd(
-          node: widget.node,
-          bounds: widget.bounds,
-          branchColor: widget.branchColor,
-          hasChildren: widget.hasChildren,
-          childCount: widget.childCount,
-          isEditing: isEditing,
-          child: cardWidget,
+      child: RepaintBoundary(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          duration: M3MotionDuration.medium2,
+          curve: M3MotionEasing.emphasizedDecelerate,
+          builder: (context, enterProgress, child) {
+            return Opacity(
+              opacity: enterProgress.clamp(0.0, 1.0),
+              child: Transform.scale(
+                scale: 0.86 + (0.14 * enterProgress),
+                alignment: widget.isLeft
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: child,
+              ),
+            );
+          },
+          child: MindMapNodeDnd(
+            node: widget.node,
+            bounds: widget.bounds,
+            branchColor: widget.branchColor,
+            hasChildren: widget.hasChildren,
+            childCount: widget.childCount,
+            isEditing: isEditing,
+            child: cardWidget,
+          ),
         ),
       ),
     );

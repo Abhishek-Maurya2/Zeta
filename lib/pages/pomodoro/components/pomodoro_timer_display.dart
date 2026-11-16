@@ -125,13 +125,12 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
                     Text(
                       formattedTime,
                       style: TextStyle(
-                        fontFamily: isRunning ? 'GoogleSansFlex' : 'RobotoFlex',
-                        fontSize: 70,
-                        letterSpacing: isRunning ? 1 : 5,
+                        fontFamily: 'GoogleSansFlex',
+                        fontSize: widget.size * 0.18,
                         color: colorScheme.tertiary,
                         fontVariations: [
-                          FontVariation('wght', isRunning ? 900 : 600),
-                          FontVariation('wdth', isRunning ? 80 : 180),
+                          FontVariation('wght', 600),
+                          FontVariation('wdth',  180),
                           const FontVariation('ROND', 100),
                         ],
                       ),

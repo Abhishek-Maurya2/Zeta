@@ -25,7 +25,7 @@ void main() {
       'PomodoroAnalysisPane immediately updates chart goal line when goal is changed',
       (WidgetTester tester) async {
     final provider = PomodoroProvider();
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
 
     // Initially 60 min goal
     expect(provider.settings.dailyGoalMinutes, equals(60));
@@ -62,7 +62,7 @@ void main() {
       'PomodoroAmbientPage immediately updates minutes on tickNotifier update without mouse movement',
       (WidgetTester tester) async {
     final provider = PomodoroProvider();
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
 
     // Start with 25 minutes = 1500 seconds
     provider.tickNotifier.value = 25 * 60;
@@ -79,19 +79,19 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('25'), findsOneWidget);
+    expect(find.text('25m'), findsOneWidget);
 
     // Simulate countdown tick to 20 minutes (1200 seconds) without any mouse input
     provider.tickNotifier.value = 20 * 60;
     await tester.pump();
 
-    expect(find.text('20'), findsOneWidget);
+    expect(find.text('20m'), findsOneWidget);
 
     // Simulate countdown tick to 5 minutes (300 seconds)
     provider.tickNotifier.value = 5 * 60;
     await tester.pump();
 
-    expect(find.text('5'), findsOneWidget);
+    expect(find.text('5m'), findsOneWidget);
 
     provider.dispose();
   });

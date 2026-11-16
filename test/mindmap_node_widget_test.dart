@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart' as m_ui;
 import 'package:provider/provider.dart';
 import 'package:zeta/pages/space/components/mindmap_node_widget.dart';
 import 'package:zeta/pages/space/models/mindmap_node.dart';
@@ -111,7 +112,10 @@ void main() {
         ChangeNotifierProvider<ThemeProvider>(create: (_) => MockThemeProvider()),
       ],
       child: MaterialApp(
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        localizationsDelegates: [
+          m_ui.DefaultMaterialLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: const [Locale('en', 'US')],
         home: Scaffold(
           body: Stack(
@@ -184,6 +188,7 @@ void main() {
 
       // Tap badge directly invokes toggleNodeCollapsed
       await tester.tap(find.text('5'));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(spaceProvider.toggledCollapsed, isTrue);
     });
@@ -212,10 +217,10 @@ void main() {
 
       expect(spaceProvider.editingNodeId, equals('node_edit'));
 
-      final textFieldFinder = find.byType(TextField);
+      final textFieldFinder = find.byType(m_ui.TextField);
       expect(textFieldFinder, findsOneWidget);
 
-      final TextField textField = tester.widget(textFieldFinder);
+      final m_ui.TextField textField = tester.widget(textFieldFinder);
       expect(textField.maxLines, equals(10));
       expect(textField.minLines, equals(1));
     });

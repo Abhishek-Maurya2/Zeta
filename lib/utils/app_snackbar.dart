@@ -9,13 +9,14 @@ class AppSnackbar {
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>(debugLabel: 'AppScaffoldMessenger');
 
-  /// Persistent active overlay context set by AppScaffold.
-  static BuildContext? rootContext;
+  @Deprecated('Eliminated to prevent memory leaks. Use scaffoldMessengerKey directly.')
+  static BuildContext? get rootContext => scaffoldMessengerKey.currentContext;
+  static set rootContext(BuildContext? _) {}
 
   /// Presents a Material 3 Expressive snackbar over the nearest [Overlay].
   ///
-  /// Falls back to [rootContext] or [scaffoldMessengerKey] if the provided
-  /// [context] is null, unmounted, or lacks an overlay ancestor.
+  /// Falls back to [scaffoldMessengerKey] if the provided [context] is null,
+  /// unmounted, or lacks an overlay ancestor.
   static void show(
     BuildContext? context, {
     required String message,
@@ -27,15 +28,12 @@ class AppSnackbar {
 
     // 1. Resolve a mounted BuildContext that has an Overlay ancestor
     BuildContext? targetContext;
-    if (context != null && context.mounted) {
-      if (Overlay.maybeOf(context) != null) {
-        targetContext = context;
-      }
-    }
-    if (targetContext == null && rootContext != null && rootContext!.mounted) {
-      if (Overlay.maybeOf(rootContext!) != null) {
-        targetContext = rootContext;
-      }
+    if (context != null && context.mounted && Overlay.maybeOf(context) != null) {
+      targetContext = context;
+    } else if (scaffoldMessengerKey.currentContext != null &&
+        scaffoldMessengerKey.currentContext!.mounted &&
+        Overlay.maybeOf(scaffoldMessengerKey.currentContext!) != null) {
+      targetContext = scaffoldMessengerKey.currentContext;
     }
 
     if (targetContext != null) {

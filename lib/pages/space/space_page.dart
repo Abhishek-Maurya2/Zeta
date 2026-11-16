@@ -18,7 +18,7 @@ class SpacePage extends StatelessWidget {
     final colorScheme = context.colorScheme;
 
     return PopScope(
-      canPop: !navProvider.canPop,
+      canPop: navProvider.canPop,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (navProvider.canPop) {
@@ -26,9 +26,9 @@ class SpacePage extends StatelessWidget {
           navProvider.pop();
         }
       },
-      child: Scaffold(
-      backgroundColor: colorScheme.surfaceContainerLow,
-        body: const SpaceCanvas(),
+      child: ColoredBox(
+        color: colorScheme.surfaceContainerLow,
+        child: const SpaceCanvas(),
       ),
     );
   }

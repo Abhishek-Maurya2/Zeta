@@ -29,7 +29,8 @@ export function registerPomodoroTools(server: McpServer): string[] {
           .from('pomodoro_sessions')
           .select('id, minutes, mode, completed_at')
           .eq('user_id', userId)
-          .order('completed_at', { ascending: false });
+          .order('completed_at', { ascending: false })
+          .range(0, 49);
 
         if (error) throw error;
 
@@ -178,14 +179,17 @@ export function registerPomodoroTools(server: McpServer): string[] {
         }
 
         const mode = args.mode || 'focus';
-        const now = new Date().toISOString();
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const nowMs = now.getTime();
 
         const newSession = {
           id: crypto.randomUUID(),
           user_id: userId,
           minutes,
           mode,
-          completed_at: now,
+          completed_at: nowIso,
+          completed_at_ms: nowMs,
         };
 
         const { data, error } = await supabase.from('pomodoro_sessions').insert(newSession).select().single();

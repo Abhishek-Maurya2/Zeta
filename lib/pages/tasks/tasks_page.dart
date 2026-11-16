@@ -108,16 +108,51 @@ class _TasksPageState extends State<TasksPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final taskProvider = context.watch<TaskProvider>();
-    return ListenableBuilder(
-      listenable: taskProvider.uiChanges,
-      builder: (context, child) => _buildPage(context),
+  Widget _buildCompletedAccordion(
+    BuildContext context,
+    List<Task> completed,
+    TaskProvider taskProvider,
+    ColorScheme colorScheme,
+  ) {
+    return M3EList(
+      itemCount: 1,
+      color: colorScheme.primaryContainer,
+      expandStyle: M3EExpandableStyle(
+        expandedStateFill: false,
+        gap: 5,
+        expandedIconBackground: colorScheme.primary,
+        expandIcon: Icon(
+          Icons.expand_more_rounded,
+          color: colorScheme.onPrimaryContainer,
+        ),
+        collapseIcon: Icon(
+          Icons.expand_more_rounded,
+          color: colorScheme.onPrimary,
+        ),
+      ),
+      itemBuilder: (context, index) {
+        return M3EListItem(
+          headline: 'Completed (${completed.length})',
+          leading: const Icon(
+            Icons.task_alt_rounded,
+            size: 20,
+            color: Color(0xFF10B981),
+          ),
+          expanded: M3EExpandableExpanded.list(
+            _buildCompletedList(
+              context,
+              completed,
+              taskProvider,
+              true,
+            ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildPage(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final taskProvider = context.watch<TaskProvider>();
     final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
@@ -130,214 +165,182 @@ class _TasksPageState extends State<TasksPage> {
     final totalCount = pending.length;
 
     if (taskProvider.isLoading && taskProvider.allTasks.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(
-          child: M3ELoadingIndicator(
-            variant: M3ELoadingIndicatorVariant.contained,
-          ),
+      return const Center(
+        child: M3ELoadingIndicator(
+          variant: M3ELoadingIndicatorVariant.contained,
         ),
       );
     }
 
     if (taskProvider.loadError != null && taskProvider.allTasks.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Center(child: Text('Unable to load tasks. Please try again.')),
-      );
+      return const Center(child: Text('Unable to load tasks. Please try again.'));
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      body: M3EExtendedFabScrollVisibility(
-        controller: _fabController,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: isCompact
-                ? ZetaBreakpoints.marginCompact
-                : ZetaBreakpoints.marginExpanded,
-            vertical: 28,
-          ),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge
-                    ? 1000
-                    : 860,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 1. Page Title
-                  if (!isCompact)
-                    Text(
-                      'Tasks',
-                      style: context.textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.5,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
+    final double horizontalMargin = isCompact
+        ? ZetaBreakpoints.marginCompact
+        : ZetaBreakpoints.marginExpanded;
 
-                  if (!isCompact) const SizedBox(height: 18),
+    final showFab = !isCompact && !taskProvider.isSelectionMode;
 
-                  // Active Search Query Banner
-                  if (isSearching)
-                    TasksSearchBanner(
-                      query: taskProvider.searchQuery,
-                      foundCount: pending.length + completed.length,
-                      onClear: () => taskProvider.clearSearchQuery(),
-                    ),
-
-                  // 2. Filter & Sort Bar
-                  TasksFilterBar(
-                    filter: filter,
-                    totalCount: totalCount,
-                    pendingCount: pending.length,
-                    sortBy: taskProvider.sortBy,
-                    onFilterChanged: (newFilter) =>
-                        taskProvider.setFilter(newFilter),
-                    onSortChanged: (newSort) => taskProvider.setSortBy(newSort),
-                    onCycleSort: () => taskProvider.cycleSortOption(),
-                    taskProvider: taskProvider,
-                    isCompact: isCompact,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: M3EExtendedFabScrollVisibility(
+            controller: _fabController,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: sizeClass.isLarge || sizeClass.isExtraLarge
+                      ? 1000
+                      : 860,
+                ),
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: horizontalMargin,
+                    vertical: 28,
                   ),
-
-                  const SizedBox(height: 20),
-
-                  // 3. Task List Section
-                  if (filter == TaskFilter.pending) ...[
-                    if (pending.isEmpty)
-                      TasksEmptyView(
-                        filter: filter,
-                        isSearching: isSearching,
-                        searchQuery: taskProvider.searchQuery,
-                        onClearSearch: () => taskProvider.clearSearchQuery(),
-                      )
-                    else
-                      TasksDismissibleList(
-                        tasks: pending,
-                        provider: taskProvider,
-                        onContextMenu: _showContextMenu,
-                      ),
-                    // Completed Section
-                    if (completed.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      M3EList(
-                        itemCount: 1,
-                        color: colorScheme.primaryContainer,
-                        expandStyle: M3EExpandableStyle(
-                          expandedStateFill: false,
-                          gap: 5,
-                          expandedIconBackground: colorScheme.primary,
-                          expandIcon: Icon(
-                            Icons.expand_more_rounded,
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                          collapseIcon: Icon(
-                            Icons.expand_more_rounded,
-                            color: colorScheme.onPrimary,
-                          ),
-                        ),
-                        itemBuilder: (context, index) {
-                          return M3EListItem(
-                            headline: 'Completed (${completed.length})',
-                            leading: const Icon(
-                              Icons.task_alt_rounded,
-                              size: 20,
-                              color: Color(0xFF10B981),
+                  sliver: SliverMainAxisGroup(
+                    slivers: [
+                      // 1. Page Header (Title, Search Banner, Filter Bar)
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!isCompact)
+                              Text(
+                                'Tasks',
+                                style: context.textTheme.displayMedium?.copyWith(
+                                  fontWeight: FontWeight.w400,
+                                  letterSpacing: -0.5,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            if (!isCompact) const SizedBox(height: 18),
+                            if (isSearching)
+                              TasksSearchBanner(
+                                query: taskProvider.searchQuery,
+                                foundCount: pending.length + completed.length,
+                                onClear: () => taskProvider.clearSearchQuery(),
+                              ),
+                            TasksFilterBar(
+                              filter: filter,
+                              totalCount: totalCount,
+                              pendingCount: pending.length,
+                              sortBy: taskProvider.sortBy,
+                              onFilterChanged: (newFilter) =>
+                                  taskProvider.setFilter(newFilter),
+                              onSortChanged: (newSort) =>
+                                  taskProvider.setSortBy(newSort),
+                              onCycleSort: () => taskProvider.cycleSortOption(),
+                              taskProvider: taskProvider,
+                              isCompact: isCompact,
                             ),
-                            expanded: M3EExpandableExpanded.list(
-                              _buildCompletedList(
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+
+                      // 2. Task List Section
+                      if (filter == TaskFilter.pending) ...[
+                        if (pending.isEmpty)
+                          SliverToBoxAdapter(
+                            child: TasksEmptyView(
+                              filter: filter,
+                              isSearching: isSearching,
+                              searchQuery: taskProvider.searchQuery,
+                              onClearSearch: () =>
+                                  taskProvider.clearSearchQuery(),
+                            ),
+                          )
+                        else
+                          SliverToBoxAdapter(
+                            child: TasksDismissibleList(
+                              key: const ValueKey('pending_tasks_list'),
+                              tasks: pending,
+                              provider: taskProvider,
+                              onContextMenu: _showContextMenu,
+                            ),
+                          ),
+                        if (completed.isNotEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 24),
+                              child: _buildCompletedAccordion(
                                 context,
                                 completed,
                                 taskProvider,
-                                true,
+                                colorScheme,
                               ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ] else ...[
-                    if (pending.isEmpty && completed.isEmpty)
-                      TasksEmptyView(
-                        filter: filter,
-                        isSearching: isSearching,
-                        searchQuery: taskProvider.searchQuery,
-                        onClearSearch: () => taskProvider.clearSearchQuery(),
-                      )
-                    else ...[
-                      if (pending.isNotEmpty)
-                        TasksDismissibleList(
-                          key: const ValueKey('all_tasks_list'),
-                          tasks: pending,
-                          provider: taskProvider,
-                          onContextMenu: _showContextMenu,
-                        ),
-
-                      // Completed Section
-                      if (completed.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        M3EList(
-                          itemCount: 1,
-                          color: colorScheme.primaryContainer,
-                          expandStyle: M3EExpandableStyle(
-                            expandedStateFill: false,
-                            gap: 5,
-                            expandedIconBackground: colorScheme.primary,
-                            expandIcon: Icon(
-                              Icons.expand_more_rounded,
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                            collapseIcon: Icon(
-                              Icons.expand_more_rounded,
-                              color: colorScheme.onPrimary,
                             ),
                           ),
-                          itemBuilder: (context, index) {
-                            return M3EListItem(
-                              headline: 'Completed (${completed.length})',
-                              leading: const Icon(
-                                Icons.task_alt_rounded,
-                                size: 20,
-                                color: Color(0xFF10B981),
+                      ] else ...[
+                        if (pending.isEmpty && completed.isEmpty)
+                          SliverToBoxAdapter(
+                            child: TasksEmptyView(
+                              filter: filter,
+                              isSearching: isSearching,
+                              searchQuery: taskProvider.searchQuery,
+                              onClearSearch: () =>
+                                  taskProvider.clearSearchQuery(),
+                            ),
+                          )
+                        else ...[
+                          if (pending.isNotEmpty)
+                            SliverToBoxAdapter(
+                              child: TasksDismissibleList(
+                                key: const ValueKey('all_tasks_list'),
+                                tasks: pending,
+                                provider: taskProvider,
+                                onContextMenu: _showContextMenu,
                               ),
-                              expanded: M3EExpandableExpanded.list(
-                                _buildCompletedList(
+                            ),
+                          if (completed.isNotEmpty)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 24),
+                                child: _buildCompletedAccordion(
                                   context,
                                   completed,
                                   taskProvider,
-                                  true,
+                                  colorScheme,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                        ],
                       ],
+
+                      // Bottom spacing for FAB and bottom navigation
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: 100),
+                      ),
                     ],
-                  ],
-                  const SizedBox(height: 100),
-                ],
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
-      floatingActionButton: !isCompact && !taskProvider.isSelectionMode
-          ? M3EExtendedFab(
-              controller: _fabController,
-              appear: true,
-              scaleAlignment: AlignmentDirectional.bottomEnd,
-              onPressed: () => TaskEditPane.show(context),
-              icon: const Icon(Icons.add_rounded),
-              label: 'Add Task',
-              size: M3EExtendedFabSize.small,
-              color: M3EFabColor.primary,
-            )
-          : null,
-    );
+    ),
+    if (showFab)
+      Positioned(
+        right: 24,
+        bottom: 24,
+        child: M3EExtendedFab(
+          controller: _fabController,
+          appear: true,
+          scaleAlignment: AlignmentDirectional.bottomEnd,
+          onPressed: () => TaskEditPane.show(context),
+          icon: const Icon(Icons.add_rounded),
+          label: 'Add Task',
+          size: M3EExtendedFabSize.medium,
+          color: M3EFabColor.primary,
+        ),
+      ),
+  ],
+);
   }
 }

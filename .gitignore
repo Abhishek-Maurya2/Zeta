@@ -57,3 +57,11 @@ artifacts/
 .agents
 
 node_modules/
+
+# Keystores & Signing Secrets
+*.keystore
+*.jks
+key.properties
+android/key.properties
+android/app/*.keystore
+android/app/*.jks

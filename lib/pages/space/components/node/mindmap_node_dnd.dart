@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -109,6 +110,116 @@ class MindMapNodeDnd extends StatelessWidget {
             },
             builder: (context, candidateData, rejectedData) {
               if (!isRoot && !isEditing) {
+                final isMobile =
+                    defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS;
+
+                final feedbackWidget = FractionalTranslation(
+                  translation: const Offset(-0.5, -0.5),
+                  child: IgnorePointer(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: bounds.width.clamp(120.0, 220.0),
+                          maxHeight: 42.0,
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHigh.withValues(
+                              alpha: 0.82,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: branchColor,
+                              width: 1.8,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: branchColor.withValues(
+                                  alpha: isDark ? 0.40 : 0.25,
+                                ),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Symbols.drag_indicator_rounded,
+                                size: 15,
+                                color: branchColor,
+                              ),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  node.content.isEmpty ? 'Node' : node.content,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              if (hasChildren) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: branchColor.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '+$childCount',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: branchColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+
+                final childWhenDraggingWidget = Opacity(
+                  opacity: 0.25,
+                  child: child,
+                );
+
+                if (isMobile) {
+                  return LongPressDraggable<String>(
+                    data: node.id,
+                    dragAnchorStrategy: pointerDragAnchorStrategy,
+                    onDragStarted: () {
+                      ZetaHaptics.medium();
+                      provider.startDragNode(node.id);
+                    },
+                    onDragEnd: (_) => provider.endDragNode(),
+                    onDragCompleted: () => provider.endDragNode(),
+                    onDraggableCanceled: (_, _) => provider.endDragNode(),
+                    feedback: feedbackWidget,
+                    childWhenDragging: childWhenDraggingWidget,
+                    child: child,
+                  );
+                }
+
                 return Draggable<String>(
                   data: node.id,
                   dragAnchorStrategy: pointerDragAnchorStrategy,
@@ -119,93 +230,8 @@ class MindMapNodeDnd extends StatelessWidget {
                   onDragEnd: (_) => provider.endDragNode(),
                   onDragCompleted: () => provider.endDragNode(),
                   onDraggableCanceled: (_, _) => provider.endDragNode(),
-                  feedback: FractionalTranslation(
-                    translation: const Offset(-0.5, -0.5),
-                    child: IgnorePointer(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: bounds.width.clamp(120.0, 220.0),
-                            maxHeight: 42.0,
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHigh.withValues(
-                                alpha: 0.82,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: branchColor,
-                                width: 1.8,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: branchColor.withValues(
-                                    alpha: isDark ? 0.40 : 0.25,
-                                  ),
-                                  blurRadius: 10,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Symbols.drag_indicator_rounded,
-                                  size: 15,
-                                  color: branchColor,
-                                ),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    node.content.isEmpty ? 'Node' : node.content,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: colorScheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                                if (hasChildren) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 5,
-                                      vertical: 1,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: branchColor.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      '+$childCount',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: branchColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  childWhenDragging: Opacity(
-                    opacity: 0.25,
-                    child: child,
-                  ),
+                  feedback: feedbackWidget,
+                  childWhenDragging: childWhenDraggingWidget,
                   child: child,
                 );
               }

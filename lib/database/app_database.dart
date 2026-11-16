@@ -32,7 +32,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -79,8 +79,32 @@ class AppDatabase extends _$AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_mindmaps_user_updated ON mindmaps (user_id, deleted_at_ms, updated_at_ms DESC);',
         );
       }
+
+      // Unconditionally ensure sync_outbox table and all performance indexes exist
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS sync_outbox (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, feature TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL, operation TEXT NOT NULL, created_at_ms INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, last_error TEXT NULL);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_sync_outbox_account_order ON sync_outbox (user_id, created_at_ms);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_deleted_created ON tasks (deleted_at_ms, created_at_ms DESC);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_user_active ON tasks (user_id, deleted_at_ms, created_at_ms DESC);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_tasks_sync_check ON tasks (last_synced_at_ms, updated_at_ms);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_pomodoro_user_completed ON pomodoro_sessions (user_id, completed_at_ms DESC);',
+      );
+      await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_mindmaps_user_updated ON mindmaps (user_id, deleted_at_ms, updated_at_ms DESC);',
+      );
     },
     beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON;');
       if (!kIsWeb) {
         try {
           await customStatement('PRAGMA journal_mode = WAL;');
@@ -99,18 +123,72 @@ class AppDatabase extends _$AppDatabase {
     List<Subtask> subtasks = const [];
     List<AttachmentItem> attachments = const [];
     if (decodeDetails) {
-      subtasks = (row.subtasksJson.isEmpty || row.subtasksJson == '[]')
-          ? <Subtask>[]
-          : (jsonDecode(row.subtasksJson) as List<dynamic>)
-                .map((s) => Subtask.fromJson(s as Map<String, dynamic>))
-                .toList();
+      if (row.subtasksJson.isNotEmpty && row.subtasksJson != '[]') {
+        try {
+          final decoded = jsonDecode(row.subtasksJson);
+          if (decoded is List) {
+            final parsedSubtasks = <Subtask>[];
+            for (var i = 0; i < decoded.length; i++) {
+              final item = decoded[i];
+              if (item is Map) {
+                try {
+                  final map = Map<String, dynamic>.from(item);
+                  parsedSubtasks.add(Subtask.fromJson(map));
+                } catch (e, stack) {
+                  debugPrint(
+                    '[AppDatabase] Failed to parse subtask $i for task ${row.id}: $e\n$stack',
+                  );
+                  try {
+                    final map = Map<String, dynamic>.from(item);
+                    parsedSubtasks.add(
+                      Subtask(
+                        id: map['id']?.toString() ?? '${row.id}_subtask_$i',
+                        title: map['title']?.toString() ?? 'Subtask $i',
+                        completed: map['completed'] == true,
+                      ),
+                    );
+                  } catch (fallbackError) {
+                    debugPrint(
+                      '[AppDatabase] Subtask recovery fallback failed: $fallbackError',
+                    );
+                  }
+                }
+              }
+            }
+            subtasks = parsedSubtasks;
+          }
+        } catch (e, stack) {
+          debugPrint(
+            '[AppDatabase] Corrupted subtasksJson in task ${row.id}: $e\n$stack',
+          );
+        }
+      }
 
       if (row.attachmentsJson.isNotEmpty && row.attachmentsJson != '[]') {
         try {
-          attachments = (jsonDecode(row.attachmentsJson) as List<dynamic>)
-              .map((a) => AttachmentItem.fromJson(a as Map<String, dynamic>))
-              .toList();
-        } catch (_) {}
+          final decoded = jsonDecode(row.attachmentsJson);
+          if (decoded is List) {
+            final parsedAttachments = <AttachmentItem>[];
+            for (var i = 0; i < decoded.length; i++) {
+              final item = decoded[i];
+              if (item is Map) {
+                try {
+                  final map = Map<String, dynamic>.from(item);
+                  parsedAttachments.add(AttachmentItem.fromJson(map));
+                } catch (e, stack) {
+                  debugPrint(
+                    '[AppDatabase] Failed to parse attachment $i for task ${row.id}: $e\n$stack',
+                  );
+                }
+              }
+            }
+            attachments = parsedAttachments;
+          }
+        } catch (e, stack) {
+          debugPrint(
+            '[AppDatabase] Corrupted attachmentsJson in task ${row.id}: $e\n$stack',
+          );
+        }
       }
     }
 
@@ -199,11 +277,58 @@ class AppDatabase extends _$AppDatabase {
     List<MindMapNode> nodes = const [];
     if (row.nodesJson.isNotEmpty && row.nodesJson != '[]') {
       try {
-        final decoded = jsonDecode(row.nodesJson) as List<dynamic>;
-        nodes = decoded
-            .map((e) => MindMapNode.fromJson(e as Map<String, dynamic>))
-            .toList();
-      } catch (_) {}
+        final decoded = jsonDecode(row.nodesJson);
+        if (decoded is List) {
+          final parsedNodes = <MindMapNode>[];
+          for (var i = 0; i < decoded.length; i++) {
+            final item = decoded[i];
+            if (item is Map) {
+              try {
+                final map = Map<String, dynamic>.from(item);
+                parsedNodes.add(MindMapNode.fromJson(map));
+              } catch (e, stack) {
+                debugPrint(
+                  '[AppDatabase] Failed to parse mindmap node $i for map ${row.id}: $e\n$stack',
+                );
+                try {
+                  final map = Map<String, dynamic>.from(item);
+                  parsedNodes.add(
+                    MindMapNode(
+                      id: map['id']?.toString() ?? '${row.id}_node_$i',
+                      parentId: map['parentId']?.toString(),
+                      orderIndex: (map['orderIndex'] as num?)?.toDouble() ??
+                          (i.toDouble()),
+                      content: map['content']?.toString() ?? '',
+                    ),
+                  );
+                } catch (fallbackError) {
+                  debugPrint(
+                    '[AppDatabase] Mindmap node recovery fallback failed: $fallbackError',
+                  );
+                }
+              }
+            }
+          }
+          if (parsedNodes.isNotEmpty) {
+            nodes = parsedNodes;
+          }
+        }
+      } catch (e, stack) {
+        debugPrint(
+          '[AppDatabase] Corrupted nodesJson in mindmap ${row.id}: $e\n$stack',
+        );
+      }
+    }
+
+    if (nodes.isEmpty) {
+      nodes = [
+        MindMapNode(
+          id: '${row.id}_root',
+          parentId: null,
+          orderIndex: 0.0,
+          content: row.title,
+        ),
+      ];
     }
 
     return MindMap(

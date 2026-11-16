@@ -64,7 +64,7 @@ class SupportedFont {
   List<String>? get fontFallbacks {
     switch (id) {
       case 'google-sans-flex':
-        return const ['RobotoFlex', 'Google Sans', 'Roboto', 'sans-serif'];
+        return const ['Google Sans', 'Roboto', 'sans-serif'];
       case 'roboto-flex':
         return const ['GoogleSansFlex', 'Roboto', 'sans-serif'];
       case 'roboto-mono':
@@ -72,7 +72,7 @@ class SupportedFont {
       case 'roboto-serif':
         return const ['serif'];
       case 'noto-sans':
-        return const ['RobotoFlex', 'sans-serif'];
+        return const ['GoogleSansFlex', 'Roboto', 'sans-serif'];
       case 'shantell-sans':
         return const ['sans-serif'];
       case 'system':

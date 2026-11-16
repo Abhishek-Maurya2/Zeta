@@ -33,11 +33,130 @@ class TasksDismissibleList extends StatelessWidget {
 
   final Widget? trailingChild;
 
-  @override
-  Widget build(BuildContext context) {
+  static Widget buildTaskItem({
+    required BuildContext context,
+    required int index,
+    required List<Task> tasks,
+    required TaskProvider provider,
+    required void Function(
+      BuildContext context,
+      Offset position,
+      Task task,
+      TaskProvider provider,
+    )
+    onContextMenu,
+    Widget? trailingChild,
+  }) {
+    if (trailingChild != null && index == tasks.length) {
+      return M3ECustomListItem(customChild: trailingChild);
+    }
+
+    final task = tasks[index];
     final colorScheme = context.colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSelectionMode = provider.isSelectionMode;
+    final isSelected = provider.isTaskSelected(task.id);
 
+    final bool isFirst = index == 0;
+    final bool isLast = index == tasks.length - 1 && trailingChild == null;
+    final bool isSingle = tasks.length == 1;
+
+    BorderRadius radius = isSingle
+        ? BorderRadius.circular(16)
+        : BorderRadius.vertical(
+            top: Radius.circular(isFirst ? 16 : 4),
+            bottom: Radius.circular(isLast ? 16 : 4),
+          );
+
+    if (isSelected) {
+      radius = BorderRadius.circular(45);
+    }
+
+    final cardColor = isSelected
+        ? colorScheme.secondaryContainer
+        : colorScheme.surfaceContainerLowest;
+
+    final card = Material(
+      color: cardColor,
+      borderRadius: radius,
+      clipBehavior: Clip.antiAlias,
+      child: TaskCardItem(
+        key: ValueKey(task.id),
+        task: task,
+        isExpanded: provider.isTaskExpanded(task.id),
+        isSelected: isSelected,
+        isSelectionMode: isSelectionMode,
+        moveChipsToTrailing: true,
+        onToggle: isSelectionMode
+            ? () {
+                ZetaHaptics.selection();
+                provider.toggleTaskSelection(task.id);
+              }
+            : () => provider.toggleTask(task.id),
+        onToggleExpand: () => provider.toggleTaskExpanded(task.id),
+        onToggleSubtask: (subtaskId) =>
+            provider.toggleSubtask(task.id, subtaskId, context: context),
+        onTap: isSelectionMode
+            ? () {
+                ZetaHaptics.selection();
+                provider.toggleTaskSelection(task.id);
+              }
+            : () => TaskEditPane.show(context, task: task),
+        onContextMenu: (pos) => onContextMenu(context, pos, task, provider),
+        onDelete: () => provider.deleteTask(task.id),
+      ),
+    );
+
+    if (isSelectionMode) return card;
+
+    final completeAction = M3EListSwipeAction(
+      icon: Icon(
+        task.completed
+            ? Icons.radio_button_unchecked_rounded
+            : Icons.check_circle_rounded,
+        color: isDark
+            ? task.completed
+                ? colorScheme.onPrimary
+                : colorScheme.onSuccessContainer
+            : Colors.white,
+      ),
+      backgroundColor: task.completed
+          ? colorScheme.primary
+          : isDark
+          ? colorScheme.successContainer
+          : colorScheme.success,
+      onPressed: () => provider.toggleTask(task.id),
+      isPrimary: true,
+    );
+
+    final deleteAction = M3EListSwipeAction(
+      icon: Icon(
+        Icons.delete_outline_rounded,
+        color: isDark ? colorScheme.onErrorContainer : Colors.white,
+      ),
+      backgroundColor: isDark
+          ? colorScheme.errorContainer
+          : colorScheme.error,
+      onPressed: () => provider.deleteTask(task.id),
+      isPrimary: true,
+    );
+
+    return M3ECustomListItem(
+      key: ValueKey(task.id),
+      swipe: M3EListItemSwipe(
+        leading: [
+          provider.swapSwipeActions ? deleteAction : completeAction,
+        ],
+        trailing: [
+          provider.swapSwipeActions ? completeAction : deleteAction,
+        ],
+      ),
+      customChild: card,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final int totalCount = tasks.length + (trailingChild != null ? 1 : 0);
 
     return M3EList(
@@ -46,101 +165,14 @@ class TasksDismissibleList extends StatelessWidget {
       embedded: embedded,
       gap: 8,
       colorBuilder: (index) => Colors.transparent,
-      itemBuilder: (context, index) {
-        if (trailingChild != null && index == tasks.length) {
-          return M3ECustomListItem(customChild: trailingChild!);
-        }
-
-        final task = tasks[index];
-        final isSelectionMode = provider.isSelectionMode;
-        final isSelected = provider.isTaskSelected(task.id);
-
-        final bool isFirst = index == 0;
-        final bool isLast = index == tasks.length - 1 && trailingChild == null;
-        final bool isSingle = tasks.length == 1;
-
-        BorderRadius radius = isSingle
-            ? BorderRadius.circular(16)
-            : BorderRadius.vertical(
-                top: Radius.circular(isFirst ? 16 : 4),
-                bottom: Radius.circular(isLast ? 16 : 4),
-              );
-
-        if (isSelected) {
-          radius = BorderRadius.circular(45);
-        }
-
-        final cardColor = isSelected
-            ? colorScheme.secondaryContainer
-            : colorScheme.surfaceContainerLowest;
-
-        final card = Material(
-          color: cardColor,
-          borderRadius: radius,
-          clipBehavior: Clip.antiAlias,
-          child: TaskCardItem(
-            key: ValueKey(task.id),
-            task: task,
-            isExpanded: provider.isTaskExpanded(task.id),
-            isSelected: isSelected,
-            isSelectionMode: isSelectionMode,
-            onToggle: isSelectionMode
-                ? () {
-                    ZetaHaptics.selection();
-                    provider.toggleTaskSelection(task.id);
-                  }
-                : () => provider.toggleTask(task.id),
-            onToggleExpand: () => provider.toggleTaskExpanded(task.id),
-            onToggleSubtask: (subtaskId) =>
-                provider.toggleSubtask(task.id, subtaskId, context: context),
-            onTap: isSelectionMode
-                ? () {
-                    ZetaHaptics.selection();
-                    provider.toggleTaskSelection(task.id);
-                  }
-                : () => TaskEditPane.show(context, task: task),
-            onContextMenu: (pos) => onContextMenu(context, pos, task, provider),
-            onDelete: () => provider.deleteTask(task.id),
-          ),
-        );
-
-        if (isSelectionMode) return card;
-
-        final completeAction = M3EListSwipeAction(
-          icon: task.completed
-              ? const Icon(Icons.radio_button_unchecked_rounded)
-              : const Icon(Icons.check_circle_rounded),
-          backgroundColor: task.completed
-              ? colorScheme.primary
-              : isDark
-              ? colorScheme.successContainer
-              : colorScheme.success,
-          onPressed: () => provider.toggleTask(task.id),
-          isPrimary: true,
-        );
-
-        final deleteAction = M3EListSwipeAction(
-          icon: const Icon(Icons.delete_outline_rounded),
-          backgroundColor: isDark
-              ? colorScheme.errorContainer
-              : colorScheme.error,
-          onPressed: () => provider.deleteTask(task.id),
-          isPrimary: true,
-        );
-
-        return M3ECustomListItem(
-          key: ValueKey(task.id),
-          swipe: M3EListItemSwipe(
-            leading: [
-              provider.swapSwipeActions ? deleteAction : completeAction,
-            ],
-            trailing: [
-              provider.swapSwipeActions ? completeAction : deleteAction,
-            ],
-          ),
-          customChild: card,
-        );
-      },
+      itemBuilder: (context, index) => buildTaskItem(
+        context: context,
+        index: index,
+        tasks: tasks,
+        provider: provider,
+        onContextMenu: onContextMenu,
+        trailingChild: trailingChild,
+      ),
     );
   }
 }

@@ -31,6 +31,12 @@ class SupabaseService {
   Session? get currentSession =>
       _isInitialized ? client.auth.currentSession : null;
 
+  /// Current user ID if authenticated, null otherwise.
+  String? get currentUserId => currentUser?.id;
+
+  /// Null-safe alternative to [effectiveUserId].
+  String? get effectiveUserIdOrNull => currentUser?.id;
+
   /// Current account id for row ownership. Cloud data access requires a session.
   String get effectiveUserId {
     final id = currentUser?.id;

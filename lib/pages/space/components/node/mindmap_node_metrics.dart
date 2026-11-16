@@ -23,10 +23,10 @@ class MindMapNodeMetrics {
   static const double maxNodeWidth = 400.0;
 
   // Minimum node dimensions
-  static const double minNodeWidthRoot = 60.0;
-  static const double minNodeWidthNonRoot = 44.0;
-  static const double minNodeHeightRoot = 38.0;
-  static const double minNodeHeightNonRoot = 32.0;
+  static const double minNodeWidthRoot = 180.0;
+  static const double minNodeWidthNonRoot = 160.0;
+  static const double minNodeHeightRoot = 64.0;
+  static const double minNodeHeightNonRoot = 52.0;
 
   /// Calculates the horizontal badge overhead in pixels.
   /// When expanded, reserves space for the chevron toggle icon (23px + padding + gap).
