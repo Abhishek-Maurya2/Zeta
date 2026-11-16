@@ -108,7 +108,7 @@ jobs:
       - name: Publish to GitHub Release
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = "Continue"
 

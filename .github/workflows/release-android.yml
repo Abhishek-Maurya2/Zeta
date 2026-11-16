@@ -96,7 +96,7 @@ jobs:
 
       - name: Publish to GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
         run: |
           # 1. Ensure release exists with commit message as changelog
           if ! gh release view "$TAG_NAME" > /dev/null 2>&1; then
