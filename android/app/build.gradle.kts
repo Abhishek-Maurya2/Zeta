@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -11,6 +12,17 @@ val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+fun resolveKeystoreFile(path: String?): File? {
+    if (path.isNullOrBlank()) return null
+    val f = File(path)
+    if (f.isAbsolute && f.exists()) return f
+    val appF = project.file(path)
+    if (appF.exists()) return appF
+    val rootF = rootProject.file(path)
+    if (rootF.exists()) return rootF
+    return null
 }
 
 android {
@@ -39,51 +51,43 @@ android {
         versionName = flutter.versionName
     }
 
+    val rawStorePath = System.getenv("KEYSTORE_PATH")
+        ?: (project.findProperty("KEYSTORE_PATH") as? String)
+        ?: keystoreProperties.getProperty("storeFile")
+
+    val resolvedKeystore = resolveKeystoreFile(rawStorePath)
+        ?: resolveKeystoreFile("zeta.keystore")
+
+    val hasReleaseSigning = resolvedKeystore != null
+
     signingConfigs {
-        create("release") {
-            // Resolution priority:
-            // 1. Environment variables (CI/CD)
-            // 2. Gradle project properties (-P)
-            // 3. local key.properties file (Developer machine)
-            val storeFilePath = System.getenv("KEYSTORE_PATH")
-                ?: (project.findProperty("KEYSTORE_PATH") as? String)
-                ?: keystoreProperties.getProperty("storeFile")
-
-            val storePasswordProp = System.getenv("KEYSTORE_PASSWORD")
-                ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
-                ?: keystoreProperties.getProperty("storePassword")
-
-            val keyAliasProp = System.getenv("KEY_ALIAS")
-                ?: (project.findProperty("KEY_ALIAS") as? String)
-                ?: keystoreProperties.getProperty("keyAlias")
-
-            val keyPasswordProp = System.getenv("KEY_PASSWORD")
-                ?: (project.findProperty("KEY_PASSWORD") as? String)
-                ?: keystoreProperties.getProperty("keyPassword")
-
-            if (storeFilePath != null && file(storeFilePath).exists() &&
-                !storePasswordProp.isNullOrBlank() &&
-                !keyAliasProp.isNullOrBlank() &&
-                !keyPasswordProp.isNullOrBlank()
-            ) {
-                storeFile = file(storeFilePath)
-                storePassword = storePasswordProp
-                keyAlias = keyAliasProp
-                keyPassword = keyPasswordProp
-            } else {
-                logger.warn("[Zeta Gradle] Release signing credentials not found or incomplete. Falling back to debug signing configuration.")
-                val debugConfig = getByName("debug")
-                storeFile = debugConfig.storeFile
-                storePassword = debugConfig.storePassword
-                keyAlias = debugConfig.keyAlias
-                keyPassword = debugConfig.keyPassword
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = resolvedKeystore
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                    ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
+                    ?: keystoreProperties.getProperty("storePassword")
+                    ?: "zetapassword"
+                keyAlias = System.getenv("KEY_ALIAS")
+                    ?: (project.findProperty("KEY_ALIAS") as? String)
+                    ?: keystoreProperties.getProperty("keyAlias")
+                    ?: "zeta"
+                keyPassword = System.getenv("KEY_PASSWORD")
+                    ?: (project.findProperty("KEY_PASSWORD") as? String)
+                    ?: keystoreProperties.getProperty("keyPassword")
+                    ?: "zetapassword"
             }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                logger.warn("[Zeta Gradle] Release keystore not found. Falling back to default debug signing configuration.")
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
 }
