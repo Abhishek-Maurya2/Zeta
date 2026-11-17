@@ -63,7 +63,6 @@ class TodaysFocusCard extends StatelessWidget {
           )
         : null;
 
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -129,8 +128,8 @@ class TodaysFocusCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLowest,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(28),
-                bottom: Radius.circular(8),
+                top: Radius.circular(20),
+                bottom: Radius.circular(6),
               ),
             ),
             child: Column(
@@ -206,6 +205,7 @@ class TodaysFocusCard extends StatelessWidget {
                   M3EList(
                     color: colorScheme.tertiaryContainer,
                     itemCount: task!.subtasks.length,
+                    outerRadius: 12,
                     itemBuilder: (context, index) {
                       final st = task!.subtasks[index];
                       return InkWell(
@@ -289,8 +289,8 @@ class TodaysFocusCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLowest,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(8),
-                bottom: Radius.circular(28),
+                top: Radius.circular(6),
+                bottom: Radius.circular(20),
               ),
             ),
             child: Center(
@@ -358,9 +358,9 @@ class _OtherDueTasksCard extends StatelessWidget {
 
     return M3EList(
       color: colorScheme.surfaceContainerLowest,
-      outerRadius: 8,
-      innerRadius: 8,
-      gap: 3,
+      outerRadius: 6,
+      innerRadius: 6,
+      gap: 2,
       itemCount: tasks.length,
       itemBuilder: (context, index) {
         final task = tasks[index];
@@ -394,9 +394,7 @@ class _OtherDueTasksCard extends StatelessWidget {
               if (task.dueDate != null && task.subtasks.isNotEmpty)
                 const SizedBox(width: 6),
               if (task.subtasks.isNotEmpty)
-                FocusTaskSubtasksChip(
-                  count: task.subtasks.length,
-                ),
+                FocusTaskSubtasksChip(count: task.subtasks.length),
             ],
           ),
           onTap: () => TaskEditPane.show(context, task: task),

@@ -59,7 +59,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
 
     return GlassSurface(
       borderRadius: BorderRadius.circular(32),
-      blurSigma: 8,
+      blurSigma: 6,
       color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
       child: M3EToolbar(
         axis: Axis.vertical,

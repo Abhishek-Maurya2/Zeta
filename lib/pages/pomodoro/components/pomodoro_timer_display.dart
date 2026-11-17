@@ -1,5 +1,4 @@
-﻿import 'dart:math' as math;
-import 'package:zeta/core/core.dart';
+﻿import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -81,25 +80,6 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
         final formattedTime = provider.formattedTime;
         _targetProgress = providerProgress;
 
-        // Parse formattedTime (xy:za)
-        // x: bigger first digit(s) of minutes
-        // y: smaller last digit of minutes
-        // :za: colon and seconds fitting below y
-        final parts = formattedTime.split(':');
-        final minsPart = parts.isNotEmpty ? parts[0] : '00';
-        final secsPart = parts.length > 1 ? parts[1] : '00';
-
-        final String xText;
-        final String yText;
-        if (minsPart.length <= 1) {
-          xText = '0';
-          yText = minsPart.isEmpty ? '0' : minsPart;
-        } else {
-          xText = minsPart.substring(0, minsPart.length - 1);
-          yText = minsPart.substring(minsPart.length - 1);
-        }
-        final String colonZaText = ':$secsPart';
-
         return Center(
           child: SizedBox(
             width: widget.size,
@@ -138,18 +118,110 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
                   },
                 ),
 
-                // Inner Countdown Display (pixel-perfect mathematical alignment)
-                RepaintBoundary(
-                  child: CustomPaint(
-                    size: Size(widget.size, widget.size),
-                    painter: _PomodoroDigitalTimePainter(
-                      xText: xText,
-                      yText: yText,
-                      colonZaText: colonZaText,
+                // Inner Countdown Display
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: isRunning ? 1.0 : 0.0),
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOutBack,
+                  builder: (context, t, _) {
+                    final parts = formattedTime.split(':');
+                    final minutes = parts.isNotEmpty ? parts[0] : '00';
+                    final seconds = parts.length > 1 ? parts[1] : '00';
+
+                    final animatedWeight = (200.0 + (500.0 * t)).clamp(
+                      80.0,
+                      1000.0,
+                    );
+                    final animatedWidth = (140.0 + (80.0 * t)).clamp(
+                      100.0,
+                      180.0,
+                    );
+                    final animatedRoundness = (100.0 * t).clamp(0.0, 100.0);
+                    final dotSize = (6.0 + (2.0 * t)).clamp(4.0, 10.0);
+                    final dotRadius = (dotSize / 2) * t.clamp(0.0, 1.0);
+
+                    final textStyle = TextStyle(
+                      fontFamily: 'GoogleSansFlex',
+                      fontSize: 70,
+                      height: 1.0,
                       color: colorScheme.tertiary,
-                      size: widget.size,
-                    ),
-                  ),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                      fontVariations: [
+                        FontVariation('wght', animatedWeight),
+                        FontVariation('wdth', animatedWidth),
+                        FontVariation('ROND', animatedRoundness),
+                      ],
+                    );
+
+                    const double leadingSlotWidth = 42.0;
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Row: Timer Icon + Minutes (X MM)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: leadingSlotWidth,
+                              child: Center(
+                                child: Icon(
+                                  Icons.timer_outlined,
+                                  size: 38,
+                                  color: colorScheme.tertiary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(minutes, style: textStyle),
+                            const SizedBox(height: 25),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        // Bottom Row: Custom Colon Dots + Seconds (: ss)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: leadingSlotWidth,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: dotSize,
+                                    height: dotSize,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.tertiary,
+                                      borderRadius: BorderRadius.circular(
+                                        dotRadius,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    width: dotSize,
+                                    height: dotSize,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.tertiary,
+                                      borderRadius: BorderRadius.circular(
+                                        dotRadius,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(seconds, style: textStyle),
+                            const SizedBox(height: 25),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -157,114 +229,5 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
         );
       },
     );
-  }
-}
-
-/// Custom painter for the digital countdown display.
-///
-/// Ensures pixel-perfect alignment:
-/// - Top cap-height of `y` aligns exactly with top cap-height of `x`.
-/// - Bottom baseline of `:za` aligns exactly with bottom baseline of `x`.
-class _PomodoroDigitalTimePainter extends CustomPainter {
-  final String xText;
-  final String yText;
-  final String colonZaText;
-  final Color color;
-  final double size;
-
-  const _PomodoroDigitalTimePainter({
-    required this.xText,
-    required this.yText,
-    required this.colonZaText,
-    required this.color,
-    required this.size,
-  });
-
-  @override
-  void paint(Canvas canvas, Size canvasSize) {
-    final xSize = size * 0.75;
-    final ySize = xSize * 0.62;
-    final zaSize = xSize * 0.28;
-
-    final xStyle = TextStyle(
-      fontFamily: 'GoogleSansFlex',
-      fontSize: xSize,
-      color: color,
-      fontVariations: const [
-        FontVariation('wght', 400),
-        FontVariation('wdth', 45),
-        FontVariation('ROND', 100),
-      ],
-    );
-
-    final yStyle = TextStyle(
-      fontFamily: 'GoogleSansFlex',
-      fontSize: ySize,
-      color: color,
-      fontVariations: const [
-        FontVariation('wght', 400),
-        FontVariation('wdth', 45),
-        FontVariation('ROND', 100),
-      ],
-    );
-
-    final zaStyle = TextStyle(
-      fontFamily: 'GoogleSansFlex',
-      fontSize: zaSize,
-      color: color,
-      fontVariations: const [
-        FontVariation('wght', 450),
-        FontVariation('wdth', 45),
-        FontVariation('ROND', 100),
-      ],
-    );
-
-    final xPainter = TextPainter(
-      text: TextSpan(text: xText, style: xStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final yPainter = TextPainter(
-      text: TextSpan(text: yText, style: yStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final zaPainter = TextPainter(
-      text: TextSpan(text: colonZaText, style: zaStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final horizontalGap = size * 0.022;
-    final rightWidth = math.max(yPainter.width, zaPainter.width);
-    final totalWidth = xPainter.width + horizontalGap + rightWidth;
-
-    final startX = (canvasSize.width - totalWidth) / 2;
-    // 0.608 * xSize is the exact visual vertical center of digit x
-    final topY = (canvasSize.height / 2) - (0.608 * xSize);
-
-    // 1. Paint X (big left digit/digits)
-    xPainter.paint(canvas, Offset(startX, topY));
-
-    // 2. Paint Y (smaller top right digit)
-    // Top of Y glyph aligns exactly with top of X glyph:
-    final rightStartX = startX + xPainter.width + horizontalGap;
-    final yX = rightStartX + (rightWidth - yPainter.width) / 2;
-    final yY = topY + 0.25 * (xSize - ySize);
-    yPainter.paint(canvas, Offset(yX, yY));
-
-    // 3. Paint :za (seconds fitted below Y)
-    // Baseline of :za digits aligns exactly with baseline of X:
-    final zaX = rightStartX + (rightWidth - zaPainter.width) / 2;
-    final zaY = topY + 0.966 * (xSize - zaSize);
-    zaPainter.paint(canvas, Offset(zaX, zaY));
-  }
-
-  @override
-  bool shouldRepaint(covariant _PomodoroDigitalTimePainter oldDelegate) {
-    return oldDelegate.xText != xText ||
-        oldDelegate.yText != yText ||
-        oldDelegate.colonZaText != colonZaText ||
-        oldDelegate.color != color ||
-        oldDelegate.size != size;
   }
 }

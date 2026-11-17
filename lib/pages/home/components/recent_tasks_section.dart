@@ -175,9 +175,9 @@ class _UpNextSectionState extends State<UpNextSection> {
         if (widget.tasks.isNotEmpty) ...[
           M3EList(
             color: colorScheme.surfaceContainerLowest,
-            outerRadius: 28,
-            innerRadius: 8,
-            gap: 4,
+            outerRadius: 20,
+            innerRadius: 6,
+            gap: 2,
             itemCount: visibleTasks.length + (hasMore ? 1 : 0),
             itemBuilder: (context, index) {
               if (hasMore && index == visibleTasks.length) {

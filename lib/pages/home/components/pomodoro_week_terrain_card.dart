@@ -62,8 +62,8 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
 
     final selectedIdx =
         (_hoveredDayIndex != null && _hoveredDayIndex! < values.length)
-            ? _hoveredDayIndex!
-            : maxIndex;
+        ? _hoveredDayIndex!
+        : maxIndex;
 
     final themeProvider = context.watch<ThemeProvider>();
     final isDark = themeProvider.isDarkMode(context);
@@ -85,7 +85,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(28),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -111,7 +111,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     Text(
                       _hoveredDayIndex != null
                           ? PomodoroChartCanvas.formatDuration(selectedFocus)
-                              .toUpperCase()
+                                .toUpperCase()
                           : '${totalHours.toStringAsFixed(2)} hrs',
                       style: TextStyle(
                         fontFamily: 'headline',
@@ -147,8 +147,8 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                   },
                   child: M3EShapeContainer(
                     kind: M3EShapeKind.cookie4Sided,
-                    width: 55,
-                    height: 55,
+                    width: 70,
+                    height: 70,
                     color: colorScheme.primaryContainer,
                     child: Center(
                       child: Icon(
@@ -185,16 +185,16 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     updateIndex(details.localPosition),
                 onHorizontalDragUpdate: (details) =>
                     updateIndex(details.localPosition),
-        child: CustomPaint(
-  size: Size(constraints.maxWidth, 110),
-  painter: _CapsuleBarPainter(
-    values: values,
-    accentColor: orangeAccent,
-    inactiveColor: isDark
-        ? Colors.white.withValues(alpha: 0.14)
-        : Colors.black.withValues(alpha: 0.10),
-  ),
-),
+                child: CustomPaint(
+                  size: Size(constraints.maxWidth, 110),
+                  painter: _CapsuleBarPainter(
+                    values: values,
+                    accentColor: orangeAccent,
+                    inactiveColor: isDark
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : Colors.black.withValues(alpha: 0.10),
+                  ),
+                ),
               );
             },
           ),
@@ -274,8 +274,9 @@ class _CapsuleBarPainter extends CustomPainter {
 
       // Minimum height equals barWidth so zero/low values render as clean circles at the bottom
       final minBarHeight = barWidth;
-      final normalized =
-          hasData ? (values[i] / effectiveMax).clamp(0.0, 1.0) : 0.0;
+      final normalized = hasData
+          ? (values[i] / effectiveMax).clamp(0.0, 1.0)
+          : 0.0;
       final barHeight =
           minBarHeight + (normalized * (size.height - minBarHeight));
 

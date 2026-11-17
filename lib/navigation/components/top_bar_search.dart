@@ -53,7 +53,7 @@ class TopBarSearch extends StatelessWidget {
                 margin: isCompact ? 6 : null,
                 focusedMargin: isCompact ? 0 : null,
                 backgroundColor: WidgetStatePropertyAll(
-                  colorScheme.surfaceContainerLowest,
+                  colorScheme.surfaceContainerLowest.withAlpha(150),
                 ),
                 leading: isCompact
                     ? const SizedBox(width: 1)

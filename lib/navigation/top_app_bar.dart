@@ -2,6 +2,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
+import 'dart:ui'; // Required for ImageFilter
+
 import 'components/top_bar_brand.dart';
 import 'components/top_bar_search.dart';
 import 'components/top_bar_avatar.dart';
@@ -60,18 +62,23 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
 
-    return Container(
-      height: isCompact ? 56 : 64,
-      padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
-      decoration: BoxDecoration(color: colorScheme.surfaceContainerLow),
-      child: Row(
-        children: [
-          const TopBarBrand(),
-          SizedBox(width: isCompact ? 0 : 10),
-          TopBarSearch(searchController: _searchController),
-          SizedBox(width: isCompact ? 0 : 10),
-          const TopBarAvatar(),
-        ],
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          height: isCompact ? 56 : 64,
+          padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
+          decoration: BoxDecoration(color: Colors.transparent),
+          child: Row(
+            children: [
+              const TopBarBrand(),
+              SizedBox(width: isCompact ? 0 : 10),
+              TopBarSearch(searchController: _searchController),
+              SizedBox(width: isCompact ? 0 : 10),
+              const TopBarAvatar(),
+            ],
+          ),
+        ),
       ),
     );
   }

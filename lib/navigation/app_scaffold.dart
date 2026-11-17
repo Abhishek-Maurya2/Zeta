@@ -108,9 +108,49 @@ class _AppScaffoldState extends State<AppScaffold>
   final ValueNotifier<double> _refreshHeightNotifier = ValueNotifier<double>(
     0.0,
   );
+  late final ValueNotifier<double> _bodyTopOffsetNotifier;
+  double _lastScrollPixels = 0.0;
   double _dragOffset = 0;
   bool _isRefreshing = false;
   bool _isUserPulling = false;
+
+  void _updateBodyTopOffset(
+    double scrollPixels,
+    double refreshHeight,
+    double topBarHeight,
+  ) {
+    if (topBarHeight == 0) {
+      if (_bodyTopOffsetNotifier.value != 0.0) {
+        _bodyTopOffsetNotifier.value = 0.0;
+      }
+      return;
+    }
+    final double targetOffset;
+    if (refreshHeight > 0) {
+      targetOffset = topBarHeight + refreshHeight;
+    } else {
+      targetOffset = (topBarHeight - scrollPixels).clamp(0.0, topBarHeight);
+    }
+    if (_bodyTopOffsetNotifier.value != targetOffset) {
+      _bodyTopOffsetNotifier.value = targetOffset;
+    }
+  }
+
+  void _updateCurrentBodyOffset() {
+    if (!mounted) return;
+    final nav = context.read<NavigationProvider>();
+    final isCompact = ZetaWindowSizeClass.of(context).isCompact;
+    final showTopAppBar = (!isCompact ||
+        (nav.activePage != PageId.settings &&
+            nav.activePage != PageId.bin &&
+            nav.activePage != PageId.space));
+    final topBarHeight = showTopAppBar ? (isCompact ? 56.0 : 64.0) : 0.0;
+    _updateBodyTopOffset(
+      _lastScrollPixels,
+      _refreshHeightNotifier.value,
+      topBarHeight,
+    );
+  }
 
   double get _refreshHeight => _refreshController.isAnimating
       ? _refreshAnimation.value
@@ -120,7 +160,9 @@ class _AppScaffoldState extends State<AppScaffold>
     final nav = context.read<NavigationProvider>();
     if (_lastPage != nav.activePage) {
       _lastPage = nav.activePage;
+      _lastScrollPixels = 0.0;
       _toolbarController.show();
+      _updateCurrentBodyOffset();
     }
   }
 
@@ -145,10 +187,12 @@ class _AppScaffoldState extends State<AppScaffold>
       exitDirection: M3EToolbarExitDirection.bottom,
       controller: _toolbarController,
     );
+    _bodyTopOffsetNotifier = ValueNotifier<double>(56.0);
     _refreshController =
         AnimationController(vsync: this, duration: M3MotionDuration.medium2)
           ..addListener(() {
             _refreshHeightNotifier.value = _refreshHeight;
+            _updateCurrentBodyOffset();
           });
     _refreshAnimation = Tween<double>(begin: 0, end: _refreshTargetHeight)
         .animate(
@@ -192,6 +236,7 @@ class _AppScaffoldState extends State<AppScaffold>
     AndroidTasksWidgetService.instance.dispose();
     _refreshController.dispose();
     _refreshHeightNotifier.dispose();
+    _bodyTopOffsetNotifier.dispose();
     HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
     _rootFocus.dispose();
     super.dispose();
@@ -213,6 +258,7 @@ class _AppScaffoldState extends State<AppScaffold>
       _dragOffset = _refreshTargetHeight;
     });
     _refreshHeightNotifier.value = _refreshTargetHeight;
+    _updateCurrentBodyOffset();
     ZetaHaptics.medium();
 
     final taskProvider = context.read<TaskProvider>();
@@ -267,6 +313,7 @@ class _AppScaffoldState extends State<AppScaffold>
         _dragOffset = 0;
       });
       _refreshHeightNotifier.value = 0;
+      _updateCurrentBodyOffset();
       AppSnackbar.show(
         context,
         message: 'Refreshed',
@@ -286,14 +333,23 @@ class _AppScaffoldState extends State<AppScaffold>
     _refreshController.forward(from: 0).then((_) {
       _dragOffset = 0;
       _refreshHeightNotifier.value = 0;
+      _updateCurrentBodyOffset();
     });
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
-    // When at the top of the screen in compact mode, always show the floating nav bar
-    if (notification.metrics.axis == Axis.vertical &&
-        notification.metrics.pixels <= 10) {
-      _toolbarController.show();
+    if (notification.metrics.axis == Axis.vertical) {
+      if (notification.metrics.pixels > 0 || _dragOffset == 0) {
+        _lastScrollPixels = notification.metrics.pixels;
+      } else {
+        _lastScrollPixels = 0.0;
+      }
+      _updateCurrentBodyOffset();
+
+      // When at the top of the screen in compact mode, always show the floating nav bar
+      if (notification.metrics.pixels <= 10) {
+        _toolbarController.show();
+      }
     }
 
     if (_isRefreshing ||
@@ -317,10 +373,12 @@ class _AppScaffoldState extends State<AppScaffold>
         if (newDrag >= _refreshTargetHeight) {
           _dragOffset = _refreshTargetHeight;
           _refreshHeightNotifier.value = _refreshTargetHeight;
+          _updateCurrentBodyOffset();
           unawaited(_triggerRefresh());
         } else {
           _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
           _refreshHeightNotifier.value = _dragOffset;
+          _updateCurrentBodyOffset();
         }
       }
     } else if (notification is ScrollUpdateNotification) {
@@ -332,10 +390,12 @@ class _AppScaffoldState extends State<AppScaffold>
           if (newDrag >= _refreshTargetHeight) {
             _dragOffset = _refreshTargetHeight;
             _refreshHeightNotifier.value = _refreshTargetHeight;
+            _updateCurrentBodyOffset();
             unawaited(_triggerRefresh());
           } else {
             _dragOffset = newDrag.clamp(0.0, _refreshTargetHeight).toDouble();
             _refreshHeightNotifier.value = _dragOffset;
+            _updateCurrentBodyOffset();
           }
         } else if (_isUserPulling &&
             _dragOffset > 0 &&
@@ -344,6 +404,7 @@ class _AppScaffoldState extends State<AppScaffold>
               .clamp(0.0, _refreshTargetHeight)
               .toDouble();
           _refreshHeightNotifier.value = _dragOffset;
+          _updateCurrentBodyOffset();
         }
       } else if (_isUserPulling || _dragOffset > 0) {
         _isUserPulling = false;
@@ -556,6 +617,13 @@ class _AppScaffoldState extends State<AppScaffold>
         !backHandledByScaffold &&
         (!isPomodoroRunning || navProvider.pageStack.length > 1);
 
+    final topBarHeight = showTopAppBar ? (isCompact ? 56.0 : 64.0) : 0.0;
+    _updateBodyTopOffset(
+      _lastScrollPixels,
+      _refreshHeightNotifier.value,
+      topBarHeight,
+    );
+
     return PopScope(
       canPop: canPop,
       onPopInvokedWithResult: (didPop, result) async {
@@ -626,26 +694,11 @@ class _AppScaffoldState extends State<AppScaffold>
             body: SafeArea(
               top: true,
               bottom: false,
-              child: Column(
+              child: Stack(
                 children: [
-                  // 1. Top App Bar (contains rail toggle button, hidden on mobile)
-                  if (showTopAppBar) TopAppBarWidget(key: _topBarKey),
-                  if (navProvider.activePage != PageId.settings &&
-                      navProvider.activePage != PageId.bin &&
-                      navProvider.activePage != PageId.space &&
-                      navProvider.activePage != PageId.space)
-                    ValueListenableBuilder<double>(
-                      valueListenable: _refreshHeightNotifier,
-                      builder: (context, height, _) {
-                        return PullToRefreshContainer(
-                          refreshHeight: height,
-                          targetHeight: _refreshTargetHeight,
-                          isRefreshing: _isRefreshing,
-                        );
-                      },
-                    ),
-                  // 3. Main body: Rail (desktop/tablet) or Stack with Floating Toolbar (mobile)
-                  Expanded(
+                  // 1. Main body fills from y = 0 to bottom so content scrolls
+                  // all the way behind the full height of TopAppBarWidget.
+                  Positioned.fill(
                     child: NotificationListener<ScrollNotification>(
                       onNotification: _handleScrollNotification,
                       child: ScrollConfiguration(
@@ -679,8 +732,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                               final hasActivePane =
                                                   activePane != null;
                                               final showSupporting =
-                                                  hasTaskEdit ||
-                                                  hasActivePane;
+                                                  hasTaskEdit || hasActivePane;
 
                                               Widget? supportingContent;
                                               if (hasTaskEdit) {
@@ -688,13 +740,12 @@ class _AppScaffoldState extends State<AppScaffold>
                                                   key: ValueKey(
                                                     '${taskProvider.editingTask?.id ?? 'new_task'}_${taskProvider.editingInitialTitle ?? ''}_${taskProvider.editingInitialDescription ?? ''}',
                                                   ),
-                                                  task: taskProvider
-                                                      .editingTask,
+                                                  task:
+                                                      taskProvider.editingTask,
                                                   initialTitle: taskProvider
                                                       .editingInitialTitle,
-                                                  initialDescription:
-                                                      taskProvider
-                                                          .editingInitialDescription,
+                                                  initialDescription: taskProvider
+                                                      .editingInitialDescription,
                                                   initialDueDate: taskProvider
                                                       .editingInitialDueDate,
                                                   initialDueTime: taskProvider
@@ -715,18 +766,36 @@ class _AppScaffoldState extends State<AppScaffold>
                                                 defaultPaneWidth:
                                                     activePane?.width ??
                                                     _taskEditPaneWidth,
-                                                primaryPane: BodyPane(
-                                                  navigatorKey:
-                                                      _bodyNavigatorKey,
-                                                  backHandledByScaffold:
-                                                      backHandledByScaffold,
+                                                primaryPane: ValueListenableBuilder<double>(
+                                                  valueListenable: _bodyTopOffsetNotifier,
+                                                  builder: (context, topOffset, child) {
+                                                    return Padding(
+                                                      padding: EdgeInsets.only(
+                                                        top: topOffset,
+                                                      ),
+                                                      child: child,
+                                                    );
+                                                  },
+                                                  child: BodyPane(
+                                                    navigatorKey:
+                                                        _bodyNavigatorKey,
+                                                    backHandledByScaffold:
+                                                        backHandledByScaffold,
+                                                  ),
                                                 ),
                                                 supportingPane:
                                                     !showSupporting ||
                                                             supportingContent ==
                                                                 null
                                                         ? null
-                                                        : supportingContent,
+                                                        : Padding(
+                                                            padding:
+                                                                EdgeInsets.only(
+                                                                  top: topBarHeight,
+                                                                ),
+                                                            child:
+                                                                supportingContent,
+                                                          ),
                                               );
                                             },
                                           );
@@ -750,9 +819,12 @@ class _AppScaffoldState extends State<AppScaffold>
                             : Row(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  NavigationRailWidget(
-                                    isExpanded: navProvider.isRailExpanded,
-                                    navProvider: navProvider,
+                                  Padding(
+                                    padding: EdgeInsets.only(top: topBarHeight),
+                                    child: NavigationRailWidget(
+                                      isExpanded: navProvider.isRailExpanded,
+                                      navProvider: navProvider,
+                                    ),
                                   ),
                                   Expanded(
                                     child: Stack(
@@ -806,11 +878,22 @@ class _AppScaffoldState extends State<AppScaffold>
                                                     defaultPaneWidth:
                                                         activePane?.width ??
                                                         _taskEditPaneWidth,
-                                                    primaryPane: BodyPane(
-                                                      navigatorKey:
-                                                          _bodyNavigatorKey,
-                                                      backHandledByScaffold:
-                                                          backHandledByScaffold,
+                                                    primaryPane: ValueListenableBuilder<double>(
+                                                      valueListenable: _bodyTopOffsetNotifier,
+                                                      builder: (context, topOffset, child) {
+                                                        return Padding(
+                                                          padding: EdgeInsets.only(
+                                                            top: topOffset,
+                                                          ),
+                                                          child: child,
+                                                        );
+                                                      },
+                                                      child: BodyPane(
+                                                        navigatorKey:
+                                                            _bodyNavigatorKey,
+                                                        backHandledByScaffold:
+                                                            backHandledByScaffold,
+                                                      ),
                                                     ),
                                                     supportingPane:
                                                         !showSupporting ||
@@ -819,9 +902,10 @@ class _AppScaffoldState extends State<AppScaffold>
                                                         ? null
                                                         : Container(
                                                             margin:
-                                                                const EdgeInsets.fromLTRB(
+                                                                EdgeInsets.fromLTRB(
                                                                   0,
-                                                                  10,
+                                                                  topBarHeight +
+                                                                      10,
                                                                   10,
                                                                   6,
                                                                 ),
@@ -839,6 +923,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                             clipBehavior:
                                                                 Clip.antiAlias,
                                                             child: SafeArea(
+                                                              top: false,
                                                               child:
                                                                   supportingContent,
                                                             ),
@@ -861,6 +946,36 @@ class _AppScaffoldState extends State<AppScaffold>
                       ),
                     ),
                   ),
+
+                  // 2. Pull-to-refresh indicator floats just below the TopAppBar
+                  // instead of pushing the body down in a Column!
+                  if (navProvider.activePage != PageId.settings &&
+                      navProvider.activePage != PageId.bin &&
+                      navProvider.activePage != PageId.space)
+                    Positioned(
+                      top: topBarHeight,
+                      left: 0,
+                      right: 0,
+                      child: ValueListenableBuilder<double>(
+                        valueListenable: _refreshHeightNotifier,
+                        builder: (context, height, _) {
+                          return PullToRefreshContainer(
+                            refreshHeight: height,
+                            targetHeight: _refreshTargetHeight,
+                            isRefreshing: _isRefreshing,
+                          );
+                        },
+                      ),
+                    ),
+
+                  // 3. Floating Glass Top App Bar painted ON TOP of the body at y = 0
+                  if (showTopAppBar)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: TopAppBarWidget(key: _topBarKey),
+                    ),
                 ],
               ),
             ),

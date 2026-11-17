@@ -40,8 +40,8 @@ class SpaceFloatingToolbar extends StatelessWidget {
     return ZetaFloatingToolbar.custom(
       style: ZetaToolbarStyle(
         borderRadius: BorderRadius.circular(32),
-        blurSigma: 8.0,
-        alpha: 0.60,
+        blurSigma: 6.0,
+        alpha: 0.5,
         border: const Border.fromBorderSide(BorderSide.none),
         backgroundColor: colorScheme.tertiaryContainer,
         padding: EdgeInsets.symmetric(
@@ -86,7 +86,7 @@ class SpaceFloatingToolbar extends StatelessWidget {
                   backgroundColor: colorScheme.tertiaryContainer,
                 ),
                 fieldStyle: M3EDropdownFieldStyle(
-                  backgroundColor: colorScheme.tertiaryContainer,
+                  backgroundColor: colorScheme.tertiary.withAlpha(20),
                   foregroundColor: colorScheme.onTertiaryContainer,
                 ),
                 chipStyle: M3EDropdownChipStyle(
