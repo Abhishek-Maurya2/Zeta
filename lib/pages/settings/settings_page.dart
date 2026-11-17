@@ -27,9 +27,26 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  late final ScrollController _navScrollController;
+  late final ScrollController _detailScrollController;
+
   // Transition tracking for wide mode
   SettingsCategory? _wideLastCategory;
   int _widePreviousIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _navScrollController = ScrollController();
+    _detailScrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _navScrollController.dispose();
+    _detailScrollController.dispose();
+    super.dispose();
+  }
 
   Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
     return Tooltip(
@@ -176,6 +193,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       key: ValueKey<String>(
                         'settings_wide_detail_${activeCategory?.name ?? "default"}',
                       ),
+                      controller: _detailScrollController,
+                      primary: false,
                       slivers: [
                         SliverToBoxAdapter(
                           child: Padding(
@@ -244,6 +263,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           onDoubleTap: () => splitPaneNotifier.handleDoubleTap(totalWidth),
           start: CustomScrollView(
             key: const PageStorageKey<String>('settings_wide_nav'),
+            controller: _navScrollController,
+            primary: false,
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
@@ -285,6 +306,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 key: ValueKey<String>(
                   'settings_wide_detail_${activeCategory?.name ?? "default"}',
                 ),
+                controller: _detailScrollController,
+                primary: false,
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(

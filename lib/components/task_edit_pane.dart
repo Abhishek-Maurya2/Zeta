@@ -985,6 +985,7 @@ class TaskEditFormContentState extends State<TaskEditFormContent> {
                   behavior: ScrollConfiguration.of(context)
                       .copyWith(scrollbars: false),
                   child: SingleChildScrollView(
+                    primary: false,
                     padding: const EdgeInsets.only(bottom: 80),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

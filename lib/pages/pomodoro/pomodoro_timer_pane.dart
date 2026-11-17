@@ -25,9 +25,9 @@ class PomodoroTimerPane extends StatelessWidget {
     final textTheme = context.textTheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
-    final bottomPadding = isCompact ? 96.0 : 24.0;
+    final bottomPadding = isCompact ? 95.0 : 25.0;
+    const topPadding = 8.0;
 
-    // Extracted the header row to keep the conditional layouts clean
     Widget buildHeader() {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -46,7 +46,7 @@ class PomodoroTimerPane extends StatelessWidget {
           ),
           M3EIconButton(
             variant: M3EIconButtonVariant.tonal,
-            tooltip: 'Always-on display',
+            tooltip: 'AOD',
             icon: const Icon(Icons.fullscreen_rounded),
             onPressed: onToggleAod != null
                 ? () {
@@ -69,60 +69,28 @@ class PomodoroTimerPane extends StatelessWidget {
         autofocus: true,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // Check if we have enough vertical space for the flex layout (~600px is a safe threshold)
-            final bool needsScroll =
-                !constraints.hasBoundedHeight || constraints.maxHeight < 600;
-
-            if (needsScroll) {
-              // 1. FALLBACK LAYOUT: Short screens / Unbounded constraints
-              // Uses a ScrollView and safe, fixed-height gaps instead of Spacers
-              return SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  top: 16,
-                  bottom: bottomPadding,
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 10,
+                right: 10,
+                top: topPadding,
+                bottom: bottomPadding,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      (constraints.maxHeight - topPadding - bottomPadding)
+                          .clamp(0.0, double.infinity),
                 ),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     buildHeader(),
-                    const SizedBox(
-                      height: 32,
-                    ), // Fixed gap substituting Spacer(flex: 1)
+                    const SizedBox(height: 24), // Min gap 1
                     const PomodoroTimerDisplay(),
-                    const SizedBox(
-                      height: 35,
-                    ), // Fixed gap substituting Spacer(flex: 2)
+                    const SizedBox(height: 24), // Min gap 2
                     const PomodoroTimerControls(),
-                    const SizedBox(height: 24),
                   ],
-                ),
-              );
-            }
-
-            // Keep the timer content bounded to the viewport while retaining
-            // an always-scrollable surface for pull-to-refresh. The scaffold's
-            // ScrollConfiguration supplies AlwaysScrollableScrollPhysics.
-            return SingleChildScrollView(
-              child: SizedBox(
-                height: constraints.maxHeight,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 16,
-                    bottom: bottomPadding,
-                  ),
-                  child: Column(
-                    children: [
-                      buildHeader(),
-                      const Spacer(flex: 1),
-                      const PomodoroTimerDisplay(),
-                      const Spacer(flex: 2),
-                      const PomodoroTimerControls(),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
                 ),
               ),
             );

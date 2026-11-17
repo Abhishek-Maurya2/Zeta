@@ -4,6 +4,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
 import '../../../providers/pomodoro_provider.dart';
+import '../../../theme/motion_tokens.dart';
 
 /// Circular wavy progress indicator and digital countdown display.
 ///
@@ -175,7 +176,11 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(minutes, style: textStyle),
+                            RollingDigitsText(
+                              text: minutes,
+                              style: textStyle,
+                              countUp: provider.isCountUp,
+                            ),
                             const SizedBox(height: 25),
                           ],
                         ),
@@ -215,7 +220,11 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
                               ),
                             ),
                             const SizedBox(width: 6),
-                            Text(seconds, style: textStyle),
+                            RollingDigitsText(
+                              text: seconds,
+                              style: textStyle,
+                              countUp: provider.isCountUp,
+                            ),
                             const SizedBox(height: 25),
                           ],
                         ),
@@ -228,6 +237,106 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
           ),
         );
       },
+    );
+  }
+}
+
+/// Displays digits that animate individually with a rolling / odometer effect
+/// when their numerical value changes.
+class RollingDigitsText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final bool countUp;
+
+  const RollingDigitsText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.countUp = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        for (int i = 0; i < text.length; i++)
+          _RollingDigitChar(
+            key: ValueKey<int>(text.length - 1 - i),
+            char: text[i],
+            style: style,
+            countUp: countUp,
+          ),
+      ],
+    );
+  }
+}
+
+class _RollingDigitChar extends StatelessWidget {
+  final String char;
+  final TextStyle style;
+  final bool countUp;
+
+  const _RollingDigitChar({
+    super.key,
+    required this.char,
+    required this.style,
+    required this.countUp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // When counting down, outgoing digits roll downward and incoming enter from top.
+    // When counting up, outgoing digits roll upward and incoming enter from bottom.
+    final enterY = countUp ? 0.7 : -0.7;
+    final exitY = countUp ? -0.7 : 0.7;
+
+    return ClipRect(
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: M3MotionEasing.emphasizedDecelerate,
+        switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+          return Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
+        },
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          final childKey = child.key;
+          final isIncoming = childKey is ValueKey<String> && childKey.value == char;
+
+          final inOffset = Tween<Offset>(
+            begin: Offset(0.0, enterY),
+            end: Offset.zero,
+          ).animate(animation);
+
+          final outOffset = Tween<Offset>(
+            begin: Offset(0.0, exitY),
+            end: Offset.zero,
+          ).animate(animation);
+
+          return SlideTransition(
+            position: isIncoming ? inOffset : outOffset,
+            child: FadeTransition(
+              opacity: CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeInQuad,
+              ),
+              child: child,
+            ),
+          );
+        },
+        child: Text(
+          char,
+          key: ValueKey<String>(char),
+          style: style,
+        ),
+      ),
     );
   }
 }

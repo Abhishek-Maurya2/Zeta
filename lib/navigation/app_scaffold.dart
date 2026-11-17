@@ -125,12 +125,7 @@ class _AppScaffoldState extends State<AppScaffold>
       }
       return;
     }
-    final double targetOffset;
-    if (refreshHeight > 0) {
-      targetOffset = topBarHeight + refreshHeight;
-    } else {
-      targetOffset = (topBarHeight - scrollPixels).clamp(0.0, topBarHeight);
-    }
+    final double targetOffset = topBarHeight + refreshHeight;
     if (_bodyTopOffsetNotifier.value != targetOffset) {
       _bodyTopOffsetNotifier.value = targetOffset;
     }
@@ -339,13 +334,6 @@ class _AppScaffoldState extends State<AppScaffold>
 
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis == Axis.vertical) {
-      if (notification.metrics.pixels > 0 || _dragOffset == 0) {
-        _lastScrollPixels = notification.metrics.pixels;
-      } else {
-        _lastScrollPixels = 0.0;
-      }
-      _updateCurrentBodyOffset();
-
       // When at the top of the screen in compact mode, always show the floating nav bar
       if (notification.metrics.pixels <= 10) {
         _toolbarController.show();

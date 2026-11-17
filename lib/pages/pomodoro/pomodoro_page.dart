@@ -253,10 +253,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
           onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
           start: PomodoroTimerPane(onToggleAod: _enterAodMode),
           end: Container(
-            margin: const EdgeInsets.fromLTRB(0, 0, 10, 5),
+            margin: const EdgeInsets.fromLTRB(0, 5, 5, 5),
             decoration: BoxDecoration(
               color: colorScheme.tertiaryContainer,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(25),
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
