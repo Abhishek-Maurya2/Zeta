@@ -179,11 +179,10 @@ class UpdatesSection extends StatelessWidget {
                 M3EButton.icon(
                   icon: const Icon(Icons.download_rounded, size: 25),
                   label: Text(
-                    style: const TextStyle(fontSize: 20),
                     'Update to v${info.latestVersion}',
                   ),
                   style: M3EButtonStyle.filled,
-                  size: M3EButtonSize.lg,
+                  size: M3EButtonSize.md,
                   onPressed: () {
                     ZetaHaptics.medium();
                     updateProvider.startDownload();

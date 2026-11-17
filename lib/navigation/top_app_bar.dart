@@ -1,8 +1,8 @@
-﻿import 'package:zeta/core/core.dart';
+﻿import 'dart:ui'; // Required for ImageFilter
+
 import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
-
-import 'dart:ui'; // Required for ImageFilter
+import 'package:zeta/core/core.dart';
 
 import 'components/top_bar_brand.dart';
 import 'components/top_bar_search.dart';
@@ -58,9 +58,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isCompact = sizeClass.isCompact;
+    final colorScheme = context.colorScheme;
 
     return ClipRect(
       child: BackdropFilter(
@@ -68,7 +68,9 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
         child: Container(
           height: isCompact ? 56 : 64,
           padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
-          decoration: BoxDecoration(color: Colors.transparent),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLow.withValues(alpha: 0.3),
+          ),
           child: Row(
             children: [
               const TopBarBrand(),

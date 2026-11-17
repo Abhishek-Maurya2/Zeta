@@ -73,6 +73,14 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
       ? _currentDragValue! 
       : widget.value;
 
+  @override
+  void didUpdateWidget(covariant M3ESplitPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isDragging && widget.value != oldWidget.value) {
+      _currentDragValue = null;
+    }
+  }
+
   void _handleDragStart(BoxConstraints constraints) {
     setState(() {
       _isDragging = true;
@@ -150,7 +158,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
     
     if (widget.detents.isEmpty) return;
     
-    final currentDetent = _getClosestDetent(widget.value);
+    final currentDetent = _getClosestDetent(widget.value, requireProximity: false);
     if (currentDetent == null) {
       widget.onChanged?.call(widget.detents.first);
       widget.onChangeEnd?.call(widget.detents.first);
@@ -163,7 +171,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
     widget.onChangeEnd?.call(widget.detents[nextIndex]);
   }
 
-  double? _getClosestDetent(double val) {
+  double? _getClosestDetent(double val, {bool requireProximity = true}) {
     if (widget.detents.isEmpty) return null;
     
     double closest = widget.detents.first;
@@ -175,6 +183,16 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
         closest = d;
         minDiff = diff;
       }
+    }
+    
+    if (requireProximity) {
+      final double snapTolerance = widget.overshootLimit > 0
+          ? widget.overshootLimit * 0.75
+          : 3.0;
+      if (minDiff <= snapTolerance) {
+        return closest;
+      }
+      return null;
     }
     return closest;
   }

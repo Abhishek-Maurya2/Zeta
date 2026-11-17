@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:zeta/core/core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -10,98 +11,25 @@ import '../../components/m3e_split_pane.dart';
 import '../../utils/haptics.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/update_provider.dart';
-import '../../services/preferences_service.dart';
+import '../../features/settings/presentation/state/settings_split_pane_provider.dart';
 import '../../components/m3e_page_transition.dart';
 import '../../theme/motion_tokens.dart';
 import '../../theme/breakpoints.dart';
 
 import 'components/settings_category.dart';
-
 import 'components/settings_detail_pane.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
-  static const double _defaultPaneWidth = ZetaBreakpoints.paneFixedExpanded;
-  static const double _largePaneWidth = ZetaBreakpoints.paneFixedLarge;
-  static const double _minPaneWidth = ZetaBreakpoints.paneMinList;
-  static const double _minContentPaneWidth = ZetaBreakpoints.paneMinContent;
-  static const double _collapseThreshold = 180.0;
-  static const String _prefKeyPaneWidth = 'settings_pane_width';
-  static const String _prefKeyPaneCollapsed = 'settings_pane_collapsed';
-
-  double _paneWidth = _defaultPaneWidth;
-  bool _hasCustomWidth = false;
-  bool _isPaneCollapsed = false;
-
-  // Transition tracking for compact mode
-  SettingsCategory? _lastCategory;
-  int _previousCategoryIndex = 0;
-
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   // Transition tracking for wide mode
   SettingsCategory? _wideLastCategory;
   int _widePreviousIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedPaneSettings();
-  }
-
-  void _loadSavedPaneSettings() {
-    try {
-      final prefs = PreferencesService.instance;
-      final savedWidth = prefs.getDouble(_prefKeyPaneWidth);
-      final savedCollapsed = prefs.getBool(_prefKeyPaneCollapsed);
-      if (mounted) {
-        setState(() {
-          if (savedWidth != null && savedWidth >= _minPaneWidth) {
-            _paneWidth = savedWidth;
-            _hasCustomWidth = true;
-          }
-          if (savedCollapsed != null) {
-            _isPaneCollapsed = savedCollapsed;
-          }
-        });
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _persistPaneSettings() async {
-    try {
-      final prefs = PreferencesService.instance;
-      await prefs.setDouble(_prefKeyPaneWidth, _paneWidth);
-      await prefs.setBool(_prefKeyPaneCollapsed, _isPaneCollapsed);
-    } catch (_) {}
-  }
-
-  void _handlePaneDoubleTap(double totalWidth) {
-    final maxAllowed = (totalWidth - _minContentPaneWidth - 16.0).clamp(
-      _minPaneWidth,
-      totalWidth * 0.6,
-    );
-    final currentWidth = _hasCustomWidth
-        ? _paneWidth
-        : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth);
-    final isNearStandard = (currentWidth - _defaultPaneWidth).abs() < 10.0;
-
-    setState(() {
-      _isPaneCollapsed = false;
-      _hasCustomWidth = true;
-      if (isNearStandard) {
-        _paneWidth = (totalWidth * 0.5).clamp(_minPaneWidth, maxAllowed);
-      } else {
-        _paneWidth = _defaultPaneWidth;
-      }
-    });
-    ZetaHaptics.medium();
-    _persistPaneSettings();
-  }
 
   Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
     return Tooltip(
@@ -109,14 +37,8 @@ class _SettingsPageState extends State<SettingsPage> {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () {
-          setState(() {
-            _isPaneCollapsed = false;
-            if (_paneWidth < _minPaneWidth) {
-              _paneWidth = _defaultPaneWidth;
-            }
-          });
+          ref.read(settingsSplitPaneProvider.notifier).setCollapsed(false);
           ZetaHaptics.light();
-          _persistPaneSettings();
         },
         child: Container(
           width: 28,
@@ -152,10 +74,11 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
+    final splitPaneState = ref.watch(settingsSplitPaneProvider);
+    final splitPaneNotifier = ref.read(settingsSplitPaneProvider.notifier);
     final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
     final isTwoPane = sizeClass.isMultiPane;
-    final isCompact = sizeClass.isCompact;
 
     final selectedCategory = navProvider.selectedSettingsCategory;
     final activeCategory = selectedCategory;
@@ -164,94 +87,42 @@ class _SettingsPageState extends State<SettingsPage> {
         ? kSettingsCategories.firstWhere((c) => c.id == activeCategory)
         : null;
 
-    // Fix: Properly track indices for both compact and wide layouts to prevent transition freezing
-    final int currentCompactIdx = selectedCategory != null ? 1 : 0;
-    final int prevCompactIdx = _previousCategoryIndex;
-    if (!isTwoPane && _lastCategory != selectedCategory) {
-      _previousCategoryIndex = currentCompactIdx;
-      _lastCategory = selectedCategory;
-    }
-
     final int currentWideIdx = activeCategory?.index ?? 0;
     final int prevWideIdx = _widePreviousIndex;
     if (isTwoPane && _wideLastCategory != activeCategory) {
       _widePreviousIndex = currentWideIdx;
       _wideLastCategory = activeCategory;
     }
+
+    // Compact mode: The category detail is presented as a separate route in BodyPane
+    // so Android predictive back previews the Settings list cleanly underneath.
     if (!isTwoPane) {
-      return PopScope(
-        canPop: selectedCategory == null,
-        onPopInvokedWithResult: (didPop, result) {
-          if (didPop) return;
-          if (selectedCategory != null) {
-            ZetaHaptics.light();
-            navProvider.clearSettingsCategory();
-          }
-        },
-        child: M3EPageTransition(
-        currentIndex: currentCompactIdx,
-        previousIndex: prevCompactIdx,
-        transitionType: M3EPageTransitionType.sharedAxisX,
-        duration: M3MotionDuration.medium2,
-        child: selectedCategory == null
-            ? CustomScrollView(
-                key: const ValueKey<String>('settings_compact_root'),
-                slivers: [
-                  M3EAppBar.sliver(
-                    backgroundColor: colorScheme.surfaceContainerLow,
-                    titleText: 'Settings',
-                    centerTitle: true,
-                    variant: M3EAppBarVariant.large,
-                    hideMode: M3EAppBarHideMode.actions,
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: ZetaBreakpoints.marginCompact,
-                      vertical: 8,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: _buildCategoryList(
-                        context,
-                        activeCategory: null,
-                        isTwoPane: false,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            : CustomScrollView(
-                key: ValueKey<String>(
-                  'settings_compact_${selectedCategory.name}',
-                ),
-                slivers: [
-                  M3EAppBar.sliver(
-                    titleText: activeCategoryMeta?.label ?? 'Settings',
-                    backgroundColor: colorScheme.surfaceContainerLow,
-                    centerTitle: true,
-                    variant: M3EAppBarVariant.large,
-                    hideMode: M3EAppBarHideMode.actions,
-                    leading: M3EIconButton(
-                      variant: M3EIconButtonVariant.standard,
-                      width: M3EIconButtonWidth.wide,
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      onPressed: () {
-                        ZetaHaptics.light();
-                        navProvider.pop();
-                      },
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SettingsDetailPane(
-                      activeCategory: selectedCategory,
-                      activeCategoryMeta: activeCategoryMeta,
-                      isTwoPane: false,
-                      isCompact: isCompact,
-                      onToast: _showToast,
-                    ),
-                  ),
-                ],
+      return CustomScrollView(
+        key: const ValueKey<String>('settings_compact_root'),
+        slivers: [
+          M3EAppBar.sliver(
+            backgroundColor: colorScheme.surfaceContainerLow,
+            titleText: 'Settings',
+            centerTitle: true,
+            variant: M3EAppBarVariant.large,
+            hideMode: M3EAppBarHideMode.actions,
+          ),
+          SliverPadding(
+            padding: EdgeInsets.symmetric(
+              horizontal: sizeClass.isCompact
+                  ? ZetaBreakpoints.marginCompact
+                  : ZetaBreakpoints.marginExpanded,
+              vertical: 8,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: _buildCategoryList(
+                context,
+                activeCategory: null,
+                isTwoPane: false,
               ),
-        ),
+            ),
+          ),
+        ],
       );
     }
 
@@ -261,20 +132,27 @@ class _SettingsPageState extends State<SettingsPage> {
             ? constraints.maxWidth
             : MediaQuery.sizeOf(context).width;
 
-        final upperBound = math.max(_minPaneWidth, totalWidth * 0.6);
-        final maxAllowedWidth = (totalWidth - _minContentPaneWidth - 16.0)
-            .clamp(_minPaneWidth, upperBound);
-        final currentWidth = _hasCustomWidth
-            ? _paneWidth
-            : (totalWidth >= 1200 ? _largePaneWidth : _defaultPaneWidth);
+        final upperBound = math.max(
+          SettingsSplitPaneState.minPaneWidth,
+          totalWidth * 0.6,
+        );
+        final maxAllowedWidth =
+            (totalWidth - SettingsSplitPaneState.minContentPaneWidth - 16.0)
+                .clamp(SettingsSplitPaneState.minPaneWidth, upperBound);
+
+        final currentWidth = splitPaneState.hasCustomWidth
+            ? splitPaneState.paneWidth
+            : (totalWidth >= 1200
+                  ? SettingsSplitPaneState.largePaneWidth
+                  : SettingsSplitPaneState.defaultPaneWidth);
         final effectiveWidth = currentWidth.clamp(
-          _minPaneWidth,
+          SettingsSplitPaneState.minPaneWidth,
           maxAllowedWidth,
         );
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final textTheme = context.textTheme;
 
-        if (_isPaneCollapsed) {
+        if (splitPaneState.isPaneCollapsed) {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -291,7 +169,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   clipBehavior: Clip.antiAlias,
                   child: M3EPageTransition(
                     currentIndex: currentWideIdx,
-                    previousIndex: prevWideIdx, // Fixed hardcoded 0
+                    previousIndex: prevWideIdx,
                     transitionType: M3EPageTransitionType.fadeThrough,
                     duration: M3MotionDuration.medium2,
                     child: CustomScrollView(
@@ -332,7 +210,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ? (effectiveWidth / totalWidth) * 100
             : 0.0;
         final minPercent = totalWidth > 0
-            ? (_minPaneWidth / totalWidth) * 100
+            ? (SettingsSplitPaneState.minPaneWidth / totalWidth) * 100
             : 0.0;
         final maxPercent = totalWidth > 0
             ? (maxAllowedWidth / totalWidth) * 100
@@ -340,8 +218,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
         final snapPointsPercent = <double>[
           (280.0 / totalWidth) * 100,
-          (_defaultPaneWidth / totalWidth) * 100,
-          (_largePaneWidth / totalWidth) * 100,
+          (SettingsSplitPaneState.defaultPaneWidth / totalWidth) * 100,
+          (SettingsSplitPaneState.largePaneWidth / totalWidth) * 100,
           (412.0 / totalWidth) * 100,
           (totalWidth * 0.5 / totalWidth) * 100,
         ];
@@ -357,22 +235,13 @@ class _SettingsPageState extends State<SettingsPage> {
           label: 'Drag to resize navigation · Double-tap to reset',
           onChanged: (val) {
             final newWidth = totalWidth * (val / 100);
-            if (newWidth < _collapseThreshold) {
-              setState(() {
-                _isPaneCollapsed = true;
-                _hasCustomWidth = true;
-              });
-              ZetaHaptics.light();
-            } else {
-              setState(() {
-                _paneWidth = newWidth;
-                _hasCustomWidth = true;
-                _isPaneCollapsed = false;
-              });
-            }
+            splitPaneNotifier.setWidth(newWidth);
           },
-          onChangeEnd: (val) => _persistPaneSettings(),
-          onDoubleTap: () => _handlePaneDoubleTap(totalWidth),
+          onChangeEnd: (val) {
+            final finalWidth = totalWidth * (val / 100);
+            splitPaneNotifier.onDragEnd(finalWidth, totalWidth);
+          },
+          onDoubleTap: () => splitPaneNotifier.handleDoubleTap(totalWidth),
           start: CustomScrollView(
             key: const PageStorageKey<String>('settings_wide_nav'),
             slivers: [

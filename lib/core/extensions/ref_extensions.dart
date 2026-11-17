@@ -9,6 +9,8 @@ import '../../features/weather/data/weather_preferences.dart';
 import '../../features/tasks/presentation/state/task_providers.dart';
 import '../../models/task.dart';
 import '../../features/profile/data/profile_repository.dart';
+import '../../features/navigation/presentation/state/navigation_providers.dart';
+import '../../features/settings/presentation/state/settings_split_pane_provider.dart';
 import '../pane/active_pane_coordinator.dart';
 import '../sync/sync_coordinator.dart';
 
@@ -33,6 +35,15 @@ extension ZetaWidgetRefX on WidgetRef {
   ActivePaneCoordinator get activePaneCoordinator =>
       read(activePaneProvider.notifier);
   ActivePaneConfig? get activePane => watch(activePaneProvider);
+
+  // ─── Navigation & Settings Split Pane Hooks ─────────────────────────────────
+  NavigationNotifier get navigationNotifier =>
+      read(navigationNotifierProvider.notifier);
+  NavigationState get navigation => watch(navigationNotifierProvider);
+  SettingsSplitPaneNotifier get settingsSplitPaneNotifier =>
+      read(settingsSplitPaneProvider.notifier);
+  SettingsSplitPaneState get settingsSplitPane =>
+      watch(settingsSplitPaneProvider);
 
   // ─── Task Reactive Hooks ──────────────────────────────────────────────────
   List<Task> get pendingTasks => watch(pendingTasksProvider);

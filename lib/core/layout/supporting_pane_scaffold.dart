@@ -308,7 +308,9 @@ class _SupportingPaneScaffoldState extends State<SupportingPaneScaffold>
         closest = d;
       }
     }
-    _controller.setWidth(closest);
+    if (minDiff <= 24.0) {
+      _controller.setWidth(closest);
+    }
   }
 
   @override
