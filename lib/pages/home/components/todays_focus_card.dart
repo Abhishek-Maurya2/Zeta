@@ -360,7 +360,7 @@ class _OtherDueTasksCard extends StatelessWidget {
       color: colorScheme.surfaceContainerLowest,
       outerRadius: 6,
       innerRadius: 6,
-      gap: 2,
+      gap: 3,
       itemCount: tasks.length,
       itemBuilder: (context, index) {
         final task = tasks[index];

@@ -14,7 +14,7 @@ import '../../../theme/motion_tokens.dart';
 class PomodoroTimerDisplay extends StatefulWidget {
   final double size;
 
-  const PomodoroTimerDisplay({super.key, this.size = 290.0});
+  const PomodoroTimerDisplay({super.key, this.size = 320.0});
 
   @override
   State<PomodoroTimerDisplay> createState() => _PomodoroTimerDisplayState();
@@ -143,7 +143,7 @@ class _PomodoroTimerDisplayState extends State<PomodoroTimerDisplay>
 
                     final textStyle = TextStyle(
                       fontFamily: 'GoogleSansFlex',
-                      fontSize: 70,
+                      fontSize: 75,
                       height: 1.0,
                       color: colorScheme.tertiary,
                       fontFeatures: const [FontFeature.tabularFigures()],
@@ -302,7 +302,7 @@ class _RollingDigitChar extends StatelessWidget {
             alignment: Alignment.center,
             children: <Widget>[
               ...previousChildren,
-              if (currentChild != null) currentChild,
+              ?currentChild,
             ],
           );
         },
