@@ -76,6 +76,15 @@ class SpaceProvider extends ChangeNotifier {
   void _setupSync() {
     final sync = MindmapSyncService();
     sync.onRemoteChange = (remoteMap, eventType) {
+      if (eventType == 'DELETE') {
+        _mindMaps.removeWhere((m) => m.id == remoteMap.id);
+        if (_activeMindMap?.id == remoteMap.id) {
+          _activeMindMap = _mindMaps.isNotEmpty ? _mindMaps.first : null;
+        }
+        notifyListeners();
+        return;
+      }
+
       final index = _mindMaps.indexWhere((m) => m.id == remoteMap.id);
       final activeMap = _activeMindMap;
       if (activeMap?.id == remoteMap.id &&

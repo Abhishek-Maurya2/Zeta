@@ -58,6 +58,6 @@ export interface MindMapRecord {
 export interface TrashItem {
   id: string;
   title: string;
-  item_type: 'task' | 'mindmap';
-  deleted_at: string | number;
+  item_type: 'task';
+  deleted_at: string;
 }

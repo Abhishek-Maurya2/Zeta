@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getSupabase, getUserId } from '../config.js';
@@ -30,7 +31,7 @@ export function registerPomodoroTools(server: McpServer): string[] {
           .select('id, minutes, mode, completed_at')
           .eq('user_id', userId)
           .order('completed_at', { ascending: false })
-          .range(0, 49);
+          .range(0, 499);
 
         if (error) throw error;
 
@@ -181,7 +182,6 @@ export function registerPomodoroTools(server: McpServer): string[] {
         const mode = args.mode || 'focus';
         const now = new Date();
         const nowIso = now.toISOString();
-        const nowMs = now.getTime();
 
         const newSession = {
           id: crypto.randomUUID(),
@@ -198,7 +198,7 @@ export function registerPomodoroTools(server: McpServer): string[] {
           content: [
             {
               type: 'text',
-              text: `✅ Logged ${data.minutes} minute(s) of ${mode} in Zeta at ${now.substring(11, 16)} UTC!`,
+              text: `✅ Logged ${data.minutes} minute(s) of ${mode} in Zeta at ${nowIso.substring(11, 16)} UTC!`,
             },
             {
               type: 'text',
@@ -215,5 +215,65 @@ export function registerPomodoroTools(server: McpServer): string[] {
     }
   );
 
-  return ['get_pomodoro_summary', 'log_pomodoro_session'];
+  // delete_pomodoro_session
+  server.tool(
+    'delete_pomodoro_session',
+    'Delete a completed Pomodoro session from Zeta by its session ID',
+    {
+      session_id: z.string().describe('The UUID of the pomodoro session to delete'),
+    },
+    async (args) => {
+      const supabase = getSupabase();
+      const userId = getUserId();
+
+      if (!userId) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: 'Error: ZETA_USER_ID environment variable is not configured in Vercel settings.',
+            },
+          ],
+        };
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('pomodoro_sessions')
+          .delete()
+          .eq('id', args.session_id)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error || !data) {
+          return {
+            isError: true,
+            content: [{ type: 'text', text: `Pomodoro session with ID "${args.session_id}" not found or already deleted.` }],
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `🗑️ Pomodoro session permanently deleted: ${data.minutes} min(s) of ${data.mode} (ID: ${data.id})`,
+            },
+            {
+              type: 'text',
+              text: JSON.stringify({ success: true, session_id: data.id, session: data }, null, 2),
+            },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          isError: true,
+          content: [{ type: 'text', text: `Database error: ${err.message || String(err)}` }],
+        };
+      }
+    }
+  );
+
+  return ['get_pomodoro_summary', 'log_pomodoro_session', 'delete_pomodoro_session'];
 }

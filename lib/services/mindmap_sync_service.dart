@@ -231,6 +231,21 @@ class MindmapSyncService {
         }
       }
 
+      // Reconcile remote deletions: if a local mindmap is missing remotely and not pending upload, delete locally
+      final remoteIds = remoteMaps.map((m) => m.id).toSet();
+      final pendingOutbox = await _outbox.pendingForAccount(userId, feature: 'space');
+      final pendingUpsertIds = pendingOutbox
+          .where((e) => e.operation == 'upsert')
+          .map((e) => e.entityId)
+          .toSet();
+
+      for (final local in localMaps) {
+        if (!remoteIds.contains(local.id) && !pendingUpsertIds.contains(local.id)) {
+          await dao.deleteMindMap(local.id);
+          onRemoteChange?.call(local, 'DELETE');
+        }
+      }
+
       _lastSyncedAt = syncedAt;
       _lastError = null;
       NetworkService().markOnline();
@@ -278,7 +293,11 @@ class MindmapSyncService {
     if (eventType == PostgresChangeEvent.delete) {
       final id = (oldRecord['id'] ?? newRecord['id']) as String?;
       if (id != null) {
+        final local = await dao.getMindMap(id);
         await dao.deleteMindMap(id);
+        if (local != null) {
+          onRemoteChange?.call(local, 'DELETE');
+        }
       }
       return;
     }

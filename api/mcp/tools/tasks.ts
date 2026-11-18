@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { getSupabase, getUserId } from '../config.js';
@@ -5,6 +6,9 @@ import { getSupabase, getUserId } from '../config.js';
 /**
  * Resolves a date string ("today", "tomorrow", or "YYYY-MM-DD") and optional time string ("HH:mm")
  * with timezone offset (in minutes) into an ISO UTC string.
+ *
+ * For date-only tasks (no timeInput), it aligns with Zeta's standard of storing at Noon UTC
+ * without subtracting timezone offsets, so cross-platform clients recognize it as a date-only placeholder.
  */
 function resolveDueDateTime(
   dateInput?: string,
@@ -51,9 +55,11 @@ function resolveDueDateTime(
     }
   }
 
-  // Calculate UTC timestamp from local components
+  // Calculate UTC timestamp from components:
+  // If task has a specific time, convert local time to UTC.
+  // If date-only, store at exact Noon UTC so it serves as a universal date placeholder.
   const localDateMs = Date.UTC(targetYear, targetMonth, targetDay, hours, minutes, 0, 0);
-  const utcDateMs = localDateMs - offsetMs;
+  const utcDateMs = hasTime ? localDateMs - offsetMs : localDateMs;
 
   return {
     isoDate: new Date(utcDateMs).toISOString(),
@@ -69,11 +75,15 @@ function formatTaskDue(isoDate: string | null, hasTime: boolean, timezoneOffsetM
   const d = new Date(isoDate);
   if (isNaN(d.getTime())) return '';
 
+  if (!hasTime) {
+    // For date-only tasks, display the calendar date directly
+    const datePart = isoDate.substring(0, 10);
+    return ` (Due: ${datePart})`;
+  }
+
   const offsetMs = (timezoneOffsetMinutes ?? 0) * 60 * 1000;
   const localDate = new Date(d.getTime() + offsetMs);
-
   const datePart = localDate.toISOString().substring(0, 10);
-  if (!hasTime) return ` (Due: ${datePart})`;
 
   const hh = String(localDate.getUTCHours()).padStart(2, '0');
   const mm = String(localDate.getUTCMinutes()).padStart(2, '0');
@@ -129,7 +139,7 @@ export function registerTasksTools(server: McpServer): string[] {
 
         const { data, error } = await query
           .order('due_date', { ascending: true, nullsFirst: false })
-          .range(0, 49);
+          .range(0, 99);
 
         if (error) throw error;
         if (!data || data.length === 0) {
@@ -146,14 +156,13 @@ export function registerTasksTools(server: McpServer): string[] {
         if (args.due_date) {
           const resolved = resolveDueDateTime(args.due_date, undefined, args.timezone_offset_minutes);
           if (resolved.isoDate) {
-            const targetDay = new Date(
-              new Date(resolved.isoDate).getTime() + (args.timezone_offset_minutes ?? 0) * 60 * 1000
-            )
-              .toISOString()
-              .substring(0, 10);
+            const targetDay = resolved.isoDate.substring(0, 10);
 
             filteredData = data.filter((t: any) => {
               if (!t.due_date) return false;
+              if (!t.has_time) {
+                return t.due_date.substring(0, 10) === targetDay;
+              }
               const taskDay = new Date(
                 new Date(t.due_date).getTime() + (args.timezone_offset_minutes ?? 0) * 60 * 1000
               )
@@ -171,8 +180,12 @@ export function registerTasksTools(server: McpServer): string[] {
             const desc = t.description ? `\n    Notes: ${t.description}` : '';
 
             let subtasksText = '';
-            if (Array.isArray(t.subtasks) && t.subtasks.length > 0) {
-              const items = t.subtasks.map((st: any) => `    ${st.completed ? '✓' : '○'} ${st.title} [id: ${st.id}]`);
+            const subtasksArray = Array.isArray(t.subtasks)
+              ? t.subtasks
+              : (typeof t.subtasks === 'string' ? JSON.parse(t.subtasks || '[]') : []);
+
+            if (subtasksArray.length > 0) {
+              const items = subtasksArray.map((st: any) => `    ${st.completed ? '✓' : '○'} ${st.title} [id: ${st.id}]`);
               subtasksText = '\n' + items.join('\n');
             }
 
@@ -269,7 +282,7 @@ export function registerTasksTools(server: McpServer): string[] {
           id: crypto.randomUUID(),
           user_id: userId,
           title,
-          description: args.description ? String(args.description).trim() : null,
+          description: args.description ? String(args.description).trim() : '',
           completed: false,
           due_date: isoDate,
           has_time: hasTime,
@@ -379,7 +392,7 @@ export function registerTasksTools(server: McpServer): string[] {
             id: crypto.randomUUID(),
             user_id: userId,
             title,
-            description: taskItem.description ? String(taskItem.description).trim() : null,
+            description: taskItem.description ? String(taskItem.description).trim() : '',
             completed: false,
             due_date: isoDate,
             has_time: hasTime,
@@ -452,7 +465,7 @@ export function registerTasksTools(server: McpServer): string[] {
         const now = new Date().toISOString();
         const { data, error } = await supabase
           .from('tasks')
-          .update({ completed: true, updated_at: now })
+          .update({ completed: true, completed_at: now, updated_at: now })
           .eq('id', taskId)
           .eq('user_id', userId)
           .select()
@@ -483,11 +496,12 @@ export function registerTasksTools(server: McpServer): string[] {
   // ─── 5. update_task ─────────────────────────────────────────────────────────
   server.tool(
     'update_task',
-    'Update the title, description, subtasks, or due date/time of an existing task in Zeta',
+    'Update the title, description, completion status, subtasks, or due date/time of an existing task in Zeta',
     {
       task_id: z.string().describe('The UUID of the task to update'),
       title: z.string().optional().describe('New title for the task'),
       description: z.string().optional().describe('New description or notes'),
+      completed: z.boolean().optional().describe('Whether the task is completed or pending'),
       due_date: z.string().optional().describe('New due date: "today", "tomorrow", or "YYYY-MM-DD"'),
       due_time: z.string().optional().describe('New due time in HH:mm format'),
       timezone_offset_minutes: z.number().optional().describe('Timezone offset in minutes from UTC'),
@@ -516,9 +530,15 @@ export function registerTasksTools(server: McpServer): string[] {
         const taskId = args.task_id;
         if (!taskId) throw new Error('task_id is required');
 
-        const updates: Record<string, any> = { updated_at: new Date().toISOString() };
+        const now = new Date().toISOString();
+        const updates: Record<string, any> = { updated_at: now };
         if (args.title !== undefined) updates.title = args.title.trim();
         if (args.description !== undefined) updates.description = args.description.trim();
+
+        if (args.completed !== undefined) {
+          updates.completed = args.completed;
+          updates.completed_at = args.completed ? now : null;
+        }
 
         if (args.due_date !== undefined) {
           const { isoDate, hasTime } = resolveDueDateTime(
@@ -616,7 +636,9 @@ export function registerTasksTools(server: McpServer): string[] {
 
         if (fetchErr || !task) throw new Error('Task not found');
 
-        let currentSubtasks: any[] = Array.isArray(task.subtasks) ? [...task.subtasks] : [];
+        let currentSubtasks: any[] = Array.isArray(task.subtasks)
+          ? [...task.subtasks]
+          : (typeof task.subtasks === 'string' ? JSON.parse(task.subtasks || '[]') : []);
         let message = '';
 
         if (action === 'add') {
@@ -629,6 +651,9 @@ export function registerTasksTools(server: McpServer): string[] {
           currentSubtasks.push(newSubtask);
           message = `Added subtask "${subtaskTitle}" to task "${task.title}".`;
         } else if (action === 'complete' || action === 'uncomplete') {
+          if (!subtaskId && !subtaskTitle) {
+            throw new Error('Either subtask_id or subtask_title is required to toggle completion');
+          }
           const isDone = action === 'complete';
           let found = false;
           currentSubtasks = currentSubtasks.map((st: any) => {
@@ -644,6 +669,9 @@ export function registerTasksTools(server: McpServer): string[] {
           if (!found) throw new Error(`Subtask matching "${subtaskId || subtaskTitle}" not found`);
           message = `Marked subtask as ${isDone ? 'completed ✓' : 'pending ○'} in task "${task.title}".`;
         } else if (action === 'delete') {
+          if (!subtaskId && !subtaskTitle) {
+            throw new Error('Either subtask_id or subtask_title is required to delete a subtask');
+          }
           const initialLen = currentSubtasks.length;
           currentSubtasks = currentSubtasks.filter(
             (st: any) =>

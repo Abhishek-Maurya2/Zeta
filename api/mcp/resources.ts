@@ -274,7 +274,9 @@ export function registerResources(server: McpServer): string[] {
       }
 
       const mindmaps = (rows || []).map((row: any) => {
-        const nodes = Array.isArray(row.nodes_json) ? row.nodes_json : [];
+        const nodes = Array.isArray(row.nodes_json)
+          ? row.nodes_json
+          : (typeof row.nodes_json === 'string' ? JSON.parse(row.nodes_json || '[]') : []);
         const rootNode = nodes.find((n: any) => !n.parentId || n.isRoot) || nodes[0];
         return {
           id: row.id,
