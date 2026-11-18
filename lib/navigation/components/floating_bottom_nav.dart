@@ -34,10 +34,17 @@ class FloatingBottomNav extends StatefulWidget {
 class _FloatingBottomNavState extends State<FloatingBottomNav>
     with SingleTickerProviderStateMixin {
   late final AnimationController _slideController;
+  late bool _lastShouldHide;
+
+  bool get _isScrolledHidden =>
+      !widget.keepVisible &&
+      (widget.scrollBehavior.controller.offset < -5.0 ||
+          widget.scrollBehavior.controller.isHidden);
 
   bool get _shouldHide =>
       widget.isSelectionMode ||
       widget.showSelectionToolbar ||
+      _isScrolledHidden ||
       widget.navProvider.activePage == PageId.settings ||
       widget.navProvider.activePage == PageId.bin ||
       widget.navProvider.activePage == PageId.space;
@@ -45,23 +52,22 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
   @override
   void initState() {
     super.initState();
+    _lastShouldHide = _shouldHide;
     _slideController = AnimationController.unbounded(
       vsync: this,
       value: _shouldHide ? 0.0 : 1.0,
     );
+    widget.scrollBehavior.controller.addListener(_onScrollControllerChanged);
   }
 
-  @override
-  void didUpdateWidget(covariant FloatingBottomNav oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final shouldHide = _shouldHide;
-    final oldShouldHide = oldWidget.isSelectionMode ||
-        oldWidget.showSelectionToolbar ||
-        oldWidget.navProvider.activePage == PageId.settings ||
-        oldWidget.navProvider.activePage == PageId.bin ||
-        oldWidget.navProvider.activePage == PageId.space;
+  void _onScrollControllerChanged() {
+    _updateAnimationTarget();
+  }
 
-    if (shouldHide != oldShouldHide) {
+  void _updateAnimationTarget() {
+    final shouldHide = _shouldHide;
+    if (shouldHide != _lastShouldHide) {
+      _lastShouldHide = shouldHide;
       final target = shouldHide ? 0.0 : 1.0;
       final simulation = SpringSimulation(
         ZetaToolbarMotion.spatialSpring,
@@ -74,7 +80,18 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
   }
 
   @override
+  void didUpdateWidget(covariant FloatingBottomNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollBehavior.controller != widget.scrollBehavior.controller) {
+      oldWidget.scrollBehavior.controller.removeListener(_onScrollControllerChanged);
+      widget.scrollBehavior.controller.addListener(_onScrollControllerChanged);
+    }
+    _updateAnimationTarget();
+  }
+
+  @override
   void dispose() {
+    widget.scrollBehavior.controller.removeListener(_onScrollControllerChanged);
     _slideController.dispose();
     super.dispose();
   }
@@ -90,33 +107,23 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
       left: 0,
       right: 0,
       child: AnimatedBuilder(
-        animation: widget.scrollBehavior.controller,
+        animation: _slideController,
         builder: (context, child) {
+          final progress = _slideController.value;
+          final isFullyHidden = progress <= 0.001 && _shouldHide;
+          if (isFullyHidden) {
+            return const SizedBox.shrink();
+          }
+          final slideY = (1.0 - progress) * 160.0;
           return Transform.translate(
-            offset: widget.keepVisible
-                ? Offset.zero
-                : Offset(0, -widget.scrollBehavior.controller.offset),
-            child: child,
+            offset: Offset(0, slideY),
+            child: Opacity(
+              opacity: progress.clamp(0.0, 1.0),
+              child: child,
+            ),
           );
         },
-        child: AnimatedBuilder(
-          animation: _slideController,
-          builder: (context, child) {
-            final progress = _slideController.value;
-            final isFullyHidden = progress <= 0.001 && _shouldHide;
-            if (isFullyHidden) {
-              return const SizedBox.shrink();
-            }
-            final slideY = (1.0 - progress) * 160.0;
-            return Transform.translate(
-              offset: Offset(0, slideY),
-              child: Opacity(
-                opacity: progress.clamp(0.0, 1.0),
-                child: child,
-              ),
-            );
-          },
-          child: Row(
+        child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ZetaFloatingToolbar.custom(
@@ -195,8 +202,7 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

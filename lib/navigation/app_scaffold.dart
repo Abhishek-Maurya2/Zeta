@@ -355,6 +355,12 @@ class _AppScaffoldState extends State<AppScaffold>
       // When at the top of the screen in compact mode, always show the floating nav bar
       if (notification.metrics.pixels <= 10) {
         _toolbarController.show();
+      } else if (notification is UserScrollNotification) {
+        if (notification.direction == ScrollDirection.reverse) {
+          _toolbarController.hide();
+        } else if (notification.direction == ScrollDirection.forward) {
+          _toolbarController.show();
+        }
       }
     }
 
