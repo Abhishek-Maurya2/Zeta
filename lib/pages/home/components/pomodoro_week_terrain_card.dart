@@ -140,22 +140,25 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                 ),
               ),
               if (widget.onOpenAnalysis != null)
-                GestureDetector(
-                  onTap: () {
-                    ZetaHaptics.light();
-                    widget.onOpenAnalysis!();
-                  },
-                  child: M3EShapeContainer(
-                    kind: M3EShapeKind.cookie4Sided,
-                    width: 70,
-                    height: 70,
-                    color: colorScheme.primaryContainer,
-                    child: Center(
-                      child: Icon(
-                        Symbols.arrow_outward_rounded,
-                        size: 26,
-                        weight: 700,
-                        color: colorScheme.onPrimaryContainer,
+                M3ETooltip(
+                  message: 'Open analysis',
+                  child: GestureDetector(
+                    onTap: () {
+                      ZetaHaptics.light();
+                      widget.onOpenAnalysis!();
+                    },
+                    child: M3EShapeContainer(
+                      kind: M3EShapeKind.cookie4Sided,
+                      width: 70,
+                      height: 70,
+                      color: colorScheme.primaryContainer,
+                      child: Center(
+                        child: Icon(
+                          Symbols.arrow_outward_rounded,
+                          size: 26,
+                          weight: 700,
+                          color: colorScheme.onPrimaryContainer,
+                        ),
                       ),
                     ),
                   ),

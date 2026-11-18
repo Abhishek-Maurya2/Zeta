@@ -219,7 +219,7 @@ class _ProfileSectionState extends State<ProfileSection> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Tooltip(
+                                  M3ETooltip(
                                     message: profileProvider.syncError != null
                                         ? 'Sync Error: ${profileProvider.syncError}'
                                         : 'Sync Status: $profileSyncLabel',

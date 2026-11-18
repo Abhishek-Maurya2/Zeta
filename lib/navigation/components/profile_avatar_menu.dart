@@ -318,7 +318,7 @@ class _ProfileAvatarMenuState extends State<ProfileAvatarMenu>
           onExit: isTouch ? null : (_) => _handleAvatarHoverExit(),
           child: TapRegion(
             groupId: _tapRegionGroupId,
-            child: Tooltip(
+            child: M3ETooltip(
               message: widget.tooltipMessage ?? '',
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
@@ -611,7 +611,7 @@ class _ProfileCardContent extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          Tooltip(
+                          M3ETooltip(
                             message: 'Copy error message',
                             child: InkWell(
                               borderRadius: BorderRadius.circular(6),
@@ -657,7 +657,7 @@ class _ProfileCardContent extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 5),
-                      Tooltip(
+                      M3ETooltip(
                         message: primaryError.error,
                         child: Text(
                           primaryError.error,

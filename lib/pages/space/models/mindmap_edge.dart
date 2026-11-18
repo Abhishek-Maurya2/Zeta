@@ -9,6 +9,7 @@ class MindMapEdge {
   final Color color;
   final double strokeWidth;
   final bool isLeft;
+  final bool isVertical;
 
   const MindMapEdge({
     required this.sourceId,
@@ -18,6 +19,7 @@ class MindMapEdge {
     required this.color,
     required this.strokeWidth,
     this.isLeft = false,
+    this.isVertical = false,
   });
 
   @override
@@ -30,7 +32,8 @@ class MindMapEdge {
         other.endPoint == endPoint &&
         other.color == color &&
         other.strokeWidth == strokeWidth &&
-        other.isLeft == isLeft;
+        other.isLeft == isLeft &&
+        other.isVertical == isVertical;
   }
 
   @override
@@ -42,5 +45,6 @@ class MindMapEdge {
         color,
         strokeWidth,
         isLeft,
+        isVertical,
       );
 }

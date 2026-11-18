@@ -100,9 +100,7 @@ class MindMapNodeCard extends StatelessWidget {
       );
     }
 
-    final cardBgColor = branchColor.withValues(
-      alpha: isSelected ? 0.5 : 0.3,
-    );
+    final cardBgColor = branchColor.withValues(alpha: isSelected ? 0.5 : 0.3);
 
     return Material(
       type: MaterialType.transparency,
@@ -174,7 +172,7 @@ class MindMapNodeCard extends StatelessWidget {
               ),
 
               // 3. OG AnimatedSwitcher Collapse / Expand Toggle Badge
-              if (hasChildren) ...[
+              if (hasChildren & node.isCollapsed) ...[
                 const SizedBox(width: 6),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -182,10 +180,8 @@ class MindMapNodeCard extends StatelessWidget {
                     ZetaHaptics.selection();
                     provider.toggleNodeCollapsed(node.id);
                   },
-                  child: Tooltip(
-                    message: node.isCollapsed
-                        ? 'Expand ($childCount)'
-                        : 'Collapse branch',
+                  child: M3ETooltip(
+                    message: 'Expand ($childCount)',
                     child: AnimatedContainer(
                       duration: M3MotionDuration.short4,
                       curve: M3MotionEasing.emphasized,
@@ -201,35 +197,13 @@ class MindMapNodeCard extends StatelessWidget {
                               ),
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      child: AnimatedSwitcher(
-                        duration: M3MotionDuration.short4,
-                        switchInCurve: M3MotionEasing.emphasizedDecelerate,
-                        switchOutCurve: M3MotionEasing.emphasizedAccelerate,
-                        transitionBuilder: (child, anim) => ScaleTransition(
-                          scale: anim,
-                          child: FadeTransition(
-                            opacity: anim,
-                            child: child,
-                          ),
+                      child: Text(
+                        '$childCount',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
-                        child: node.isCollapsed
-                            ? Text(
-                                '$childCount',
-                                key: const ValueKey('collapsed'),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Icon(
-                                isLeft
-                                    ? Icons.chevron_right_rounded
-                                    : Icons.chevron_left_rounded,
-                                key: const ValueKey('expanded'),
-                                size: 23,
-                                color: branchColor,
-                              ),
                       ),
                     ),
                   ),

@@ -448,7 +448,18 @@ class SpaceProvider extends ChangeNotifier {
     final index = _activeMindMap!.nodes.indexWhere((n) => n.id == id);
     if (index == -1) return;
 
+    final children = _activeMindMap!.childrenOf(id);
+    if (children.isEmpty) {
+      selectNode(id);
+      return;
+    }
+
     _pushHistory();
+
+    _selectedNodeId = id;
+    if (_editingNodeId != null && _editingNodeId != id) {
+      _editingNodeId = null;
+    }
 
     final current = _activeMindMap!.nodes[index];
     final updatedNodes = List<MindMapNode>.from(_activeMindMap!.nodes);

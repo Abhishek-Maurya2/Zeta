@@ -39,6 +39,30 @@ import 'top_app_bar.dart';
 
 import 'dart:ui';
 
+/// InheritedWidget that provides the current top app bar height to descending destination pages
+/// so that scrollable content can pad its top items below the floating glass top app bar
+/// while allowing scrolled content to flow smoothly underneath the app bar with blur.
+class ScaffoldAppBarScope extends InheritedWidget {
+  final double topBarHeight;
+
+  const ScaffoldAppBarScope({
+    super.key,
+    required this.topBarHeight,
+    required super.child,
+  });
+
+  static double of(BuildContext context) {
+    return context
+            .dependOnInheritedWidgetOfExactType<ScaffoldAppBarScope>()
+            ?.topBarHeight ??
+        0.0;
+  }
+
+  @override
+  bool updateShouldNotify(ScaffoldAppBarScope oldWidget) =>
+      topBarHeight != oldWidget.topBarHeight;
+}
+
 /// Adaptive scaffold mirroring Sharva's layout:
 /// - Compact (<600px): M3EToolbar from material_3_expressive at bottom + full-width body
 /// - Medium / Expanded (≥600px): M3ENavigationRail from material_3_expressive + body
@@ -119,13 +143,7 @@ class _AppScaffoldState extends State<AppScaffold>
     double refreshHeight,
     double topBarHeight,
   ) {
-    if (topBarHeight == 0) {
-      if (_bodyTopOffsetNotifier.value != 0.0) {
-        _bodyTopOffsetNotifier.value = 0.0;
-      }
-      return;
-    }
-    final double targetOffset = topBarHeight + refreshHeight;
+    final double targetOffset = refreshHeight;
     if (_bodyTopOffsetNotifier.value != targetOffset) {
       _bodyTopOffsetNotifier.value = targetOffset;
     }
@@ -182,7 +200,7 @@ class _AppScaffoldState extends State<AppScaffold>
       exitDirection: M3EToolbarExitDirection.bottom,
       controller: _toolbarController,
     );
-    _bodyTopOffsetNotifier = ValueNotifier<double>(56.0);
+    _bodyTopOffsetNotifier = ValueNotifier<double>(0.0);
     _refreshController =
         AnimationController(vsync: this, duration: M3MotionDuration.medium2)
           ..addListener(() {
@@ -757,6 +775,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                 primaryPane: ValueListenableBuilder<double>(
                                                   valueListenable: _bodyTopOffsetNotifier,
                                                   builder: (context, topOffset, child) {
+                                                    if (topOffset <= 0.001) return child!;
                                                     return Padding(
                                                       padding: EdgeInsets.only(
                                                         top: topOffset,
@@ -764,11 +783,14 @@ class _AppScaffoldState extends State<AppScaffold>
                                                       child: child,
                                                     );
                                                   },
-                                                  child: BodyPane(
-                                                    navigatorKey:
-                                                        _bodyNavigatorKey,
-                                                    backHandledByScaffold:
-                                                        backHandledByScaffold,
+                                                  child: ScaffoldAppBarScope(
+                                                    topBarHeight: topBarHeight,
+                                                    child: BodyPane(
+                                                      navigatorKey:
+                                                          _bodyNavigatorKey,
+                                                      backHandledByScaffold:
+                                                          backHandledByScaffold,
+                                                    ),
                                                   ),
                                                 ),
                                                 supportingPane:
@@ -869,6 +891,7 @@ class _AppScaffoldState extends State<AppScaffold>
                                                     primaryPane: ValueListenableBuilder<double>(
                                                       valueListenable: _bodyTopOffsetNotifier,
                                                       builder: (context, topOffset, child) {
+                                                        if (topOffset <= 0.001) return child!;
                                                         return Padding(
                                                           padding: EdgeInsets.only(
                                                             top: topOffset,
@@ -876,11 +899,14 @@ class _AppScaffoldState extends State<AppScaffold>
                                                           child: child,
                                                         );
                                                       },
-                                                      child: BodyPane(
-                                                        navigatorKey:
-                                                            _bodyNavigatorKey,
-                                                        backHandledByScaffold:
-                                                            backHandledByScaffold,
+                                                      child: ScaffoldAppBarScope(
+                                                        topBarHeight: topBarHeight,
+                                                        child: BodyPane(
+                                                          navigatorKey:
+                                                              _bodyNavigatorKey,
+                                                          backHandledByScaffold:
+                                                              backHandledByScaffold,
+                                                        ),
                                                       ),
                                                     ),
                                                     supportingPane:

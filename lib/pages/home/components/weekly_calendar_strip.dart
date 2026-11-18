@@ -34,9 +34,9 @@ class WeeklyCalendarStrip extends StatefulWidget {
 
 class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
   static const double _itemWidth = 50;
-  static const double _itemSpacing = 8;
+  static const double _itemSpacing = 4;
   static const double _baseItemExtent = _itemWidth + _itemSpacing;
-  static const int _maxVisibleDays = 7;
+  static const int _maxVisibleDays = 8;
 
   final Key _centerKey = const ValueKey('center_day_today');
   late final ScrollController _scrollController;
@@ -186,9 +186,9 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
             _shiftDays(-_effectiveVisibleDays);
           },
         ),
-        const SizedBox(width: 4),
+
         Expanded(child: child),
-        const SizedBox(width: 4),
+
         _StripChevronButton(
           isNext: true,
 
@@ -215,7 +215,7 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
-            final isCompact = constraints.maxWidth < 800;
+            final isCompact = constraints.maxWidth < 690;
 
             final header = _StripHeader(
               selectedDate: widget.selectedDate,
@@ -271,11 +271,9 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Flexible(child: header),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 15),
                   SizedBox(
-                    width:
-                        (_baseItemExtent * _maxVisibleDays) +
-                        104, // strip + buttons + spacing
+                    width: (_baseItemExtent * _maxVisibleDays),
                     height: 80,
                     child: _buildNavigationRow(
                       child: _buildScrollableStrip(
@@ -334,17 +332,13 @@ class _StripHeader extends StatelessWidget {
                   fontVariations: const [
                     FontVariation('wght', 600),
                     FontVariation('wdth', 70),
-                    FontVariation('GRAD', 20),
-                    FontVariation('opsz', 15),
                     FontVariation('ROND', 100),
                   ],
                 ),
               ),
               if (!isSelectedToday) ...[
                 const SizedBox(width: 8),
-                Tooltip(
-                  message: 'Reset to Today',
-                  child: M3EIconButton(
+                M3EIconButton(
                     size: M3EIconButtonSize.xs,
                     variant: M3EIconButtonVariant.tonal,
                     shape: M3EIconButtonShapeVariant.square,
@@ -354,8 +348,9 @@ class _StripHeader extends StatelessWidget {
                       fill: 1,
                     ),
                     onPressed: onResetToToday,
+                    tooltip: 'Reset to today'
                   ),
-                ),
+                
               ],
             ],
           ),
@@ -417,7 +412,7 @@ class _StripDayPill extends StatelessWidget {
     final effectiveWidth = math.min(50.0, math.max(38.0, itemExtent - 6.0));
 
     return Center(
-      child: Tooltip(
+      child: M3ETooltip(
         message: '$dayName $dayNum${dotLabel != null ? " • $dotLabel" : ""}',
         child: Material(
           type: MaterialType.transparency,
@@ -425,82 +420,84 @@ class _StripDayPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(44),
             onTap: onTap,
             child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: effectiveWidth,
-            height: isCompact ? 85 : 80,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? colorScheme.primaryContainer
-                  : (isDayToday
-                        ? colorScheme.surfaceContainerHighest
-                        : Colors.transparent),
-              borderRadius: BorderRadius.circular(
-                isDayToday && !isSelected ? 10 : 54,
+              duration: const Duration(milliseconds: 200),
+              width: effectiveWidth,
+              height: isCompact ? 85 : 80,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colorScheme.primaryContainer
+                    : (isDayToday
+                          ? colorScheme.surfaceContainerHighest
+                          : Colors.transparent),
+                borderRadius: BorderRadius.circular(
+                  isDayToday && !isSelected ? 10 : 54,
+                ),
               ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  dayName,
-                  style: TextStyle(
-                    fontSize: isSelected ? 16 : 13,
-                    fontFamily: (!isSelected && !isDayToday)
-                        ? 'GoogleSansFlex'
-                        : 'RobotoMono',
-                    fontVariations: const [
-                      FontVariation('wdth', 100),
-                      FontVariation('ROND', 100),
-                    ],
-                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                    letterSpacing: isSelected ? 0.5 : null,
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : (isDayToday
-                              ? colorScheme.primary
-                              : colorScheme.onSurface),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    dayName,
+                    style: TextStyle(
+                      fontSize: isSelected ? 16 : 13,
+                      fontFamily: (!isSelected && !isDayToday)
+                          ? 'GoogleSansFlex'
+                          : 'RobotoMono',
+                      fontVariations: const [
+                        FontVariation('wdth', 100),
+                        FontVariation('ROND', 100),
+                      ],
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                      letterSpacing: isSelected ? 0.5 : null,
+                      color: isSelected
+                          ? colorScheme.onPrimaryContainer
+                          : (isDayToday
+                                ? colorScheme.primary
+                                : colorScheme.onSurface),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  dayNum,
-                  style: TextStyle(
-                    fontSize: isSelected ? 16 : 14,
-                    fontFamily: (!isSelected && !isDayToday)
-                        ? 'GoogleSansFlex'
-                        : 'RobotoMono',
-                    fontVariations: const [
-                      FontVariation('wdth', 100),
-                      FontVariation('ROND', 100),
-                    ],
-                    fontWeight: isSelected || isDayToday
-                        ? FontWeight.w900
-                        : FontWeight.w600,
-                    color: isSelected
-                        ? colorScheme.onPrimaryContainer
-                        : colorScheme.onSurface,
+                  const SizedBox(height: 6),
+                  Text(
+                    dayNum,
+                    style: TextStyle(
+                      fontSize: isSelected ? 16 : 14,
+                      fontFamily: (!isSelected && !isDayToday)
+                          ? 'GoogleSansFlex'
+                          : 'RobotoMono',
+                      fontVariations: const [
+                        FontVariation('wdth', 100),
+                        FontVariation('ROND', 100),
+                      ],
+                      fontWeight: isSelected || isDayToday
+                          ? FontWeight.w900
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? colorScheme.onPrimaryContainer
+                          : colorScheme.onSurface,
+                    ),
                   ),
-                ),
-                SizedBox(
-                  height: 4,
-                  child: activeDotColor != null
-                      ? Container(
-                          width: 4,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: activeDotColor,
-                            shape: BoxShape.circle,
-                          ),
-                        )
-                      : null,
-                ),
-              ],
+                  SizedBox(
+                    height: 4,
+                    child: activeDotColor != null
+                        ? Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: activeDotColor,
+                              shape: BoxShape.circle,
+                            ),
+                          )
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
@@ -513,25 +510,23 @@ class _StripChevronButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
-    return Tooltip(
-      message: isNext ? 'Next days' : 'Previous days',
-      child: M3EIconButton(
-        size: M3EIconButtonSize.md,
-        width: M3EIconButtonWidth.narrow,
-        haptic: M3EHapticFeedback.heavy,
-        decoration: M3EIconButtonDecoration(
-          backgroundColor: WidgetStateProperty.all(
-            colorScheme.surfaceContainerHighest,
-          ),
-          foregroundColor: WidgetStateProperty.all(colorScheme.onSurface),
+    return M3EIconButton(
+      size: M3EIconButtonSize.md,
+      width: M3EIconButtonWidth.narrow,
+      haptic: M3EHapticFeedback.heavy,
+      decoration: M3EIconButtonDecoration(
+        backgroundColor: WidgetStateProperty.all(
+          colorScheme.surfaceContainerHighest,
         ),
-        icon: Icon(
-          isNext ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
-          size: 40,
-          fontWeight: FontWeight.bold,
-        ),
-        onPressed: onPressed,
+        foregroundColor: WidgetStateProperty.all(colorScheme.onSurface),
       ),
+      icon: Icon(
+        isNext ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+        size: 40,
+        fontWeight: FontWeight.bold,
+      ),
+      onPressed: onPressed,
+      tooltip: isNext ? 'Next Days' : 'Previous Days',
     );
   }
 }

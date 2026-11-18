@@ -15,6 +15,7 @@ import '../../features/settings/presentation/state/settings_split_pane_provider.
 import '../../components/m3e_page_transition.dart';
 import '../../theme/motion_tokens.dart';
 import '../../theme/breakpoints.dart';
+import '../../navigation/app_scaffold.dart';
 
 import 'components/settings_category.dart';
 import 'components/settings_detail_pane.dart';
@@ -49,7 +50,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
-    return Tooltip(
+    return M3ETooltip(
       message: 'Expand navigation pane',
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -143,7 +144,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       );
     }
 
-    return LayoutBuilder(
+    final topBarHeight = ScaffoldAppBarScope.of(context);
+    return Padding(
+      padding: EdgeInsets.only(top: topBarHeight),
+      child: LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
@@ -335,8 +339,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCategoryList(
     BuildContext context, {
@@ -355,7 +360,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 15),
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 15),
           child: Text(
             'Preferences',
             style: textTheme.labelMedium?.copyWith(
@@ -404,7 +409,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 isSelected ? category.selectedIcon : category.icon,
                 fill: isSelected ? 1 : 0,
                 weight: 700,
-                size: 23,
+                size: 27,
               ),
               headline: category.label,
               supportingText: category.description,

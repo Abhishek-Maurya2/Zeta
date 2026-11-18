@@ -405,6 +405,8 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                                         isLeft: layoutResult
                                                 .nodeIsLeft[node.id] ??
                                             false,
+                                        isVertical: activeMap.layoutType ==
+                                            'vertical',
                                       ),
                               ],
                             );
@@ -552,6 +554,7 @@ class _AnimatedMindMapEdgesState extends State<_AnimatedMindMapEdges>
           color: targetEdge.color,
           strokeWidth: targetEdge.strokeWidth * t,
           isLeft: targetEdge.isLeft,
+          isVertical: targetEdge.isVertical,
         );
       }
 
@@ -568,6 +571,7 @@ class _AnimatedMindMapEdgesState extends State<_AnimatedMindMapEdges>
         strokeWidth:
             prev.strokeWidth + (targetEdge.strokeWidth - prev.strokeWidth) * t,
         isLeft: targetEdge.isLeft,
+        isVertical: targetEdge.isVertical,
       );
     }).toList();
   }

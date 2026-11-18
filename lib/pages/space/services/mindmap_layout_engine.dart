@@ -28,6 +28,8 @@ class MindMapLayoutResult {
 class MindMapLayoutEngine {
   static const double siblingGap = 24.0;
   static const double levelGap = 84.0;
+  static const double verticalSiblingGap = 28.0;
+  static const double verticalLevelGap = 80.0;
   static const double canvasOriginX = 4000.0;
   static const double canvasOriginY = 4000.0;
 
@@ -138,6 +140,7 @@ class MindMapLayoutEngine {
     final nodeIsLeft = <String, bool>{};
 
     final isBalanced = mindMap.layoutType == 'balanced';
+    final isVertical = mindMap.layoutType == 'vertical';
 
     // Step 2: Lay out root
     final rootSize = nodeSizes[root.id]!;
@@ -172,7 +175,22 @@ class MindMapLayoutEngine {
       );
     }
 
-    if (!isBalanced) {
+    if (isVertical) {
+      // 1-Sided Vertical (Top-to-Bottom)
+      _layoutVerticalSubtrees(
+        childrenByParentId: childrenByParentId,
+        parentRect: rootRect,
+        children: rootChildren,
+        nodeSizes: nodeSizes,
+        nodeBounds: nodeBounds,
+        edges: edges,
+        nodeColors: nodeColors,
+        nodeIsLeft: nodeIsLeft,
+        palette: palette,
+        depth: 1,
+        colorOffset: 0,
+      );
+    } else if (!isBalanced) {
       // Standard Horizontal (Left-to-Right)
       _layoutBranchSubtrees(
         childrenByParentId: childrenByParentId,
@@ -396,6 +414,134 @@ class MindMapLayoutEngine {
     }
 
     return math.max(selfHeight, childrenHeight);
+  }
+
+  static void _layoutVerticalSubtrees({
+    required Map<String?, List<MindMapNode>> childrenByParentId,
+    required Rect parentRect,
+    required List<MindMapNode> children,
+    required Map<String, Size> nodeSizes,
+    required Map<String, Rect> nodeBounds,
+    required List<MindMapEdge> edges,
+    required Map<String, Color> nodeColors,
+    required Map<String, bool> nodeIsLeft,
+    required List<Color> palette,
+    required int depth,
+    required int colorOffset,
+  }) {
+    if (children.isEmpty) return;
+
+    // Calculate subtree widths recursively
+    final subtreeWidths = <String, double>{};
+    for (final child in children) {
+      subtreeWidths[child.id] = _computeSubtreeWidth(
+        childrenByParentId: childrenByParentId,
+        node: child,
+        nodeSizes: nodeSizes,
+      );
+    }
+
+    double totalWidth = 0;
+    for (int i = 0; i < children.length; i++) {
+      totalWidth += subtreeWidths[children[i].id]!;
+      if (i < children.length - 1) {
+        totalWidth += verticalSiblingGap;
+      }
+    }
+
+    // Children are centered horizontally around parent center X
+    double currentX = parentRect.center.dx - (totalWidth / 2.0);
+
+    for (int i = 0; i < children.length; i++) {
+      final child = children[i];
+      final childSize = nodeSizes[child.id]!;
+      final stWidth = subtreeWidths[child.id]!;
+
+      // Center the child node card within its allocated subtree horizontal slot
+      final childX = currentX + (stWidth / 2.0) - (childSize.width / 2.0);
+      final childY = parentRect.bottom + verticalLevelGap;
+
+      final childRect = Rect.fromLTWH(
+        childX,
+        childY,
+        childSize.width,
+        childSize.height,
+      );
+      nodeBounds[child.id] = childRect;
+      nodeIsLeft[child.id] = false;
+
+      // Color inheritance: Level-1 gets offset palette color, descendants inherit
+      final branchColor = (depth == 1)
+          ? palette[(colorOffset + i) % palette.length]
+          : (nodeColors[child.parentId] ?? palette[0]);
+      nodeColors[child.id] = branchColor;
+
+      // Create procedural vertical edge from bottom of parent to top of child
+      final strokeWidth = depth == 1 ? 3.5 : (depth == 2 ? 2.4 : 1.6);
+      final startPoint = Offset(parentRect.center.dx, parentRect.bottom);
+      final endPoint = Offset(childRect.center.dx, childRect.top);
+
+      edges.add(
+        MindMapEdge(
+          sourceId: child.parentId ?? '',
+          targetId: child.id,
+          startPoint: startPoint,
+          endPoint: endPoint,
+          color: branchColor,
+          strokeWidth: strokeWidth,
+          isLeft: false,
+          isVertical: true,
+        ),
+      );
+
+      // Recurse into children if not collapsed
+      if (!child.isCollapsed) {
+        final grandChildren = childrenByParentId[child.id] ?? const [];
+        if (grandChildren.isNotEmpty) {
+          _layoutVerticalSubtrees(
+            childrenByParentId: childrenByParentId,
+            parentRect: childRect,
+            children: grandChildren,
+            nodeSizes: nodeSizes,
+            nodeBounds: nodeBounds,
+            edges: edges,
+            nodeColors: nodeColors,
+            nodeIsLeft: nodeIsLeft,
+            palette: palette,
+            depth: depth + 1,
+            colorOffset: colorOffset,
+          );
+        }
+      }
+
+      currentX += stWidth + verticalSiblingGap;
+    }
+  }
+
+  static double _computeSubtreeWidth({
+    required Map<String?, List<MindMapNode>> childrenByParentId,
+    required MindMapNode node,
+    required Map<String, Size> nodeSizes,
+  }) {
+    final selfWidth = nodeSizes[node.id]?.width ?? 160.0;
+    if (node.isCollapsed) return selfWidth;
+
+    final children = childrenByParentId[node.id];
+    if (children == null || children.isEmpty) return selfWidth;
+
+    double childrenWidth = 0;
+    for (int i = 0; i < children.length; i++) {
+      childrenWidth += _computeSubtreeWidth(
+        childrenByParentId: childrenByParentId,
+        node: children[i],
+        nodeSizes: nodeSizes,
+      );
+      if (i < children.length - 1) {
+        childrenWidth += verticalSiblingGap;
+      }
+    }
+
+    return math.max(selfWidth, childrenWidth);
   }
 
   static Size _measureNode(

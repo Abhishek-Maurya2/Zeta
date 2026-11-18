@@ -278,4 +278,175 @@ void main() {
       expect(narrowBounds.height, greaterThan(wideBounds.height));
     });
   });
+
+  group('MindMapLayoutEngine 1-sided vertical mode tests', () {
+    test('Vertical layout places children vertically below parent with verticalLevelGap', () {
+      const mindMap = MindMap(
+        id: 'map_vert_1',
+        title: 'Vertical Test',
+        createdAtMs: 1000,
+        updatedAtMs: 1000,
+        layoutType: 'vertical',
+        nodes: [
+          MindMapNode(
+            id: 'root',
+            parentId: null,
+            orderIndex: 0,
+            content: 'Root Node',
+          ),
+          MindMapNode(
+            id: 'c1',
+            parentId: 'root',
+            orderIndex: 0,
+            content: 'Child 1',
+          ),
+          MindMapNode(
+            id: 'c2',
+            parentId: 'root',
+            orderIndex: 1,
+            content: 'Child 2',
+          ),
+        ],
+      );
+
+      final result = MindMapLayoutEngine.computeLayout(
+        mindMap: mindMap,
+        defaultEdgeColor: Colors.blue,
+      );
+
+      final rootBounds = result.nodeBounds['root']!;
+      final c1Bounds = result.nodeBounds['c1']!;
+      final c2Bounds = result.nodeBounds['c2']!;
+
+      // Both children should be strictly below root by verticalLevelGap
+      expect(c1Bounds.top, closeTo(rootBounds.bottom + MindMapLayoutEngine.verticalLevelGap, 0.01));
+      expect(c2Bounds.top, closeTo(rootBounds.bottom + MindMapLayoutEngine.verticalLevelGap, 0.01));
+
+      // Sibling nodes should be horizontally separated by at least verticalSiblingGap
+      expect(c2Bounds.left, greaterThanOrEqualTo(c1Bounds.right + MindMapLayoutEngine.verticalSiblingGap - 0.01));
+
+      // Edges should be vertical with endpoints connected parent bottom to child top
+      expect(result.edges.length, equals(2));
+      for (final edge in result.edges) {
+        expect(edge.isVertical, isTrue);
+        final childRect = result.nodeBounds[edge.targetId]!;
+        expect(edge.startPoint.dx, closeTo(rootBounds.center.dx, 0.01));
+        expect(edge.startPoint.dy, closeTo(rootBounds.bottom, 0.01));
+        expect(edge.endPoint.dx, closeTo(childRect.center.dx, 0.01));
+        expect(edge.endPoint.dy, closeTo(childRect.top, 0.01));
+      }
+    });
+
+    test('Vertical layout correctly nests multi-level hierarchy (root -> child -> grandchildren)', () {
+      const mindMap = MindMap(
+        id: 'map_vert_2',
+        title: 'Vertical Multi-level',
+        createdAtMs: 1000,
+        updatedAtMs: 1000,
+        layoutType: 'vertical',
+        nodes: [
+          MindMapNode(
+            id: 'root',
+            parentId: null,
+            orderIndex: 0,
+            content: 'Root',
+          ),
+          MindMapNode(
+            id: 'c1',
+            parentId: 'root',
+            orderIndex: 0,
+            content: 'Child 1',
+          ),
+          MindMapNode(
+            id: 'gc1',
+            parentId: 'c1',
+            orderIndex: 0,
+            content: 'Grandchild 1',
+          ),
+          MindMapNode(
+            id: 'gc2',
+            parentId: 'c1',
+            orderIndex: 1,
+            content: 'Grandchild 2',
+          ),
+          MindMapNode(
+            id: 'c2',
+            parentId: 'root',
+            orderIndex: 1,
+            content: 'Child 2',
+          ),
+        ],
+      );
+
+      final result = MindMapLayoutEngine.computeLayout(
+        mindMap: mindMap,
+        defaultEdgeColor: Colors.blue,
+      );
+
+      final rootBounds = result.nodeBounds['root']!;
+      final c1Bounds = result.nodeBounds['c1']!;
+      final gc1Bounds = result.nodeBounds['gc1']!;
+      final gc2Bounds = result.nodeBounds['gc2']!;
+      final c2Bounds = result.nodeBounds['c2']!;
+
+      // Children are below root
+      expect(c1Bounds.top, closeTo(rootBounds.bottom + MindMapLayoutEngine.verticalLevelGap, 0.01));
+
+      // Grandchildren are below c1
+      expect(gc1Bounds.top, closeTo(c1Bounds.bottom + MindMapLayoutEngine.verticalLevelGap, 0.01));
+      expect(gc2Bounds.top, closeTo(c1Bounds.bottom + MindMapLayoutEngine.verticalLevelGap, 0.01));
+
+      // gc1 and gc2 are separated horizontally
+      expect(gc2Bounds.left, greaterThanOrEqualTo(gc1Bounds.right + MindMapLayoutEngine.verticalSiblingGap - 0.01));
+
+      // c2 subtree is separated horizontally from c1 and its grandchildren
+      expect(c2Bounds.left, greaterThanOrEqualTo(gc2Bounds.right + MindMapLayoutEngine.verticalSiblingGap - 0.01));
+
+      // 4 edges total, all vertical
+      expect(result.edges.length, equals(4));
+      expect(result.edges.every((e) => e.isVertical), isTrue);
+    });
+
+    test('Collapsed node in vertical layout hides its descendants', () {
+      const mindMap = MindMap(
+        id: 'map_vert_3',
+        title: 'Vertical Collapsed',
+        createdAtMs: 1000,
+        updatedAtMs: 1000,
+        layoutType: 'vertical',
+        nodes: [
+          MindMapNode(
+            id: 'root',
+            parentId: null,
+            orderIndex: 0,
+            content: 'Root',
+          ),
+          MindMapNode(
+            id: 'c1',
+            parentId: 'root',
+            orderIndex: 0,
+            content: 'Child 1',
+            isCollapsed: true,
+          ),
+          MindMapNode(
+            id: 'gc1',
+            parentId: 'c1',
+            orderIndex: 0,
+            content: 'Grandchild 1',
+          ),
+        ],
+      );
+
+      final result = MindMapLayoutEngine.computeLayout(
+        mindMap: mindMap,
+        defaultEdgeColor: Colors.blue,
+      );
+
+      expect(result.nodeBounds.containsKey('root'), isTrue);
+      expect(result.nodeBounds.containsKey('c1'), isTrue);
+      expect(result.nodeBounds.containsKey('gc1'), isFalse);
+      expect(result.edges.length, equals(1));
+      expect(result.edges.first.isVertical, isTrue);
+    });
+  });
 }

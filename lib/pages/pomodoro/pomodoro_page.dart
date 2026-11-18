@@ -9,6 +9,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import '../../utils/haptics.dart';
 import '../../providers/pomodoro_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../../navigation/app_scaffold.dart';
 import '../../components/m3e_split_pane.dart';
 import '../../services/preferences_service.dart';
 import 'pomodoro_timer_pane.dart';
@@ -179,7 +180,10 @@ class _PomodoroPageState extends State<PomodoroPage> {
     ColorScheme colorScheme,
     TextTheme textTheme,
   ) {
-    return LayoutBuilder(
+    final topBarHeight = ScaffoldAppBarScope.of(context);
+    return Padding(
+      padding: EdgeInsets.only(top: topBarHeight),
+      child: LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
@@ -338,12 +342,13 @@ class _PomodoroPageState extends State<PomodoroPage> {
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   /// Compact vertical strip affordance on the edge to re-expand the supporting pane
   Widget _buildCollapsedExpandAffordance(ColorScheme colorScheme) {
-    return Tooltip(
+    return M3ETooltip(
       message: 'Expand ${_secondaryTab.label} pane',
       child: InkWell(
         onTap: () {
@@ -386,11 +391,12 @@ class _PomodoroPageState extends State<PomodoroPage> {
     ColorScheme colorScheme,
     TextTheme textTheme,
   ) {
+    final topBarHeight = ScaffoldAppBarScope.of(context);
     return Column(
       children: [
         // Top Connected Tab Selector
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.fromLTRB(16, topBarHeight + 8, 16, 8),
           child: Center(
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,

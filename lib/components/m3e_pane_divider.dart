@@ -1,6 +1,7 @@
 ﻿import 'package:zeta/core/core.dart';
 import 'package:flutter/material.dart';
 import '../utils/haptics.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 
 /// A Material 3 Expressive draggable pane divider.
 ///
@@ -103,9 +104,8 @@ class _M3EPaneDividerState extends State<M3EPaneDivider> {
           widget.onDragEnd?.call();
         },
         onDoubleTap: _handleDoubleTap,
-        child: Tooltip(
+        child: M3ETooltip(
           message: widget.tooltip,
-          waitDuration: const Duration(milliseconds: 600),
           child: SizedBox(
             width: isHorizontal ? 24.0 : double.infinity, 
             height: isHorizontal ? double.infinity : 24.0, 

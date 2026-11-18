@@ -236,7 +236,7 @@ class PomodoroChartCanvas extends StatelessWidget {
         rawDays.add({
           'label': dayLetters[dayIdx],
           'tooltipLabel':
-              '${fullDayNames[dayIdx]} (${monthName(d.month)} ${d.day})',
+              '${monthName(d.month)} ${d.day}',
           'dateStr': ds,
           'isHighlighted': ds == todayStr,
           'focus': focus,
@@ -620,7 +620,7 @@ class PomodoroChartCanvas extends StatelessWidget {
               final columnItem = Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Tooltip(
+                  M3ETooltip(
                     message:
                         '$tooltipLabel: ${formatDuration(focus)}${isBelowAverage ? ' (Below avg)' : ''}',
                     child: barWidget,

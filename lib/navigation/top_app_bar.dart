@@ -69,7 +69,7 @@ class TopAppBarWidgetState extends State<TopAppBarWidget> {
           height: isCompact ? 56 : 64,
           padding: EdgeInsets.symmetric(horizontal: isCompact ? 4 : 12),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLow.withValues(alpha: 0.3),
+            color: colorScheme.surfaceContainerLow.withValues(alpha: 0.03),
           ),
           child: Row(
             children: [

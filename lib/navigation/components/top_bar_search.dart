@@ -93,7 +93,7 @@ class TopBarSearch extends StatelessWidget {
                   if (!isCompact &&
                       taskProvider.searchQuery.isEmpty &&
                       searchController.text.isEmpty)
-                    Tooltip(
+                    M3ETooltip(
                       message: 'Press / to search',
                       child: Container(
                         padding: const EdgeInsets.all(6),

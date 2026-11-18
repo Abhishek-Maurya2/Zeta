@@ -12,6 +12,7 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
 import '../../utils/date_time_utils.dart';
+import '../../navigation/app_scaffold.dart';
 
 /// Production-ready HomePage mirroring Sharva's architecture:
 /// - 1. Interactive Material 3 Expressive Weekly Calendar Strip with date navigation & weather.
@@ -212,12 +213,18 @@ class _HomePageState extends State<HomePage> {
       ],
     );
 
+    final topBarHeight = ScaffoldAppBarScope.of(context);
+
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact
+      padding: EdgeInsets.fromLTRB(
+        isCompact
             ? ZetaBreakpoints.marginCompact
             : ZetaBreakpoints.marginExpanded,
-        vertical: 24,
+        topBarHeight + 24,
+        isCompact
+            ? ZetaBreakpoints.marginCompact
+            : ZetaBreakpoints.marginExpanded,
+        24,
       ),
       child: Align(
         alignment: Alignment.topCenter,

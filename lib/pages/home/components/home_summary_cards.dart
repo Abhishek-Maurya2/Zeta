@@ -4,8 +4,6 @@ import 'completion_rate_card.dart';
 import 'pomodoro_week_terrain_card.dart'; // Newly added widget
 
 // Re-export standalone components so consumers can import via this module
-export 'active_tasks_card.dart';
-export 'completed_tasks_card.dart';
 export 'completion_rate_card.dart';
 export 'pomodoro_week_terrain_card.dart';
 

@@ -38,14 +38,23 @@ class MindMapEdgePainter extends CustomPainter {
 
       final start = edge.startPoint;
       final end = edge.endPoint;
-      final dx = end.dx - start.dx;
 
-      final cp1 = Offset(start.dx + dx * 0.5, start.dy);
-      final cp2 = Offset(end.dx - dx * 0.5, end.dy);
-
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, end.dx, end.dy);
+      final Path path;
+      if (edge.isVertical) {
+        final dy = end.dy - start.dy;
+        final cp1 = Offset(start.dx, start.dy + dy * 0.5);
+        final cp2 = Offset(end.dx, end.dy - dy * 0.5);
+        path = Path()
+          ..moveTo(start.dx, start.dy)
+          ..cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, end.dx, end.dy);
+      } else {
+        final dx = end.dx - start.dx;
+        final cp1 = Offset(start.dx + dx * 0.5, start.dy);
+        final cp2 = Offset(end.dx - dx * 0.5, end.dy);
+        path = Path()
+          ..moveTo(start.dx, start.dy)
+          ..cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, end.dx, end.dy);
+      }
 
       // 1. Subtle ambient under-glow for depth
       final glowPaint = Paint()

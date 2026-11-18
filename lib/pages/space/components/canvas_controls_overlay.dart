@@ -47,11 +47,48 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
     });
   }
 
+  static IconData _getLayoutIcon(String layoutType) {
+    switch (layoutType) {
+      case 'balanced':
+        return Symbols.schema_rounded;
+      case 'vertical':
+        return Symbols.lan_rounded;
+      case 'horizontal':
+      default:
+        return Symbols.account_tree_rounded;
+    }
+  }
+
+  static String _getLayoutTooltip(String layoutType) {
+    switch (layoutType) {
+      case 'horizontal':
+        return 'Layout: Horizontal (click for Dual-Sided)';
+      case 'balanced':
+        return 'Layout: Dual-Sided (click for Vertical)';
+      case 'vertical':
+        return 'Layout: Vertical (click for Horizontal)';
+      default:
+        return 'Layout: Horizontal (click to cycle)';
+    }
+  }
+
+  static String _getNextLayoutType(String current) {
+    switch (current) {
+      case 'horizontal':
+        return 'balanced';
+      case 'balanced':
+        return 'vertical';
+      case 'vertical':
+      default:
+        return 'horizontal';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SpaceProvider>();
     final activeMap = provider.activeMindMap;
-    final isBalanced = activeMap?.layoutType == 'balanced';
+    final layoutType = activeMap?.layoutType ?? 'horizontal';
 
     final colorScheme = context.colorScheme;
     final sizeClass = ZetaWindowSizeClass.of(context);
@@ -96,17 +133,13 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
             },
           ),
 
-          // Layout Mode Switcher: Dual-Sided (Balanced) vs Horizontal (LTR)
+          // Layout Mode Switcher: Horizontal -> Dual-Sided -> Vertical
           M3EToolbarAction(
-            icon: isBalanced
-                ? Symbols.schema_rounded
-                : Symbols.account_tree_rounded,
-            tooltip: isBalanced
-                ? 'Layout: Dual-Sided (click for Horizontal)'
-                : 'Layout: Horizontal (click for Dual-Sided)',
+            icon: _getLayoutIcon(layoutType),
+            tooltip: _getLayoutTooltip(layoutType),
             onPressed: () {
               ZetaHaptics.selection();
-              provider.changeLayoutType(isBalanced ? 'horizontal' : 'balanced');
+              provider.changeLayoutType(_getNextLayoutType(layoutType));
             },
           ),
 

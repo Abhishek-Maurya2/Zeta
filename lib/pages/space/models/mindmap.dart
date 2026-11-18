@@ -6,7 +6,7 @@ class MindMap {
   final String title;
   final int createdAtMs;
   final int updatedAtMs;
-  final String layoutType; // 'horizontal' or 'balanced'
+  final String layoutType; // 'horizontal', 'balanced', or 'vertical'
   final List<MindMapNode> nodes;
 
   const MindMap({

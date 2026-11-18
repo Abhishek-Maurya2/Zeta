@@ -19,6 +19,7 @@ class MindMapNodeWidget extends StatefulWidget {
   final bool hasChildren;
   final int childCount;
   final bool isLeft;
+  final bool isVertical;
 
   const MindMapNodeWidget({
     super.key,
@@ -28,6 +29,7 @@ class MindMapNodeWidget extends StatefulWidget {
     required this.hasChildren,
     required this.childCount,
     this.isLeft = false,
+    this.isVertical = false,
   });
 
   @override
@@ -166,7 +168,11 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
             ? null
             : () {
                 ZetaHaptics.selection();
-                provider.selectNode(widget.node.id);
+                if (widget.hasChildren) {
+                  provider.toggleNodeCollapsed(widget.node.id);
+                } else {
+                  provider.selectNode(widget.node.id);
+                }
               },
         onDoubleTap: isEditing
             ? null
@@ -235,9 +241,11 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
               opacity: enterProgress.clamp(0.0, 1.0),
               child: Transform.scale(
                 scale: 0.86 + (0.14 * enterProgress),
-                alignment: widget.isLeft
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment: widget.isVertical
+                    ? Alignment.topCenter
+                    : (widget.isLeft
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft),
                 child: child,
               ),
             );

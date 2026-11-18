@@ -17,6 +17,7 @@ import 'components/bin_empty_state.dart';
 import '../../components/task_context_menu.dart';
 import '../../theme/breakpoints.dart';
 import '../../utils/haptics.dart';
+import '../../navigation/app_scaffold.dart';
 
 /// Recycle bin page showing deleted tasks, initially loading 10 at a time
 /// and displaying [M3ELoadingIndicator] for at least 3 seconds before loading the rest.
@@ -221,12 +222,17 @@ class _BinPageState extends State<BinPage> {
       );
     }
 
+    final topBarHeight = ScaffoldAppBarScope.of(context);
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact
+      padding: EdgeInsets.fromLTRB(
+        isCompact
             ? ZetaBreakpoints.marginCompact
             : ZetaBreakpoints.marginExpanded,
-        vertical: 28,
+        topBarHeight + 28,
+        isCompact
+            ? ZetaBreakpoints.marginCompact
+            : ZetaBreakpoints.marginExpanded,
+        28,
       ),
       child: Align(
         alignment: Alignment.topCenter,

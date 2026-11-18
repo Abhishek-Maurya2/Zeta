@@ -340,19 +340,6 @@ class MetricDonutRingGauge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Due + overdue',
-                  style: TextStyle(
-                    fontFamily: 'GoogleSansFlex',
-                    fontVariations: const [
-                      FontVariation('ROND', 100),
-                      FontVariation('wght', 600),
-                    ],
-                    fontSize: (size * 0.08).clamp(9.0, 13.0),
-                    letterSpacing: -0.2,
-                    color: textMuted,
-                  ),
-                ),
-                Text(
                   '$clampedRate%',
                   style: TextStyle(
                     fontFamily: 'GoogleSansFlex',
@@ -381,42 +368,6 @@ class MetricDonutRingGauge extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Top-Right Floating Circular Delta Badge (+N)
-            Positioned(
-              top: size * 0.02,
-              right: size * 0.10,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: (size * 0.045).clamp(5.0, 9.0),
-                  vertical: (size * 0.02).clamp(2.0, 4.0),
-                ),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF152C58)
-                      : const Color(0xFFD6E4FF),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? const Color(0xFF2B4D8A) : Colors.white,
-                    width: 1.5,
-                  ),
-                ),
-                child: Text(
-                  '+$deltaBadgeCount',
-                  style: TextStyle(
-                    fontFamily: 'GoogleSansFlex',
-                    fontVariations: const [
-                      FontVariation('ROND', 100),
-                      FontVariation('wght', 800),
-                    ],
-                    fontSize: (size * 0.075).clamp(9.0, 12.0),
-                    color: isDark
-                        ? const Color(0xFF7CA6FE)
-                        : const Color(0xFF1D54C2),
-                  ),
-              ),
-            ),
-        ),
           ],
         );
       },
@@ -768,68 +719,66 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
             _isHoveringPopup = false;
             _scheduleClose();
           },
-            child: AnimatedContainer(
+          child: AnimatedContainer(
             duration: M3MotionDuration.medium3,
-              curve: M3MotionEasing.emphasizedDecelerate,
-              width: _isExpanded ? maxWidth : closedWidth,
-              constraints: BoxConstraints(
-                minHeight: closedHeight,
-                maxHeight: 380,
-              ),
-              child: GlassSurface(
-                borderRadius: BorderRadius.circular(_isExpanded ? 24 : 20),
-                blurSigma: 5,
-                color: widget.capsuleBg.withValues(
-                  alpha: 0.5,
-                ),
-                child: AnimatedSize(
-                  duration: M3MotionDuration.medium3,
-                  reverseDuration: M3MotionDuration.short4,
-                  curve: M3MotionEasing.emphasizedDecelerate,
-                  alignment: Alignment.topRight,
-                  child: AnimatedSwitcher(
-                    duration: M3MotionDuration.medium2,
-                    switchInCurve: M3MotionEasing.emphasizedDecelerate,
-                    switchOutCurve: M3MotionEasing.emphasizedAccelerate,
-                    transitionBuilder: (child, animation) => FadeTransition(
-                      opacity: animation,
-                      child: SizeTransition(
-                        sizeFactor: animation,
-                        alignment: Alignment.topCenter,
-                        child: child,
-                      ),
+            curve: M3MotionEasing.emphasizedDecelerate,
+            width: _isExpanded ? maxWidth : closedWidth,
+            constraints: BoxConstraints(
+              minHeight: closedHeight,
+              maxHeight: 380,
+            ),
+            child: GlassSurface(
+              borderRadius: BorderRadius.circular(_isExpanded ? 24 : 20),
+              blurSigma: 5,
+              color: widget.capsuleBg.withValues(alpha: 0.5),
+              child: AnimatedSize(
+                duration: M3MotionDuration.medium3,
+                reverseDuration: M3MotionDuration.short4,
+                curve: M3MotionEasing.emphasizedDecelerate,
+                alignment: Alignment.topRight,
+                child: AnimatedSwitcher(
+                  duration: M3MotionDuration.medium2,
+                  switchInCurve: M3MotionEasing.emphasizedDecelerate,
+                  switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(
+                      sizeFactor: animation,
+                      alignment: Alignment.topCenter,
+                      child: child,
                     ),
-                    child: _isExpanded
-                        ? _TasksFlyoutCard(
-                            key: const ValueKey('expanded-workload'),
-                            workloadTasks: widget.workloadTasks,
-                            completedCount: widget.completedCount,
-                            totalCount: widget.totalCount,
-                            colorScheme: widget.colorScheme,
-                            isDark: widget.isDark,
+                  ),
+                  child: _isExpanded
+                      ? _TasksFlyoutCard(
+                          key: const ValueKey('expanded-workload'),
+                          workloadTasks: widget.workloadTasks,
+                          completedCount: widget.completedCount,
+                          totalCount: widget.totalCount,
+                          colorScheme: widget.colorScheme,
+                          isDark: widget.isDark,
+                          capsuleBg: widget.capsuleBg,
+                          iconShapeBg: widget.iconShapeBg,
+                          contentColor: widget.contentColor,
+                        )
+                      : KeyedSubtree(
+                          key: const ValueKey('closed-workload'),
+                          child: _HealthMetricCapsule(
+                            title: widget.title,
+                            value: widget.value,
+                            icon: widget.icon,
+                            progress: widget.progress,
                             capsuleBg: widget.capsuleBg,
+                            progressFillBg: widget.progressFillBg,
                             iconShapeBg: widget.iconShapeBg,
                             contentColor: widget.contentColor,
-                          )
-                        : KeyedSubtree(
-                            key: const ValueKey('closed-workload'),
-                            child: _HealthMetricCapsule(
-                              title: widget.title,
-                              value: widget.value,
-                              icon: widget.icon,
-                              progress: widget.progress,
-                              capsuleBg: widget.capsuleBg,
-                              progressFillBg: widget.progressFillBg,
-                              iconShapeBg: widget.iconShapeBg,
-                              contentColor: widget.contentColor,
-                            ),
                           ),
-                  ),
+                        ),
                 ),
               ),
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -963,7 +912,9 @@ class _TasksFlyoutCard extends StatelessWidget {
               constraints: const BoxConstraints(maxHeight: 240),
               child: SingleChildScrollView(
                 child: M3EList(
-                  color: colorScheme.surfaceContainerLowest.withValues(alpha: 0.4),
+                  color: colorScheme.surfaceContainerLowest.withValues(
+                    alpha: 0.4,
+                  ),
                   itemCount: workloadTasks.length,
                   itemBuilder: (context, index) {
                     final item = workloadTasks[index];
@@ -977,9 +928,7 @@ class _TasksFlyoutCard extends StatelessWidget {
                             ? Symbols.check_circle_rounded
                             : Symbols.radio_button_unchecked_rounded,
                         size: 20,
-                        color: isDone
-                            ? statusColor
-                            : contentColor,
+                        color: isDone ? statusColor : contentColor,
                         fill: 1.0,
                         weight: 700,
                       ),

@@ -24,22 +24,20 @@ class TopBarBrand extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (!isCompact)
-          Tooltip(
-            message: navProvider.isRailExpanded
+          M3EIconButton(
+            variant: M3EIconButtonVariant.standard,
+            icon: Icon(
+              navProvider.isRailExpanded
+                  ? Icons.menu_open_rounded
+                  : Icons.menu_rounded,
+            ),
+            onPressed: () {
+              ZetaHaptics.light();
+              navProvider.toggleRailExpanded();
+            },
+            tooltip: navProvider.isRailExpanded
                 ? 'Collapse navigation'
                 : 'Expand navigation',
-            child: M3EIconButton(
-              variant: M3EIconButtonVariant.standard,
-              icon: Icon(
-                navProvider.isRailExpanded
-                    ? Icons.menu_open_rounded
-                    : Icons.menu_rounded,
-              ),
-              onPressed: () {
-                ZetaHaptics.light();
-                navProvider.toggleRailExpanded();
-              },
-            ),
           ),
         InkWell(
           borderRadius: BorderRadius.circular(12),

@@ -297,7 +297,7 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
           mainAxisSize: MainAxisSize.min,
           children: [
             // Separate Tooltip for Temperature & Condition Text
-            Tooltip(
+            M3ETooltip(
               message: _isOpen ? '' : '$conditionStr • $effectiveCityName',
               child: MouseRegion(
                 hitTestBehavior: HitTestBehavior.translucent,
@@ -322,7 +322,7 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
             ),
             const SizedBox(width: 15),
             // Separate Tooltip for Weather Icon
-            Tooltip(
+            M3ETooltip(
               message: _isOpen
                   ? ''
                   : (isWindows

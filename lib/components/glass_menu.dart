@@ -961,7 +961,7 @@ class _GlassMenuPopupState<T> extends State<_GlassMenuPopup<T>>
     );
 
     if (action.tooltip != null && action.tooltip!.isNotEmpty) {
-      tile = Tooltip(
+      tile = M3ETooltip(
         message: action.tooltip!,
         child: tile,
       );

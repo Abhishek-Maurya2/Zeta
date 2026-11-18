@@ -8,6 +8,7 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../../navigation/app_scaffold.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
 import 'components/tasks_filter_bar.dart';
@@ -181,6 +182,7 @@ class _TasksPageState extends State<TasksPage> {
         : ZetaBreakpoints.marginExpanded;
 
     final showFab = !isCompact && !taskProvider.isSelectionMode;
+    final topBarHeight = ScaffoldAppBarScope.of(context);
 
     return Stack(
       children: [
@@ -198,9 +200,11 @@ class _TasksPageState extends State<TasksPage> {
             child: CustomScrollView(
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalMargin,
-                    vertical: 28,
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalMargin,
+                    topBarHeight + 28,
+                    horizontalMargin,
+                    28,
                   ),
                   sliver: SliverMainAxisGroup(
                     slivers: [

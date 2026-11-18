@@ -6,6 +6,7 @@ import 'components/space_canvas.dart';
 import '../../providers/navigation_provider.dart';
 
 import '../../utils/haptics.dart';
+import '../../navigation/app_scaffold.dart';
 
 /// Primary page coordinator for the Space (Mindmap) feature.
 /// Opens as a dedicated destination route (like Settings) with predictive back handling.
@@ -16,6 +17,7 @@ class SpacePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final navProvider = context.watch<NavigationProvider>();
     final colorScheme = context.colorScheme;
+    final topBarHeight = ScaffoldAppBarScope.of(context);
 
     return PopScope(
       canPop: navProvider.canPop,
@@ -28,7 +30,10 @@ class SpacePage extends StatelessWidget {
       },
       child: ColoredBox(
         color: colorScheme.surfaceContainerLow,
-        child: const SpaceCanvas(),
+        child: Padding(
+          padding: EdgeInsets.only(top: topBarHeight),
+          child: const SpaceCanvas(),
+        ),
       ),
     );
   }
