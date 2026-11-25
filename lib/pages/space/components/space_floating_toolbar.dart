@@ -136,9 +136,9 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                 child: GlassSurface(
                   borderRadius: BorderRadius.circular(24),
                   blurSigma: 8,
-                  color: colorScheme.tertiaryContainer.withValues(alpha: 0.55),
+                  color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
                   border: Border.all(
-                    color: colorScheme.outlineVariant.withValues(alpha: 0.28),
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.1),
                     width: 1,
                   ),
                   material: true,
@@ -150,7 +150,7 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                         // Search bar
                         Container(
                           decoration: BoxDecoration(
-                            color: colorScheme.surface.withValues(alpha: 0.3),
+                            color: colorScheme.surface.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(25),
                           ),
                           child: TextField(
@@ -207,7 +207,7 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                                           alpha: 0.8,
                                         )
                                       : colorScheme.surface.withValues(
-                                          alpha: 0.3,
+                                          alpha: 0.5,
                                         );
                                 },
                                 onTap: (index) {
@@ -269,11 +269,11 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
         child: TapRegion(
           groupId: _tapRegionGroupId,
           child: GlassSurface(
-            borderRadius: BorderRadius.circular(32),
-            blurSigma: 12,
-            color: colorScheme.tertiaryContainer.withValues(alpha: 0.52),
+            borderRadius: BorderRadius.circular(30),
+            blurSigma: 6,
+            color: colorScheme.tertiaryContainer.withValues(alpha: 0.5),
             border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+              color: colorScheme.outlineVariant.withValues(alpha: 0.1),
               width: 1,
             ),
             material: true,

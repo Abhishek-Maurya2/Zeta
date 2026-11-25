@@ -279,6 +279,39 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
       (childrenByParentId[node.parentId] ??= []).add(node);
     }
 
+    final totalNodes = activeMap.nodes.length;
+    final isLargeMap = totalNodes > 150;
+
+    Widget buildNodeWidgets(Rect? culledRect) {
+      return Stack(
+        children: [
+          for (final node in activeMap.nodes)
+            if (layoutResult.nodeBounds.containsKey(node.id))
+              if (culledRect == null ||
+                  _shouldMountNode(
+                    node: node,
+                    bounds: layoutResult.nodeBounds[node.id]!,
+                    culledRect: culledRect,
+                    editingNodeId: provider.editingNodeId,
+                    totalNodes: totalNodes,
+                  ))
+                MindMapNodeWidget(
+                  key: ValueKey(node.id),
+                  node: node,
+                  bounds: layoutResult.nodeBounds[node.id]!,
+                  branchColor: layoutResult.nodeColors[node.id] ??
+                      colorScheme.primary,
+                  hasChildren:
+                      childrenByParentId[node.id]?.isNotEmpty ?? false,
+                  childCount:
+                      childrenByParentId[node.id]?.length ?? 0,
+                  isLeft: layoutResult.nodeIsLeft[node.id] ?? false,
+                  isVertical: activeMap.layoutType == 'vertical',
+                ),
+        ],
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewportSize = Size(constraints.maxWidth, constraints.maxHeight);
@@ -321,11 +354,11 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                           painter: DotMatrixPainter(
                             dotColor: dotColor,
                             majorDotColor: colorScheme.primary.withValues(
-                              alpha: isDark ? 0.28 : 0.20,
+                              alpha: 0.3,
                             ),
                             transformationController: _transformationController,
-                            spacing: 24.0,
-                            dotRadius: 1.25,
+                            spacing: 30.0,
+                            dotRadius: 1.5,
                           ),
                         ),
                       ),
@@ -343,79 +376,66 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                       child: SizedBox(
                         width: canvasSize,
                         height: canvasSize,
-                        child: AnimatedBuilder(
-                          animation: _transformationController,
-                          builder: (context, _) {
-                            final visibleRect =
-                                _calculateVisibleRect(viewportSize);
-                            // Safety buffer to avoid pop-in during quick pans
-                            final culledRect = visibleRect.inflate(1000.0);
+                        child: Stack(
+                          children: [
+                            // Sub-Layer 0: Background Tap Target
+                            Positioned.fill(
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  provider.selectNode(null);
+                                  provider.stopEditingNode();
+                                  _canvasFocusNode.requestFocus();
+                                },
+                              ),
+                            ),
 
-                            return Stack(
-                              children: [
-                                // Sub-Layer 0: Background Tap Target
-                                Positioned.fill(
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: () {
-                                      provider.selectNode(null);
-                                      provider.stopEditingNode();
-                                      _canvasFocusNode.requestFocus();
-                                    },
-                                  ),
-                                ),
-
-                                // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
-                                Positioned.fill(
-                                  child: RepaintBoundary(
-                                    child: IgnorePointer(
-                                      child: _AnimatedMindMapEdges(
+                            // Sub-Layer 1: Smooth M3-Animated Cubic Bézier Spline Connectors
+                            Positioned.fill(
+                              child: RepaintBoundary(
+                                child: IgnorePointer(
+                                  child: AnimatedBuilder(
+                                    animation: _transformationController,
+                                    builder: (context, _) {
+                                      final visibleRect =
+                                          _calculateVisibleRect(viewportSize);
+                                      final culledRect =
+                                          visibleRect.inflate(1000.0);
+                                      return _AnimatedMindMapEdges(
                                         edges: layoutResult.edges,
                                         hoveredNodeId:
                                             provider.hoverTargetId ??
                                             provider.selectedNodeId,
                                         isDark: isDark,
                                         visibleRect: culledRect,
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                 ),
+                              ),
+                            ),
 
-                                // Sub-Layer 2: Interactive MindMap Node Cards (Direct children of Stack)
-                                for (final node in activeMap.nodes)
-                                  if (layoutResult.nodeBounds.containsKey(node.id))
-                                    if (_shouldMountNode(
-                                      node: node,
-                                      bounds: layoutResult.nodeBounds[node.id]!,
-                                      culledRect: culledRect,
-                                      editingNodeId: provider.editingNodeId,
-                                      totalNodes: activeMap.nodes.length,
-                                    ))
-                                      MindMapNodeWidget(
-                                        key: ValueKey(node.id),
-                                        node: node,
-                                        bounds:
-                                            layoutResult.nodeBounds[node.id]!,
-                                        branchColor:
-                                            layoutResult.nodeColors[node.id] ??
-                                            colorScheme.primary,
-                                        hasChildren:
-                                            childrenByParentId[node.id]
-                                                    ?.isNotEmpty ??
-                                                false,
-                                        childCount:
-                                            childrenByParentId[node.id]
-                                                    ?.length ??
-                                                0,
-                                        isLeft: layoutResult
-                                                .nodeIsLeft[node.id] ??
-                                            false,
-                                        isVertical: activeMap.layoutType ==
-                                            'vertical',
-                                      ),
-                              ],
-                            );
-                          },
+                            // Sub-Layer 2: Interactive MindMap Node Cards
+                            // For maps <= 150 nodes, mount nodes stably so pan/zoom gestures
+                            // don't trigger continuous 60-120fps widget rebuilds.
+                            if (isLargeMap)
+                              Positioned.fill(
+                                child: AnimatedBuilder(
+                                  animation: _transformationController,
+                                  builder: (context, _) {
+                                    final visibleRect =
+                                        _calculateVisibleRect(viewportSize);
+                                    final culledRect =
+                                        visibleRect.inflate(1000.0);
+                                    return buildNodeWidgets(culledRect);
+                                  },
+                                ),
+                              )
+                            else
+                              Positioned.fill(
+                                child: buildNodeWidgets(null),
+                              ),
+                          ],
                         ),
                       ),
                     ),

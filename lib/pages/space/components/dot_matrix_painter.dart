@@ -14,13 +14,15 @@ class DotMatrixPainter extends CustomPainter {
 
   static Float32List? _minorBuffer;
   static Float32List? _majorBuffer;
+  static final Paint _minorPaint = Paint()..strokeCap = StrokeCap.round;
+  static final Paint _majorPaint = Paint()..strokeCap = StrokeCap.round;
 
   DotMatrixPainter({
     required this.dotColor,
     this.majorDotColor,
     required this.transformationController,
     this.spacing = 24.0,
-    this.dotRadius = 1.25,
+    this.dotRadius = 5,
   }) : super(repaint: transformationController);
 
   @override
@@ -69,26 +71,24 @@ class DotMatrixPainter extends CustomPainter {
     }
 
     if (minorIdx > 0) {
-      final minorPaint = Paint()
+      _minorPaint
         ..color = dotColor
-        ..strokeWidth = (dotRadius * 2 * scale).clamp(1.1, 3.6)
-        ..strokeCap = StrokeCap.round;
+        ..strokeWidth = (dotRadius * 2 * scale).clamp(1.1, 3.6);
       canvas.drawRawPoints(
         ui.PointMode.points,
         _minorBuffer!.buffer.asFloat32List(0, minorIdx),
-        minorPaint,
+        _minorPaint,
       );
     }
 
     if (majorIdx > 0) {
-      final majorPaint = Paint()
+      _majorPaint
         ..color = majorDotColor ?? dotColor.withValues(alpha: 0.7)
-        ..strokeWidth = (dotRadius * 3.1 * scale).clamp(2.0, 5.2)
-        ..strokeCap = StrokeCap.round;
+        ..strokeWidth = (dotRadius * 3.1 * scale).clamp(2.0, 5.2);
       canvas.drawRawPoints(
         ui.PointMode.points,
         _majorBuffer!.buffer.asFloat32List(0, majorIdx),
-        majorPaint,
+        _majorPaint,
       );
     }
   }

@@ -13,39 +13,50 @@ class TopBarAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profileProvider = context.watch<ProfileProvider>();
-    final taskProvider = context.watch<TaskProvider>();
-    final pomodoroProvider = context.watch<PomodoroProvider>();
+    final userName =
+        context.select<ProfileProvider, String>((p) => p.userName);
+    final profileSyncError =
+        context.select<ProfileProvider, String?>((p) => p.syncError);
+    final profileIsSyncing =
+        context.select<ProfileProvider, bool>((p) => p.isSyncing);
+    final profileHasSynced =
+        context.select<ProfileProvider, bool>((p) => p.lastSyncedAt != null);
+
+    final taskSyncError =
+        context.select<TaskProvider, String?>((p) => p.syncError);
+    final taskIsSyncing =
+        context.select<TaskProvider, bool>((p) => p.isSyncing);
+    final taskHasSynced =
+        context.select<TaskProvider, bool>((p) => p.lastSyncedAt != null);
+
+    final pomodoroSyncError =
+        context.select<PomodoroProvider, String?>((p) => p.syncError);
+    final pomodoroIsSyncing =
+        context.select<PomodoroProvider, bool>((p) => p.isSyncing);
+    final pomodoroHasSynced =
+        context.select<PomodoroProvider, bool>((p) => p.lastSyncedAt != null);
+
     final isCompact = ZetaWindowSizeClass.of(context).isCompact;
 
     // Map sync state → ring color
     final Color syncRingColor;
-    final syncError =
-        taskProvider.syncError ??
-        pomodoroProvider.syncError ??
-        profileProvider.syncError;
-    final isSyncing =
-        taskProvider.isSyncing ||
-        pomodoroProvider.isSyncing ||
-        profileProvider.isSyncing;
-    final allSynced =
-        taskProvider.lastSyncedAt != null &&
-        pomodoroProvider.lastSyncedAt != null &&
-        profileProvider.lastSyncedAt != null;
+    final syncError = taskSyncError ?? pomodoroSyncError ?? profileSyncError;
+    final isSyncing = taskIsSyncing || pomodoroIsSyncing || profileIsSyncing;
+    final allSynced = taskHasSynced && pomodoroHasSynced && profileHasSynced;
     final String tooltipMessage;
 
     if (syncError != null) {
       syncRingColor = context.colorScheme.error;
-      tooltipMessage = '${profileProvider.userName} • Sync Error: $syncError';
+      tooltipMessage = '$userName • Sync Error: $syncError';
     } else if (isSyncing) {
       syncRingColor = const Color(0xFFF59E0B); // amber — syncing
-      tooltipMessage = '${profileProvider.userName} • Syncing…';
+      tooltipMessage = '$userName • Syncing…';
     } else if (allSynced) {
       syncRingColor = const Color.fromARGB(255, 8, 227, 74); // green — synced
-      tooltipMessage = '${profileProvider.userName} • Synced';
+      tooltipMessage = '$userName • Synced';
     } else {
       syncRingColor = const Color(0xFFF59E0B); // amber — pending sync
-      tooltipMessage = '${profileProvider.userName} • Waiting to sync';
+      tooltipMessage = '$userName • Waiting to sync';
     }
 
     return ProfileAvatarMenu(

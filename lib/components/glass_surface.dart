@@ -1,8 +1,10 @@
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared blurred surface foundation for glass buttons, dialogs, and sheets.
+/// Wrapped in a [RepaintBoundary] to isolate compositor layer blurring from
+/// internal child repaints or external sibling updates.
 class GlassSurface extends StatelessWidget {
   final Widget child;
   final BorderRadiusGeometry borderRadius;
@@ -28,17 +30,19 @@ class GlassSurface extends StatelessWidget {
         ? Material(color: Colors.transparent, child: child)
         : child;
 
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-        child: Container(
-          decoration: BoxDecoration(
-            color: resolvedColor,
-            borderRadius: borderRadius,
-            border: border,
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          child: Container(
+            decoration: BoxDecoration(
+              color: resolvedColor,
+              borderRadius: borderRadius,
+              border: border,
+            ),
+            child: content,
           ),
-          child: content,
         ),
       ),
     );

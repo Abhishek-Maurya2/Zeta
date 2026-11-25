@@ -160,7 +160,7 @@ class TasksDismissibleList extends StatelessWidget {
     final int totalCount = tasks.length + (trailingChild != null ? 1 : 0);
 
     return M3EList(
-      key: key ?? ValueKey('tasks_dismissible_list_${tasks.hashCode}'),
+      key: key ?? const ValueKey('tasks_dismissible_list'),
       itemCount: totalCount,
       embedded: embedded,
       gap: 8,

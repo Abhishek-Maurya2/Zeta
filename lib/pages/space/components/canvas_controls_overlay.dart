@@ -84,9 +84,12 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<SpaceProvider>();
-    final activeMap = provider.activeMindMap;
-    final layoutType = activeMap?.layoutType ?? 'horizontal';
+    final canUndo = context.select<SpaceProvider, bool>((p) => p.canUndo);
+    final canRedo = context.select<SpaceProvider, bool>((p) => p.canRedo);
+    final layoutType = context.select<SpaceProvider, String>(
+      (p) => p.activeMindMap?.layoutType ?? 'horizontal',
+    );
+    final provider = context.read<SpaceProvider>();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -96,7 +99,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
           topAction: _VerticalGroupAction(
             icon: Icons.undo_rounded,
             tooltip: 'Undo (Ctrl+Z)',
-            enabled: provider.canUndo,
+            enabled: canUndo,
             onPressed: () {
               ZetaHaptics.light();
               provider.undo();
@@ -105,7 +108,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
           bottomAction: _VerticalGroupAction(
             icon: Icons.redo_rounded,
             tooltip: 'Redo (Ctrl+Y)',
-            enabled: provider.canRedo,
+            enabled: canRedo,
             onPressed: () {
               ZetaHaptics.light();
               provider.redo();
@@ -181,26 +184,39 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
     required this.bottomAction,
   });
 
-  Widget _buildSegment(
+  Widget _buildSegmentButton(
     BuildContext context,
-    _VerticalGroupAction action,
-  ) {
+    _VerticalGroupAction action, {
+    required bool isTop,
+  }) {
     final colorScheme = context.colorScheme;
+    final borderRadius = isTop
+        ? const BorderRadius.vertical(
+            top: Radius.circular(23),
+            bottom: Radius.circular(4),
+          )
+        : const BorderRadius.vertical(
+            top: Radius.circular(4),
+            bottom: Radius.circular(23),
+          );
+
     return GlassSurface(
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: borderRadius,
       blurSigma: 8,
       color: colorScheme.tertiaryContainer.withValues(
-        alpha: action.enabled ? 0.5 : 0.3,
+        alpha: action.enabled ? 0.55 : 0.28,
       ),
       border: Border.all(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        color: colorScheme.outlineVariant.withValues(
+          alpha: action.enabled ? 0.3 : 0.16,
+        ),
         width: 1,
       ),
       child: M3EButton(
         style: M3EButtonStyle.tonal,
         size: M3EButtonSize.custom(
           width: 46,
-          height: 46,
+          height: 44,
           hPadding: 0,
           iconSize: 20,
           iconGap: 0,
@@ -210,26 +226,31 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
         onPressed: action.enabled ? action.onPressed : null,
         decoration: M3EButtonDecoration.styleFrom(
           backgroundColor: Colors.transparent,
-          foregroundColor: colorScheme.onTertiaryContainer,
+          foregroundColor: action.enabled
+              ? colorScheme.onTertiaryContainer
+              : colorScheme.onTertiaryContainer.withValues(alpha: 0.38),
           borderRadius: 0,
         ),
-        child: Icon(action.icon, size: 20),
+        child: Icon(
+          action.icon,
+          size: 20,
+          color: action.enabled
+              ? colorScheme.onTertiaryContainer
+              : colorScheme.onTertiaryContainer.withValues(alpha: 0.38),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildSegment(context, topAction),
-          const SizedBox(height: 4),
-          _buildSegment(context, bottomAction),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildSegmentButton(context, topAction, isTop: true),
+        const SizedBox(height: 2),
+        _buildSegmentButton(context, bottomAction, isTop: false),
+      ],
     );
   }
 }

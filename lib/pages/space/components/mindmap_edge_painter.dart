@@ -11,6 +11,18 @@ class MindMapEdgePainter extends CustomPainter {
   final bool isDark;
   final Rect? visibleRect;
 
+  static final Paint _highlightHaloPaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..isAntiAlias = true;
+
+  static final Paint _corePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..isAntiAlias = true;
+
   const MindMapEdgePainter({
     required this.edges,
     this.hoveredNodeId,
@@ -61,14 +73,10 @@ class MindMapEdgePainter extends CustomPainter {
       }
 
       if (isHighlighted) {
-        final highlightHaloPaint = Paint()
+        _highlightHaloPaint
           ..color = edge.color.withValues(alpha: isDark ? 0.22 : 0.14)
-          ..strokeWidth = strokeWidth + 4.0
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
-          ..isAntiAlias = true;
-        canvas.drawPath(path, highlightHaloPaint);
+          ..strokeWidth = strokeWidth + 4.0;
+        canvas.drawPath(path, _highlightHaloPaint);
       }
 
       final double lineAlpha;
@@ -80,14 +88,10 @@ class MindMapEdgePainter extends CustomPainter {
         lineAlpha = isDark ? 0.88 : 0.82;
       }
 
-      final corePaint = Paint()
+      _corePaint
         ..color = edge.color.withValues(alpha: lineAlpha)
-        ..strokeWidth = strokeWidth
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..isAntiAlias = true;
-      canvas.drawPath(path, corePaint);
+        ..strokeWidth = strokeWidth;
+      canvas.drawPath(path, _corePaint);
     }
   }
 

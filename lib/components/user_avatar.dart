@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
 
@@ -136,6 +136,13 @@ class UserAvatar extends StatelessWidget {
       );
     }
 
+    final devicePixelRatio =
+        MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.0;
+    // Specifying only cacheWidth preserves the image's original aspect ratio
+    // while downscaling decoding to avoid RAM spikes and distortion.
+    final targetCacheWidth =
+        (diameter * devicePixelRatio).round().clamp(120, 512);
+
     Widget avatarContent() {
       if (hasPhoto && photo != null) {
         if (!kIsWeb &&
@@ -150,11 +157,10 @@ class UserAvatar extends StatelessWidget {
           if (file.existsSync()) {
             return Image.file(
               file,
-              key: ValueKey(
-                '${file.path}_${file.lastModifiedSync().millisecondsSinceEpoch}',
-              ),
+              key: ValueKey(file.path),
               width: diameter,
               height: diameter,
+              cacheWidth: targetCacheWidth,
               fit: BoxFit.cover,
               gaplessPlayback: true,
               filterQuality: FilterQuality.medium,
@@ -168,6 +174,7 @@ class UserAvatar extends StatelessWidget {
             key: ValueKey(photo),
             width: diameter,
             height: diameter,
+            cacheWidth: targetCacheWidth,
             fit: BoxFit.cover,
             gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
@@ -181,6 +188,7 @@ class UserAvatar extends StatelessWidget {
               key: ValueKey(bytes),
               width: diameter,
               height: diameter,
+              cacheWidth: targetCacheWidth,
               fit: BoxFit.cover,
               gaplessPlayback: true,
               filterQuality: FilterQuality.medium,
