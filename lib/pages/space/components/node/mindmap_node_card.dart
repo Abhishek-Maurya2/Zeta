@@ -60,47 +60,52 @@ class MindMapNodeCard extends StatelessWidget {
     final isRoot = node.isRoot;
 
     final Border border;
-    final shadows = <BoxShadow>[];
+    final Color cardBgColor;
+    final Color? textColorOverride;
 
     if (isDisallowedTarget) {
-      border = Border.all(color: colorScheme.error, width: 2.2);
-      shadows.add(
-        BoxShadow(
-          color: colorScheme.error.withValues(alpha: isDark ? 0.45 : 0.35),
-          blurRadius: 10,
-          spreadRadius: 2,
-        ),
-      );
+      border = Border.all(color: colorScheme.error, width: 2.0);
+      cardBgColor = colorScheme.errorContainer;
+      textColorOverride = colorScheme.onErrorContainer;
     } else if (isReparentGlow) {
-      border = Border.all(color: branchColor, width: 2.5);
-      shadows.add(
-        BoxShadow(
-          color: branchColor.withValues(alpha: isDark ? 0.65 : 0.50),
-          blurRadius: 14,
-          spreadRadius: 3,
-        ),
+      border = Border.all(color: branchColor, width: 2.2);
+      cardBgColor = Color.alphaBlend(
+        branchColor.withValues(alpha: isDark ? 0.30 : 0.20),
+        colorScheme.surfaceContainerHigh,
       );
+      textColorOverride = null;
     } else if (isSelected) {
       border = Border.all(color: branchColor, width: 2.0);
-      shadows.add(
-        BoxShadow(
-          color: branchColor.withValues(alpha: isDark ? 0.45 : 0.30),
-          blurRadius: 10,
-          spreadRadius: 2,
-        ),
+      cardBgColor = Color.alphaBlend(
+        branchColor.withValues(alpha: isDark ? 0.26 : 0.16),
+        colorScheme.surfaceContainerHigh,
       );
+      textColorOverride = null;
     } else {
       border = Border.all(
         color: isRoot
-            ? branchColor.withValues(alpha: isDark ? 0.80 : 0.60)
-            : (isDark
-                  ? colorScheme.outlineVariant.withValues(alpha: 0.35)
-                  : colorScheme.outlineVariant.withValues(alpha: 0.45)),
-        width: isRoot ? 1.8 : 1.0,
+            ? branchColor.withValues(alpha: isDark ? 0.70 : 0.55)
+            : colorScheme.outlineVariant.withValues(alpha: isDark ? 0.45 : 0.55),
+        width: isRoot ? 1.6 : 1.0,
       );
+      cardBgColor = Color.alphaBlend(
+        branchColor.withValues(
+          alpha: isRoot ? (isDark ? 0.24 : 0.16) : (isDark ? 0.15 : 0.10),
+        ),
+        isRoot
+            ? colorScheme.surfaceContainerLow
+            : colorScheme.surfaceContainerLowest,
+      );
+      textColorOverride = null;
     }
 
-    final cardBgColor = branchColor.withValues(alpha: isSelected ? 0.5 : 0.3);
+    final borderRadius = BorderRadius.circular(
+      isRoot ? (isSelected ? 18 : 28) : (isSelected ? 12 : 20),
+    );
+    final badgeFgColor =
+        ThemeData.estimateBrightnessForColor(branchColor) == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF141414);
 
     return Material(
       type: MaterialType.transparency,
@@ -108,14 +113,13 @@ class MindMapNodeCard extends StatelessWidget {
         opacity: isDraggingSelf ? 0.4 : 1.0,
         child: AnimatedContainer(
           duration: M3MotionDuration.short4,
-          curve: M3MotionEasing.standard,
+          curve: M3MotionEasing.emphasizedDecelerate,
           width: bounds.width,
           height: bounds.height,
           decoration: BoxDecoration(
             color: cardBgColor,
-            borderRadius: BorderRadius.circular(isRoot ? 8 : 15),
+            borderRadius: borderRadius,
             border: border,
-            boxShadow: shadows,
           ),
           padding: EdgeInsets.symmetric(
             horizontal: isRoot ? 18 : 14,
@@ -157,11 +161,12 @@ class MindMapNodeCard extends StatelessWidget {
                         maxLines: 10,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'GoogleSansFlex',
                           fontSize: isRoot ? 20 : 18,
                           fontWeight: isRoot
-                              ? FontWeight.bold
+                              ? FontWeight.w700
                               : FontWeight.w500,
-                          color: colorScheme.onSurface,
+                          color: textColorOverride ?? colorScheme.onSurface,
                           height: 1.35,
                           decoration: node.style.isChecked
                               ? TextDecoration.lineThrough
@@ -171,8 +176,8 @@ class MindMapNodeCard extends StatelessWidget {
                       ),
               ),
 
-              // 3. OG AnimatedSwitcher Collapse / Expand Toggle Badge
-              if (hasChildren & node.isCollapsed) ...[
+              // 3. Expressive Collapse / Expand Pill
+              if (hasChildren && (node.isCollapsed || isSelected)) ...[
                 const SizedBox(width: 6),
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
@@ -181,30 +186,42 @@ class MindMapNodeCard extends StatelessWidget {
                     provider.toggleNodeCollapsed(node.id);
                   },
                   child: M3ETooltip(
-                    message: 'Expand ($childCount)',
+                    message: node.isCollapsed
+                        ? 'Expand ($childCount)'
+                        : 'Collapse',
                     child: AnimatedContainer(
                       duration: M3MotionDuration.short4,
-                      curve: M3MotionEasing.emphasized,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
+                      curve: M3MotionEasing.emphasizedDecelerate,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: node.isCollapsed ? 8 : 5,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
                         color: node.isCollapsed
                             ? branchColor
                             : branchColor.withValues(
-                                alpha: isDark ? 0.25 : 0.16,
+                                alpha: isDark ? 0.28 : 0.18,
                               ),
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      child: Text(
-                        '$childCount',
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: node.isCollapsed
+                          ? Text(
+                              '$childCount',
+                              style: TextStyle(
+                                fontFamily: 'GoogleSansFlex',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: badgeFgColor,
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            )
+                          : Icon(
+                              Icons.unfold_less_rounded,
+                              size: 16,
+                              color: colorScheme.onSurface,
+                            ),
                     ),
                   ),
                 ),

@@ -1,7 +1,11 @@
 import 'package:flutter/gestures.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:zeta/core/core.dart';
 
+import '../../../components/glass_surface.dart';
 import '../models/mindmap_node.dart';
 import '../providers/space_provider.dart';
 import '../../../utils/haptics.dart';
@@ -168,7 +172,7 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
             ? null
             : () {
                 ZetaHaptics.selection();
-                if (widget.hasChildren) {
+                if (isSelected && widget.hasChildren) {
                   provider.toggleNodeCollapsed(widget.node.id);
                 } else {
                   provider.selectNode(widget.node.id);
@@ -250,15 +254,144 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
               ),
             );
           },
-          child: MindMapNodeDnd(
-            node: widget.node,
-            bounds: widget.bounds,
-            branchColor: widget.branchColor,
-            hasChildren: widget.hasChildren,
-            childCount: widget.childCount,
-            isEditing: isEditing,
-            child: cardWidget,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              MindMapNodeDnd(
+                node: widget.node,
+                bounds: widget.bounds,
+                branchColor: widget.branchColor,
+                hasChildren: widget.hasChildren,
+                childCount: widget.childCount,
+                isEditing: isEditing,
+                child: cardWidget,
+              ),
+              if (isSelected && !isEditing && !isDraggingSelf)
+                Positioned(
+                  top: 4,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _NodeQuickActionBar(
+                      node: widget.node,
+                      provider: provider,
+                    ),
+                  ),
+                ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NodeQuickActionBar extends StatelessWidget {
+  final MindMapNode node;
+  final SpaceProvider provider;
+
+  const _NodeQuickActionBar({
+    required this.node,
+    required this.provider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
+
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(20),
+      blurSigma: 12,
+      color: colorScheme.tertiaryContainer.withValues(alpha: 0.62),
+      border: Border.all(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.30),
+        width: 1,
+      ),
+      material: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _QuickActionIcon(
+              icon: Symbols.add_rounded,
+              tooltip: 'Add child',
+              color: colorScheme.onTertiaryContainer,
+              onTap: () {
+                ZetaHaptics.light();
+                provider.addChildNode(parentId: node.id);
+              },
+            ),
+            if (!node.isRoot)
+              _QuickActionIcon(
+                icon: Symbols.subdirectory_arrow_right_rounded,
+                tooltip: 'Add sibling',
+                color: colorScheme.onTertiaryContainer,
+                onTap: () {
+                  ZetaHaptics.light();
+                  provider.addSiblingNode(siblingOfId: node.id);
+                },
+              ),
+            _QuickActionIcon(
+              icon: node.style.hasCheckbox
+                  ? Symbols.check_box_rounded
+                  : Symbols.check_box_outline_blank_rounded,
+              tooltip: 'Toggle checkbox',
+              color: colorScheme.onTertiaryContainer,
+              onTap: () {
+                ZetaHaptics.light();
+                provider.toggleNodeCheckbox(node.id);
+              },
+            ),
+            _QuickActionIcon(
+              icon: Symbols.edit_rounded,
+              tooltip: 'Edit',
+              color: colorScheme.onTertiaryContainer,
+              onTap: () {
+                ZetaHaptics.light();
+                provider.startEditingNode(node.id);
+              },
+            ),
+            if (!node.isRoot)
+              _QuickActionIcon(
+                icon: Symbols.delete_outline_rounded,
+                tooltip: 'Delete',
+                color: colorScheme.error,
+                onTap: () {
+                  ZetaHaptics.medium();
+                  provider.deleteNode(node.id);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickActionIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return M3ETooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 18, color: color),
         ),
       ),
     );

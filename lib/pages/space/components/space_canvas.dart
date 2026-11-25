@@ -320,6 +320,9 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                         child: CustomPaint(
                           painter: DotMatrixPainter(
                             dotColor: dotColor,
+                            majorDotColor: colorScheme.primary.withValues(
+                              alpha: isDark ? 0.28 : 0.20,
+                            ),
                             transformationController: _transformationController,
                             spacing: 24.0,
                             dotRadius: 1.25,
@@ -368,7 +371,9 @@ class _SpaceCanvasState extends State<SpaceCanvas> {
                                     child: IgnorePointer(
                                       child: _AnimatedMindMapEdges(
                                         edges: layoutResult.edges,
-                                        hoveredNodeId: provider.hoverTargetId,
+                                        hoveredNodeId:
+                                            provider.hoverTargetId ??
+                                            provider.selectedNodeId,
                                         isDark: isDark,
                                         visibleRect: culledRect,
                                       ),

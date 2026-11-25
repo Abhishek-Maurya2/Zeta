@@ -4,14 +4,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/core.dart';
 
-import '../providers/space_provider.dart';
 import '../../../components/glass_surface.dart';
-
 import '../../../utils/haptics.dart';
-import '../../../theme/breakpoints.dart';
+import '../providers/space_provider.dart';
 
-/// Floating canvas navigation and workflow controls as a vertical M3E toolbar
-/// (Undo, Redo, Layout Switcher, Zoom In, Zoom Out, Center Root / Fit to Screen toggle).
+/// Floating canvas navigation and workflow controls using vertically connected
+/// button groups for Undo/Redo, Layout/Fit, and Zoom In/Out.
 class CanvasControlsOverlay extends StatefulWidget {
   final VoidCallback onZoomIn;
   final VoidCallback onZoomOut;
@@ -90,51 +88,35 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
     final activeMap = provider.activeMindMap;
     final layoutType = activeMap?.layoutType ?? 'horizontal';
 
-    final colorScheme = context.colorScheme;
-    final sizeClass = ZetaWindowSizeClass.of(context);
-    final isCompact = sizeClass.isCompact;
-
-    return GlassSurface(
-      borderRadius: BorderRadius.circular(32),
-      blurSigma: 6,
-      color: colorScheme.tertiaryContainer.withValues(alpha: 0.4),
-      child: M3EToolbar(
-        axis: Axis.vertical,
-        screenOffset: 0,
-        safeArea: false,
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: colorScheme.onTertiaryContainer,
-        maxInlineActions: isCompact ? 4 : 6,
-        actions: [
-          // Undo Button
-          M3EToolbarAction(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Undo / Redo vertically connected group
+        _VerticalConnectedButtonPair(
+          topAction: _VerticalGroupAction(
             icon: Icons.undo_rounded,
             tooltip: 'Undo (Ctrl+Z)',
             enabled: provider.canUndo,
             onPressed: () {
-              if (provider.canUndo) {
-                ZetaHaptics.light();
-                provider.undo();
-              }
+              ZetaHaptics.light();
+              provider.undo();
             },
           ),
-
-          // Redo Button
-          M3EToolbarAction(
+          bottomAction: _VerticalGroupAction(
             icon: Icons.redo_rounded,
             tooltip: 'Redo (Ctrl+Y)',
             enabled: provider.canRedo,
             onPressed: () {
-              if (provider.canRedo) {
-                ZetaHaptics.light();
-                provider.redo();
-              }
+              ZetaHaptics.light();
+              provider.redo();
             },
           ),
+        ),
+        const SizedBox(height: 10),
 
-          // Layout Mode Switcher: Horizontal -> Dual-Sided -> Vertical
-          M3EToolbarAction(
+        // Layout & Fit/Center vertically connected group
+        _VerticalConnectedButtonPair(
+          topAction: _VerticalGroupAction(
             icon: _getLayoutIcon(layoutType),
             tooltip: _getLayoutTooltip(layoutType),
             onPressed: () {
@@ -142,18 +124,19 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
               provider.changeLayoutType(_getNextLayoutType(layoutType));
             },
           ),
-
-          // Center on Root / Fit to Screen Toggle
-          M3EToolbarAction(
+          bottomAction: _VerticalGroupAction(
             icon: _isCenterMode
                 ? Symbols.center_focus_strong_rounded
                 : Symbols.fit_screen_rounded,
             tooltip: _isCenterMode ? 'Center on Root' : 'Fit to Screen',
             onPressed: _handleToggle,
           ),
+        ),
+        const SizedBox(height: 10),
 
-          // Zoom In
-          M3EToolbarAction(
+        // Zoom In / Zoom Out vertically connected group
+        _VerticalConnectedButtonPair(
+          topAction: _VerticalGroupAction(
             icon: Icons.add_rounded,
             tooltip: 'Zoom In',
             onPressed: () {
@@ -161,9 +144,7 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
               widget.onZoomIn();
             },
           ),
-
-          // Zoom Out
-          M3EToolbarAction(
+          bottomAction: _VerticalGroupAction(
             icon: Icons.remove_rounded,
             tooltip: 'Zoom Out',
             onPressed: () {
@@ -171,6 +152,82 @@ class _CanvasControlsOverlayState extends State<CanvasControlsOverlay> {
               widget.onZoomOut();
             },
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VerticalGroupAction {
+  final IconData icon;
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  const _VerticalGroupAction({
+    required this.icon,
+    required this.tooltip,
+    this.enabled = true,
+    required this.onPressed,
+  });
+}
+
+class _VerticalConnectedButtonPair extends StatelessWidget {
+  final _VerticalGroupAction topAction;
+  final _VerticalGroupAction bottomAction;
+
+  const _VerticalConnectedButtonPair({
+    required this.topAction,
+    required this.bottomAction,
+  });
+
+  Widget _buildSegment(
+    BuildContext context,
+    _VerticalGroupAction action,
+  ) {
+    final colorScheme = context.colorScheme;
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(6),
+      blurSigma: 12,
+      color: colorScheme.tertiaryContainer.withValues(
+        alpha: action.enabled ? 0.52 : 0.28,
+      ),
+      border: Border.all(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+        width: 1,
+      ),
+      child: M3EButton(
+        style: M3EButtonStyle.tonal,
+        size: M3EButtonSize.custom(
+          width: 46,
+          height: 42,
+          hPadding: 0,
+          iconSize: 20,
+          iconGap: 0,
+        ),
+        enabled: action.enabled,
+        tooltip: action.tooltip,
+        onPressed: action.enabled ? action.onPressed : null,
+        decoration: M3EButtonDecoration.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: colorScheme.onTertiaryContainer,
+          borderRadius: 6,
+        ),
+        child: Icon(action.icon, size: 20),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSegment(context, topAction),
+          const SizedBox(height: 4),
+          _buildSegment(context, bottomAction),
         ],
       ),
     );
