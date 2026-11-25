@@ -50,6 +50,10 @@ void main([List<String> args = const <String>[]]) async {
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
+  // Cap Flutter's decoded image cache to 25 MB (default is 100 MB) to reduce
+  // baseline RAM usage since Zeta primarily renders vector icons and avatars.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 25 << 20;
+
   // Preferences are needed to build the theme. Open SQLite behind the first
   // frame so database setup cannot leave the native launch window blank.
   await traceAsync(

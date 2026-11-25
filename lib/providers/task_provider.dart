@@ -51,6 +51,9 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (!_isDisposed) {
       _allTasksSnapshot = null;
       _binTasksSnapshot = null;
+      _cachedActiveTasks = null;
+      _cachedDueActiveTasks = null;
+      _cachedTodaysWorkload = null;
       super.notifyListeners();
     }
   }
@@ -213,6 +216,66 @@ class TaskProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get searchQuery => _searchQuery;
 
   int? _cachedCompletedCount;
+  List<Task>? _cachedActiveTasks;
+  List<Task>? _cachedDueActiveTasks;
+  String? _cachedWorkloadDateKey;
+  ({int workload, int completedToday, List<({Task task, bool isCompleted})> tasks})?
+      _cachedTodaysWorkload;
+
+  ({int workload, int completedToday, List<({Task task, bool isCompleted})> tasks})
+      getTodaysWorkload(DateTime today) {
+    final key = '${today.year}-${today.month}-${today.day}';
+    if (_cachedWorkloadDateKey == key && _cachedTodaysWorkload != null) {
+      return _cachedTodaysWorkload!;
+    }
+    int workload = 0;
+    int completedTodayCount = 0;
+    final workloadTasks = <({Task task, bool isCompleted})>[];
+
+    for (final task in _tasks) {
+      final due = task.parsedDueDate;
+      if (due == null) continue;
+
+      final dueToday =
+          due.year == today.year && due.month == today.month && due.day == today.day;
+      final overdue = due.isBefore(today);
+      final completedAt = task.completedAt;
+      final wasCompletedToday = task.completed &&
+          completedAt != null &&
+          completedAt.year == today.year &&
+          completedAt.month == today.month &&
+          completedAt.day == today.day;
+      final hasRecordedTaskCompletion = completedAt != null;
+      final belongsToTodaysWorkload =
+          dueToday ||
+          (overdue &&
+              (!task.completed ||
+                  !hasRecordedTaskCompletion ||
+                  wasCompletedToday));
+      if (!belongsToTodaysWorkload) continue;
+
+      workload++;
+      if (wasCompletedToday) completedTodayCount++;
+      workloadTasks.add((task: task, isCompleted: wasCompletedToday));
+    }
+
+    _cachedWorkloadDateKey = key;
+    return _cachedTodaysWorkload = (
+      workload: workload,
+      completedToday: completedTodayCount,
+      tasks: List.unmodifiable(workloadTasks),
+    );
+  }
+
+  List<Task> get activeTasks => _cachedActiveTasks ??=
+      List.unmodifiable(_tasks.where((t) => !t.completed));
+
+  List<Task> get dueActiveTasks {
+    if (_cachedDueActiveTasks != null) return _cachedDueActiveTasks!;
+    final list = activeTasks.where((t) => t.parsedDueDate != null).toList()
+      ..sort((a, b) => a.parsedDueDate!.compareTo(b.parsedDueDate!));
+    return _cachedDueActiveTasks = List.unmodifiable(list);
+  }
 
   int get totalCount => _tasks.length;
   int get completedCount {

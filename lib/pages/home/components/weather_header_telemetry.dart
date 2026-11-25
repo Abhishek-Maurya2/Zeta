@@ -609,7 +609,7 @@ class _WeatherFlyoutCard extends StatelessWidget {
                                 ),
                           borderRadius: isNow
                               ? BorderRadius.circular(30)
-                              : BorderRadius.circular(12),
+                              : BorderRadius.circular(8),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

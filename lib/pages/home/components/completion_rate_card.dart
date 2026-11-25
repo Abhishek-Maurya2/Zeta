@@ -63,39 +63,12 @@ class CompletionRateCard extends StatelessWidget {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    bool completedToday(DateTime? timestamp) =>
-        timestamp != null && DateTimeUtils.isSameDay(timestamp, today);
-
     // Today's workload includes tasks assigned today and overdue tasks that
-    // remain pending or were completed today.
-    final tasks = taskProvider.allTasks;
-    int regularWorkload = 0;
-    int regularCompletedToday = 0;
-    final workloadTasks = <({Task task, bool isCompleted})>[];
-
-    for (final task in tasks) {
-      final due = task.parsedDueDate;
-      if (due == null) continue;
-
-      final dueToday = DateTimeUtils.isSameDay(due, today);
-      final overdue = due.isBefore(today);
-      final wasCompletedToday =
-          task.completed && completedToday(task.completedAt);
-      final hasRecordedTaskCompletion = task.completedAt != null;
-      final belongsToTodaysWorkload =
-          dueToday ||
-          // A subtask can auto-complete its parent without setting completedAt;
-          // keep that item in the workload without counting it as completed.
-          (overdue &&
-              (!task.completed ||
-                  !hasRecordedTaskCompletion ||
-                  wasCompletedToday));
-      if (!belongsToTodaysWorkload) continue;
-
-      regularWorkload++;
-      if (wasCompletedToday) regularCompletedToday++;
-      workloadTasks.add((task: task, isCompleted: wasCompletedToday));
-    }
+    // remain pending or were completed today (memoized in TaskProvider).
+    final workloadResult = taskProvider.getTodaysWorkload(today);
+    final regularWorkload = workloadResult.workload;
+    final regularCompletedToday = workloadResult.completedToday;
+    final workloadTasks = workloadResult.tasks;
 
     final totalAssignedToday = regularWorkload;
     final totalCompletedToday = regularCompletedToday;

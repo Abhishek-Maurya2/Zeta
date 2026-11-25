@@ -408,9 +408,14 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       syncWithCloud();
     } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
+      // Stop the 1s Dart timer while backgrounded so the OS can suspend at 0% CPU;
+      // on resume, remaining time is recalculated from _targetEndTime.
+      _timer?.cancel();
+      _timer = null;
+      _saveActiveState();
+    } else if (state == AppLifecycleState.inactive) {
       _saveActiveState();
     }
   }

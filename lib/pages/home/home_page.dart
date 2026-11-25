@@ -100,8 +100,7 @@ class _HomePageState extends State<HomePage> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
-    final tasks = taskProvider.allTasks;
-    final activeTasks = tasks.where((t) => !t.completed).toList();
+    final activeTasks = taskProvider.activeTasks;
     final activeCount = activeTasks.length;
     // Completion stats are calculated in CompletionRateCard using due dates
 
@@ -117,9 +116,7 @@ class _HomePageState extends State<HomePage> {
     final isSelectedDateToday = DateTimeUtils.isSameDay(_selectedDate, today);
 
     // Active tasks that have a parsed due date, sorted by due date ascending
-    final dueActiveTasks =
-        activeTasks.where((t) => t.parsedDueDate != null).toList()
-          ..sort((a, b) => a.parsedDueDate!.compareTo(b.parsedDueDate!));
+    final dueActiveTasks = taskProvider.dueActiveTasks;
 
     // Tasks due on or before today (overdue + due today)
     final dueNowTasks = dueActiveTasks.where((t) {

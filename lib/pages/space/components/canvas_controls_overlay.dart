@@ -192,12 +192,12 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
     final colorScheme = context.colorScheme;
     final borderRadius = isTop
         ? const BorderRadius.vertical(
-            top: Radius.circular(23),
+            top: Radius.circular(30),
             bottom: Radius.circular(4),
           )
         : const BorderRadius.vertical(
             top: Radius.circular(4),
-            bottom: Radius.circular(23),
+            bottom: Radius.circular(30),
           );
 
     return GlassSurface(
@@ -206,16 +206,10 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
       color: colorScheme.tertiaryContainer.withValues(
         alpha: action.enabled ? 0.55 : 0.28,
       ),
-      border: Border.all(
-        color: colorScheme.outlineVariant.withValues(
-          alpha: action.enabled ? 0.3 : 0.16,
-        ),
-        width: 1,
-      ),
       child: M3EButton(
         style: M3EButtonStyle.tonal,
         size: M3EButtonSize.custom(
-          width: 46,
+          width: 43,
           height: 44,
           hPadding: 0,
           iconSize: 20,
@@ -228,7 +222,8 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
           backgroundColor: Colors.transparent,
           foregroundColor: action.enabled
               ? colorScheme.onTertiaryContainer
-              : colorScheme.onTertiaryContainer.withValues(alpha: 0.38),
+              : colorScheme.onTertiaryContainer.withValues(alpha: 0.4),
+          elevation: 0,
           borderRadius: 0,
         ),
         child: Icon(
@@ -236,7 +231,7 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
           size: 20,
           color: action.enabled
               ? colorScheme.onTertiaryContainer
-              : colorScheme.onTertiaryContainer.withValues(alpha: 0.38),
+              : colorScheme.onTertiaryContainer.withValues(alpha: 0.4),
         ),
       ),
     );
