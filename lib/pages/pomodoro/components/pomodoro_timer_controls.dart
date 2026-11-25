@@ -28,11 +28,11 @@ class PomodoroTimerControls extends StatelessWidget {
           iconGap: 10,
         ),
         shape: M3EButtonShape.round,
-        selectedIndex: null,
+        selectedIndex: isRunning ? 0 : null,
         onSelectedIndexChanged: (int? index) {
-          if (index == null) return;
           ZetaHaptics.medium();
           switch (index) {
+            case null:
             case 0:
               provider.toggleTimer();
             case 1:
@@ -44,10 +44,15 @@ class PomodoroTimerControls extends StatelessWidget {
         actions: [
           M3EButtonGroupAction(
             minWidth: 140,
-            icon: Icon(
+            icon: const Icon(
+              Icons.play_arrow_rounded,
               fontWeight: FontWeight.bold,
               size: 35,
-              isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            ),
+            selectedIcon: const Icon(
+              Icons.pause_rounded,
+              fontWeight: FontWeight.bold,
+              size: 35,
             ),
             decoration: M3EButtonDecoration.styleFrom(
               backgroundColor: colorScheme.primaryContainer,

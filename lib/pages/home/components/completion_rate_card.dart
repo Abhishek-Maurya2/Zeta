@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart' as material_ui;
@@ -447,6 +446,7 @@ class _HealthMetricCapsule extends StatelessWidget {
   final Color iconShapeBg;
   final Color contentColor;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const _HealthMetricCapsule({
     required this.title,
@@ -458,6 +458,7 @@ class _HealthMetricCapsule extends StatelessWidget {
     required this.iconShapeBg,
     required this.contentColor,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -469,6 +470,7 @@ class _HealthMetricCapsule extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: radius,
         child: ClipRRect(
           borderRadius: radius,
@@ -621,6 +623,7 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
     with SingleTickerProviderStateMixin {
   final _overlayController = OverlayPortalController();
   final _layerLink = LayerLink();
+  final _tapRegionGroupId = Object();
   late final AnimationController _transformController;
   Timer? _closeTimer;
   bool _isExpanded = false;
@@ -646,16 +649,8 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
     super.dispose();
   }
 
-  bool _resolveIsDesktop(BuildContext context) {
-    if (widget.enableHoverFlyout != null) {
-      return widget.enableHoverFlyout!;
-    }
-    final platform = context.theme.platform;
-    return platform == TargetPlatform.windows ||
-        platform == TargetPlatform.macOS ||
-        platform == TargetPlatform.linux ||
-        platform == TargetPlatform.fuchsia ||
-        kIsWeb;
+  bool _resolveFlyoutEnabled() {
+    return widget.enableHoverFlyout ?? true;
   }
 
   void _openPopup(BuildContext triggerContext) {
@@ -710,69 +705,73 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
         showWhenUnlinked: false,
         targetAnchor: Alignment.topRight,
         followerAnchor: Alignment.topRight,
-        child: MouseRegion(
-          onEnter: (_) {
-            _isHoveringPopup = true;
-            _closeTimer?.cancel();
-          },
-          onExit: (_) {
-            _isHoveringPopup = false;
-            _scheduleClose();
-          },
-          child: AnimatedContainer(
-            duration: M3MotionDuration.medium3,
-            curve: M3MotionEasing.emphasizedDecelerate,
-            width: _isExpanded ? maxWidth : closedWidth,
-            constraints: BoxConstraints(
-              minHeight: closedHeight,
-              maxHeight: 380,
-            ),
-            child: GlassSurface(
-              borderRadius: BorderRadius.circular(_isExpanded ? 24 : 20),
-              blurSigma: 5,
-              color: widget.capsuleBg.withValues(alpha: 0.5),
-              child: AnimatedSize(
-                duration: M3MotionDuration.medium3,
-                reverseDuration: M3MotionDuration.short4,
-                curve: M3MotionEasing.emphasizedDecelerate,
-                alignment: Alignment.topRight,
-                child: AnimatedSwitcher(
-                  duration: M3MotionDuration.medium2,
-                  switchInCurve: M3MotionEasing.emphasizedDecelerate,
-                  switchOutCurve: M3MotionEasing.emphasizedAccelerate,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SizeTransition(
-                      sizeFactor: animation,
-                      alignment: Alignment.topCenter,
-                      child: child,
+        child: TapRegion(
+          groupId: _tapRegionGroupId,
+          onTapOutside: (_) => _closePopup(),
+          child: MouseRegion(
+            onEnter: (_) {
+              _isHoveringPopup = true;
+              _closeTimer?.cancel();
+            },
+            onExit: (_) {
+              _isHoveringPopup = false;
+              _scheduleClose();
+            },
+            child: AnimatedContainer(
+              duration: M3MotionDuration.medium3,
+              curve: M3MotionEasing.emphasizedDecelerate,
+              width: _isExpanded ? maxWidth : closedWidth,
+              constraints: BoxConstraints(
+                minHeight: closedHeight,
+                maxHeight: 380,
+              ),
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(_isExpanded ? 24 : 20),
+                blurSigma: 5,
+                color: widget.capsuleBg.withValues(alpha: 0.5),
+                child: AnimatedSize(
+                  duration: M3MotionDuration.medium3,
+                  reverseDuration: M3MotionDuration.short4,
+                  curve: M3MotionEasing.emphasizedDecelerate,
+                  alignment: Alignment.topRight,
+                  child: AnimatedSwitcher(
+                    duration: M3MotionDuration.medium2,
+                    switchInCurve: M3MotionEasing.emphasizedDecelerate,
+                    switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: SizeTransition(
+                        sizeFactor: animation,
+                        alignment: Alignment.topCenter,
+                        child: child,
+                      ),
                     ),
-                  ),
-                  child: _isExpanded
-                      ? _TasksFlyoutCard(
-                          key: const ValueKey('expanded-workload'),
-                          workloadTasks: widget.workloadTasks,
-                          completedCount: widget.completedCount,
-                          totalCount: widget.totalCount,
-                          colorScheme: widget.colorScheme,
-                          isDark: widget.isDark,
-                          capsuleBg: widget.capsuleBg,
-                          iconShapeBg: widget.iconShapeBg,
-                          contentColor: widget.contentColor,
-                        )
-                      : KeyedSubtree(
-                          key: const ValueKey('closed-workload'),
-                          child: _HealthMetricCapsule(
-                            title: widget.title,
-                            value: widget.value,
-                            icon: widget.icon,
-                            progress: widget.progress,
+                    child: _isExpanded
+                        ? _TasksFlyoutCard(
+                            key: const ValueKey('expanded-workload'),
+                            workloadTasks: widget.workloadTasks,
+                            completedCount: widget.completedCount,
+                            totalCount: widget.totalCount,
+                            colorScheme: widget.colorScheme,
+                            isDark: widget.isDark,
                             capsuleBg: widget.capsuleBg,
-                            progressFillBg: widget.progressFillBg,
                             iconShapeBg: widget.iconShapeBg,
                             contentColor: widget.contentColor,
+                          )
+                        : KeyedSubtree(
+                            key: const ValueKey('closed-workload'),
+                            child: _HealthMetricCapsule(
+                              title: widget.title,
+                              value: widget.value,
+                              icon: widget.icon,
+                              progress: widget.progress,
+                              capsuleBg: widget.capsuleBg,
+                              progressFillBg: widget.progressFillBg,
+                              iconShapeBg: widget.iconShapeBg,
+                              contentColor: widget.contentColor,
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ),
             ),
@@ -784,6 +783,8 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
 
   @override
   Widget build(BuildContext context) {
+    final flyoutEnabled = _resolveFlyoutEnabled();
+
     final capsule = _HealthMetricCapsule(
       title: widget.title,
       value: widget.value,
@@ -797,11 +798,15 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
         if (_isExpanded) _closePopup();
         widget.onTap?.call();
       },
+      onLongPress: flyoutEnabled
+          ? () {
+              ZetaHaptics.light();
+              _openPopup(context);
+            }
+          : null,
     );
 
-    final isDesktop = _resolveIsDesktop(context);
-
-    if (!isDesktop) {
+    if (!flyoutEnabled) {
       return capsule;
     }
 
@@ -810,19 +815,22 @@ class _TasksWorkloadCapsuleState extends State<_TasksWorkloadCapsule>
       overlayChildBuilder: _buildPopup,
       child: CompositedTransformTarget(
         link: _layerLink,
-        child: MouseRegion(
-          onEnter: (_) {
-            _isHoveringPill = true;
-            _openPopup(context);
-          },
-          onExit: (_) {
-            _isHoveringPill = false;
-            _scheduleClose();
-          },
-          child: AnimatedOpacity(
-            duration: M3MotionDuration.short4,
-            opacity: _popupVisible ? 0.0 : 1.0,
-            child: capsule,
+        child: TapRegion(
+          groupId: _tapRegionGroupId,
+          child: MouseRegion(
+            onEnter: (_) {
+              _isHoveringPill = true;
+              _openPopup(context);
+            },
+            onExit: (_) {
+              _isHoveringPill = false;
+              _scheduleClose();
+            },
+            child: AnimatedOpacity(
+              duration: M3MotionDuration.short4,
+              opacity: _popupVisible ? 0.0 : 1.0,
+              child: capsule,
+            ),
           ),
         ),
       ),

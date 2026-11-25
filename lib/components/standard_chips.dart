@@ -87,28 +87,26 @@ class TaskDeletedDateChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
+          color: colorScheme.tertiaryContainer,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Symbols.schedule_rounded,
-              size: 15,
-              color: colorScheme.onSurfaceVariant,
+              size: 16,
+              color: colorScheme.onTertiaryContainer,
               fill: 0,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 5),
+            const SizedBox(width: 6),
             Text(
               DateTimeUtils.formatDeletedDate(timestamp),
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w700,
+                color: colorScheme.onTertiaryContainer,
               ),
             ),
           ],

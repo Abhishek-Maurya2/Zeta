@@ -11,7 +11,7 @@ import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/navigation_provider.dart';
 import 'components/bin_header.dart';
-import '../../components/task_card_item.dart';
+import 'components/bin_item.dart';
 import 'components/empty_bin_dialog.dart';
 import 'components/bin_empty_state.dart';
 import '../../components/task_context_menu.dart';
@@ -175,10 +175,9 @@ class _BinPageState extends State<BinPage> {
                       itemCount: visibleTasks.length,
                       itemBuilder: (context, index) {
                         final task = visibleTasks[index];
-                        return TaskCardItem(
+                        return BinItem(
                           key: ValueKey(task.id),
                           task: task,
-                          isDeleted: true,
                           isExpanded: taskProvider.isTaskExpanded(task.id),
                           onToggleExpand: () =>
                               taskProvider.toggleTaskExpanded(task.id),
@@ -269,10 +268,9 @@ class _BinPageState extends State<BinPage> {
                   itemCount: visibleTasks.length,
                   itemBuilder: (context, index) {
                     final task = visibleTasks[index];
-                    return TaskCardItem(
+                    return BinItem(
                       key: ValueKey(task.id),
                       task: task,
-                      isDeleted: true,
                       isExpanded: taskProvider.isTaskExpanded(task.id),
                       onToggleExpand: () =>
                           taskProvider.toggleTaskExpanded(task.id),

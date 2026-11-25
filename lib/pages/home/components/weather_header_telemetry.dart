@@ -1,6 +1,7 @@
 import 'package:zeta/core/core.dart';
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
@@ -18,8 +19,7 @@ import '../../../utils/haptics.dart';
 
 /// Weather telemetry widget in the Home page calendar header.
 /// - Shows current weather condition, temperature, and SVG icon.
-/// - On Windows: hovering for 2 seconds opens a rich weather flyout menu (matching profile_avatar_menu).
-/// - On Android / mobile: no flyout; tapping opens Weather settings.
+/// - Hovering (desktop/web/Android with mouse) or tapping/long-pressing on touch opens a rich weather flyout menu (matching profile_avatar_menu).
 class WeatherHeaderTelemetry extends StatefulWidget {
   const WeatherHeaderTelemetry({super.key});
 
@@ -208,13 +208,18 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
       return const SizedBox.shrink();
     }
 
+    final screenWidth = MediaQuery.sizeOf(overlayContext).width;
+    final isNarrow = screenWidth < 600;
+    final maxWidth = math.min(370.0, screenWidth - 24);
+    final minWidth = math.min(340.0, maxWidth);
+
     return Align(
       alignment: Alignment.topLeft,
       child: CompositedTransformFollower(
         link: _layerLink,
         showWhenUnlinked: false,
-        targetAnchor: Alignment.bottomLeft,
-        followerAnchor: Alignment.topLeft,
+        targetAnchor: isNarrow ? Alignment.bottomRight : Alignment.bottomLeft,
+        followerAnchor: isNarrow ? Alignment.topRight : Alignment.topLeft,
         offset: const Offset(0, 8),
         child: TapRegion(
           groupId: _tapRegionGroupId,
@@ -246,7 +251,10 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
                 );
               },
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 340, maxWidth: 370),
+                constraints: BoxConstraints(
+                  minWidth: minWidth,
+                  maxWidth: maxWidth,
+                ),
                 child: _WeatherFlyoutCard(
                   onDismiss: _closeFlyout,
                   onOpenSettings: _navigateToWeatherSettings,
@@ -269,26 +277,29 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
 
     final weather = weatherProvider.weatherData;
     final colorScheme = context.colorScheme;
-    final isWindows = defaultTargetPlatform == TargetPlatform.windows;
+    final isTouch =
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
 
     final tempStr = weather != null
         ? '${weather.temperature.round()}°C'
         : '24°C';
-    final conditionStr =
-        weather?.displayCondition ??
-        (DateTime.now().hour < 6 || DateTime.now().hour >= 19
-            ? 'Clear Night'
-            : 'Partly Cloudy');
-    final effectiveCityName = weather?.cityName ?? weatherProvider.cityName;
 
     final chipContent = InkWell(
       hoverColor: Colors.transparent,
       borderRadius: BorderRadius.circular(20),
       onTap: () {
-        if (isWindows && _isOpen) {
+        if (_isOpen) {
           _closeFlyout();
+        } else if (isTouch) {
+          _openFlyout();
         } else {
           _navigateToWeatherSettings();
+        }
+      },
+      onLongPress: () {
+        if (!_isOpen) {
+          _openFlyout();
         }
       },
       child: Padding(
@@ -296,51 +307,39 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Separate Tooltip for Temperature & Condition Text
-            M3ETooltip(
-              message: _isOpen ? '' : '$conditionStr • $effectiveCityName',
-              child: MouseRegion(
-                hitTestBehavior: HitTestBehavior.translucent,
-                onEnter: isWindows ? (_) => _handleTextHoverEnter() : null,
-                onExit: isWindows ? (_) => _handleTextHoverExit() : null,
-                child: Text(
-                  tempStr,
-                  style: TextStyle(
-                    fontFamily: 'GoogleSansFlex',
-                    fontSize: 26,
-                    color: colorScheme.onSurfaceVariant,
-                    fontVariations: const [
-                      FontVariation('wght', 700),
-                      FontVariation('wdth', 180),
-                      FontVariation('GRAD', 180),
-                      FontVariation('opsz', 220),
-                      FontVariation('slnt', -10),
-                    ],
-                  ),
+            MouseRegion(
+              hitTestBehavior: HitTestBehavior.translucent,
+              onEnter: (_) => _handleTextHoverEnter(),
+              onExit: (_) => _handleTextHoverExit(),
+              child: Text(
+                tempStr,
+                style: TextStyle(
+                  fontFamily: 'GoogleSansFlex',
+                  fontSize: 26,
+                  color: colorScheme.onSurfaceVariant,
+                  fontVariations: const [
+                    FontVariation('wght', 700),
+                    FontVariation('wdth', 180),
+                    FontVariation('GRAD', 180),
+                    FontVariation('opsz', 220),
+                    FontVariation('slnt', -10),
+                  ],
                 ),
               ),
             ),
             const SizedBox(width: 15),
-            // Separate Tooltip for Weather Icon
-            M3ETooltip(
-              message: _isOpen
-                  ? ''
-                  : (isWindows
-                        ? 'Weather forecast'
-                        : '$conditionStr • $effectiveCityName'),
-              child: MouseRegion(
-                hitTestBehavior: HitTestBehavior.translucent,
-                onEnter: isWindows ? (_) => _handleIconHoverEnter() : null,
-                onExit: isWindows ? (_) => _handleIconHoverExit() : null,
-                child: WeatherIcon(
-                  name:
-                      weather?.iconName ??
-                      (DateTime.now().hour < 6 || DateTime.now().hour >= 19
-                          ? 'partly_cloudy_night'
-                          : 'partly_cloudy_day'),
-                  size: 28,
-                  isDay: weather?.isEffectivelyDay,
-                ),
+            MouseRegion(
+              hitTestBehavior: HitTestBehavior.translucent,
+              onEnter: (_) => _handleIconHoverEnter(),
+              onExit: (_) => _handleIconHoverExit(),
+              child: WeatherIcon(
+                name:
+                    weather?.iconName ??
+                    (DateTime.now().hour < 6 || DateTime.now().hour >= 19
+                        ? 'partly_cloudy_night'
+                        : 'partly_cloudy_day'),
+                size: 28,
+                isDay: weather?.isEffectivelyDay,
               ),
             ),
           ],
@@ -348,15 +347,6 @@ class _WeatherHeaderTelemetryState extends State<WeatherHeaderTelemetry>
       ),
     );
 
-    // On Android / Mobile: direct chip with click action (no flyout)
-    if (!isWindows) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: chipContent,
-      );
-    }
-
-    // On Windows: wrap with OverlayPortal
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: OverlayPortal(

@@ -8,6 +8,7 @@ import '../../components/task_edit_pane.dart';
 import '../../models/task.dart';
 import '../../providers/task_provider.dart';
 import '../../theme/breakpoints.dart';
+import '../../utils/haptics.dart';
 import '../../navigation/app_scaffold.dart';
 import 'components/tasks_dismissible_list.dart';
 import 'components/tasks_empty_view.dart';
@@ -24,6 +25,7 @@ class TasksPage extends StatefulWidget {
 
 class _TasksPageState extends State<TasksPage> {
   final _fabController = M3EExtendedFabController();
+  bool _isCompletedExpanded = false;
 
   @override
   void dispose() {
@@ -115,40 +117,44 @@ class _TasksPageState extends State<TasksPage> {
     TaskProvider taskProvider,
     ColorScheme colorScheme,
   ) {
-    return M3EList(
-      itemCount: 1,
-      color: colorScheme.primaryContainer,
-      expandStyle: M3EExpandableStyle(
-        expandedStateFill: false,
-        gap: 5,
-        expandedIconBackground: colorScheme.primary,
-        expandIcon: Icon(
-          Icons.expand_more_rounded,
-          color: colorScheme.onPrimaryContainer,
-        ),
-        collapseIcon: Icon(
-          Icons.expand_more_rounded,
-          color: colorScheme.onPrimary,
-        ),
-      ),
-      itemBuilder: (context, index) {
-        return M3EListItem(
-          headline: 'Completed (${completed.length})',
-          leading: const Icon(
-            Icons.task_alt_rounded,
-            size: 20,
-            color: Color(0xFF10B981),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        M3EButton(
+          style: M3EButtonStyle.tonal,
+          size: M3EButtonSize.md,
+          shape: M3EButtonShape.round,
+          onPressed: () {
+            ZetaHaptics.selection();
+            setState(() => _isCompletedExpanded = !_isCompletedExpanded);
+          },
+          icon: Icon(
+            _isCompletedExpanded
+                ? Icons.expand_less_rounded
+                : Icons.task_alt_rounded,
+            size: 18,
           ),
-          expanded: M3EExpandableExpanded.list(
-            _buildCompletedList(
+          label: Text('Completed (${completed.length})'),
+          decoration: M3EButtonDecoration.styleFrom(
+            backgroundColor: _isCompletedExpanded
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHigh,
+            foregroundColor: _isCompletedExpanded
+                ? colorScheme.onPrimaryContainer
+                : colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (_isCompletedExpanded)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: _buildCompletedList(
               context,
               completed,
               taskProvider,
-              true,
+              false,
             ),
           ),
-        );
-      },
+      ],
     );
   }
 

@@ -445,9 +445,18 @@ class _PomodoroPageState extends State<PomodoroPage> {
           child: IndexedStack(
             index: _activeTab.index,
             children: [
-              PomodoroTimerPane(onToggleAod: _enterAodMode),
-              const PomodoroQueuePane(),
-              const PomodoroAnalysisPane(),
+              TickerMode(
+                enabled: _activeTab == PomodoroTab.timer,
+                child: PomodoroTimerPane(onToggleAod: _enterAodMode),
+              ),
+              TickerMode(
+                enabled: _activeTab == PomodoroTab.queue,
+                child: const PomodoroQueuePane(),
+              ),
+              TickerMode(
+                enabled: _activeTab == PomodoroTab.analysis,
+                child: const PomodoroAnalysisPane(),
+              ),
             ],
           ),
         ),

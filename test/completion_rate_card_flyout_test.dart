@@ -58,6 +58,7 @@ Widget createTestWidget({
   required List<Task> tasks,
   bool? enableHoverFlyout,
   VoidCallback? onTasksPillTap,
+  TargetPlatform? platform,
 }) {
   return MultiProvider(
     providers: [
@@ -75,12 +76,13 @@ Widget createTestWidget({
       ),
     ],
     child: MaterialApp(
+      theme: ThemeData(platform: platform),
       home: Scaffold(
         body: Center(
           child: SizedBox(
             width: 600,
             child: CompletionRateCard(
-              enableHoverFlyout: enableHoverFlyout ?? true,
+              enableHoverFlyout: enableHoverFlyout,
             ),
           ),
         ),
@@ -288,6 +290,80 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(GlassSurface), findsNothing);
+
+      await gesture.removePointer();
+    },
+  );
+
+  testWidgets(
+    'Android reveals flyout on long-press and dismisses on tap outside',
+    (WidgetTester tester) async {
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final tasks = [
+        Task(
+          id: 'task-android-1',
+          title: 'Android Touch Task',
+          dueDate: todayStr,
+          completed: false,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createTestWidget(tasks: tasks, platform: TargetPlatform.android),
+      );
+      await tester.pump();
+
+      expect(find.byType(GlassSurface), findsNothing);
+
+      // Long-press on Tasks pill reveals flyout on Android
+      await tester.longPress(find.text('Tasks'));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+
+      expect(find.byType(GlassSurface), findsOneWidget);
+      expect(find.text('Android Touch Task'), findsOneWidget);
+
+      // Tap outside dismisses flyout
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GlassSurface), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Android also reveals flyout when hovering with a connected mouse',
+    (WidgetTester tester) async {
+      final now = DateTime.now();
+      final todayStr =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final tasks = [
+        Task(
+          id: 'task-android-mouse',
+          title: 'Android Mouse Task',
+          dueDate: todayStr,
+          completed: false,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        createTestWidget(tasks: tasks, platform: TargetPlatform.android),
+      );
+      await tester.pump();
+
+      final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await gesture.addPointer(location: Offset.zero);
+      await gesture.moveTo(tester.getCenter(find.text('Tasks')));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump();
+
+      expect(find.byType(GlassSurface), findsOneWidget);
+      expect(find.text('Android Mouse Task'), findsOneWidget);
 
       await gesture.removePointer();
     },

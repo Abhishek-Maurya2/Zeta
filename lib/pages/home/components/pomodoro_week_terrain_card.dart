@@ -1,14 +1,14 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:zeta/core/extensions/context_extensions.dart';
 
 import '../../../models/pomodoro.dart';
 import '../../../providers/pomodoro_provider.dart';
-import '../../../providers/theme_provider.dart';
+import '../../../theme/motion_tokens.dart';
 import '../../../utils/haptics.dart';
 import '../../pomodoro/components/pomodoro_chart_canvas.dart';
 
@@ -23,7 +23,7 @@ class PomodoroWeekTerrainCard extends StatefulWidget {
 }
 
 class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
-  int? _hoveredDayIndex;
+  int? _selectedDayIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -60,24 +60,15 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
       }
     }
 
-    final selectedIdx =
-        (_hoveredDayIndex != null && _hoveredDayIndex! < values.length)
-        ? _hoveredDayIndex!
-        : maxIndex;
+    final hasSelection =
+        _selectedDayIndex != null && _selectedDayIndex! < values.length;
+    final activeIdx = hasSelection ? _selectedDayIndex! : maxIndex;
+    final selectedFocus = values[activeIdx].round();
 
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode(context);
-
-    final textColor = isDark ? Colors.white : const Color(0xFF141414);
-    final textMuted = isDark
-        ? const Color(0xFF8B929A)
-        : const Color(0xFF757572);
-    final orangeAccent = isDark
-        ? const Color(0xFFFF4815)
-        : const Color(0xFFE03E0A);
-
-    final selectedFocus = values[selectedIdx].round();
     final colorScheme = context.colorScheme;
+    final textTheme = context.textTheme;
+    final goalMetOnSelected =
+        weekDailyGoalMinutes > 0 && selectedFocus >= weekDailyGoalMinutes;
 
     return Container(
       width: double.infinity,
@@ -85,11 +76,11 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
         color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(28),
       ),
-      padding: const EdgeInsets.all(15),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header & Stats
+          // Header & Expressive Hero Metric
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,47 +90,94 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PAST 7 DAYS',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.8,
-                        color: textMuted,
+                      'Past 7 Days',
+                      style: textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    AnimatedSwitcher(
+                      duration: M3MotionDuration.short4,
+                      switchInCurve: M3MotionEasing.emphasizedDecelerate,
+                      switchOutCurve: M3MotionEasing.emphasizedAccelerate,
+                      layoutBuilder: (currentChild, previousChildren) => Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          ...previousChildren,
+                          ?currentChild,
+                        ],
+                      ),
+                      child: Text(
+                        hasSelection
+                            ? PomodoroChartCanvas.formatDuration(selectedFocus)
+                            : '${totalHours.toStringAsFixed(1)} hrs',
+                        key: ValueKey(
+                          hasSelection ? 'day-$activeIdx-$selectedFocus' : 'total-$totalMinutes',
+                        ),
+                        textHeightBehavior: const TextHeightBehavior(
+                          applyHeightToFirstAscent: false,
+                          applyHeightToLastDescent: false,
+                        ),
+                        style: TextStyle(
+                          fontFamily: 'GoogleSansFlex',
+                          fontSize: 34,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                          color: colorScheme.onSurface,
+                          fontVariations: const [
+                            FontVariation('wght', 700),
+                            FontVariation('ROND', 100),
+                          ],
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _hoveredDayIndex != null
-                          ? PomodoroChartCanvas.formatDuration(selectedFocus)
-                                .toUpperCase()
-                          : '${totalHours.toStringAsFixed(2)} hrs',
-                      style: TextStyle(
-                        fontFamily: 'headline',
-                        fontSize: 32,
-                        height: 1.05,
-                        fontWeight: FontWeight.w900,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _hoveredDayIndex != null
-                          ? '${days[selectedIdx]['tooltipLabel']}'
-                          : 'MAX ${PomodoroChartCanvas.formatDuration(maxMinutes.round())}',
-                      style: TextStyle(
-                        fontFamily: 'RobotoMono',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: _hoveredDayIndex != null
-                            ? orangeAccent
-                            : textMuted,
-                        letterSpacing: 0.5,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            hasSelection
+                                ? '${days[activeIdx]['tooltipLabel']}'
+                                : 'Peak ${PomodoroChartCanvas.formatDuration(maxMinutes.round())}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: hasSelection
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        if (hasSelection && goalMetOnSelected) ...[
+                          Text(
+                            '  •  Goal met',
+                            style: textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                        ] else if (!hasSelection && weekDailyGoalMinutes > 0) ...[
+                          Text(
+                            '  •  Goal ${PomodoroChartCanvas.formatDuration(weekDailyGoalMinutes)}',
+                            style: textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurfaceVariant,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
-              if (widget.onOpenAnalysis != null)
+              if (widget.onOpenAnalysis != null) ...[
+                const SizedBox(width: 12),
                 M3ETooltip(
                   message: 'Open analysis',
                   child: GestureDetector(
@@ -149,13 +187,13 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     },
                     child: M3EShapeContainer(
                       kind: M3EShapeKind.cookie4Sided,
-                      width: 70,
-                      height: 70,
+                      width: 58,
+                      height: 58,
                       color: colorScheme.primaryContainer,
                       child: Center(
                         child: Icon(
                           Symbols.arrow_outward_rounded,
-                          size: 26,
+                          size: 24,
                           weight: 700,
                           color: colorScheme.onPrimaryContainer,
                         ),
@@ -163,39 +201,62 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
 
-          // Capsule Bar Chart Canvas
+          // Material 3 Expressive Tonal Bar Chart
           LayoutBuilder(
             builder: (context, constraints) {
-              void updateIndex(Offset localPosition) {
+              void selectAtPosition(Offset localPosition) {
+                if (constraints.maxWidth <= 0 || values.isEmpty) return;
                 final idx =
                     ((localPosition.dx / constraints.maxWidth) * values.length)
                         .floor()
                         .clamp(0, values.length - 1);
-                if (_hoveredDayIndex != idx) {
+                if (_selectedDayIndex != idx) {
                   ZetaHaptics.selection();
-                  setState(() => _hoveredDayIndex = idx);
+                  setState(() => _selectedDayIndex = idx);
                 }
               }
 
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (details) => updateIndex(details.localPosition),
-                onHorizontalDragStart: (details) =>
-                    updateIndex(details.localPosition),
-                onHorizontalDragUpdate: (details) =>
-                    updateIndex(details.localPosition),
-                child: CustomPaint(
-                  size: Size(constraints.maxWidth, 110),
-                  painter: _CapsuleBarPainter(
-                    values: values,
-                    accentColor: orangeAccent,
-                    inactiveColor: isDark
-                        ? Colors.white.withValues(alpha: 0.14)
-                        : Colors.black.withValues(alpha: 0.10),
+              return MouseRegion(
+                onHover: (event) => selectAtPosition(event.localPosition),
+                onExit: (_) {
+                  if (_selectedDayIndex != null) {
+                    setState(() => _selectedDayIndex = null);
+                  }
+                },
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (details) => selectAtPosition(details.localPosition),
+                  onHorizontalDragStart: (details) =>
+                      selectAtPosition(details.localPosition),
+                  onHorizontalDragUpdate: (details) =>
+                      selectAtPosition(details.localPosition),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: M3MotionDuration.medium3,
+                    curve: M3MotionEasing.emphasizedDecelerate,
+                    builder: (context, revealProgress, _) {
+                      return CustomPaint(
+                        size: Size(constraints.maxWidth, 116),
+                        painter: _ExpressiveWeekBarPainter(
+                          values: values,
+                          selectedIndex: _selectedDayIndex,
+                          goalMinutes: weekDailyGoalMinutes.toDouble(),
+                          revealProgress: revealProgress,
+                          selectedColor: colorScheme.primary,
+                          goalMetColor: colorScheme.primary,
+                          highColor: colorScheme.tertiaryContainer,
+                          mediumColor: colorScheme.secondaryContainer,
+                          lowColor: colorScheme.errorContainer,
+                          emptyColor: colorScheme.surfaceContainerHighest,
+                          goalLineColor: colorScheme.outlineVariant,
+                        ),
+                      );
+                    },
                   ),
                 ),
               );
@@ -203,34 +264,55 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
           ),
           const SizedBox(height: 10),
 
-          // Day Labels aligned directly under each bar slot
+          // Expressive Day Pill Labels aligned under each bar
           Row(
             children: List.generate(days.length, (i) {
-              final isSelected = i == selectedIdx;
+              final isSelected = _selectedDayIndex == i;
               final isToday = days[i]['isHighlighted'] == true;
+
+              final Color pillBg;
+              final Color labelColor;
+              if (isSelected) {
+                pillBg = colorScheme.primaryContainer;
+                labelColor = colorScheme.onPrimaryContainer;
+              } else if (isToday) {
+                pillBg = colorScheme.secondaryContainer.withValues(alpha: 0.65);
+                labelColor = colorScheme.onSecondaryContainer;
+              } else {
+                pillBg = Colors.transparent;
+                labelColor = colorScheme.onSurfaceVariant;
+              }
+
               return Expanded(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
                     ZetaHaptics.selection();
                     setState(
-                      () => _hoveredDayIndex = _hoveredDayIndex == i ? null : i,
+                      () => _selectedDayIndex =
+                          _selectedDayIndex == i ? null : i,
                     );
                   },
                   child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: AnimatedContainer(
+                      duration: M3MotionDuration.short4,
+                      curve: M3MotionEasing.emphasizedDecelerate,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: pillBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Text(
                         days[i]['label'] as String,
-                        style: TextStyle(
+                        style: textTheme.labelMedium?.copyWith(
                           fontFamily: 'GoogleSansFlex',
-                          fontSize: 12,
                           fontWeight: isSelected || isToday
                               ? FontWeight.w700
                               : FontWeight.w500,
-                          color: isSelected
-                              ? orangeAccent
-                              : (isToday ? textColor : textMuted),
+                          color: labelColor,
                         ),
                       ),
                     ),
@@ -245,16 +327,33 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
   }
 }
 
-/// Capsule bar chart painter with stronger warm yellow-orange inner glow
-class _CapsuleBarPainter extends CustomPainter {
+/// Material 3 Expressive tonal bar chart painter with semantic color roles
+/// and a subtle dashed daily goal reference line.
+class _ExpressiveWeekBarPainter extends CustomPainter {
   final List<double> values;
-  final Color accentColor;
-  final Color inactiveColor;
+  final int? selectedIndex;
+  final double goalMinutes;
+  final double revealProgress;
+  final Color selectedColor;
+  final Color goalMetColor;
+  final Color highColor;
+  final Color mediumColor;
+  final Color lowColor;
+  final Color emptyColor;
+  final Color goalLineColor;
 
-  _CapsuleBarPainter({
+  _ExpressiveWeekBarPainter({
     required this.values,
-    required this.accentColor,
-    required this.inactiveColor,
+    required this.selectedIndex,
+    required this.goalMinutes,
+    required this.revealProgress,
+    required this.selectedColor,
+    required this.goalMetColor,
+    required this.highColor,
+    required this.mediumColor,
+    required this.lowColor,
+    required this.emptyColor,
+    required this.goalLineColor,
   });
 
   @override
@@ -263,57 +362,99 @@ class _CapsuleBarPainter extends CustomPainter {
 
     final n = values.length;
     final maxVal = values.reduce(math.max);
-    final effectiveMax = maxVal <= 0 ? 60.0 : maxVal;
+    final effectiveMax = math.max(
+      maxVal,
+      goalMinutes > 0 ? goalMinutes : 60.0,
+    ).clamp(60.0, double.infinity);
 
     final slotWidth = size.width / n;
-    final barWidth = (slotWidth * 0.56).clamp(16.0, 28.0);
-    final radius = Radius.circular(barWidth / 2);
+    final barWidth = (slotWidth * 0.56).clamp(18.0, 30.0);
+    final minEmptyHeight = barWidth * 0.45;
+    final minActiveHeight = barWidth;
 
-    // Stronger warm yellow-gold core blended with the orange accent
-    final coreColor = Color.lerp(accentColor, const Color(0xFFFFD54F), 0.65)!;
+    // Subtle dashed daily goal reference line
+    if (goalMinutes > 0) {
+      final goalRatio = (goalMinutes / effectiveMax).clamp(0.0, 1.0);
+      final goalHeight =
+          minActiveHeight + (goalRatio * (size.height - minActiveHeight));
+      final goalY = size.height - goalHeight;
+
+      final linePaint = Paint()
+        ..color = goalLineColor.withValues(alpha: 0.7)
+        ..strokeWidth = 1.25
+        ..strokeCap = StrokeCap.round;
+
+      const dashWidth = 5.0;
+      const dashGap = 5.0;
+      double x = 4.0;
+      final maxX = size.width - 4.0;
+      while (x < maxX) {
+        final endX = math.min(x + dashWidth, maxX);
+        canvas.drawLine(Offset(x, goalY), Offset(endX, goalY), linePaint);
+        x += dashWidth + dashGap;
+      }
+    }
 
     for (int i = 0; i < n; i++) {
-      final hasData = values[i] > 0;
+      final value = values[i];
+      final hasData = value > 0;
+      final isSelected = selectedIndex == i;
+      final referenceMax = goalMinutes > 0 ? goalMinutes : effectiveMax;
+      final ratio = referenceMax > 0 ? (value / referenceMax) : 0.0;
 
-      // Minimum height equals barWidth so zero/low values render as clean circles at the bottom
-      final minBarHeight = barWidth;
-      final normalized = hasData
-          ? (values[i] / effectiveMax).clamp(0.0, 1.0)
-          : 0.0;
-      final barHeight =
-          minBarHeight + (normalized * (size.height - minBarHeight));
+      final double barHeight;
+      if (!hasData) {
+        barHeight = minEmptyHeight;
+      } else {
+        final normalized = (value / effectiveMax).clamp(0.0, 1.0);
+        final targetHeight =
+            minActiveHeight + (normalized * (size.height - minActiveHeight));
+        barHeight =
+            minActiveHeight +
+            ((targetHeight - minActiveHeight) * revealProgress);
+      }
 
       final centerX = slotWidth * i + (slotWidth / 2);
       final left = centerX - (barWidth / 2);
       final top = size.height - barHeight;
 
       final rect = Rect.fromLTWH(left, top, barWidth, barHeight);
-      final rrect = RRect.fromRectAndRadius(rect, radius);
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        Radius.circular(barWidth / 2),
+      );
 
-      final paint = Paint();
-      if (hasData) {
-        paint.shader = RadialGradient(
-          center: Alignment.center,
-          radius: 1.15,
-          stops: const [0.0, 0.45, 1.0],
-          colors: [
-            coreColor,
-            Color.lerp(coreColor, accentColor, 0.45)!,
-            accentColor,
-          ],
-        ).createShader(rect);
+      final Color barColor;
+      if (isSelected) {
+        barColor = selectedColor;
+      } else if (!hasData) {
+        barColor = emptyColor;
+      } else if (ratio >= 1.0) {
+        barColor = goalMetColor;
+      } else if (ratio >= 0.65) {
+        barColor = highColor;
+      } else if (ratio >= 0.35) {
+        barColor = mediumColor;
       } else {
-        paint.color = inactiveColor;
+        barColor = lowColor;
       }
 
-      canvas.drawRRect(rrect, paint);
+      canvas.drawRRect(rrect, Paint()..color = barColor);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _CapsuleBarPainter oldDelegate) {
+  bool shouldRepaint(covariant _ExpressiveWeekBarPainter oldDelegate) {
     return oldDelegate.values != values ||
-        oldDelegate.accentColor != accentColor ||
-        oldDelegate.inactiveColor != inactiveColor;
+        oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.goalMinutes != goalMinutes ||
+        oldDelegate.revealProgress != revealProgress ||
+        oldDelegate.selectedColor != selectedColor ||
+        oldDelegate.goalMetColor != goalMetColor ||
+        oldDelegate.highColor != highColor ||
+        oldDelegate.mediumColor != mediumColor ||
+        oldDelegate.lowColor != lowColor ||
+        oldDelegate.emptyColor != emptyColor ||
+        oldDelegate.goalLineColor != goalLineColor;
   }
 }
