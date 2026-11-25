@@ -37,6 +37,8 @@ class TaskSelectionToolbar extends StatelessWidget {
               slideDistance: 80.0,
             ),
             style: ZetaToolbarStyle(
+              elevation: 0,
+              shadows: const [],
               backgroundColor: colorScheme.primaryContainer,
               alpha: 0.50,
               blurSigma: 7.0,

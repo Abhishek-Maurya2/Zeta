@@ -49,7 +49,6 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
         .map((d) => (d['focus'] as int).toDouble())
         .toList();
     final double totalMinutes = values.fold<double>(0.0, (sum, v) => sum + v);
-    final double totalHours = totalMinutes / 60.0;
 
     double maxMinutes = 0;
     int maxIndex = 0;
@@ -112,7 +111,7 @@ class _PomodoroWeekTerrainCardState extends State<PomodoroWeekTerrainCard> {
                       child: Text(
                         hasSelection
                             ? PomodoroChartCanvas.formatDuration(selectedFocus)
-                            : '${totalHours.toStringAsFixed(1)} hrs',
+                            : PomodoroChartCanvas.formatDuration(totalMinutes.round()),
                         key: ValueKey(
                           hasSelection ? 'day-$activeIdx-$selectedFocus' : 'total-$totalMinutes',
                         ),

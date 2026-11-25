@@ -266,6 +266,8 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                 isEditing: isEditing,
                 child: cardWidget,
               ),
+              if (widget.hasChildren && !isDraggingSelf)
+                _buildCollapsePill(context, provider),
               if (isSelected && !isEditing && !isDraggingSelf)
                 Positioned(
                   top: 4,
@@ -279,6 +281,73 @@ class _MindMapNodeWidgetState extends State<MindMapNodeWidget> {
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsePill(BuildContext context, SpaceProvider provider) {
+    const hitMargin = MindMapNodeMetrics.hitMargin;
+    const pillSize = 22.0;
+    const gap = 6.0;
+    final isCollapsed = widget.node.isCollapsed;
+    final fgColor =
+        ThemeData.estimateBrightnessForColor(widget.branchColor) ==
+            Brightness.dark
+        ? const Color(0xFFF0F2FA)
+        : const Color(0xFF1A1C1E);
+
+    final IconData chevron;
+    if (widget.isVertical) {
+      chevron = isCollapsed
+          ? Icons.keyboard_arrow_down_rounded
+          : Icons.keyboard_arrow_up_rounded;
+    } else if (widget.isLeft) {
+      chevron = isCollapsed
+          ? Icons.chevron_left_rounded
+          : Icons.chevron_right_rounded;
+    } else {
+      chevron = isCollapsed
+          ? Icons.chevron_right_rounded
+          : Icons.chevron_left_rounded;
+    }
+
+    final double left;
+    final double top;
+    if (widget.isVertical) {
+      left = hitMargin + (widget.bounds.width - pillSize) / 2;
+      top = hitMargin + widget.bounds.height + gap;
+    } else if (widget.isLeft) {
+      left = hitMargin - gap - pillSize;
+      top = hitMargin + (widget.bounds.height - pillSize) / 2;
+    } else {
+      left = hitMargin + widget.bounds.width + gap;
+      top = hitMargin + (widget.bounds.height - pillSize) / 2;
+    }
+
+    return Positioned(
+      left: left,
+      top: top,
+      child: M3ETooltip(
+        message: isCollapsed
+            ? 'Expand (${widget.childCount})'
+            : 'Collapse',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            ZetaHaptics.selection();
+            provider.toggleNodeCollapsed(widget.node.id);
+          },
+          child: Container(
+            width: pillSize,
+            height: pillSize,
+            decoration: BoxDecoration(
+              color: widget.branchColor,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(chevron, size: 16, color: fgColor),
           ),
         ),
       ),

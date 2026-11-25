@@ -88,8 +88,12 @@ class PomodoroProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   String get formattedTime {
     final timeToDisplay = displaySeconds;
-    final mins = timeToDisplay ~/ 60;
+    final hours = timeToDisplay ~/ 3600;
+    final mins = (timeToDisplay % 3600) ~/ 60;
     final secs = timeToDisplay % 60;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    }
     return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
   }
 

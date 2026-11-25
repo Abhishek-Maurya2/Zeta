@@ -130,12 +130,12 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   minWidth: 250,
-                  maxWidth: 290,
-                  maxHeight: 360,
+                  maxWidth: 260,
+                  maxHeight: 380,
                 ),
                 child: GlassSurface(
                   borderRadius: BorderRadius.circular(24),
-                  blurSigma: 14,
+                  blurSigma: 8,
                   color: colorScheme.tertiaryContainer.withValues(alpha: 0.55),
                   border: Border.all(
                     color: colorScheme.outlineVariant.withValues(alpha: 0.28),
@@ -150,8 +150,8 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                         // Search bar
                         Container(
                           decoration: BoxDecoration(
-                            color: colorScheme.surface.withValues(alpha: 0.36),
-                            borderRadius: BorderRadius.circular(16),
+                            color: colorScheme.surface.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(25),
                           ),
                           child: TextField(
                             controller: _searchController,
@@ -173,7 +173,7 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 12,
-                                vertical: 10,
+                                vertical: 12,
                               ),
                             ),
                           ),
@@ -196,7 +196,7 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                             child: SingleChildScrollView(
                               child: M3EList(
                                 itemCount: filtered.length,
-                                gap: 4,
+                                gap: 3,
                                 outerRadius: 16,
                                 innerRadius: 6,
                                 colorBuilder: (index) {
@@ -204,10 +204,10 @@ class _SpaceFloatingToolbarState extends State<SpaceFloatingToolbar>
                                   final isSelected = item.id == activeMap?.id;
                                   return isSelected
                                       ? colorScheme.primaryContainer.withValues(
-                                          alpha: 0.85,
+                                          alpha: 0.8,
                                         )
                                       : colorScheme.surface.withValues(
-                                          alpha: 0.34,
+                                          alpha: 0.3,
                                         );
                                 },
                                 onTap: (index) {

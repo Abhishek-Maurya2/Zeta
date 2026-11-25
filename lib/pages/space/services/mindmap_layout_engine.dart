@@ -33,16 +33,47 @@ class MindMapLayoutEngine {
   static const double canvasOriginX = 4000.0;
   static const double canvasOriginY = 4000.0;
 
-  static const List<Color> defaultBranchPalette = [
-    Color(0xFF6366F1), // Indigo
-    Color(0xFF10B981), // Emerald
-    Color(0xFFF59E0B), // Amber
-    Color(0xFFEC4899), // Pink
-    Color(0xFF06B6D4), // Cyan
-    Color(0xFF8B5CF6), // Purple
-    Color(0xFF3B82F6), // Blue
-    Color(0xFF14B8A6), // Teal
+  static const List<Color> lightDepthPalette = [
+    Color(0xFFC3CBFF), // Depth 0: Soft Periwinkle
+    Color(0xFFB6D5F6), // Depth 1: Soft Sky Blue
+    Color(0xFFA3DED3), // Depth 2: Soft Seafoam Teal
+    Color(0xFFA2E8B5), // Depth 3: Soft Mint Green
+    Color(0xFFCDFEA5), // Depth 4+: Soft Lime Mint
   ];
+
+  static const List<Color> darkDepthPalette = [
+    Color(0xFF323B6B), // Depth 0: Deep Periwinkle
+    Color(0xFF23415F), // Depth 1: Deep Sky Blue
+    Color(0xFF1D4B44), // Depth 2: Deep Seafoam Teal
+    Color(0xFF1D4D2E), // Depth 3: Deep Mint Green
+    Color(0xFF2E4D1D), // Depth 4+: Deep Lime Mint
+  ];
+
+  static const List<Color> lightEdgeDepthPalette = [
+    Color(0xFF6E7BF2), // Depth 0 -> 1: Periwinkle
+    Color(0xFF5A8AC6), // Depth 1 -> 2: Steel Blue
+    Color(0xFF4F9086), // Depth 2 -> 3: Slate Teal
+    Color(0xFF5C9E64), // Depth 3 -> 4+: Sage Green
+  ];
+
+  static const List<Color> darkEdgeDepthPalette = [
+    Color(0xFF8C97FF), // Depth 0 -> 1: Periwinkle
+    Color(0xFF6FA8EB), // Depth 1 -> 2: Steel Blue
+    Color(0xFF65BDB0), // Depth 2 -> 3: Slate Teal
+    Color(0xFF7FD187), // Depth 3 -> 4+: Sage Green
+  ];
+
+  static Color _nodeColorForDepth(int depth, bool isDark) {
+    final palette = isDark ? darkDepthPalette : lightDepthPalette;
+    return palette[depth.clamp(0, palette.length - 1)];
+  }
+
+  static Color _edgeColorForParentDepth(int parentDepth, bool isDark) {
+    final palette = isDark ? darkEdgeDepthPalette : lightEdgeDepthPalette;
+    return palette[parentDepth.clamp(0, palette.length - 1)];
+  }
+
+  static const List<Color> defaultBranchPalette = lightDepthPalette;
 
   /// Cache of memoized node measurements keyed by node content, style, and badge state.
   static final Map<String, Size> _nodeSizeCache = {};
@@ -101,6 +132,7 @@ class MindMapLayoutEngine {
       );
     }
 
+    final isDark = colorScheme?.brightness == Brightness.dark;
     final palette = getBranchPalette(
       colorScheme: colorScheme,
       customPalette: branchPalette,
@@ -151,7 +183,7 @@ class MindMapLayoutEngine {
       rootSize.height,
     );
     nodeBounds[root.id] = rootRect;
-    nodeColors[root.id] = defaultEdgeColor;
+    nodeColors[root.id] = _nodeColorForDepth(0, isDark);
     nodeIsLeft[root.id] = false;
 
     if (root.isCollapsed) {
@@ -338,17 +370,19 @@ class MindMapLayoutEngine {
       nodeBounds[child.id] = childRect;
       nodeIsLeft[child.id] = isLeft;
 
-      // Color inheritance: Level-1 gets offset palette color, descendants inherit
-      final branchColor = (depth == 1)
-          ? palette[(colorOffset + i) % palette.length]
-          : (nodeColors[child.parentId] ?? palette[0]);
+      final isDark = ThemeData.estimateBrightnessForColor(
+            nodeColors[child.parentId] ?? lightDepthPalette[0],
+          ) ==
+          Brightness.dark;
+      final branchColor = _nodeColorForDepth(depth, isDark);
       nodeColors[child.id] = branchColor;
 
-      // Create procedural edge
-      final strokeWidth = depth == 1 ? 3.5 : (depth == 2 ? 2.4 : 1.6);
+      // Create procedural edge starting from the external '<' / '>' pill
+      const pillOffset = 28.0;
+      final strokeWidth = depth == 1 ? 2.0 : 1.7;
       final startPoint = isLeft
-          ? Offset(parentRect.left, parentRect.center.dy)
-          : Offset(parentRect.right, parentRect.center.dy);
+          ? Offset(parentRect.left - pillOffset, parentRect.center.dy)
+          : Offset(parentRect.right + pillOffset, parentRect.center.dy);
       final endPoint = isLeft
           ? Offset(childRect.right, childRect.center.dy)
           : Offset(childRect.left, childRect.center.dy);
@@ -359,7 +393,7 @@ class MindMapLayoutEngine {
           targetId: child.id,
           startPoint: startPoint,
           endPoint: endPoint,
-          color: branchColor,
+          color: _edgeColorForParentDepth(depth - 1, isDark),
           strokeWidth: strokeWidth,
           isLeft: isLeft,
         ),
@@ -470,15 +504,21 @@ class MindMapLayoutEngine {
       nodeBounds[child.id] = childRect;
       nodeIsLeft[child.id] = false;
 
-      // Color inheritance: Level-1 gets offset palette color, descendants inherit
-      final branchColor = (depth == 1)
-          ? palette[(colorOffset + i) % palette.length]
-          : (nodeColors[child.parentId] ?? palette[0]);
+      final isDark = nodeColors[child.parentId]?.computeLuminance() != null &&
+          ThemeData.estimateBrightnessForColor(
+                nodeColors[child.parentId] ?? lightDepthPalette[0],
+              ) ==
+              Brightness.dark;
+      final branchColor = _nodeColorForDepth(depth, isDark);
       nodeColors[child.id] = branchColor;
 
-      // Create procedural vertical edge from bottom of parent to top of child
-      final strokeWidth = depth == 1 ? 3.5 : (depth == 2 ? 2.4 : 1.6);
-      final startPoint = Offset(parentRect.center.dx, parentRect.bottom);
+      // Create procedural vertical edge from external toggle pill to top of child
+      const pillOffset = 28.0;
+      final strokeWidth = depth == 1 ? 2.0 : 1.7;
+      final startPoint = Offset(
+        parentRect.center.dx,
+        parentRect.bottom + pillOffset,
+      );
       final endPoint = Offset(childRect.center.dx, childRect.top);
 
       edges.add(
@@ -487,7 +527,7 @@ class MindMapLayoutEngine {
           targetId: child.id,
           startPoint: startPoint,
           endPoint: endPoint,
-          color: branchColor,
+          color: _edgeColorForParentDepth(depth - 1, isDark),
           strokeWidth: strokeWidth,
           isLeft: false,
           isVertical: true,

@@ -188,19 +188,19 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
     final colorScheme = context.colorScheme;
     return GlassSurface(
       borderRadius: BorderRadius.circular(6),
-      blurSigma: 12,
+      blurSigma: 8,
       color: colorScheme.tertiaryContainer.withValues(
-        alpha: action.enabled ? 0.52 : 0.28,
+        alpha: action.enabled ? 0.5 : 0.3,
       ),
       border: Border.all(
-        color: colorScheme.outlineVariant.withValues(alpha: 0.24),
+        color: colorScheme.outlineVariant.withValues(alpha: 0.2),
         width: 1,
       ),
       child: M3EButton(
         style: M3EButtonStyle.tonal,
         size: M3EButtonSize.custom(
           width: 46,
-          height: 42,
+          height: 46,
           hPadding: 0,
           iconSize: 20,
           iconGap: 0,
@@ -211,7 +211,7 @@ class _VerticalConnectedButtonPair extends StatelessWidget {
         decoration: M3EButtonDecoration.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: colorScheme.onTertiaryContainer,
-          borderRadius: 6,
+          borderRadius: 0,
         ),
         child: Icon(action.icon, size: 20),
       ),

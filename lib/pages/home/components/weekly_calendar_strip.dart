@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:provider/provider.dart';
@@ -40,7 +40,11 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
 
   final Key _centerKey = const ValueKey('center_day_today');
   late final ScrollController _scrollController;
-  late final DateTime _today;
+
+  DateTime get _today {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   double _effectiveItemExtent = _baseItemExtent;
   int _effectiveVisibleDays = _maxVisibleDays;
@@ -48,8 +52,6 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _today = DateTime(now.year, now.month, now.day);
     _scrollController = ScrollController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,7 +141,6 @@ class _WeeklyCalendarStripState extends State<WeeklyCalendarStrip> {
           onTap: () {
             ZetaHaptics.selection();
             widget.onSelectDate(dayDate);
-            _centerOnDayOffset(offset);
           },
         );
       }),
@@ -394,10 +395,10 @@ class _StripDayPill extends StatelessWidget {
     Color? dotColor;
     String? dotLabel;
     if (overdueCount > 0) {
-      dotColor = const Color(0xFFEF4444);
+      dotColor = colorScheme.error;
       dotLabel = '$overdueCount overdue';
     } else if (pendingCount > 0) {
-      dotColor = const Color(0xFF3B82F6);
+      dotColor = colorScheme.primary;
       dotLabel = '$pendingCount pending';
     }
 
@@ -411,13 +412,17 @@ class _StripDayPill extends StatelessWidget {
     final dayNum = dayDate.day.toString();
     final effectiveWidth = math.min(50.0, math.max(38.0, itemExtent - 6.0));
 
+    final pillRadius = BorderRadius.circular(
+      isDayToday && !isSelected ? 10 : 54,
+    );
+
     return Center(
       child: M3ETooltip(
         message: '$dayName $dayNum${dotLabel != null ? " • $dotLabel" : ""}',
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
-            borderRadius: BorderRadius.circular(44),
+            borderRadius: pillRadius,
             onTap: onTap,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -429,9 +434,7 @@ class _StripDayPill extends StatelessWidget {
                     : (isDayToday
                           ? colorScheme.surfaceContainerHighest
                           : Colors.transparent),
-                borderRadius: BorderRadius.circular(
-                  isDayToday && !isSelected ? 10 : 54,
-                ),
+                borderRadius: pillRadius,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -558,12 +561,13 @@ class _StripLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = context.colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _buildItem(const Color(0xFFEF4444), 'Overdue', context),
+        _buildItem(colorScheme.error, 'Overdue', context),
         const SizedBox(width: 14),
-        _buildItem(const Color(0xFF3B82F6), 'Pending', context),
+        _buildItem(colorScheme.primary, 'Pending', context),
         const SizedBox(width: 8),
       ],
     );

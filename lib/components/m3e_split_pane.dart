@@ -249,7 +249,7 @@ class _M3ESplitPaneState extends State<M3ESplitPane> {
           onDragUpdate: _handleDragUpdate,
           onDragEnd: _handleDragEnd,
           onDoubleTap: _handleDoubleTap,
-          tooltip: widget.label,
+          // tooltip: widget.label,
           showLine: false,
         );
         

@@ -19,6 +19,15 @@ class PomodoroQueueItemTile extends StatelessWidget {
     required this.isRunning,
   });
 
+  String _formatDuration(int minutes) {
+    if (minutes >= 60) {
+      final h = minutes ~/ 60;
+      final m = minutes % 60;
+      return m > 0 ? '${h}h ${m}m' : '${h}h';
+    }
+    return '$minutes:00';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = context.colorScheme;
@@ -34,7 +43,7 @@ class PomodoroQueueItemTile extends StatelessWidget {
           color: isActive
               ? colorScheme.primaryContainer
               : (isPast
-                    ? colorScheme.tertiary.withValues(alpha: 0.5)
+                    ? colorScheme.surfaceContainerHighest
                     : colorScheme.tertiary),
           child: Center(
             child: Icon(
@@ -53,7 +62,9 @@ class PomodoroQueueItemTile extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: isActive
                   ? colorScheme.onPrimaryContainer
-                  : (isPast ? colorScheme.onSurface : colorScheme.onTertiary),
+                  : (isPast
+                        ? colorScheme.onSurfaceVariant
+                        : colorScheme.onTertiary),
             ),
           ),
         ),
@@ -87,22 +98,25 @@ class PomodoroQueueItemTile extends StatelessWidget {
                   if (item.sessionNumber != null) ...[
                     const SizedBox(width: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
                       decoration: BoxDecoration(
                         color: !isActive
                             ? isPast
                                   ? colorScheme.primaryContainer.withValues(alpha: 0.7)
                                   : colorScheme.primaryContainer
                             : colorScheme.onTertiary,
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${item.sessionNumber}',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: isActive ? colorScheme.tertiary : colorScheme.primary ,
+                          color: isActive
+                              ? colorScheme.tertiary
+                              : colorScheme.onPrimaryContainer,
                           fontSize: 12,
                           fontFamily: 'RobotoMono',
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),
@@ -110,9 +124,10 @@ class PomodoroQueueItemTile extends StatelessWidget {
                 ],
               ),
               Text(
-                '${item.durationMinutes}:00',
+                _formatDuration(item.durationMinutes),
                 style: TextStyle(
                   fontFamily: 'RobotoMono',
+                  fontFeatures: const [FontFeature.tabularFigures()],
                   fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                   color: isActive
                       ? colorScheme.onTertiary

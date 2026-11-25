@@ -1,5 +1,5 @@
 ﻿import 'package:zeta/core/core.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../utils/haptics.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 
@@ -41,7 +41,7 @@ class M3EPaneDivider extends StatefulWidget {
     this.onDragStart,
     this.onDragEnd,
     this.onDoubleTap,
-    this.tooltip = 'Drag to resize · Double-tap to reset',
+    this.tooltip = 'Drag to resize',
     this.showLine = false,
     this.orientation = Axis.horizontal,
   });
@@ -104,29 +104,29 @@ class _M3EPaneDividerState extends State<M3EPaneDivider> {
           widget.onDragEnd?.call();
         },
         onDoubleTap: _handleDoubleTap,
-        child: M3ETooltip(
-          message: widget.tooltip,
-          child: SizedBox(
-            width: isHorizontal ? 24.0 : double.infinity, 
-            height: isHorizontal ? double.infinity : 24.0, 
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (widget.showLine)
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.center,
-                      child: Container(
-                        width: isHorizontal ? 1.0 : double.infinity,
-                        height: isHorizontal ? double.infinity : 1.0,
-                        color:
-                            colorScheme.outlineVariant.withValues(alpha: 0.45),
-                      ),
+        child: SizedBox(
+          width: isHorizontal ? 24.0 : double.infinity,
+          height: isHorizontal ? double.infinity : 24.0,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (widget.showLine)
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: isHorizontal ? 1.0 : double.infinity,
+                      height: isHorizontal ? double.infinity : 1.0,
+                      color:
+                          colorScheme.outlineVariant.withValues(alpha: 0.45),
                     ),
                   ),
+                ),
 
-                // Interactive Drag Handle Pill
-                AnimatedContainer(
+              // Interactive Drag Handle Pill
+              M3ETooltip(
+                message: widget.tooltip,
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 160),
                   curve: Curves.easeOutCubic,
                   width: handleWidth,
@@ -145,8 +145,8 @@ class _M3EPaneDividerState extends State<M3EPaneDivider> {
                         : null,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

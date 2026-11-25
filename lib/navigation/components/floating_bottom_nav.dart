@@ -129,6 +129,8 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
               ZetaFloatingToolbar.custom(
                 motion: const ZetaToolbarMotion(enabled: false),
                 style: ZetaToolbarStyle(
+                  elevation: 0,
+                  shadows: const [],
                   borderRadius: BorderRadius.circular(100),
                   backgroundColor: colorScheme.primaryContainer,
                   blurSigma: 7.0,
@@ -178,10 +180,12 @@ class _FloatingBottomNavState extends State<FloatingBottomNav>
                 ZetaFloatingToolbar.custom(
                   motion: const ZetaToolbarMotion(enabled: false),
                   style: ZetaToolbarStyle(
+                    elevation: 0,
+                    shadows: const [],
                     borderRadius: BorderRadius.circular(16),
                     backgroundColor: colorScheme.tertiaryContainer,
                     blurSigma: 6,
-                    alpha: 0.5,
+                    alpha: 0.7,
                     border: const Border.fromBorderSide(BorderSide.none),
                     padding: EdgeInsets.zero,
                   ),

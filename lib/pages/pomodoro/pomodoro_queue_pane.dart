@@ -45,6 +45,7 @@ class PomodoroQueuePane extends StatelessWidget {
                 child: Text(
                   'Up next',
                   style: textTheme.headlineSmall?.copyWith(
+                    fontFamily: 'GoogleSansFlex',
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.3,
                     color: colorScheme.onSurface,

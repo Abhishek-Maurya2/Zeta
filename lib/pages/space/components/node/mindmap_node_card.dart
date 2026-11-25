@@ -5,7 +5,6 @@ import 'package:zeta/core/core.dart';
 
 import '../../models/mindmap_node.dart';
 import '../../providers/space_provider.dart';
-import '../../../../providers/theme_provider.dart';
 import '../../../../utils/haptics.dart';
 import '../../../../theme/motion_tokens.dart';
 import 'mindmap_node_metrics.dart';
@@ -53,59 +52,44 @@ class MindMapNodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SpaceProvider>();
-    final themeProvider = context.watch<ThemeProvider>();
-    final isDark = themeProvider.isDarkMode(context);
     final colorScheme = context.colorScheme;
     final textTheme = context.textTheme;
     final isRoot = node.isRoot;
 
     final Border border;
     final Color cardBgColor;
-    final Color? textColorOverride;
+    final Color textColor;
 
     if (isDisallowedTarget) {
       border = Border.all(color: colorScheme.error, width: 2.0);
       cardBgColor = colorScheme.errorContainer;
-      textColorOverride = colorScheme.onErrorContainer;
+      textColor = colorScheme.onErrorContainer;
     } else if (isReparentGlow) {
-      border = Border.all(color: branchColor, width: 2.2);
-      cardBgColor = Color.alphaBlend(
-        branchColor.withValues(alpha: isDark ? 0.30 : 0.20),
-        colorScheme.surfaceContainerHigh,
-      );
-      textColorOverride = null;
+      border = Border.all(color: colorScheme.primary, width: 2.2);
+      cardBgColor = branchColor;
+      textColor =
+          ThemeData.estimateBrightnessForColor(cardBgColor) == Brightness.dark
+          ? const Color(0xFFF0F2FA)
+          : const Color(0xFF1A1C1E);
     } else if (isSelected) {
-      border = Border.all(color: branchColor, width: 2.0);
-      cardBgColor = Color.alphaBlend(
-        branchColor.withValues(alpha: isDark ? 0.26 : 0.16),
-        colorScheme.surfaceContainerHigh,
-      );
-      textColorOverride = null;
+      border = Border.all(color: colorScheme.primary, width: 2.0);
+      cardBgColor = branchColor;
+      textColor =
+          ThemeData.estimateBrightnessForColor(cardBgColor) == Brightness.dark
+          ? const Color(0xFFF0F2FA)
+          : const Color(0xFF1A1C1E);
     } else {
-      border = Border.all(
-        color: isRoot
-            ? branchColor.withValues(alpha: isDark ? 0.70 : 0.55)
-            : colorScheme.outlineVariant.withValues(alpha: isDark ? 0.45 : 0.55),
-        width: isRoot ? 1.6 : 1.0,
-      );
-      cardBgColor = Color.alphaBlend(
-        branchColor.withValues(
-          alpha: isRoot ? (isDark ? 0.24 : 0.16) : (isDark ? 0.15 : 0.10),
-        ),
-        isRoot
-            ? colorScheme.surfaceContainerLow
-            : colorScheme.surfaceContainerLowest,
-      );
-      textColorOverride = null;
+      border = Border.all(color: Colors.transparent, width: 1.0);
+      cardBgColor = branchColor;
+      textColor =
+          ThemeData.estimateBrightnessForColor(cardBgColor) == Brightness.dark
+          ? const Color(0xFFF0F2FA)
+          : const Color(0xFF1A1C1E);
     }
 
     final borderRadius = BorderRadius.circular(
-      isRoot ? (isSelected ? 18 : 28) : (isSelected ? 12 : 20),
+      node.isCollapsed ? bounds.height / 2 : (isRoot ? 10 : 9),
     );
-    final badgeFgColor =
-        ThemeData.estimateBrightnessForColor(branchColor) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF141414);
 
     return Material(
       type: MaterialType.transparency,
@@ -123,7 +107,7 @@ class MindMapNodeCard extends StatelessWidget {
           ),
           padding: EdgeInsets.symmetric(
             horizontal: isRoot ? 18 : 14,
-            vertical: isRoot ? 14 : 11,
+            vertical: isRoot ? 13 : 10,
           ),
           alignment: Alignment.centerLeft,
           child: Row(
@@ -162,70 +146,19 @@ class MindMapNodeCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
                           fontFamily: 'GoogleSansFlex',
-                          fontSize: isRoot ? 20 : 18,
+                          fontSize: isRoot ? 18 : 16,
                           fontWeight: isRoot
                               ? FontWeight.w700
                               : FontWeight.w500,
-                          color: textColorOverride ?? colorScheme.onSurface,
+                          color: textColor,
                           height: 1.35,
                           decoration: node.style.isChecked
                               ? TextDecoration.lineThrough
                               : null,
-                          decorationColor: colorScheme.outline,
+                          decorationColor: textColor.withValues(alpha: 0.6),
                         ),
                       ),
               ),
-
-              // 3. Expressive Collapse / Expand Pill
-              if (hasChildren && (node.isCollapsed || isSelected)) ...[
-                const SizedBox(width: 6),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    ZetaHaptics.selection();
-                    provider.toggleNodeCollapsed(node.id);
-                  },
-                  child: M3ETooltip(
-                    message: node.isCollapsed
-                        ? 'Expand ($childCount)'
-                        : 'Collapse',
-                    child: AnimatedContainer(
-                      duration: M3MotionDuration.short4,
-                      curve: M3MotionEasing.emphasizedDecelerate,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: node.isCollapsed ? 8 : 5,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: node.isCollapsed
-                            ? branchColor
-                            : branchColor.withValues(
-                                alpha: isDark ? 0.28 : 0.18,
-                              ),
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                      child: node.isCollapsed
-                          ? Text(
-                              '$childCount',
-                              style: TextStyle(
-                                fontFamily: 'GoogleSansFlex',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: badgeFgColor,
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            )
-                          : Icon(
-                              Icons.unfold_less_rounded,
-                              size: 16,
-                              color: colorScheme.onSurface,
-                            ),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
